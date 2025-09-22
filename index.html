@@ -18,401 +18,188 @@
             });
         }
     </script>
+    <script src="./src/modules/teams/teams.js"></script>
 </head>
 <body>
-    <div id="app">
+    <div id="debug-banner" style="position:fixed;top:8px;right:8px;background:#fde68a;color:#92400e;padding:6px 10px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:10000;font-size:12px;">DEBUG: JS non ancora inizializzato</div>
+    <div id="loading-screen" style="position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;">
+      <div style="text-align:center;">
+        <div style="font-weight:600;color:#2563eb;margin-bottom:6px;">My Volley Scout</div>
+        <div style="color:#374151;">Caricamento…</div>
+      </div>
+    </div>
+    <div id="app" style="display:none;">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <h1>My Volley Scout</h1>
                 
-                <!-- Authentication Section -->
+                <!-- User Info Section -->
                 <div class="auth-section">
-
-                    
-                    <div id="userInfo" class="user-info" style="display: none;">
+                    <div id="userInfo" class="user-info">
                         <span id="userEmail"></span>
-                        <span id="userRole" style="margin-left: 10px; font-size: 0.8em; color: #666;"></span>
-                        <button id="adminBtn" class="btn btn-outline" style="display: none; margin-left: 10px;" onclick="window.location.href='admin.html'">Admin</button>
+                        <button id="backToWelcomeBtn" class="btn btn-outline">Cambia Squadra</button>
                         <button id="signOutBtn" class="btn btn-outline">Esci</button>
                     </div>
                 </div>
             </div>
-            
-            <nav class="nav">
-                <button class="nav-btn active" data-page="match-data">Match-Data</button>
-                <button class="nav-btn" data-page="roster">El. Gioc.</button>
-                <button class="nav-btn" data-page="scouting">Start-Scouting</button>
-            </nav>
         </header>
 
         <!-- Main Content -->
         <main class="main">
-            <!-- Match-Data Page -->
-            <div id="match-data" class="page active">
-                
-                <div class="match-summary section" id="match-summary">
-                      <div class="summary-grid">
-                          <div class="summary-item">
-                              <div class="summary-label">Data</div>
-                              <div class="summary-value" id="summary-date">-</div>
-                          </div>
-                          <div class="summary-item">
-                              <div class="summary-label">Tipo evento</div>
-                              <div class="summary-value" id="summary-type">-</div>
-                          </div>
-                          <div class="summary-item" style="grid-column: 1 / -1;">
-                              <div class="summary-label">Squadre</div>
-                              <div class="summary-value" id="summary-teams">-</div>
-                          </div>
-                      </div>
-                  </div>
-                
-                <div class="match-actions">
-                    <button id="new-match-btn" class="btn btn-primary">Nuova Partita</button>
-                    <button id="load-matches-btn" class="btn btn-secondary">Elenco Partite</button>
-                </div>
-                
-                <div id="new-match-section" class="section">
-                    <form id="new-match-form" class="form">
-                        <div class="form-group">
-                            <label for="my-team">Il mio Team:</label>
-                            <input type="text" id="my-team" placeholder="Inserisci il nome della tua squadra" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="opponent-team">Squadra Avversaria:</label>
-                            <input type="text" id="opponent-team" placeholder="Inserisci il nome della squadra avversaria" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="home-away">La mia squadra gioca:</label>
-                            <select id="home-away" required>
-                                <option value="">Seleziona...</option>
-                                <option value="home">In Casa</option>
-                                <option value="away">In Trasferta</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="match-type">Tipologia Partita:</label>
-                            <select id="match-type" required>
-                                <option value="">Seleziona...</option>
-                                <option value="campionato">Campionato</option>
-                                <option value="coppa">Coppa</option>
-                                <option value="amichevole">Amichevole</option>
-                                <option value="playoff">Playoff</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Crea Partita</button>
-                    </form>
+            <div class="section" id="scouting-section">
+                <div class="start-set-container" style="margin-bottom:1rem;">
+                    <button id="start-set" class="btn btn-primary btn-large">INIZIA SET</button>
                 </div>
 
-                <div id="matches-list-section" class="section hidden">
-                    <h3>Partite Precedenti</h3>
-                    <div id="matches-list" class="matches-list">
-                        <!-- Lista partite caricate dinamicamente -->
+                <h3>Scouting Azioni</h3>
+                
+                <div class="game-status">
+                    <div class="score">
+                        <span class="home-score">0</span> - <span class="away-score">0</span>
+                    </div>
+                    <div class="current-info">
+                        <span id="current-rotation">P1</span> | 
+                        <span id="current-phase">Servizio</span> | 
+                        <span id="current-set-display">Set 1</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Roster Page -->
-            <div id="roster" class="page hidden">
                 
-                <div class="roster-page-content" aria-labelledby="roster-title">
-                  <div class="section">
-                    <div class="button-row top-actions">
-                      <button id="btn-create-roster" class="btn btn-primary">Crea Nuovo</button>
-                      <button id="btn-list-rosters" class="btn">Elenco</button>
-                      <button id="btn-load-roster" class="btn">Carica</button>
+                <div class="scouting-info">
+                    <div class="phase-info">
+                        <strong>Fase di gioco: <span id="current-phase-2">servizio</span></strong>
                     </div>
-                  </div>
-                
-                  <!-- Tabella inferiore con i dati delle giocatrici (vuota inizialmente) -->
-                  <div class="section">
-                    <h3 class="section-title">Dati Giocatrici</h3>
-                    <div class="table-wrapper">
-                      <table class="data-table">
-                        <thead>
-                          <tr>
-                            <th>N°</th>
-                            <th>Nome</th>
-                            <th>Cognome</th>
-                            <th>Ruolo</th>
-                            <th>Nickname</th>
-                          </tr>
-                        </thead>
-                        <tbody id="roster-table-body"><!-- popolata da renderRosterTable() --></tbody>
-                      </table>
+                    <div class="next-fundamental-info">
+                        <strong>Prossimo fondamentale: <span id="next-fundamental">Servizio (b)</span></strong>
                     </div>
-                  </div>
                 </div>
                 
-                <!-- Dialog: Crea/Modifica Roster a tutta pagina (riusa il vecchio roster-dialog) -->
-                <div id="roster-dialog" class="dialog full-screen" role="dialog" aria-modal="true" aria-labelledby="roster-dialog-title" hidden>
+                <div id="scouting-dialog" class="dialog">
                   <div class="dialog-content">
                     <div class="dialog-header">
-                      <h2 id="roster-dialog-title">Crea Nuovo Roster</h2>
-                      <button class="dialog-close" onclick="closeDialog('roster-dialog')" aria-label="Chiudi">×</button>
+                      <h3>Selezione Azione</h3>
                     </div>
-                    <div class="dialog-body">
-                      <label class="input-label" for="roster-name-dialog">Nome Roster</label>
-                      <input id="roster-name-dialog" type="text" class="input" placeholder="Inserisci nome" />
-                      <div id="roster-form-dialog" class="roster-grid"></div>
-                    </div>
-                    <div class="dialog-footer">
-                      <input type="file" id="import-roster-file" accept="application/json" hidden />
-                      <button id="import-roster-dialog" class="btn">Importa</button>
-                      <button id="export-roster-dialog" class="btn">Esporta</button>
-                      <button id="clear-roster-dialog" class="btn btn-secondary">Pulisci</button>
-                      <button id="save-roster-dialog" class="btn btn-primary">Salva</button>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Dialog: Elenco Roster Salvati a tutta pagina -->
-                <div id="roster-list-dialog" class="dialog full-screen" role="dialog" aria-modal="true" aria-labelledby="roster-list-title" hidden>
-                  <div class="dialog-content">
-                    <div class="dialog-header">
-                      <h2 id="roster-list-title">Roster Salvati</h2>
-                      <button class="dialog-close" onclick="closeDialog('roster-list-dialog')" aria-label="Chiudi">×</button>
-                    </div>
-                    <div class="dialog-body">
-                      <div class="button-row">
-                        <input type="file" id="import-roster-list-file" accept="application/json" hidden />
-                        <button id="import-roster-list-btn" class="btn">Importa CSV</button>
+                    <div class="dialog-body dialog-form">
+                      <!-- Banner Fondamentale in alto -->
+                      <div id="fundamental-banner"><span class="label">Fondamentale:</span> <span class="value" id="current-fundamental-banner"></span></div>
+                  
+                      <!-- Step: Seleziona Giocatore -->
+                      <div class="scouting-step" id="step-player">
+                        <div class="step-header">
+                          <h4>Seleziona Giocatore</h4>
+                          <button class="close-btn" onclick="closeDialog('scouting-dialog')" aria-label="Chiudi">×</button>
+                        </div>
+                        <div id="players-grid" class="players-grid"></div>
                       </div>
-                      <div id="saved-rosters" class="roster-list"></div>
-                    </div>
-                  </div>
-                </div>
-            </div>
-
-            <!-- Scouting Page -->
-            <div id="scouting" class="page">
-                
-                <!-- Match Info Section -->
-                <div class="section" id="match-info-section" style="display: none;">
-                    <h3>Informazioni Partita</h3>
-                    <div class="match-info-display">
-                        <div class="match-teams">
-                            <span id="match-home-team">-</span> vs <span id="match-away-team">-</span>
+                  
+                      <!-- Step: Valutazioni -->
+                      <div class="scouting-step" id="step-action">
+                        <h4>Seleziona Azione</h4>
+                        <div class="action-info">
+                          <p class="player-info"><strong>Giocatore selezionato:</strong> <span id="selected-player-display"></span></p>
+                          <p class="fundamental-info"><strong>Fondamentale:</strong> <span id="current-fundamental"></span></p>
                         </div>
-                        <div class="match-details">
-                            <span id="match-type">-</span> | <span id="match-date">-</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h3>Configurazione Set</h3>
-                    <div class="set-config">
-                        <div class="form-group">
-                            <label for="current-set">Set Corrente:</label>
-                            <select id="current-set">
-                                <option value="1">Set 1</option>
-                                <option value="2">Set 2</option>
-                                <option value="3">Set 3</option>
-                                <option value="4">Set 4</option>
-                                <option value="5">Set 5</option>
-                                <option value="6">Set 6</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="rotation">Rotazione Iniziale:</label>
-                            <select id="rotation">
-                                <option value="P1">P1</option>
-                                <option value="P2">P2</option>
-                                <option value="P3">P3</option>
-                                <option value="P4">P4</option>
-                                <option value="P5">P5</option>
-                                <option value="P6">P6</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="game-phase">Fase di Gioco:</label>
-                            <select id="game-phase">
-                                <option value="servizio">Servizio</option>
-                                <option value="ricezione">Ricezione</option>
-                            </select>
-                        </div>
-                        
-                        <button id="start-set" class="btn btn-primary">Inizia Set</button>
-                    </div>
-                </div>
-
-                <div class="section" id="scouting-section" style="display: none;">
-                    <h3>Scouting Azioni</h3>
-                    
-                    <div class="game-status">
-                        <div class="score">
-                            <span class="home-score">0</span> - <span class="away-score">0</span>
-                        </div>
-                        <div class="current-info">
-                            <span id="current-rotation">P1</span> | 
-                            <span id="current-phase">Servizio</span> | 
-                            <span id="current-set-display">Set 1</span>
-                        </div>
-                    </div>
-                    
-                    <div class="scouting-info">
-                        <div class="phase-info">
-                            <strong>Fase di gioco: <span id="current-phase">servizio</span></strong>
-                        </div>
-                        <div class="next-fundamental-info">
-                            <strong>Prossimo fondamentale: <span id="next-fundamental">Servizio (b)</span></strong>
-                        </div>
-                    </div>
-                    
-                    <div id="scouting-dialog" class="dialog">
-                      <div class="dialog-content">
-                        <div class="dialog-header">
-                          <h3>Selezione Azione</h3>
-                        </div>
-                        <div class="dialog-body dialog-form">
-                          <!-- Banner Fondamentale in alto -->
-                          <div id="fundamental-banner"><span class="label">Fondamentale:</span> <span class="value" id="current-fundamental-banner"></span></div>
-                      
-                          <!-- Step: Seleziona Giocatore -->
-                          <div class="scouting-step" id="step-player">
-                            <div class="step-header">
-                              <h4>Seleziona Giocatore</h4>
-                              <button class="close-btn" onclick="closeDialog('scouting-dialog')" aria-label="Chiudi">×</button>
-                            </div>
-                            <div id="players-grid" class="players-grid"></div>
-                          </div>
-                      
-                          <!-- Step: Valutazioni -->
-                          <div class="scouting-step" id="step-action">
-                            <h4>Seleziona Azione</h4>
-                            <div class="action-info">
-                              <p class="player-info"><strong>Giocatore selezionato:</strong> <span id="selected-player-display"></span></p>
-                              <p class="fundamental-info"><strong>Fondamentale:</strong> <span id="current-fundamental"></span></p>
-                            </div>
-                            <div class="evaluation-buttons">
-                              <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">1 - Errore</button>
-                              <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">2 - Negativo</button>
-                              <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">3 - Neutro</button>
-                              <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">4 - Positivo</button>
-                              <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">5 - Punto</button>
-                              <button class="eval-btn" onclick="submitOpponentError()">Err Avv</button>
-                            </div>
-                          </div>
-                      
-                          <!-- Riepilogo azione -->
-                          <div id="action-summary-box">
-                            <h4>Riepilogo azione</h4>
-                            <div id="action-summary"></div>
-                          </div>
-                      
-                          <!-- Conferma -->
-                          <button id="confirm-guided-action" class="confirm-btn" onclick="submitGuidedAction()">Conferma Azione</button>
-                      
-                          <!-- Log Azioni -->
-                          <div id="actions-log" class="actions-log">
-                            <h4>Log Azioni</h4>
-                            <div id="actions-list"></div>
-                          </div>
+                        <div class="evaluation-buttons">
+                          <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">1 - Errore</button>
+                          <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">2 - Negativo</button>
+                          <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">3 - Neutro</button>
+                          <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">4 - Positivo</button>
+                          <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">5 - Punto</button>
+                          <button class="eval-btn" onclick="submitOpponentError()">Err Avv</button>
                         </div>
                       </div>
+                  
+                      <!-- Riepilogo azione -->
+                      <div id="action-summary-box">
+                        <h4>Riepilogo azione</h4>
+                        <div id="action-summary"></div>
+                      </div>
+                  
+                      <!-- Conferma -->
+                      <button id="confirm-guided-action" class="confirm-btn" onclick="submitGuidedAction()">Conferma Azione</button>
+                  
+                      <!-- Log Azioni -->
+                      <div id="actions-log" class="actions-log">
+                        <h4>Log Azioni</h4>
+                        <div id="actions-list"></div>
+                      </div>
                     </div>
+                  </div>
                 </div>
             </div>
         </main>
-        
-        <!-- Authentication Modal -->
-        <div id="authModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span id="authModalClose" class="close">&times;</span>
-                
-                <!-- Login Form -->
-                <div id="loginFormContainer" class="auth-form-container">
-                    <h2>Accedi</h2>
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <label for="loginEmail">Email:</label>
-                            <input type="email" id="loginEmail" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="loginPassword">Password:</label>
-                            <input type="password" id="loginPassword" required>
-                        </div>
-                        <div id="loginError" class="error-message"></div>
-                        <button type="submit" id="loginBtn" class="btn btn-primary">Accedi</button>
-                    </form>
-                    
-                    <div class="auth-divider">
-                        <span>oppure</span>
-                    </div>
-                    
-                    <button id="googleSignInBtn" class="btn btn-google">
-                        <svg width="18" height="18" viewBox="0 0 18 18">
-                            <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
-                            <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-2.7.75 4.8 4.8 0 0 1-4.52-3.36H1.83v2.07A8 8 0 0 0 8.98 17z"/>
-                            <path fill="#FBBC05" d="M4.46 10.41a4.8 4.8 0 0 1 0-3.06V5.28H1.83a8 8 0 0 0 0 7.17l2.63-2.04z"/>
-                            <path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.44 1.35l2.54-2.54A8 8 0 0 0 8.98 1a8 8 0 0 0-7.15 4.42l2.63 2.05c.61-1.86 2.35-3.24 4.52-3.24z"/>
-                        </svg>
-                        Accedi con Google
-                    </button>
-                    <div id="googleError" class="error-message"></div>
-                    
-                    <p class="auth-switch">
-                        Non hai un account? <a href="#" id="switchToRegister">Registrati</a>
-                    </p>
-                </div>
-                
-                <!-- Register Form -->
-                <div id="registerFormContainer" class="auth-form-container" style="display: none;">
-                    <h2>Registrati</h2>
-                    <form id="registerForm">
-                        <div class="form-group">
-                            <label for="registerEmail">Email:</label>
-                            <input type="email" id="registerEmail" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="registerPassword">Password:</label>
-                            <input type="password" id="registerPassword" required minlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Conferma Password:</label>
-                            <input type="password" id="confirmPassword" required minlength="6">
-                        </div>
-                        <div id="registerError" class="error-message"></div>
-                        <button type="submit" id="registerBtn" class="btn btn-primary">Registrati</button>
-                    </form>
-                    
-                    <p class="auth-switch">
-                        Hai già un account? <a href="#" id="switchToLogin">Accedi</a>
-                    </p>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
-    
-    <!-- Carica i file di configurazione Firebase -->
-    <script src="./connection-manager.js?v=1"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="./firebase-config.js?v=4"></script>
-    <script src="./firestore-service.js?v=4"></script>
-    <script src="./auth.js?v=4"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Aspetta che tutti i moduli siano caricati
-            setTimeout(function() {
-                if (typeof initializeAuth === 'function') {
-                    initializeAuth();
-                } else if (window.authModule && window.authModule.initializeAuth) {
-                    window.authModule.initializeAuth();
+            // Avvia subito il guard di autenticazione
+            checkAuthAndSession();
+
+            // Guard di autenticazione e controllo sessione
+            function checkAuthAndSession() {
+                if (typeof window.authFunctions === 'undefined') {
+                    setTimeout(checkAuthAndSession, 200);
+                    return;
                 }
-            }, 500);
+
+                window.authFunctions.onAuthStateChanged((user) => {
+                    if (!user) {
+                        // Utente non autenticato: redirect immediato al login
+                        window.location.replace('auth-login.html');
+                        return;
+                    }
+                    // Utente autenticato: verifica una sessione di scouting attiva
+                    checkScoutingSession();
+                });
+            }
+
+            function checkScoutingSession() {
+                const currentSession = localStorage.getItem('currentScoutingSession');
+                if (!currentSession) {
+                    // Nessuna sessione attiva: invia al flusso di benvenuto
+                    window.location.replace('welcome.html');
+                    return;
+                }
+                try {
+                    const sessionData = JSON.parse(currentSession);
+                    initializeScoutingApp(sessionData);
+                } catch (error) {
+                    console.error('Errore nel parsing della sessione:', error);
+                    localStorage.removeItem('currentScoutingSession');
+                    window.location.replace('welcome.html');
+                }
+            }
+
+            function initializeScoutingApp(sessionData) {
+                // Carica l'app solo dopo autenticazione e sessione valida
+                const script = document.createElement('script');
+                script.src = 'app.js?v=5';
+                script.onload = function() {
+                    // Nasconde banner debug e loading
+                    var dbg = document.getElementById('debug-banner');
+                    if (dbg) dbg.style.display = 'none';
+                    var ls = document.getElementById('loading-screen');
+                    if (ls) ls.style.display = 'none';
+                    // Mostra l'app
+                    var appEl = document.getElementById('app');
+                    if (appEl) appEl.style.display = '';
+                    // Inietta la sessione nell'app
+                    if (typeof loadScoutingSession === 'function') {
+                        loadScoutingSession(sessionData);
+                    }
+                };
+                document.body.appendChild(script);
+            }
         });
     </script>
     
-    <script src="app.js?v=5"></script>
+    <!-- app.js viene caricato dinamicamente dopo la verifica di autenticazione -->
 </body>
 </html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test My Volley Scout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+            background: #e3f2fd;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .success {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test My Volley Scout</h1>
+        <div id="status">Inizializzazione...</div>
+        
+        <h2>Test di Caricamento</h2>
+        <div id="firebase-status" class="status">Firebase: Non testato</div>
+        <div id="modules-status" class="status">Moduli: Non testati</div>
+        <div id="css-status" class="status">CSS: Non testato</div>
+        
+        <h2>Console Log</h2>
+        <div id="console-log" style="background: #f0f0f0; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></div>
+        
+        <button onclick="testApp()" style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Testa Applicazione</button>
+    </div>
+
+    <script>
+        // Intercetta i log della console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const logContainer = document.getElementById('console-log');
+        
+        function addToLog(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ');
+            logContainer.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog('log', ...args);
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog('error', ...args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog('warn', ...args);
+        };
+        
+        function updateStatus(id, message, isError = false, isSuccess = false) {
+            const element = document.getElementById(id);
+            element.textContent = message;
+            element.className = 'status';
+            if (isError) element.className += ' error';
+            if (isSuccess) element.className += ' success';
+        }
+        
+        function testApp() {
+            console.log('Iniziando test dell\'applicazione...');
+            
+            // Test CSS
+            const cssLink = document.createElement('link');
+            cssLink.rel = 'stylesheet';
+            cssLink.href = 'styles/main.css';
+            cssLink.onload = () => {
+                updateStatus('css-status', 'CSS: Caricato con successo', false, true);
+                console.log('CSS caricato correttamente');
+            };
+            cssLink.onerror = () => {
+                updateStatus('css-status', 'CSS: Errore nel caricamento', true);
+                console.error('Errore nel caricamento CSS');
+            };
+            document.head.appendChild(cssLink);
+            
+            // Test Firebase
+            const firebaseScript = document.createElement('script');
+            firebaseScript.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+            firebaseScript.onload = () => {
+                updateStatus('firebase-status', 'Firebase: SDK caricato', false, true);
+                console.log('Firebase SDK caricato');
+                
+                // Test Firebase Config
+                const configScript = document.createElement('script');
+                configScript.src = '../firebase-config.js';
+                configScript.onload = () => {
+                    console.log('Firebase config caricato');
+                    if (typeof firebase !== 'undefined') {
+                        updateStatus('firebase-status', 'Firebase: Completamente inizializzato', false, true);
+                    }
+                };
+                configScript.onerror = () => {
+                    updateStatus('firebase-status', 'Firebase: Errore config', true);
+                    console.error('Errore nel caricamento Firebase config');
+                };
+                document.head.appendChild(configScript);
+            };
+            firebaseScript.onerror = () => {
+                updateStatus('firebase-status', 'Firebase: Errore SDK', true);
+                console.error('Errore nel caricamento Firebase SDK');
+            };
+            document.head.appendChild(firebaseScript);
+            
+            // Test Moduli
+            const testModule = document.createElement('script');
+            testModule.src = 'modules/auth/auth.js';
+            testModule.onload = () => {
+                updateStatus('modules-status', 'Moduli: AuthModule caricato', false, true);
+                console.log('AuthModule caricato');
+            };
+            testModule.onerror = () => {
+                updateStatus('modules-status', 'Moduli: Errore nel caricamento', true);
+                console.error('Errore nel caricamento moduli');
+            };
+            document.head.appendChild(testModule);
+        }
+        
+        // Test automatico all'avvio
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('status', 'Pagina caricata, pronto per i test', false, true);
+            console.log('Pagina di test caricata');
+        });
+    </script>
+</body>
+</html>

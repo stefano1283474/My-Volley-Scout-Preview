@@ -716,752 +716,853 @@ body {
 .dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .roster-form { margin-top: 10px; }
 
-/* Authentication Styles */
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+/* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
+#scouting-dialog .dialog-content,
+#scouting-dialog .dialog-body,
+#scouting-dialog .dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.auth-section {
-    display: flex;
-    align-items: center;
+/* Header step con X sulla stessa riga (grid 1fr auto) */
+#scouting-dialog .step-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+}
+#scouting-dialog .step-header h4 { margin: 0; }
+#scouting-dialog .step-header .close-btn {
+  justify-self: end;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#scouting-dialog .step-header .close-btn:hover { background: rgba(0,0,0,0.06); }
+
+/* Banner fondamentale in alto */
+#fundamental-banner { display: none; background: #0d47a1; color: #fff; padding: 10px 12px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px; }
+#fundamental-banner .label, #fundamental-banner .value { text-transform: uppercase; font-size: 150%; }
+#fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
+
+/* Player grid: 3 colonne fisse, nessun taglio laterale */
+#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
+#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
+#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
+#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
+#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
+
+/* Valutazioni: 3 colonne fisse, no overflow */
+#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+#scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
+
+/* Riepilogo azione */
+#action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
+#action-summary-box h4 { margin: 0 0 6px 0; }
+#action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
+
+/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
+@media (max-width: 480px) {
+  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
+  #scouting-dialog .dialog-content { max-width: 100%; }
+  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
 }
 
-.auth-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
+@media (max-width: 480px) {
+  /* Compatta spazi su mobile e consenti adattamento pieno alla larghezza */
+  .main { padding: 1rem 0.75rem; }
+  .section { padding: 1rem; margin-bottom: 1rem; }
+  .section h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+  .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
+  .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: white;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.user-info span {
-    font-size: 0.9rem;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 2px solid white;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.btn-outline:hover {
-    background: white;
-    color: #2196F3;
-}
-
-/* Modal Styles */
-.modal {
-    position: fixed;
-    z-index: 1000;
+  /* Dialog a piena larghezza/altezza su mobile */
+  #scouting-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0;
+    padding: 0.75rem;
     left: 0;
+    transform: none;
+  }
+}
+
+/* Evita che i mapping per aree interferiscano su desktop */
+.player-row > * { grid-area: auto !important; }
+
+.player-row.player-header { font-weight: 600; background: #e3f2fd; }
+.player-row.player-header > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mapping posizioni per mobile lo re-introduciamo nella media query */
+/* (Le seguenti regole originali vengono gestite solo su mobile) */
+
+/* Pulsante elimina compatto */
+.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+
+/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+@media (max-width: 480px) {
+  .player-row,
+  .player-row.player-header {
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "num name surname"
+      "role nick delete";
+    row-gap: 0.4rem;
+    column-gap: 0.4rem;
+  }
+  /* Re-applica mapping delle aree solo su mobile */
+  .player-row > :nth-child(1) { grid-area: num !important; }
+  .player-row > :nth-child(2) { grid-area: name !important; }
+  .player-row > :nth-child(3) { grid-area: surname !important; }
+  .player-row > :nth-child(4) { grid-area: role !important; }
+  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
+
+  .player-row .btn-danger { width: 28px; min-width: 28px; }
+}
+
+/* Evita overflow dei campi */
+.player-row input,
+.player-row select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Utility: disporre i figli div su due righe */
+.two-rows {
+  display: grid;
+  grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
+  grid-template-rows: repeat(2, auto); /* esattamente due righe */
+  gap: 0.5rem;
+  align-items: start;
+}
+.two-rows > div {
+  min-width: 0; /* consenti il restringimento ed evita overflow */
+}
+
+@media (max-width: 480px) {
+  .two-rows { gap: 0.4rem; }
+}
+
+/* Barra pulsanti top pagina Roster */
+.roster-top-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.roster-top-actions .btn {
+  flex: 0 0 auto;
+}
+
+/* Dialog roster */
+#roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
+#roster-dialog {
+  width: min(920px, 96vw);
+  max-width: 96vw;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+/* Fallback quando il browser non supporta showModal: posizioniamo il dialog come overlay */
+#roster-dialog[open] {
+  position: fixed;
+  top: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  max-height: 96vh;
+  overflow: hidden;
+}
+#roster-dialog .roster-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 80vh;
+}
+#roster-dialog .roster-actions { margin-bottom: 0.8rem; }
+#roster-dialog .roster-grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
+@media (max-width: 480px) {
+  #roster-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0; /* usa tutto lo schermo */
+    padding: 0.75rem;
+  }
+  #roster-dialog[open] {
+    left: 0;
+    transform: none;
+    right: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    height: 100vh;
+    max-height: 100vh;
+  }
+  #roster-dialog .roster-dialog-form { max-height: 100%; }
+  #roster-dialog .roster-grid { max-height: calc(100vh - 170px); }
+}
+.roster-actions .roster-name-input { flex: 1 1 200px; min-width: 0; }
+.roster-actions .btn { flex: 0 0 auto; }
+.btn[disabled], .btn.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(20%);
+  pointer-events: none; /* evita click su elementi disabilitati */
+}
+
+/* Gruppo azioni orizzontale stile tab (riuso per Match e Roster) */
+.match-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.match-actions .btn {
+  border-radius: 10px;
+}
+
+/* Lista generica */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Roster list items */
+.roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.roster-info {
+  min-width: 0;
+}
+.roster-title {
+  font-weight: 700;
+}
+.roster-details {
+  color: #666;
+  font-size: 0.9rem;
+}
+.roster-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .match-actions { gap: 6px; }
+  .roster-item { flex-direction: column; align-items: stretch; }
+  .roster-actions { justify-content: flex-end; }
+}
+
+/* Dialog form layout */
+.dialog-form > h3 { margin-top: 0; }
+.dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.roster-form { margin-top: 10px; }
+
+/* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
+#scouting-dialog .dialog-content,
+#scouting-dialog .dialog-body,
+#scouting-dialog .dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header step con X sulla stessa riga (grid 1fr auto) */
+#scouting-dialog .step-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+}
+#scouting-dialog .step-header h4 { margin: 0; }
+#scouting-dialog .step-header .close-btn {
+  justify-self: end;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#scouting-dialog .step-header .close-btn:hover { background: rgba(0,0,0,0.06); }
+
+/* Banner fondamentale in alto */
+#fundamental-banner { display: none; background: #0d47a1; color: #fff; padding: 10px 12px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px; }
+#fundamental-banner .label, #fundamental-banner .value { text-transform: uppercase; font-size: 150%; }
+#fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
+
+/* Player grid: 3 colonne fisse, nessun taglio laterale */
+#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
+#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
+#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
+#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
+#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
+
+/* Valutazioni: 3 colonne fisse, no overflow */
+#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+#scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
+
+/* Riepilogo azione */
+#action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
+#action-summary-box h4 { margin: 0 0 6px 0; }
+#action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
+
+/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
+@media (max-width: 480px) {
+  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
+  #scouting-dialog .dialog-content { max-width: 100%; }
+  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  /* Compatta spazi su mobile e consenti adattamento pieno alla larghezza */
+  .main { padding: 1rem 0.75rem; }
+  .section { padding: 1rem; margin-bottom: 1rem; }
+  .section h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+  .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
+  .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
+
+  /* Dialog a piena larghezza/altezza su mobile */
+  #scouting-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0;
+    padding: 0.75rem;
+    left: 0;
+    transform: none;
+  }
+}
+
+/* Evita che i mapping per aree interferiscano su desktop */
+.player-row > * { grid-area: auto !important; }
+
+.player-row.player-header { font-weight: 600; background: #e3f2fd; }
+.player-row.player-header > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mapping posizioni per mobile lo re-introduciamo nella media query */
+/* (Le seguenti regole originali vengono gestite solo su mobile) */
+
+/* Pulsante elimina compatto */
+.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+
+/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+@media (max-width: 480px) {
+  .player-row,
+  .player-row.player-header {
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "num name surname"
+      "role nick delete";
+    row-gap: 0.4rem;
+    column-gap: 0.4rem;
+  }
+  /* Re-applica mapping delle aree solo su mobile */
+  .player-row > :nth-child(1) { grid-area: num !important; }
+  .player-row > :nth-child(2) { grid-area: name !important; }
+  .player-row > :nth-child(3) { grid-area: surname !important; }
+  .player-row > :nth-child(4) { grid-area: role !important; }
+  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
+
+  .player-row .btn-danger { width: 28px; min-width: 28px; }
+}
+
+/* Evita overflow dei campi */
+.player-row input,
+.player-row select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Utility: disporre i figli div su due righe */
+.two-rows {
+  display: grid;
+  grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
+  grid-template-rows: repeat(2, auto); /* esattamente due righe */
+  gap: 0.5rem;
+  align-items: start;
+}
+.two-rows > div {
+  min-width: 0; /* consenti il restringimento ed evita overflow */
+}
+
+@media (max-width: 480px) {
+  .two-rows { gap: 0.4rem; }
+}
+
+/* Barra pulsanti top pagina Roster */
+.roster-top-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.roster-top-actions .btn {
+  flex: 0 0 auto;
+}
+
+/* Dialog roster */
+#roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
+#roster-dialog {
+  width: min(920px, 96vw);
+  max-width: 96vw;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+/* Fallback quando il browser non supporta showModal: posizioniamo il dialog come overlay */
+#roster-dialog[open] {
+  position: fixed;
+  top: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  max-height: 96vh;
+  overflow: hidden;
+}
+#roster-dialog .roster-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 80vh;
+}
+#roster-dialog .roster-actions { margin-bottom: 0.8rem; }
+#roster-dialog .roster-grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
+@media (max-width: 480px) {
+  #roster-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0; /* usa tutto lo schermo */
+    padding: 0.75rem;
+  }
+  #roster-dialog[open] {
+    left: 0;
+    transform: none;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    max-height: 100vh;
+  }
+  #roster-dialog .roster-dialog-form { max-height: 100%; }
+  #roster-dialog .roster-grid { max-height: calc(100vh - 170px); }
+}
+.roster-actions .roster-name-input { flex: 1 1 200px; min-width: 0; }
+.roster-actions .btn { flex: 0 0 auto; }
+.btn[disabled], .btn.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(20%);
+  pointer-events: none; /* evita click su elementi disabilitati */
+}
+
+/* Gruppo azioni orizzontale stile tab (riuso per Match e Roster) */
+.match-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.match-actions .btn {
+  border-radius: 10px;
+}
+
+/* Lista generica */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Roster list items */
+.roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.roster-info {
+  min-width: 0;
+}
+.roster-title {
+  font-weight: 700;
+}
+.roster-details {
+  color: #666;
+  font-size: 0.9rem;
+}
+.roster-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .match-actions { gap: 6px; }
+  .roster-item { flex-direction: column; align-items: stretch; }
+  .roster-actions { justify-content: flex-end; }
+}
+
+/* Dialog form layout */
+.dialog-form > h3 { margin-top: 0; }
+.dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.roster-form { margin-top: 10px; }
+
+/* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
+#scouting-dialog .dialog-content,
+#scouting-dialog .dialog-body,
+#scouting-dialog .dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header step con X sulla stessa riga (grid 1fr auto) */
+#scouting-dialog .step-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+}
+#scouting-dialog .step-header h4 { margin: 0; }
+#scouting-dialog .step-header .close-btn {
+  justify-self: end;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#scouting-dialog .step-header .close-btn:hover { background: rgba(0,0,0,0.06); }
+
+/* Banner fondamentale in alto */
+#fundamental-banner { display: none; background: #0d47a1; color: #fff; padding: 10px 12px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px; }
+#fundamental-banner .label, #fundamental-banner .value { text-transform: uppercase; font-size: 150%; }
+#fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
+
+/* Player grid: 3 colonne fisse, nessun taglio laterale */
+#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
+#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
+#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
+#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
+#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
+
+/* Valutazioni: 3 colonne fisse, no overflow */
+#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+#scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
+
+/* Riepilogo azione */
+#action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
+#action-summary-box h4 { margin: 0 0 6px 0; }
+#action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
+
+/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
+@media (max-width: 480px) {
+  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
+  #scouting-dialog .dialog-content { max-width: 100%; }
+  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  /* Compatta spazi su mobile e consenti adattamento pieno alla larghezza */
+  .main { padding: 1rem 0.75rem; }
+  .section { padding: 1rem; margin-bottom: 1rem; }
+  .section h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+  .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
+  .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
+
+  /* Dialog a piena larghezza/altezza su mobile */
+  #scouting-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0;
+    padding: 0.75rem;
+    left: 0;
+    transform: none;
+  }
+}
+
+/* Evita che i mapping per aree interferiscano su desktop */
+.player-row > * { grid-area: auto !important; }
+
+.player-row.player-header { font-weight: 600; background: #e3f2fd; }
+.player-row.player-header > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mapping posizioni per mobile lo re-introduciamo nella media query */
+/* (Le seguenti regole originali vengono gestite solo su mobile) */
+
+/* Pulsante elimina compatto */
+.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+
+/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+@media (max-width: 480px) {
+  .player-row,
+  .player-row.player-header {
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "num name surname"
+      "role nick delete";
+    row-gap: 0.4rem;
+    column-gap: 0.4rem;
+  }
+  /* Re-applica mapping delle aree solo su mobile */
+  .player-row > :nth-child(1) { grid-area: num !important; }
+  .player-row > :nth-child(2) { grid-area: name !important; }
+  .player-row > :nth-child(3) { grid-area: surname !important; }
+  .player-row > :nth-child(4) { grid-area: role !important; }
+  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
+
+  .player-row .btn-danger { width: 28px; min-width: 28px; }
+}
+
+/* Evita overflow dei campi */
+.player-row input,
+.player-row select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Utility: disporre i figli div su due righe */
+.two-rows {
+  display: grid;
+  grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
+  grid-template-rows: repeat(2, auto); /* esattamente due righe */
+  gap: 0.5rem;
+  align-items: start;
+}
+.two-rows > div {
+  min-width: 0; /* consenti il restringimento ed evita overflow */
+}
+
+@media (max-width: 480px) {
+  .two-rows { gap: 0.4rem; }
+}
+
+/* Barra pulsanti top pagina Roster */
+.roster-top-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.roster-top-actions .btn {
+  flex: 0 0 auto;
+}
+
+/* Dialog roster */
+#roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
+#roster-dialog {
+  width: min(920px, 96vw);
+  max-width: 96vw;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+/* Fallback quando il browser non supporta showModal: posizioniamo il dialog come overlay */
+#roster-dialog[open] {
+  position: fixed;
+  top: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  max-height: 96vh;
+  overflow: hidden;
+}
+#roster-dialog .roster-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 80vh;
+}
+#roster-dialog .roster-actions { margin-bottom: 0.8rem; }
+#roster-dialog .roster-grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
+@media (max-width: 480px) {
+  #roster-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 0; /* usa tutto lo schermo */
+    padding: 0.75rem;
+  }
+  #roster-dialog[open] {
+    left: 0;
+    transform: none;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    max-height: 100vh;
+  }
+  #roster-dialog .roster-dialog-form { max-height: 100%; }
+  #roster-dialog .roster-grid { max-height: calc(100vh - 170px); }
+}
+.roster-actions .roster-name-input { flex: 1 1 200px; min-width: 0; }
+.roster-actions .btn { flex: 0 0 auto; }
+.btn[disabled], .btn.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(20%);
+  pointer-events: none; /* evita click su elementi disabilitati */
+}
+
+/* Gruppo azioni orizzontale stile tab (riuso per Match e Roster) */
+.match-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.match-actions .btn {
+  border-radius: 10px;
+}
+
+/* Lista generica */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Roster list items */
+.roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.roster-info {
+  min-width: 0;
+}
+.roster-title {
+  font-weight: 700;
+}
+.roster-details {
+  color: #666;
+  font-size: 0.9rem;
+}
+.roster-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .match-actions { gap: 6px; }
+  .roster-item { flex-direction: column; align-items: stretch; }
+  .roster-actions { justify-content: flex-end; }
+}
+
+/* Dialog form layout */
+.dialog-form > h3 { margin-top: 0; }
+.dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.roster-form { margin-top: 10px; }
+
+/* Start Set Container */
+.start-set-container {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 40px 20px;
 }
 
-.modal-content {
-    background-color: white;
-    padding: 2rem;
+.btn-large {
+    font-size: 1.2rem;
+    padding: 16px 32px;
+    min-width: 200px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Simplified layout adjustments */
+.main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.match-info-display {
+    text-align: center;
+    padding: 20px;
+    background: #f8fafc;
     border-radius: 8px;
-    width: 90%;
-    max-width: 400px;
-    position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    margin-bottom: 20px;
 }
 
-.close {
-    position: absolute;
-    right: 1rem;
-    top: 1rem;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #666;
-    transition: color 0.3s ease;
+.match-teams {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
 }
 
-.close:hover {
-    color: #333;
-}
-
-.auth-form-container h2 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #333;
-}
-
-.auth-form-container .form-group {
-    margin-bottom: 1rem;
-}
-
-.auth-form-container label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #555;
-    font-weight: 500;
-}
-
-.auth-form-container input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-}
-
-.auth-form-container input:focus {
-    outline: none;
-    border-color: #2196F3;
-}
-
-.error-message {
-    color: #f44336;
-    font-size: 0.9rem;
-    margin: 0.5rem 0;
-    text-align: center;
-}
-
-.auth-divider {
-    text-align: center;
-    margin: 1.5rem 0;
-    position: relative;
-}
-
-.auth-divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #ddd;
-}
-
-.auth-divider span {
-    background: white;
-    padding: 0 1rem;
-    color: #666;
+.match-details {
+    color: #64748b;
     font-size: 0.9rem;
 }
-
-.btn-google {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    background: white;
-    color: #333;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 1rem;
-}
-
-.btn-google:hover {
-    border-color: #4285F4;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.auth-switch {
-    text-align: center;
-    margin-top: 1rem;
-    color: #666;
-}
-
-.auth-switch a {
-    color: #2196F3;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.auth-switch a:hover {
-    text-decoration: underline;
-}
-
-/* Responsive adjustments for auth */
-@media (max-width: 768px) {
-    .header-content {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .auth-section {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .modal-content {
-        margin: 1rem;
-        padding: 1.5rem;
-    }
-    
-    .auth-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .btn-outline {
-        width: 100%;
-        text-align: center;
-    }
-}
-
-/* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
-#scouting-dialog .dialog-content,
-#scouting-dialog .dialog-body,
-#scouting-dialog .dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Header step con X sulla stessa riga (grid 1fr auto) */
-#scouting-dialog .step-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: 8px;
-}
-#scouting-dialog .step-header h4 { margin: 0; }
-#scouting-dialog .step-header .close-btn {
-  justify-self: end;
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-#scouting-dialog .step-header .close-btn:hover { background: rgba(0,0,0,0.06); }
-
-/* Banner fondamentale in alto */
-#fundamental-banner { display: none; background: #0d47a1; color: #fff; padding: 10px 12px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px; }
-#fundamental-banner .label, #fundamental-banner .value { text-transform: uppercase; font-size: 150%; }
-#fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
-
-/* Player grid: 3 colonne fisse, nessun taglio laterale */
-#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
-#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
-#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
-#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
-#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
-
-/* Valutazioni: 3 colonne fisse, no overflow */
-#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
-#scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
-
-/* Riepilogo azione */
-#action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
-#action-summary-box h4 { margin: 0 0 6px 0; }
-#action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
-
-/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
-@media (max-width: 480px) {
-  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
-  #scouting-dialog .dialog-content { max-width: 100%; }
-  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
-}
-
-@media (max-width: 480px) {
-  /* Compatta spazi su mobile e consenti adattamento pieno alla larghezza */
-  .main { padding: 1rem 0.75rem; }
-  .section { padding: 1rem; margin-bottom: 1rem; }
-  .section h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
-  .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
-  .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
-
-  /* Dialog a piena larghezza/altezza su mobile */
-  #scouting-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 96vh;
-    max-height: 96vh;
-    border-radius: 0;
-    padding: 0.75rem;
-    left: 0;
-    transform: none;
-  }
-}
-
-/* Evita che i mapping per aree interferiscano su desktop */
-.player-row > * { grid-area: auto !important; }
-
-.player-row.player-header { font-weight: 600; background: #e3f2fd; }
-.player-row.player-header > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Mapping posizioni per mobile lo re-introduciamo nella media query */
-/* (Le seguenti regole originali vengono gestite solo su mobile) */
-
-/* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
-
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
-@media (max-width: 480px) {
-  .player-row,
-  .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
-  }
-  /* Re-applica mapping delle aree solo su mobile */
-  .player-row > :nth-child(1) { grid-area: num !important; }
-  .player-row > :nth-child(2) { grid-area: name !important; }
-  .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
-  .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
-
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
-}
-
-/* Evita overflow dei campi */
-.player-row input,
-.player-row select {
-  width: 100%;
-  min-width: 0;
-}
-
-/* Utility: disporre i figli div su due righe */
-.two-rows {
-  display: grid;
-  grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
-  grid-template-rows: repeat(2, auto); /* esattamente due righe */
-  gap: 0.5rem;
-  align-items: start;
-}
-.two-rows > div {
-  min-width: 0; /* consenti il restringimento ed evita overflow */
-}
-
-@media (max-width: 480px) {
-  .two-rows { gap: 0.4rem; }
-}
-
-/* Barra pulsanti top pagina Roster */
-.roster-top-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-.roster-top-actions .btn {
-  flex: 0 0 auto;
-}
-
-/* Dialog roster */
-#roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
-#roster-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
-  border: none;
-  border-radius: 12px;
-  padding: 1rem;
-  box-sizing: border-box;
-}
-/* Fallback quando il browser non supporta showModal: posizioniamo il dialog come overlay */
-#roster-dialog[open] {
-  position: fixed;
-  top: 2vh;
-  left: 50%;
-  transform: translateX(-50%);
-  max-height: 96vh;
-  overflow: hidden;
-}
-#roster-dialog .roster-dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 80vh;
-}
-#roster-dialog .roster-actions { margin-bottom: 0.8rem; }
-#roster-dialog .roster-grid {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-/* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
-@media (max-width: 480px) {
-  #roster-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 96vh;
-    max-height: 96vh;
-    border-radius: 0; /* usa tutto lo schermo */
-    padding: 0.75rem;
-  }
-  #roster-dialog[open] {
-    left: 0;
-    transform: none;
-    right: 0;
-    top: 0;
-    height: 100vh;
-    max-height: 100vh;
-  }
-  #roster-dialog .roster-dialog-form { max-height: 100%; }
-  #roster-dialog .roster-grid { max-height: calc(100vh - 170px); }
-}
-.roster-actions .roster-name-input { flex: 1 1 200px; min-width: 0; }
-.roster-actions .btn { flex: 0 0 auto; }
-.btn[disabled], .btn.is-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  filter: grayscale(20%);
-  pointer-events: none; /* evita click su elementi disabilitati */
-}
-
-/* Gruppo azioni orizzontale stile tab (riuso per Match e Roster) */
-.match-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.match-actions .btn {
-  border-radius: 10px;
-}
-
-/* Lista generica */
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Roster list items */
-.roster-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.roster-info {
-  min-width: 0;
-}
-.roster-title {
-  font-weight: 700;
-}
-.roster-details {
-  color: #666;
-  font-size: 0.9rem;
-}
-.roster-actions {
-  display: flex;
-  gap: 8px;
-}
-
-@media (max-width: 600px) {
-  .match-actions { gap: 6px; }
-  .roster-item { flex-direction: column; align-items: stretch; }
-  .roster-actions { justify-content: flex-end; }
-}
-
-/* Dialog form layout */
-.dialog-form > h3 { margin-top: 0; }
-.dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-.roster-form { margin-top: 10px; }
-
-/* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
-#scouting-dialog .dialog-content,
-#scouting-dialog .dialog-body,
-#scouting-dialog .dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Header step con X sulla stessa riga (grid 1fr auto) */
-#scouting-dialog .step-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: 8px;
-}
-#scouting-dialog .step-header h4 { margin: 0; }
-#scouting-dialog .step-header .close-btn {
-  justify-self: end;
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-#scouting-dialog .step-header .close-btn:hover { background: rgba(0,0,0,0.06); }
-
-/* Banner fondamentale in alto */
-#fundamental-banner { display: none; background: #0d47a1; color: #fff; padding: 10px 12px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px; }
-#fundamental-banner .label, #fundamental-banner .value { text-transform: uppercase; font-size: 150%; }
-#fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
-
-/* Player grid: 3 colonne fisse, nessun taglio laterale */
-#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
-#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
-#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
-#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
-#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
-
-/* Valutazioni: 3 colonne fisse, no overflow */
-#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
-#scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
-
-/* Riepilogo azione */
-#action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
-#action-summary-box h4 { margin: 0 0 6px 0; }
-#action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
-
-/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
-@media (max-width: 480px) {
-  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
-  #scouting-dialog .dialog-content { max-width: 100%; }
-  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
-}
-
-@media (max-width: 480px) {
-  /* Compatta spazi su mobile e consenti adattamento pieno alla larghezza */
-  .main { padding: 1rem 0.75rem; }
-  .section { padding: 1rem; margin-bottom: 1rem; }
-  .section h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
-  .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
-  .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
-
-  /* Dialog a piena larghezza/altezza su mobile */
-  #scouting-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 96vh;
-    max-height: 96vh;
-    border-radius: 0;
-    padding: 0.75rem;
-    left: 0;
-    transform: none;
-  }
-}
-
-/* Evita che i mapping per aree interferiscano su desktop */
-.player-row > * { grid-area: auto !important; }
-
-.player-row.player-header { font-weight: 600; background: #e3f2fd; }
-.player-row.player-header > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Mapping posizioni per mobile lo re-introduciamo nella media query */
-/* (Le seguenti regole originali vengono gestite solo su mobile) */
-
-/* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
-
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
-@media (max-width: 480px) {
-  .player-row,
-  .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
-  }
-  /* Re-applica mapping delle aree solo su mobile */
-  .player-row > :nth-child(1) { grid-area: num !important; }
-  .player-row > :nth-child(2) { grid-area: name !important; }
-  .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
-  .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
-
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
-}
-
-/* Evita overflow dei campi */
-.player-row input,
-.player-row select {
-  width: 100%;
-  min-width: 0;
-}
-
-/* Utility: disporre i figli div su due righe */
-.two-rows {
-  display: grid;
-  grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
-  grid-template-rows: repeat(2, auto); /* esattamente due righe */
-  gap: 0.5rem;
-  align-items: start;
-}
-.two-rows > div {
-  min-width: 0; /* consenti il restringimento ed evita overflow */
-}
-
-@media (max-width: 480px) {
-  .two-rows { gap: 0.4rem; }
-}
-
-/* Barra pulsanti top pagina Roster */
-.roster-top-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-.roster-top-actions .btn {
-  flex: 0 0 auto;
-}
-
-/* Dialog roster */
-#roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
-#roster-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
-  border: none;
-  border-radius: 12px;
-  padding: 1rem;
-  box-sizing: border-box;
-}
-/* Fallback quando il browser non supporta showModal: posizioniamo il dialog come overlay */
-#roster-dialog[open] {
-  position: fixed;
-  top: 2vh;
-  left: 50%;
-  transform: translateX(-50%);
-  max-height: 96vh;
-  overflow: hidden;
-}
-#roster-dialog .roster-dialog-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 80vh;
-}
-#roster-dialog .roster-actions { margin-bottom: 0.8rem; }
-#roster-dialog .roster-grid {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-/* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
-@media (max-width: 480px) {
-  #roster-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 96vh;
-    max-height: 96vh;
-    border-radius: 0; /* usa tutto lo schermo */
-    padding: 0.75rem;
-  }
-  #roster-dialog[open] {
-    left: 0;
-    transform: none;
-    right: 0;
-    top: 0;
-    height: 100vh;
-    max-height: 100vh;
-  }
-  #roster-dialog .roster-dialog-form { max-height: 100%; }
-  #roster-dialog .roster-grid { max-height: calc(100vh - 170px); }
-}
-.roster-actions .roster-name-input { flex: 1 1 200px; min-width: 0; }
-.roster-actions .btn { flex: 0 0 auto; }
-.btn[disabled], .btn.is-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  filter: grayscale(20%);
-  pointer-events: none; /* evita click su elementi disabilitati */
-}
-
-/* Gruppo azioni orizzontale stile tab (riuso per Match e Roster) */
-.match-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.match-actions .btn {
-  border-radius: 10px;
-}
-
-/* Lista generica */
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Roster list items */
-.roster-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.roster-info {
-  min-width: 0;
-}
-.roster-title {
-  font-weight: 700;
-}
-.roster-details {
-  color: #666;
-  font-size: 0.9rem;
-}
-.roster-actions {
-  display: flex;
-  gap: 8px;
-}
-
-@media (max-width: 600px) {
-  .match-actions { gap: 6px; }
-  .roster-item { flex-direction: column; align-items: stretch; }
-  .roster-actions { justify-content: flex-end; }
-}
-
-/* Dialog form layout */
-.dialog-form > h3 { margin-top: 0; }
-.dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-.roster-form { margin-top: 10px; }

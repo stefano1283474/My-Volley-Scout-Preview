@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Volley Scout</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <meta name="theme-color" content="#1976d2">
+    <link rel="icon" type="image/png" sizes="192x192" href="../icon-192x192.png">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="loading-screen">
+            <div class="loading-content">
+                <div class="loading-logo">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#1976d2" stroke-width="2"/>
+                        <path d="M8 12l2 2 4-4" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>My Volley Scout</h1>
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Authentication Screen -->
+        <div id="auth-screen" class="screen hidden">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="#1976d2" stroke-width="2"/>
+                            <path d="M8 12l2 2 4-4" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h1>My Volley Scout</h1>
+                    <p>Accedi per iniziare a scoutare</p>
+                </div>
+
+                <!-- Login Form -->
+                <div id="login-form" class="auth-form">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required autocomplete="current-password">
+                        </div>
+                        <div id="loginError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Accedi</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <div class="auth-divider">
+                        <span>oppure</span>
+                    </div>
+
+                    <button id="googleSignInBtn" class="btn btn-google btn-full">
+                        <svg width="18" height="18" viewBox="0 0 18 18">
+                            <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                            <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-2.7.75 4.8 4.8 0 0 1-4.52-3.36H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+                            <path fill="#FBBC05" d="M4.46 10.41a4.8 4.8 0 0 1 0-3.06V5.28H1.83a8 8 0 0 0 0 7.17l2.63-2.04z"/>
+                            <path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.44 1.35l2.54-2.54A8 8 0 0 0 8.98 1a8 8 0 0 0-7.15 4.42l2.63 2.05c.61-1.86 2.35-3.24 4.52-3.24z"/>
+                        </svg>
+                        Accedi con Google
+                    </button>
+                    <div id="googleError" class="error-message"></div>
+
+                    <p class="auth-switch">
+                        Non hai un account? <a href="#" id="switchToRegister">Registrati</a>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="auth-form hidden">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="registerEmail">Email</label>
+                            <input type="email" id="registerEmail" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" id="registerPassword" required autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Conferma Password</label>
+                            <input type="password" id="confirmPassword" required autocomplete="new-password">
+                        </div>
+                        <div id="registerError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Registrati</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <p class="auth-switch">
+                        Hai già un account? <a href="#" id="switchToLogin">Accedi</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="screen hidden">
+            <div class="welcome-container">
+                <header class="welcome-header">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <span id="userInitials"></span>
+                        </div>
+                        <div class="user-details">
+                            <h2 id="welcomeUserName">Benvenuto</h2>
+                            <p id="userEmail"></p>
+                        </div>
+                    </div>
+                    <button id="signOutBtn" class="btn btn-outline">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Esci
+                    </button>
+                </header>
+
+                <main class="welcome-content">
+                    <div class="welcome-actions">
+                        <div class="action-card" id="selectTeamCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h3>Seleziona Squadra</h3>
+                            <p>Scegli una squadra esistente per iniziare</p>
+                        </div>
+
+                        <div class="action-card" id="createTeamCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h3>Nuova Squadra</h3>
+                            <p>Crea una nuova squadra con il roster</p>
+                        </div>
+
+                        <div class="action-card" id="manageTeamsCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="2"/>
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h3>Gestisci Squadre</h3>
+                            <p>Modifica, elimina o importa squadre</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Main App Screen -->
+        <div id="main-screen" class="screen hidden">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <!-- Analytics rimosso temporaneamente per evitare errori di caricamento -->
+    
+    <script src="../firebase-config.js"></script>
+    <script src="../firestore-service.js"></script>
+    
+    <script src="modules/auth/auth.js"></script>
+    <script src="modules/teams/teams.js"></script>
+    <script src="modules/matches/matches.js"></script>
+    <script src="modules/scouting/scouting.js"></script>
+    
+    <script src="utils/helpers.js"></script>
+    <script src="components/ui.js"></script>
+    
+    <script src="main.js"></script>
+
+    <script>
+        // Debug: Nascondi schermata di caricamento dopo 3 secondi se non viene nascosta automaticamente
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen && loadingScreen.style.display !== 'none') {
+                console.warn('Schermata di caricamento rimossa automaticamente dopo timeout');
+                loadingScreen.style.display = 'none';
+                // Mostra schermata di autenticazione come fallback
+                const authScreen = document.getElementById('auth-screen');
+                if (authScreen) {
+                    authScreen.classList.remove('hidden');
+                    authScreen.style.display = 'flex';
+                }
+            }
+        }, 3000);
+        
+        // Service Worker Registration (disabilitata in sviluppo)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        for (const reg of regs) {
+                            await reg.unregister();
+                        }
+                        console.log('Service Worker disattivato in sviluppo (registrazioni rimosse)');
+                    } else {
+                        const registration = await navigator.serviceWorker.register('../sw.js');
+                        console.log('Service Worker registrato:', registration);
+                    }
+                } catch (error) {
+                    console.log('Gestione Service Worker fallita:', error);
+                }
+            });
+        }
+        
+        // Debug: Log di caricamento
+        console.log('HTML caricato, inizializzazione moduli...');
+    </script>
+</body>
+</html>

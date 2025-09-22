@@ -319,6 +319,76 @@ const firestoreService = {
         }
     },
 
+    // Elimina un roster per ID (Firestore)
+    deleteRosterById: async (rosterId) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) {
+                return { success: false, error: 'Utente non autenticato' };
+            }
+            if (!rosterId) {
+                return { success: false, error: 'ID roster non valido' };
+            }
+
+            await window.db
+                .collection('users')
+                .doc(user.uid)
+                .collection('rosters')
+                .doc(rosterId)
+                .delete();
+
+            // Non decrementiamo stats.totalRosters per evitare inconsistenze (potrebbe contare storici)
+            return { success: true };
+        } catch (error) {
+            console.error('Errore nella cancellazione roster per ID:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Elimina tutti i roster che hanno un certo nome (Firestore)
+    deleteRostersByName: async (name) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) {
+                return { success: false, error: 'Utente non autenticato' };
+            }
+            if (!name) {
+                return { success: false, error: 'Nome roster non valido' };
+            }
+
+            const querySnap = await window.db
+                .collection('users')
+                .doc(user.uid)
+                .collection('rosters')
+                .where('name', '==', name)
+                .get();
+
+            const batch = window.db.batch();
+            querySnap.forEach((doc) => batch.delete(doc.ref));
+            if (!querySnap.empty) {
+                await batch.commit();
+            }
+
+            return { success: true, deleted: querySnap.size };
+        } catch (error) {
+            console.error('Errore nella cancellazione roster per nome:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Rimuove dal localStorage eventuali roster salvati con quel nome (compat con vecchio storage)
+    deleteLocalRostersByName: (name) => {
+        try {
+            const stored = JSON.parse(localStorage.getItem('volleyRosters') || '[]');
+            const filtered = stored.filter((r) => (r?.name || '').toLowerCase() !== (name || '').toLowerCase());
+            localStorage.setItem('volleyRosters', JSON.stringify(filtered));
+            return { success: true };
+        } catch (error) {
+            console.warn('Errore cancellazione roster locale per nome:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     // Carica le partite dell'utente
     loadUserMatches: async () => {
         try {

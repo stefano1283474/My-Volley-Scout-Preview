@@ -15,17 +15,17 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = firebase.initializeApp(firebaseConfig);
 
-// Initialize Analytics only if needed (to reduce errors)
+// Analytics disabilitato temporaneamente per evitare errori
 let analytics = null;
-try {
-  analytics = firebase.analytics();
-} catch (error) {
-  console.warn('Analytics initialization failed:', error);
-}
+console.log('Analytics disabilitato per migliorare le performance');
 
 const auth = firebase.auth();
 const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+// Configura il provider Google per funzionare in locale
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 // Configure Firestore settings to reduce connection errors
 db.settings({
@@ -68,10 +68,13 @@ const authFunctions = {
   // Sign in with Google
   signInWithGoogle: async () => {
     try {
+      console.log('Tentativo di login con Google...');
       const result = await auth.signInWithPopup(googleProvider);
+      console.log('Login Google riuscito:', result.user.email);
       return { success: true, user: result.user };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('Errore login Google:', error.code, error.message);
+      return { success: false, error: error.message, code: error.code };
     }
   },
 

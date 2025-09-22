@@ -198,6 +198,9 @@ async function handleSignOut() {
     const result = await authFunctions.signOut();
     if (result.success) {
         console.log('User signed out successfully');
+        // Pulisce la sessione di scouting e reindirizza al login
+        localStorage.removeItem('currentScoutingSession');
+        window.location.replace('auth-login.html');
     }
 }
 

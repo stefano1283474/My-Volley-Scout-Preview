@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Volley Scout - Configurazione Set</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .match-info {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .match-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            text-align: center;
+        }
+
+        .match-detail {
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .match-detail-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .match-detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .config-section {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .config-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .config-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .set-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .set-btn {
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .set-btn:hover {
+            border-color: #3b82f6;
+            background: #f1f5f9;
+        }
+
+        .set-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .phase-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .phase-btn {
+            padding: 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .phase-btn:hover {
+            border-color: #3b82f6;
+            background: #f1f5f9;
+        }
+
+        .phase-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .phase-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .phase-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .phase-desc {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .rotation-selector {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .rotation-btn {
+            aspect-ratio: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .rotation-btn:hover {
+            border-color: #3b82f6;
+            background: #f1f5f9;
+        }
+
+        .rotation-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .optional-label {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .start-button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 24px;
+        }
+
+        .start-button:hover {
+            background: #059669;
+        }
+
+        .start-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+            border: 1px solid #fecaca;
+        }
+
+        .validation-info {
+            background: #fffbeb;
+            color: #92400e;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border: 1px solid #fed7aa;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .config-section {
+                padding: 24px;
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .set-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .rotation-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .phase-selector {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <a href="match-setup.html" class="back-btn">
+                    ← Modifica Partita
+                </a>
+                <div>
+                    <h1 class="page-title">Configurazione Set</h1>
+                    <p class="section-subtitle">Configura il set da giocare e i parametri di inizio</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match Info -->
+        <div class="match-info">
+            <div class="match-summary" id="matchSummary">
+                <!-- Match details will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="config-section">
+            <h2 class="section-title">Setup Set</h2>
+
+            <div class="validation-info">
+                <strong>Requisiti:</strong> Seleziona il set, la fase di inizio e la rotazione della tua squadra per abilitare il pulsante "SCOUT!"
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="config-grid">
+                <!-- Set Selection -->
+                <div class="config-card">
+                    <div class="config-card-title">
+                        Selezione Set
+                    </div>
+                    <div class="set-selector">
+                        <div class="set-btn" data-set="1">Set 1</div>
+                        <div class="set-btn" data-set="2">Set 2</div>
+                        <div class="set-btn" data-set="3">Set 3</div>
+                        <div class="set-btn" data-set="4">Set 4</div>
+                        <div class="set-btn" data-set="5">Set 5</div>
+                    </div>
+                </div>
+
+                <!-- Phase Selection -->
+                <div class="config-card">
+                    <div class="config-card-title">
+                        Fase di Inizio
+                    </div>
+                    <div class="phase-selector">
+                        <div class="phase-btn" data-phase="servizio">
+                            <div class="phase-title">Servizio</div>
+                            <div class="phase-desc">La tua squadra serve</div>
+                        </div>
+                        <div class="phase-btn" data-phase="ricezione">
+                            <div class="phase-title">Ricezione</div>
+                            <div class="phase-desc">La tua squadra riceve</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Our Team Rotation -->
+                <div class="config-card">
+                    <div class="config-card-title">
+                        Rotazione Nostra Squadra
+                    </div>
+                    <div class="rotation-selector">
+                        <div class="rotation-btn" data-rotation="1">1</div>
+                        <div class="rotation-btn" data-rotation="2">2</div>
+                        <div class="rotation-btn" data-rotation="3">3</div>
+                        <div class="rotation-btn" data-rotation="4">4</div>
+                        <div class="rotation-btn" data-rotation="5">5</div>
+                        <div class="rotation-btn" data-rotation="6">6</div>
+                    </div>
+                </div>
+
+                <!-- Opponent Rotation (Optional) -->
+                <div class="config-card">
+                    <div class="config-card-title">
+                        Rotazione Avversari
+                    </div>
+                    <div class="optional-label">Opzionale - Se conosciuta</div>
+                    <div class="rotation-selector">
+                        <div class="rotation-btn" data-opponent-rotation="1">1</div>
+                        <div class="rotation-btn" data-opponent-rotation="2">2</div>
+                        <div class="rotation-btn" data-opponent-rotation="3">3</div>
+                        <div class="rotation-btn" data-opponent-rotation="4">4</div>
+                        <div class="rotation-btn" data-opponent-rotation="5">5</div>
+                        <div class="rotation-btn" data-opponent-rotation="6">6</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="start-button" id="scoutBtn" disabled>
+                SCOUT!
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="./connection-manager.js"></script>
+    <script src="./firebase-config.js"></script>
+    <script src="./firestore-service.js"></script>
+    <script src="./auth.js"></script>
+    <script src="./src/modules/teams/teams.js"></script>
+    <script src="./src/modules/matches/matches.js"></script>
+    <script src="./src/modules/scouting/scouting.js"></script>
+
+    <script>
+        // Variabili globali
+        let currentUser = null;
+        let matchData = null;
+        let setConfig = {
+            set: null,
+            phase: null,
+            ourRotation: null,
+            opponentRotation: null
+        };
+
+        // Elementi DOM
+        const matchSummary = document.getElementById('matchSummary');
+        const errorMessage = document.getElementById('errorMessage');
+        const scoutBtn = document.getElementById('scoutBtn');
+        const setButtons = document.querySelectorAll('.set-btn');
+        const phaseButtons = document.querySelectorAll('.phase-btn');
+        const rotationButtons = document.querySelectorAll('.rotation-btn');
+        const opponentRotationButtons = document.querySelectorAll('[data-opponent-rotation]');
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSetConfig();
+            setupEventListeners();
+        });
+
+        function initializeSetConfig() {
+            // Attendi che Firebase sia pronto
+            if (typeof window.authFunctions === 'undefined') {
+                setTimeout(initializeSetConfig, 200);
+                return;
+            }
+
+            // Controlla autenticazione
+            window.authFunctions.onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'auth-login.html';
+                    return;
+                }
+                
+                currentUser = user;
+                loadMatchData();
+            });
+        }
+
+        function loadMatchData() {
+            // Carica i dati della partita dal localStorage
+            const savedMatchData = localStorage.getItem('currentMatchSetup');
+            if (!savedMatchData) {
+                showError('Errore: dati partita non trovati. Torna alla configurazione partita.');
+                return;
+            }
+
+            try {
+                matchData = JSON.parse(savedMatchData);
+                displayMatchSummary();
+            } catch (error) {
+                console.error('Errore nel parsing dei dati partita:', error);
+                showError('Errore nel caricamento dei dati partita.');
+            }
+        }
+
+        function displayMatchSummary() {
+            if (!matchData) return;
+
+            const locationIcon = matchData.location === 'casa' ? '🏠' : '✈️';
+            const eventTypeMap = {
+                'campionato': '🏆 Campionato',
+                'coppa': '🏆 Coppa',
+                'playoff': '🏆 Playoff',
+                'amichevole': '🤝 Amichevole',
+                'torneo': '🏆 Torneo',
+                'altro': '📋 Altro'
+            };
+
+            matchSummary.innerHTML = `
+                <div class="match-detail">
+                    <div class="match-detail-label">Avversario</div>
+                    <div class="match-detail-value">${matchData.opponent}</div>
+                </div>
+                <div class="match-detail">
+                    <div class="match-detail-label">Data</div>
+                    <div class="match-detail-value">${formatDate(matchData.matchDate)}</div>
+                </div>
+                <div class="match-detail">
+                    <div class="match-detail-label">Tipo</div>
+                    <div class="match-detail-value">${eventTypeMap[matchData.eventType] || matchData.eventType}</div>
+                </div>
+                <div class="match-detail">
+                    <div class="match-detail-label">Luogo</div>
+                    <div class="match-detail-value">${locationIcon} ${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
+                </div>
+            `;
+        }
+
+        function setupEventListeners() {
+            // Set selection
+            setButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    setConfig.set = this.dataset.set;
+                    validateConfig();
+                });
+            });
+
+            // Phase selection
+            phaseButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    phaseButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    setConfig.phase = this.dataset.phase;
+                    validateConfig();
+                });
+            });
+
+            // Our rotation selection
+            rotationButtons.forEach(btn => {
+                if (!btn.dataset.opponentRotation) {
+                    btn.addEventListener('click', function() {
+                        rotationButtons.forEach(b => {
+                            if (!b.dataset.opponentRotation) {
+                                b.classList.remove('active');
+                            }
+                        });
+                        this.classList.add('active');
+                        setConfig.ourRotation = this.dataset.rotation;
+                        validateConfig();
+                    });
+                }
+            });
+
+            // Opponent rotation selection (optional)
+            opponentRotationButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    opponentRotationButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    setConfig.opponentRotation = this.dataset.opponentRotation;
+                });
+            });
+
+            // Scout button
+            scoutBtn.addEventListener('click', startScouting);
+        }
+
+        function validateConfig() {
+            const isValid = setConfig.set && setConfig.phase && setConfig.ourRotation;
+            scoutBtn.disabled = !isValid;
+            
+            if (isValid) {
+                scoutBtn.textContent = 'SCOUT!';
+                hideError();
+            } else {
+                scoutBtn.textContent = 'Completa la configurazione';
+            }
+        }
+
+        function startScouting() {
+            if (!setConfig.set || !setConfig.phase || !setConfig.ourRotation) {
+                showError('Completa tutti i campi obbligatori prima di iniziare.');
+                return;
+            }
+
+            // Salva la configurazione del set
+            const fullConfig = {
+                ...matchData,
+                setConfig: setConfig,
+                startTime: new Date().toISOString()
+            };
+
+            localStorage.setItem('currentScoutingSession', JSON.stringify(fullConfig));
+            
+            // Reindirizza alla pagina di scouting (l'attuale index.html con Start-Scouting)
+            window.location.href = 'index.html';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('it-IT', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Firebase</title>
+</head>
+<body>
+    <h1>Test Firebase Configuration</h1>
+    <div id="status">Caricamento...</div>
+    <button id="testGoogle" style="margin: 10px; padding: 10px;">Test Google Auth</button>
+    <div id="logs" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap;"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Config -->
+    <script src="./firebase-config.js"></script>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+        const testBtn = document.getElementById('testGoogle');
+        
+        function log(message) {
+            console.log(message);
+            logsDiv.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+        
+        function checkFirebase() {
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase non caricato');
+                }
+                
+                if (typeof window.authFunctions === 'undefined') {
+                    throw new Error('authFunctions non disponibile');
+                }
+                
+                log('✅ Firebase caricato correttamente');
+                log('✅ authFunctions disponibile');
+                log('✅ Auth domain: ' + firebase.app().options.authDomain);
+                log('✅ Project ID: ' + firebase.app().options.projectId);
+                
+                statusDiv.textContent = 'Firebase configurato correttamente';
+                statusDiv.style.color = 'green';
+                
+                return true;
+            } catch (error) {
+                log('❌ Errore Firebase: ' + error.message);
+                statusDiv.textContent = 'Errore Firebase: ' + error.message;
+                statusDiv.style.color = 'red';
+                return false;
+            }
+        }
+        
+        testBtn.addEventListener('click', async () => {
+            log('🔄 Tentativo di autenticazione Google...');
+            testBtn.disabled = true;
+            
+            try {
+                const result = await window.authFunctions.signInWithGoogle();
+                if (result.success) {
+                    log('✅ Autenticazione Google riuscita!');
+                    log('👤 Utente: ' + result.user.email);
+                } else {
+                    log('❌ Errore autenticazione: ' + (result.code || 'unknown'));
+                    log('📝 Messaggio: ' + result.error);
+                }
+            } catch (error) {
+                log('❌ Eccezione: ' + error.message);
+            } finally {
+                testBtn.disabled = false;
+            }
+        });
+        
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (checkFirebase()) {
+                    log('🚀 Pronto per il test');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

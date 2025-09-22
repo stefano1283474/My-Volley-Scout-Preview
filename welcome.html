@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Volley Scout - Benvenuto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .btn-logout {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: #ff3742;
+            transform: translateY(-1px);
+        }
+
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .welcome-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .teams-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .team-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .team-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .team-info {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .team-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e9ecef;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3742;
+        }
+
+        .actions-section {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            color: white;
+        }
+
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .action-description {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .welcome-section {
+                padding: 25px;
+            }
+
+            .welcome-title {
+                font-size: 24px;
+            }
+
+            .teams-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🏐</div>
+                <div class="logo-text">My Volley Scout</div>
+            </div>
+            <div class="user-info">
+                <span class="user-name" id="userName">Caricamento...</span>
+                <button class="btn-logout" id="logoutBtn">Esci</button>
+            </div>
+        </div>
+
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1 class="welcome-title">Benvenuto!</h1>
+            <p class="welcome-subtitle">Seleziona una squadra per iniziare o gestisci le tue squadre</p>
+        </div>
+
+        <!-- Teams Section -->
+        <div class="teams-section">
+            <h2 class="section-title">Le tue squadre</h2>
+            
+            <!-- Teams Grid -->
+            <div class="teams-grid" id="teamsGrid">
+                <!-- Teams will be loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📋</div>
+                <p>Non hai ancora creato nessuna squadra</p>
+                <p>Inizia creando la tua prima squadra!</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-section">
+                <div class="action-card" id="createTeamBtn">
+                    <div class="action-icon">➕</div>
+                    <div class="action-title">Nuova Squadra</div>
+                    <div class="action-description">Crea una nuova squadra con roster</div>
+                </div>
+                
+                <div class="action-card" id="importTeamBtn">
+                    <div class="action-icon">📥</div>
+                    <div class="action-title">Importa CSV</div>
+                    <div class="action-description">Importa squadra da file CSV</div>
+                </div>
+                
+                <div class="action-card" id="exportAllBtn">
+                    <div class="action-icon">📤</div>
+                    <div class="action-title">Esporta Tutto</div>
+                    <div class="action-description">Esporta tutte le squadre</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Roster Editor Section -->
+        <div class="teams-section" id="rosterEditor" style="display:none; margin-top:20px;">
+            <h2 class="section-title">Roster — <input id="rosterTeamNameInput" type="text" placeholder="Nome squadra" style="font-size:inherit; font-weight:inherit; border:none; background:transparent; border-bottom:1px dashed #ccc; outline:none; max-width:60%;" value="Seleziona una squadra" disabled /></h2>
+            <div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px;">
+                <button class="btn btn-primary" id="confirmRosterBtn">Conferma e procedi</button>
+                <button class="btn btn-secondary" id="addPlayerBtn">Aggiungi giocatore</button>
+                <button class="btn btn-secondary" id="importRosterBtn">Importa CSV</button>
+                <input type="file" id="rosterImportFile" accept=".csv" style="display:none;" />
+                <button class="btn btn-secondary" id="exportRosterBtn">Esporta CSV</button>
+                <button class="btn btn-secondary" id="clearRosterBtn">Pulisci</button>
+                <button class="btn btn-danger" id="deleteRosterBtn">Elimina Roster</button>
+                <button class="btn btn-secondary" id="cancelRosterBtn">Chiudi</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f8f9fa; text-align:left;">
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef; width:90px;">Numero</th>
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Nome</th>
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Cognome</th>
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Ruolo</th>
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Soprannome</th>
+                            <th style="padding:10px; border-bottom:1px solid #e9ecef; text-align:right; width:120px;">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rosterTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center;">
+            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <p>Caricamento...</p>
+        </div>
+    </div>
+
+    <!-- Modal: Crea Nuova Squadra (sostituisce prompt) -->
+    <div id="createTeamModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:10000; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:12px; padding:20px; width:90%; max-width:420px; box-shadow:0 10px 30px rgba(0,0,0,.2);">
+        <h3 style="margin-bottom:12px; color:#333;">Nuova Squadra</h3>
+        <label for="teamNameInput" style="display:block; margin-bottom:6px; color:#666;">Nome squadra</label>
+        <input id="teamNameInput" type="text" placeholder="Inserisci nome" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px;" />
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+          <button id="cancelCreateTeamBtn" class="btn btn-secondary">Annulla</button>
+          <button id="confirmCreateTeamBtn" class="btn btn-primary">Crea</button>
+        </div>
+      </div>
+    </div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="./connection-manager.js"></script>
+    <script src="./firebase-config.js"></script>
+    <script src="./firestore-service.js"></script>
+    <script src="./auth.js"></script>
+    
+    <!-- Carica i moduli dell'applicazione -->
+    <script src="./src/modules/teams/teams.js"></script>
+    <script src="./src/modules/matches/matches.js"></script>
+    <script src="./src/modules/scouting/scouting.js"></script>
+
+    <script>
+        // Variabili globali
+        let currentUser = null;
+        let teams = [];
+        let selectedTeam = null; // Squadra attualmente in modifica
+
+        // Elementi DOM
+        const userName = document.getElementById('userName');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const teamsGrid = document.getElementById('teamsGrid');
+        const emptyState = document.getElementById('emptyState');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const createTeamBtn = document.getElementById('createTeamBtn');
+        const importTeamBtn = document.getElementById('importTeamBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const createTeamModal = document.getElementById('createTeamModal');
+        const teamNameInput = document.getElementById('teamNameInput');
+        const cancelCreateTeamBtn = document.getElementById('cancelCreateTeamBtn');
+        const confirmCreateTeamBtn = document.getElementById('confirmCreateTeamBtn');
+        // Nuovi elementi Roster Editor
+        const rosterEditor = document.getElementById('rosterEditor');
+        const rosterTeamNameInput = document.getElementById('rosterTeamNameInput');
+        const rosterTableBody = document.getElementById('rosterTableBody');
+        const importRosterBtn = document.getElementById('importRosterBtn');
+        const rosterImportFile = document.getElementById('rosterImportFile');
+        const exportRosterBtn = document.getElementById('exportRosterBtn');
+        const clearRosterBtn = document.getElementById('clearRosterBtn');
+        const deleteRosterBtn = document.getElementById('deleteRosterBtn');
+        const addPlayerBtn = document.getElementById('addPlayerBtn');
+        const confirmRosterBtn = document.getElementById('confirmRosterBtn');
+        const cancelRosterBtn = document.getElementById('cancelRosterBtn');
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWelcomePage();
+        });
+
+        function initializeWelcomePage() {
+            // Attendi che Firebase sia pronto
+            if (typeof window.authFunctions === 'undefined') {
+                setTimeout(initializeWelcomePage, 200);
+                return;
+            }
+
+            // Controlla autenticazione
+            window.authFunctions.onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'auth-login.html';
+                    return;
+                }
+                
+                currentUser = user;
+                userName.textContent = user.email;
+                loadTeams();
+                hideLoadingScreen();
+            });
+
+            // Event listeners
+            logoutBtn.addEventListener('click', handleLogout);
+            createTeamBtn.addEventListener('click', handleCreateTeam);
+            importTeamBtn.addEventListener('click', handleImportTeam);
+            exportAllBtn.addEventListener('click', handleExportAll);
+            cancelCreateTeamBtn.addEventListener('click', closeCreateTeamModal);
+            confirmCreateTeamBtn.addEventListener('click', confirmCreateTeam);
+            createTeamModal.addEventListener('click', (e) => { if (e.target === createTeamModal) closeCreateTeamModal(); });
+            teamNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCreateTeam(); } });
+
+            // Eventi Roster Editor
+            if (importRosterBtn) importRosterBtn.addEventListener('click', () => rosterImportFile && rosterImportFile.click());
+            if (rosterImportFile) rosterImportFile.addEventListener('change', (e) => {
+                const f = e.target.files && e.target.files[0];
+                if (f) importRosterCSV(f);
+                e.target.value = '';
+            });
+            if (exportRosterBtn) exportRosterBtn.addEventListener('click', exportSelectedTeamCSV);
+            if (clearRosterBtn) clearRosterBtn.addEventListener('click', clearRosterFields);
+            if (deleteRosterBtn) deleteRosterBtn.addEventListener('click', deleteCurrentRoster);
+            if (addPlayerBtn) addPlayerBtn.addEventListener('click', () => addRosterRow());
+            if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmRosterAndProceed);
+            if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', hideRosterEditor);
+        }
+
+        async function loadTeams() {
+            try {
+                if (window.teamsModule) {
+                    teams = window.teamsModule.getTeams();
+                    if (!window.__teamsSubscribed) {
+                        window.__teamsSubscribed = true;
+                        window.teamsModule.onTeamsUpdate((updated) => {
+                            teams = updated;
+                            renderTeams();
+                        });
+                    }
+                } else {
+                    console.warn('teamsModule non ancora disponibile, riprovo...');
+                    setTimeout(loadTeams, 200);
+                    return;
+                }
+                renderTeams();
+            } catch (error) {
+                console.error('Errore nel caricamento squadre:', error);
+                showEmptyState();
+            }
+        }
+
+        function renderTeams() {
+            if (teams.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            teamsGrid.innerHTML = '';
+            emptyState.style.display = 'none';
+
+            teams.forEach(team => {
+                const teamCard = createTeamCard(team);
+                teamsGrid.appendChild(teamCard);
+            });
+        }
+
+        function createTeamCard(team) {
+            const card = document.createElement('div');
+            card.className = 'team-card';
+            card.innerHTML = `
+                <div class="team-name">${team.name}</div>
+                <div class="team-info">
+                    <div>👥 ${Array.isArray(team.players) ? team.players.length : (team.players || 0)} giocatori</div>
+                </div>
+                <div class="team-actions">
+                    <button class="btn btn-primary" onclick="selectTeam(${team.id})">Seleziona</button>
+                    <button class="btn btn-secondary" onclick="editTeam(${team.id})">Modifica</button>
+                    <button class="btn btn-danger" onclick="deleteTeam(${team.id})">Elimina</button>
+                </div>
+            `;
+            return card;
+        }
+
+        function showEmptyState() {
+            teamsGrid.innerHTML = '';
+            emptyState.style.display = 'block';
+        }
+
+        function hideLoadingScreen() {
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
+
+        // Funzioni squadre
+        function selectTeam(teamId) {
+            if (!window.teamsModule) return;
+            // Cerca la squadra dalla lista locale, fallback a modulo
+            let team = teams.find(t => t.id === teamId);
+            if (!team && window.teamsModule.getTeamById) {
+                try { team = window.teamsModule.getTeamById(teamId); } catch (_) {}
+            }
+            if (!team) return;
+            // Seleziona nel modulo e mostra editor roster
+            window.teamsModule.selectTeam(teamId);
+            selectedTeam = { ...team, players: Array.isArray(team.players) ? team.players : [] };
+            showRosterEditor();
+        }
+
+        function editTeam(teamId) {
+            if (!window.teamsModule) return;
+            let team = teams.find(t => t.id === teamId);
+            if (!team && window.teamsModule.getTeamById) {
+                try { team = window.teamsModule.getTeamById(teamId); } catch (_) {}
+            }
+            if (!team) return;
+            window.teamsModule.selectTeam(teamId);
+            selectedTeam = { ...team, players: Array.isArray(team.players) ? team.players : [] };
+            showRosterEditor();
+            if (rosterTeamNameInput) {
+                rosterTeamNameInput.focus();
+                rosterTeamNameInput.select();
+            }
+        }
+
+        function deleteTeam(teamId) {
+            if (confirm('Sei sicuro di voler eliminare questa squadra?')) {
+                if (window.teamsModule) {
+                    window.teamsModule.deleteTeam(teamId).then(result => {
+                        if (result.success) {
+                            loadTeams(); // Ricarica la lista
+                            if (selectedTeam && selectedTeam.id === teamId) hideRosterEditor();
+                        } else {
+                            alert('Errore nell\'eliminazione: ' + result.error);
+                        }
+                    });
+                }
+            }
+        }
+
+        // Nuove funzioni per gestione squadre
+        function handleCreateTeam() {
+            openCreateTeamModal();
+        }
+
+        function openCreateTeamModal() {
+            createTeamModal.style.display = 'flex';
+            teamNameInput.value = '';
+            setTimeout(() => teamNameInput.focus(), 0);
+        }
+
+        function closeCreateTeamModal() {
+            createTeamModal.style.display = 'none';
+        }
+
+        async function confirmCreateTeam() {
+            const teamName = teamNameInput.value.trim();
+            if (!teamName) { teamNameInput.focus(); return; }
+            if (window.teamsModule) {
+                try {
+                    const result = await window.teamsModule.saveTeam({ name: teamName, players: [] });
+                    if (result.success) {
+                        closeCreateTeamModal();
+                        const newTeamId = result.team.id;
+                        window.teamsModule.selectTeam(newTeamId);
+                        selectedTeam = result.team;
+                        showRosterEditor(true);
+                    } else {
+                        alert('Errore nella creazione: ' + result.error);
+                    }
+                } catch (e) {
+                    alert('Errore nella creazione: ' + e.message);
+                }
+            } else {
+                closeCreateTeamModal();
+            }
+        }
+
+        function handleImportTeam() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file && window.teamsModule) {
+                    window.teamsModule.importFromCSV(file)
+                        .then(result => {
+                            if (result.success) {
+                                alert(`Import completato: ${result.imported}/${result.total} squadre importate` + (result.errors.length ? `\nErrori: ${result.errors.length}` : ''));
+                                loadTeams();
+                            } else {
+                                alert('Errore nell\'importazione: ' + result.error);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Errore nell\'importazione: ' + error.message);
+                        });
+                }
+            };
+            input.click();
+        }
+
+        function handleExportAll() {
+            if (window.teamsModule) {
+                try {
+                    const csv = window.teamsModule.exportToCSV();
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `squadre_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    alert('Errore nell\'esportazione: ' + error.message);
+                }
+            }
+        }
+
+        // --- Funzioni Roster Editor ---
+        function showRosterEditor(isNew = false) {
+            if (!selectedTeam) return;
+            if (rosterTeamNameInput) {
+                rosterTeamNameInput.disabled = false;
+                rosterTeamNameInput.value = selectedTeam.name || '';
+            }
+            rosterTableBody.innerHTML = '';
+            const players = Array.isArray(selectedTeam.players) ? selectedTeam.players : [];
+            if (!players.length) {
+                for (let i = 0; i < 7; i++) addRosterRow();
+            } else {
+                players.forEach(p => addRosterRow(p));
+            }
+            rosterEditor.style.display = 'block';
+            rosterEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function hideRosterEditor() {
+            rosterEditor.style.display = 'none';
+            rosterTableBody.innerHTML = '';
+            if (rosterTeamNameInput) {
+                rosterTeamNameInput.value = 'Seleziona una squadra';
+                rosterTeamNameInput.disabled = true;
+            }
+            selectedTeam = null;
+        }
+
+        function addRosterRow(player = {}) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" style="width:80px" value="${player.number || ''}" /></td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.name || ''}" /></td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.surname || ''}" /></td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.role || ''}" /></td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.nickname || ''}" /></td>
+                <td style="padding:8px; border-bottom:1px solid #eee; text-align:right;">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">Rimuovi</button>
+                </td>
+            `;
+            rosterTableBody.appendChild(tr);
+        }
+
+        function clearRosterFields() {
+            if (!confirm('Sicuro di voler pulire tutti i campi del roster?')) return;
+            rosterTableBody.innerHTML = '';
+            for (let i = 0; i < 7; i++) addRosterRow();
+        }
+
+        async function confirmRosterAndProceed() {
+            try {
+                if (!selectedTeam) return;
+                const rows = Array.from(rosterTableBody.querySelectorAll('tr'));
+                const players = rows.map(r => {
+                    const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+                    return { number, name, surname, role, nickname };
+                }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
+                const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
+                const updatedTeam = { id: selectedTeam.id, name: currentName, players };
+                const result = await window.teamsModule.saveTeam(updatedTeam);
+                if (!result.success) throw new Error(result.error || 'Salvataggio fallito');
+                selectedTeam = result.team;
+                localStorage.setItem('selectedTeamId', selectedTeam.id);
+                alert('Roster confermato! Ora passerai ai dati della gara.');
+                window.location.href = 'matches.html';
+            } catch (e) {
+                console.error(e);
+                alert('Errore nel salvataggio del roster: ' + e.message);
+            }
+        }
+
+        function exportSelectedTeamCSV() {
+            if (!selectedTeam) return alert('Nessuna squadra selezionata');
+            try {
+                // Legge i dati correnti dalla tabella (inclusi eventuali cambi non salvati)
+                const rows = Array.from(rosterTableBody.querySelectorAll('tr'));
+                const players = rows.map(r => {
+                    const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+                    return { number, name, surname, role, nickname };
+                }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
+                const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
+                const header = ['Squadra','Numero','Nome','Cognome','Ruolo','Soprannome'];
+                const lines = [header.join(',')];
+                players.forEach(p => {
+                    const vals = [currentName || '', p.number || '', p.name || '', p.surname || '', p.role || '', p.nickname || ''];
+                    lines.push(vals.map(v => {
+                        const s = String(v).replace(/"/g, '""');
+                        return /[",\n]/.test(s) ? '"' + s + '"' : s;
+                    }).join(','));
+                });
+                const csv = lines.join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const safeName = (currentName || 'roster').replace(/[^a-z0-9_-]+/gi, '-');
+                a.download = `${safeName}_roster_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error(e);
+                alert('Impossibile esportare il roster.');
+            }
+        }
+
+        function importRosterCSV(file) {
+            if (!selectedTeam) {
+                alert('Seleziona prima una squadra.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const text = reader.result;
+                    const lines = text.split(/\r?\n/).filter(l => l.trim());
+                    if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
+                    const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+                    const idx = {
+                        squadra: headers.indexOf('squadra'),
+                        numero: headers.indexOf('numero'),
+                        nome: headers.indexOf('nome'),
+                        cognome: headers.indexOf('cognome'),
+                        ruolo: headers.indexOf('ruolo'),
+                        soprannome: headers.indexOf('soprannome')
+                    };
+                    if (idx.numero === -1 || idx.nome === -1 || idx.cognome === -1 || idx.ruolo === -1) {
+                        throw new Error('Intestazioni richieste mancanti. Richieste: Numero, Nome, Cognome, Ruolo. Opzionale: Squadra, Soprannome');
+                    }
+                    const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
+                    const importedPlayers = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const cols = splitCSVLine(lines[i]);
+                        if (!cols.length) continue;
+                        const rowTeam = idx.squadra !== -1 ? (cols[idx.squadra] || '').trim() : '';
+                        if (idx.squadra !== -1 && rowTeam && rowTeam !== currentName) {
+                            continue; // prendi solo righe della squadra corrente
+                        }
+                        const player = {
+                            number: idx.numero !== -1 ? (cols[idx.numero] || '').trim() : '',
+                            name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
+                            surname: idx.cognome !== -1 ? (cols[idx.cognome] || '').trim() : '',
+                            role: idx.ruolo !== -1 ? (cols[idx.ruolo] || '').trim() : '',
+                            nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim() : ''
+                        };
+                        if (player.number || player.name || player.surname || player.role || player.nickname) {
+                            importedPlayers.push(player);
+                        }
+                    }
+                    if (importedPlayers.length === 0) {
+                        alert('Nessun giocatore importato. Verifica che la colonna "Squadra" coincida con il nome della squadra selezionata o che il file contenga i campi richiesti.');
+                        return;
+                    }
+                    rosterTableBody.innerHTML = '';
+                    importedPlayers.forEach(p => addRosterRow(p));
+                    alert(`Import completato: ${importedPlayers.length} giocatori caricati. Premi "Conferma e procedi" per salvare.`);
+                } catch (err) {
+                    console.error(err);
+                    alert('Errore nell\'importazione CSV: ' + err.message);
+                }
+            };
+            reader.onerror = () => alert('Impossibile leggere il file CSV selezionato.');
+            reader.readAsText(file);
+        }
+
+        async function deleteCurrentRoster() {
+            if (!selectedTeam) return;
+            const ok = confirm(`Eliminare definitivamente il roster della squadra "${selectedTeam.name}"?\nVerrà rimosso sia in locale che dal cloud (se connesso).`);
+            if (!ok) return;
+            try {
+                // elimina dal cloud se possibile
+                if (window.firestoreService && window.authFunctions) {
+                    try {
+                        if (window.firestoreService.deleteRostersByName) {
+                            await window.firestoreService.deleteRostersByName(selectedTeam.name);
+                        }
+                    } catch (e) {
+                        console.warn('Eliminazione roster su Firestore non riuscita o non disponibile:', e);
+                    }
+                    try {
+                        if (window.firestoreService.deleteLocalRostersByName) {
+                            window.firestoreService.deleteLocalRostersByName(selectedTeam.name);
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+                // Svuota localmente il roster della squadra e salva
+                const result = await window.teamsModule.saveTeam({ id: selectedTeam.id, name: selectedTeam.name, players: [] });
+                if (!result.success) throw new Error(result.error || 'Impossibile aggiornare la squadra localmente');
+                selectedTeam = result.team;
+                showRosterEditor();
+                alert('Roster eliminato con successo.');
+            } catch (err) {
+                console.error(err);
+                alert('Errore durante l\'eliminazione del roster: ' + err.message);
+            }
+        }
+
+        function splitCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        async function handleLogout() {
+            try {
+                // Pulisce la sessione di scouting
+                localStorage.removeItem('currentScoutingSession');
+                await window.authFunctions.signOut();
+                window.location.href = 'auth-login.html';
+            } catch (error) {
+                console.error('Errore durante il logout:', error);
+                alert('Errore durante il logout');
+            }
+        }
+    </script>
+</body>
+</html>

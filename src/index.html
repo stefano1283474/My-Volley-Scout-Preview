@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Volley Scout</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <meta name="theme-color" content="#1976d2">
+    <link rel="icon" type="image/png" sizes="192x192" href="../icon-192x192.png">
+    <meta name="description" content="Applicazione moderna per lo scouting nel volley">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="screen active">
+            <div class="loading-container">
+                <div class="loading-logo">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#1976d2" stroke-width="2"/>
+                        <path d="M8 12l2 2 4-4" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 class="loading-title">My Volley Scout</h1>
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Inizializzazione in corso...</p>
+            </div>
+        </div>
+
+        <!-- Authentication Screen -->
+        <div id="auth-screen" class="screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="#1976d2" stroke-width="2"/>
+                            <path d="M8 12l2 2 4-4" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h1 class="auth-title">My Volley Scout</h1>
+                    <p class="auth-subtitle">Accedi per iniziare a scoutare</p>
+                </div>
+
+                <!-- Login Form -->
+                <div id="login-form" class="auth-form">
+                    <form id="loginForm" class="form">
+                        <div class="form-group">
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input type="email" id="loginEmail" class="form-input" required autocomplete="email" placeholder="inserisci la tua email">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password" placeholder="inserisci la password">
+                        </div>
+                        <div id="loginError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Accedi</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <div class="auth-divider">
+                        <span>oppure</span>
+                    </div>
+
+                    <button id="googleSignInBtn" class="btn btn-google btn-full">
+                        <svg width="18" height="18" viewBox="0 0 18 18">
+                            <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                            <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-2.7.75 4.8 4.8 0 0 1-4.52-3.36H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+                            <path fill="#FBBC05" d="M4.46 10.41a4.8 4.8 0 0 1 0-3.06V5.28H1.83a8 8 0 0 0 0 7.17l2.63-2.04z"/>
+                            <path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.44 1.35l2.54-2.54A8 8 0 0 0 8.98 1a8 8 0 0 0-7.15 4.42l2.63 2.05c.61-1.86 2.35-3.24 4.52-3.24z"/>
+                        </svg>
+                        Accedi con Google
+                    </button>
+                    <div id="googleError" class="error-message"></div>
+
+                    <p class="auth-switch">
+                        Non hai un account? <a href="#" id="switchToRegister" class="auth-link">Registrati</a>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="auth-form hidden">
+                    <form id="registerForm" class="form">
+                        <div class="form-group">
+                            <label for="registerEmail" class="form-label">Email</label>
+                            <input type="email" id="registerEmail" class="form-input" required autocomplete="email" placeholder="inserisci la tua email">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" id="registerPassword" class="form-input" required autocomplete="new-password" placeholder="crea una password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword" class="form-label">Conferma Password</label>
+                            <input type="password" id="confirmPassword" class="form-input" required autocomplete="new-password" placeholder="conferma la password">
+                        </div>
+                        <div id="registerError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Registrati</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <p class="auth-switch">
+                        Hai già un account? <a href="#" id="switchToLogin" class="auth-link">Accedi</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="screen">
+            <div class="welcome-container">
+                <header class="welcome-header">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <span id="userInitials"></span>
+                        </div>
+                        <div class="user-details">
+                            <h2 id="welcomeUserName" class="user-name">Benvenuto</h2>
+                            <p id="userEmail" class="user-email"></p>
+                        </div>
+                    </div>
+                    <button id="signOutBtn" class="btn btn-outline btn-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Esci
+                    </button>
+                </header>
+
+                <main class="welcome-content">
+                    <div class="welcome-intro">
+                        <h1 class="welcome-title">Scegli un'azione</h1>
+                        <p class="welcome-description">Seleziona una squadra esistente, creane una nuova o gestisci il tuo archivio</p>
+                    </div>
+
+                    <div class="action-grid">
+                        <div class="action-card" id="selectTeamCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Seleziona Squadra</h3>
+                            <p class="action-description">Scegli una squadra esistente per iniziare</p>
+                        </div>
+
+                        <div class="action-card" id="createTeamCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Nuova Squadra</h3>
+                            <p class="action-description">Crea una nuova squadra con il roster</p>
+                        </div>
+
+                        <div class="action-card" id="manageTeamsCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="2"/>
+                                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Gestisci Squadre</h3>
+                            <p class="action-description">Modifica, elimina o importa squadre</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Team Selection Screen -->
+        <div id="team-selection-screen" class="screen">
+            <div class="team-selection-container">
+                <header class="screen-header">
+                    <button class="btn btn-ghost btn-back" id="backToWelcome">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Indietro
+                    </button>
+                    <h1 class="screen-title">Seleziona Squadra</h1>
+                </header>
+
+                <main class="team-selection-content">
+                    <div id="teamsGrid" class="teams-grid">
+                        <!-- Teams will be loaded dynamically -->
+                    </div>
+                    <div id="noTeamsMessage" class="no-teams-message hidden">
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <h3>Nessuna squadra trovata</h3>
+                            <p>Crea la tua prima squadra per iniziare</p>
+                            <button class="btn btn-primary" id="createFirstTeam">Crea Squadra</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Match Management Screen -->
+        <div id="match-management-screen" class="screen">
+            <div class="match-management-container">
+                <header class="screen-header">
+                    <button class="btn btn-ghost btn-back" id="backToTeamSelection">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Indietro
+                    </button>
+                    <div class="screen-title-group">
+                        <h1 class="screen-title" id="selectedTeamName">Squadra</h1>
+                        <p class="screen-subtitle">Gestisci le partite</p>
+                    </div>
+                </header>
+
+                <main class="match-management-content">
+                    <div class="match-actions">
+                        <div class="action-card" id="newMatchCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Nuova Partita</h3>
+                            <p class="action-description">Configura una nuova partita da scoutare</p>
+                        </div>
+
+                        <div class="action-card" id="matchArchiveCard">
+                            <div class="action-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Archivio Partite</h3>
+                            <p class="action-description">Visualizza partite precedenti (in sviluppo)</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Match Setup Screen -->
+        <div id="match-setup-screen" class="screen">
+            <div class="match-setup-container">
+                <header class="screen-header">
+                    <button class="btn btn-ghost btn-back" id="backToMatchManagement">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Indietro
+                    </button>
+                    <h1 class="screen-title">Nuova Partita</h1>
+                </header>
+
+                <main class="match-setup-content">
+                    <form id="matchSetupForm" class="match-form">
+                        <div class="form-section">
+                            <h3 class="form-section-title">Dati della Partita</h3>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="opponent" class="form-label">Squadra Avversaria</label>
+                                    <input type="text" id="opponent" class="form-input" required placeholder="Nome squadra avversaria">
+                                </div>
+                                <div class="form-group">
+                                    <label for="matchDate" class="form-label">Data</label>
+                                    <input type="date" id="matchDate" class="form-input" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="eventType" class="form-label">Tipo Evento</label>
+                                    <select id="eventType" class="form-select" required>
+                                        <option value="">Seleziona tipo evento</option>
+                                        <option value="campionato">Campionato</option>
+                                        <option value="coppa">Coppa</option>
+                                        <option value="amichevole">Amichevole</option>
+                                        <option value="torneo">Torneo</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="venue" class="form-label">Sede</label>
+                                    <select id="venue" class="form-select" required>
+                                        <option value="">Seleziona sede</option>
+                                        <option value="casa">Casa</option>
+                                        <option value="trasferta">Trasferta</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="description" class="form-label">Descrizione (opzionale)</label>
+                                <textarea id="description" class="form-textarea" rows="3" placeholder="Note aggiuntive sulla partita"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-outline" id="cancelMatch">Annulla</button>
+                            <button type="submit" class="btn btn-primary" id="startScoutingBtn">
+                                <span class="btn-text">Start Scouting!</span>
+                                <div class="btn-spinner hidden"></div>
+                            </button>
+                        </div>
+                    </form>
+                </main>
+            </div>
+        </div>
+
+        <!-- Set Configuration Screen -->
+        <div id="set-config-screen" class="screen">
+            <div class="set-config-container">
+                <header class="screen-header">
+                    <button class="btn btn-ghost btn-back" id="backToMatchSetup">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Indietro
+                    </button>
+                    <div class="screen-title-group">
+                        <h1 class="screen-title">Configurazione Set</h1>
+                        <p class="screen-subtitle" id="matchInfo">Partita vs Avversario</p>
+                    </div>
+                </header>
+
+                <main class="set-config-content">
+                    <div class="set-selector">
+                        <h3 class="section-title">Seleziona Set</h3>
+                        <div class="set-buttons">
+                            <button class="set-btn active" data-set="1">Set 1</button>
+                            <button class="set-btn" data-set="2">Set 2</button>
+                            <button class="set-btn" data-set="3">Set 3</button>
+                            <button class="set-btn" data-set="4">Set 4</button>
+                            <button class="set-btn" data-set="5">Set 5</button>
+                        </div>
+                    </div>
+
+                    <div class="set-configuration">
+                        <div class="config-section">
+                            <h3 class="section-title">Fase di Inizio</h3>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="phase" value="servizio" checked>
+                                    <span class="radio-label">Servizio</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="phase" value="ricezione">
+                                    <span class="radio-label">Ricezione</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <h3 class="section-title">Rotazione Nostra Squadra</h3>
+                            <div class="rotation-selector">
+                                <select id="ourRotation" class="form-select">
+                                    <option value="P1">P1</option>
+                                    <option value="P2">P2</option>
+                                    <option value="P3">P3</option>
+                                    <option value="P4">P4</option>
+                                    <option value="P5">P5</option>
+                                    <option value="P6">P6</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <h3 class="section-title">Rotazione Avversaria (opzionale)</h3>
+                            <div class="rotation-selector">
+                                <select id="opponentRotation" class="form-select">
+                                    <option value="">Non specificata</option>
+                                    <option value="P1">P1</option>
+                                    <option value="P2">P2</option>
+                                    <option value="P3">P3</option>
+                                    <option value="P4">P4</option>
+                                    <option value="P5">P5</option>
+                                    <option value="P6">P6</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-actions">
+                        <button class="btn btn-primary btn-large" id="startSetBtn" disabled>
+                            <span class="btn-text">SCOUT!</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script src="../firebase-config.js"></script>
+    <script src="../firestore-service.js"></script>
+    
+    <script src="modules/auth/auth.js"></script>
+    <script src="modules/teams/teams.js"></script>
+    <script src="modules/matches/matches.js"></script>
+    <script src="modules/scouting/scouting.js"></script>
+    
+    <script src="utils/helpers.js"></script>
+    <script src="components/ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

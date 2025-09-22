@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Volley Scout - Test Semplice</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 300;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        .btn {
+            background: white;
+            color: #1976D2;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏐 My Volley Scout</h1>
+        <p>Applicazione di Scouting Pallavolo</p>
+        
+        <div>
+            <button class="btn" onclick="testCSS()">Test CSS</button>
+            <button class="btn" onclick="testJS()">Test JavaScript</button>
+            <button class="btn" onclick="goToMain()">Vai all'App Principale</button>
+        </div>
+        
+        <div id="status" class="status">
+            <strong>Status:</strong> Pronto per i test
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = '<strong>Status:</strong> ' + message;
+        }
+        
+        function testCSS() {
+            updateStatus('Testando CSS...');
+            
+            // Test caricamento CSS esterno
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'styles/main.css';
+            
+            link.onload = () => {
+                updateStatus('✅ CSS caricato correttamente!');
+            };
+            
+            link.onerror = () => {
+                updateStatus('❌ Errore nel caricamento CSS');
+            };
+            
+            document.head.appendChild(link);
+        }
+        
+        function testJS() {
+            updateStatus('Testando JavaScript...');
+            
+            // Test caricamento modulo
+            const script = document.createElement('script');
+            script.src = 'utils/helpers.js';
+            
+            script.onload = () => {
+                updateStatus('✅ JavaScript caricato correttamente!');
+            };
+            
+            script.onerror = () => {
+                updateStatus('❌ Errore nel caricamento JavaScript');
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        async function unregisterSW() {
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('Service Worker non supportato nel browser');
+                return;
+            }
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                if (regs.length === 0) {
+                    updateStatus('Nessun Service Worker registrato');
+                    return;
+                }
+                for (const reg of regs) {
+                    await reg.unregister();
+                }
+                // Inoltre svuota eventuale cache app
+                if (window.caches && caches.keys) {
+                    const keys = await caches.keys();
+                    for (const k of keys) {
+                        await caches.delete(k);
+                    }
+                }
+                updateStatus('✅ Service Worker deregistrato e cache svuotate. Ricarica l\'app.');
+            } catch (e) {
+                updateStatus('❌ Errore durante deregistrazione SW: ' + e.message);
+            }
+        }
+        
+        function goToMain() {
+            updateStatus('Reindirizzamento all\'app principale...');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+        
+        // Test automatico all'avvio
+        setTimeout(() => {
+            updateStatus('Pagina caricata correttamente! Prova i test sopra.');
+        }, 500);
+        
+        // Unregister SW automaticamente in dev (localhost/127.0.0.1)
+        (async () => {
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                await unregisterSW();
+            }
+        })();
+    </script>
+</body>
+</html>
