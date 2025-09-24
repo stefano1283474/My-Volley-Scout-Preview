@@ -17,6 +17,39 @@
                     .catch(error => console.log('Registrazione Service Worker fallita:', error));
             });
         }
+
+        // Fallback: alla DOMContentLoaded mostra l'app e nasconde il loading a prescindere
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const dbg = document.getElementById('debug-banner');
+                if (dbg) dbg.remove();
+                const appRoot = document.getElementById('app');
+                if (appRoot) appRoot.style.display = 'block';
+                const loading = document.getElementById('loading-screen');
+                if (loading) loading.style.display = 'none';
+            } catch(_) {}
+        });
+
+        // Auto-ripristino: se dopo ~2s il banner debug è ancora presente, svuota SW/cache e ricarica (1 sola volta)
+        window.addEventListener('load', () => {
+            setTimeout(async () => {
+                try {
+                    const dbg = document.getElementById('debug-banner');
+                    if (dbg && !sessionStorage.getItem('swRefreshedOnce')) {
+                        sessionStorage.setItem('swRefreshedOnce', '1');
+                        if ('serviceWorker' in navigator) {
+                            const regs = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all(regs.map(r => r.unregister()));
+                        }
+                        if (window.caches && caches.keys) {
+                            const keys = await caches.keys();
+                            await Promise.all(keys.map(k => caches.delete(k)));
+                        }
+                        location.reload();
+                    }
+                } catch (e) { console.warn('Auto-ripristino SW/cache non riuscito:', e); }
+            }, 2000);
+        });
     </script>
     <script src="./src/modules/teams/teams.js"></script>
 </head>
