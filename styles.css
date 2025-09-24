@@ -40,6 +40,21 @@ body {
     font-weight: 300;
 }
 
+/* Header: versione compatta mobile + menu overflow */
+.header-content { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.auth-section .user-info { display: flex; align-items: center; gap: 8px; position: relative; }
+.desktop-only { display: inline-flex; }
+.mobile-only { display: none; }
+.header-menu { position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); padding: 6px; min-width: 180px; }
+.header-menu .menu-item { width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; }
+.header-menu .menu-item:hover { background: #f2f7ff; }
+@media (max-width: 600px) {
+  .header { padding: 0.75rem; }
+  .header h1 { font-size: 1.6rem; margin-bottom: 0; }
+  .desktop-only { display: none; }
+  .mobile-only { display: inline-flex; }
+}
+
 /* Navigation */
 .nav {
     display: flex;

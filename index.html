@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>My Volley Scout PWA</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=1">
@@ -38,8 +38,15 @@
                 <div class="auth-section">
                     <div id="userInfo" class="user-info">
                         <span id="userEmail"></span>
-                        <button id="backToWelcomeBtn" class="btn btn-outline">Cambia Squadra</button>
-                        <button id="signOutBtn" class="btn btn-outline">Esci</button>
+                        <button id="backToWelcomeBtn" class="btn btn-outline desktop-only">Cambia Squadra</button>
+                        <button id="signOutBtn" class="btn btn-outline desktop-only">Esci</button>
+                        <button id="headerMenuToggle" class="btn btn-outline mobile-only" aria-expanded="false" aria-controls="headerMenu" title="Menu">
+                          ⋮
+                        </button>
+                        <div id="headerMenu" class="header-menu" hidden>
+                          <button id="backToWelcomeBtnMobile" class="menu-item">Cambia Squadra</button>
+                          <button id="signOutBtnMobile" class="menu-item">Esci</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -205,30 +212,10 @@
                     window.location.replace('welcome.html');
                 }
             }
-
-            function initializeScoutingApp(sessionData) {
-                // Carica l'app solo dopo autenticazione e sessione valida
-                const script = document.createElement('script');
-                script.src = 'app.js?v=5';
-                script.onload = function() {
-                    // Nasconde banner debug e loading
-                    var dbg = document.getElementById('debug-banner');
-                    if (dbg) dbg.style.display = 'none';
-                    var ls = document.getElementById('loading-screen');
-                    if (ls) ls.style.display = 'none';
-                    // Mostra l'app
-                    var appEl = document.getElementById('app');
-                    if (appEl) appEl.style.display = '';
-                    // Inietta la sessione nell'app
-                    if (typeof loadScoutingSession === 'function') {
-                        loadScoutingSession(sessionData);
-                    }
-                };
-                document.body.appendChild(script);
-            }
         });
     </script>
-    
-    <!-- app.js viene caricato dinamicamente dopo la verifica di autenticazione -->
+
+    <!-- App script -->
+    <script src="app.js?v=4"></script>
 </body>
 </html>

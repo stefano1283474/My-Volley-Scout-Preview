@@ -182,7 +182,7 @@ function initializeApp() {
                 if (page) switchPage(page);
             });
         });
-
+    
         // Inizializza le pagine necessarie
         if (typeof initializeScoutingPage === 'function') {
             try { initializeScoutingPage(); } catch (e) { console.warn('initializeScoutingPage errore:', e); }
@@ -197,13 +197,42 @@ function initializeApp() {
         const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
         if (backToWelcomeBtn) {
             backToWelcomeBtn.addEventListener('click', () => {
-                // Pulisce la sessione corrente e torna alla pagina di benvenuto
                 localStorage.removeItem('currentScoutingSession');
                 window.location.replace('welcome.html');
             });
             console.log('Event listener aggiunto al pulsante Cambia Squadra');
         }
-
+    
+        // Header mobile overflow menu
+        const headerMenuToggle = document.getElementById('headerMenuToggle');
+        const headerMenu = document.getElementById('headerMenu');
+        const backToWelcomeBtnMobile = document.getElementById('backToWelcomeBtnMobile');
+        const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+        if (headerMenuToggle && headerMenu) {
+            headerMenuToggle.addEventListener('click', () => {
+                const isHidden = headerMenu.hasAttribute('hidden');
+                if (isHidden) headerMenu.removeAttribute('hidden'); else headerMenu.setAttribute('hidden', '');
+                headerMenuToggle.setAttribute('aria-expanded', (!isHidden).toString());
+            });
+            document.addEventListener('click', (e) => {
+                if (!headerMenu.contains(e.target) && e.target !== headerMenuToggle) {
+                    headerMenu.setAttribute('hidden', '');
+                    headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+        if (backToWelcomeBtnMobile) {
+            backToWelcomeBtnMobile.addEventListener('click', () => {
+                localStorage.removeItem('currentScoutingSession');
+                window.location.replace('welcome.html');
+            });
+        }
+        if (signOutBtnMobile && typeof window.authFunctions !== 'undefined') {
+            signOutBtnMobile.addEventListener('click', () => {
+                window.authFunctions.signOut();
+            });
+        }
+    
         // Adatta la pagina alla viewport all'avvio e su resize
         try {
             requestAnimationFrame(() => {
@@ -213,7 +242,7 @@ function initializeApp() {
                 try { if (typeof fitActivePageToViewport === 'function') fitActivePageToViewport(); } catch (_) {}
             });
         } catch (_) {}
-
+    
         // Attiva pagina iniziale
         switchPage(appState.currentPage || 'match-data');
         console.log('initializeApp completata');
