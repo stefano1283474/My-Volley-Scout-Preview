@@ -174,6 +174,10 @@ function switchPage(pageId) {
 
 function initializeApp() {
     try {
+        // Rimuovi banner di debug se presente (indica che JS è in esecuzione)
+        const debugBanner = document.getElementById('debug-banner');
+        if (debugBanner) debugBanner.remove();
+
         // Gestione navigazione
         const navButtons = document.querySelectorAll('.nav-btn');
         navButtons.forEach(btn => {
@@ -245,6 +249,13 @@ function initializeApp() {
     
         // Attiva pagina iniziale
         switchPage(appState.currentPage || 'match-data');
+
+        // Mostra app e nasconde la schermata di caricamento
+        const appRoot = document.getElementById('app');
+        if (appRoot) appRoot.style.display = 'block';
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) loadingScreen.style.display = 'none';
+
         console.log('initializeApp completata');
     } catch (e) {
         console.error('Errore initializeApp:', e);
