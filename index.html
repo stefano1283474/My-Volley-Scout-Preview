@@ -48,9 +48,8 @@
         <!-- Main Content -->
         <main class="main">
             <div class="section" id="scouting-section">
-                <div class="start-set-container" style="margin-bottom:1rem;">
-                    <button id="start-set" class="btn btn-primary btn-large">INIZIA SET</button>
-                </div>
+                
+                <!-- Sezione INIZIA SET rimossa -->
 
                 <h3>Scouting Azioni</h3>
                 
@@ -162,17 +161,43 @@
 
             function checkScoutingSession() {
                 const currentSession = localStorage.getItem('currentScoutingSession');
-                if (!currentSession) {
-                    // Nessuna sessione attiva: invia al flusso di benvenuto
+                const selectedTeamId = localStorage.getItem('selectedTeamId');
+                
+                // Verifica prerequisiti: sessione di scouting E roster selezionato
+                if (!currentSession || !selectedTeamId) {
+                    let message = 'Per accedere alla pagina di scouting è necessario:';
+                    if (!selectedTeamId) {
+                        message += '\n• Selezionare un roster/squadra';
+                    }
+                    if (!currentSession) {
+                        message += '\n• Avviare una sessione di scouting';
+                    }
+                    message += '\n\nVerrai reindirizzato alla selezione del roster.';
+                    
+                    alert(message);
+                    localStorage.setItem('requireRosterSelection', '1');
                     window.location.replace('welcome.html');
                     return;
                 }
+                
                 try {
                     const sessionData = JSON.parse(currentSession);
+                    
+                    // Verifica aggiuntiva: se la sessione non ha teamId o è diversa da selectedTeamId
+                    if (!sessionData.teamId || sessionData.teamId !== selectedTeamId) {
+                        alert('La sessione di scouting non corrisponde al roster selezionato.\nSeleziona nuovamente il roster e avvia una nuova sessione.');
+                        localStorage.removeItem('currentScoutingSession');
+                        localStorage.setItem('requireRosterSelection', '1');
+                        window.location.replace('welcome.html');
+                        return;
+                    }
+                    
                     initializeScoutingApp(sessionData);
                 } catch (error) {
                     console.error('Errore nel parsing della sessione:', error);
                     localStorage.removeItem('currentScoutingSession');
+                    alert('Sessione di scouting corrotta. Seleziona nuovamente il roster e avvia una nuova sessione.');
+                    localStorage.setItem('requireRosterSelection', '1');
                     window.location.replace('welcome.html');
                 }
             }

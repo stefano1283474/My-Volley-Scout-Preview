@@ -284,6 +284,10 @@ class TeamsModule {
         const team = this.state.teams.find(t => String(t.id) === idStr);
         if (team) {
             this.state.currentTeam = team;
+            // Sincronizza anche il localStorage per compatibilità tra pagine
+            try { localStorage.setItem('selectedTeamId', String(team.id)); } catch(_) {}
+            // Espone subito su window per script esterni
+            try { window.teamsModule = this; } catch(_) {}
             this.notifyTeamChange(team);
             return { success: true, team };
         }

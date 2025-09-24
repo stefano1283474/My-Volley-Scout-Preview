@@ -77,6 +77,22 @@ window.loadScoutingSession = function(sessionData) {
                     if (team && Array.isArray(team.players)) loadedRoster = team.players;
                 }
             }
+            // Fallback addizionale: leggi direttamente dal localStorage se il modulo non ha ancora caricato le squadre
+            if (!loadedRoster.length) {
+                const selId = localStorage.getItem('selectedTeamId');
+                try {
+                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    let team = null;
+                    if (selId) {
+                        team = storedTeams.find(t => String(t.id) === String(selId));
+                    }
+                    if (!team && (md.myTeam || md.teamName)) {
+                        const targetName = (md.myTeam || md.teamName).toLowerCase();
+                        team = storedTeams.find(t => String(t.name || '').toLowerCase() === targetName);
+                    }
+                    if (team && Array.isArray(team.players)) loadedRoster = team.players;
+                } catch(_) {}
+            }
         } catch(_) {}
         appState.currentRoster = Array.isArray(loadedRoster) ? loadedRoster : [];
 
@@ -175,12 +191,7 @@ function initializeApp() {
             try { initializeRosterPage(); } catch (e) { console.warn('initializeRosterPage errore:', e); }
         }
         
-        // Inizializza il pulsante INIZIA SET nella versione semplificata
-        const startSetBtn = document.getElementById('start-set');
-        if (startSetBtn) {
-            startSetBtn.addEventListener('click', startSet);
-            console.log('Event listener aggiunto al pulsante INIZIA SET');
-        }
+        // Pulsante INIZIA SET rimosso: nessuna inizializzazione necessaria
         
         // Inizializza il pulsante Cambia Squadra
         const backToWelcomeBtn = document.getElementById('backToWelcomeBtn');
