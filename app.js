@@ -469,6 +469,18 @@ function initializeScoutingPage() {
             });
         }
         
+        // Toggle Log Azioni
+        const logToggle = document.getElementById('actions-log-toggle');
+        const actionsLogBox = document.getElementById('actions-log');
+        if (logToggle && actionsLogBox) {
+            logToggle.addEventListener('click', () => {
+                const collapsed = actionsLogBox.classList.toggle('is-collapsed');
+                logToggle.setAttribute('aria-expanded', (!collapsed).toString());
+                const icon = logToggle.querySelector('.toggle-icon');
+                if (icon) icon.textContent = collapsed ? '▶' : '▼';
+            });
+        }
+        
         // Inizializza interfaccia guidata
         initializeGuidedScouting();
     }
@@ -806,6 +818,10 @@ function updateActionsLog() {
             </div>
         `;
     }).join('');
+
+    // Aggiorna badge conteggio
+    const countBadge = document.getElementById('actions-log-count');
+    if (countBadge) countBadge.textContent = String(appState.actionsLog.length);
 }
 
 // Utility aggiunte: display fase e predizione/aggiornamento fondamentale

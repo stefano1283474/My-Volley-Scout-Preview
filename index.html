@@ -119,8 +119,12 @@
                   
                       <!-- Log Azioni -->
                       <div id="actions-log" class="actions-log">
-                        <h4>Log Azioni</h4>
-                        <div id="actions-list"></div>
+                        <button id="actions-log-toggle" class="log-toggle" aria-expanded="true" aria-controls="actions-list">
+                          <span class="toggle-icon">▼</span>
+                          Log Azioni
+                          <span class="log-count-badge" id="actions-log-count">0</span>
+                        </button>
+                        <div id="actions-list" class="log-list"></div>
                       </div>
                     </div>
                   </div>

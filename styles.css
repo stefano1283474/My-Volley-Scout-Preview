@@ -1602,3 +1602,19 @@ body {
   #scouting-dialog .player-btn { min-height: 64px; padding: 12px; }
   #scouting-dialog .evaluation-buttons .eval-btn { min-height: 64px; }
 }
+
+/* --- Log Azioni comprimibile --- */
+#actions-log { margin-top: 12px; }
+#actions-log .log-toggle {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  background: #f5f7fb; color: #0f5dde; border: 1px solid #d7e2ff; border-radius: 10px;
+  padding: 10px 12px; font-weight: 600;
+}
+#actions-log .log-toggle .toggle-icon { margin-right: 8px; }
+#actions-log .log-count-badge {
+  background: #0f5dde; color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700;
+}
+#actions-log .log-list { transition: max-height 0.2s ease; }
+#actions-log.is-collapsed .log-list { display: none; }
