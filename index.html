@@ -203,7 +203,11 @@
                         return;
                     }
                     
-                    initializeScoutingApp(sessionData);
+                    if (window.loadScoutingSession) {
+                        window.loadScoutingSession(sessionData);
+                    } else {
+                        console.error('Funzione loadScoutingSession non disponibile');
+                    }
                 } catch (error) {
                     console.error('Errore nel parsing della sessione:', error);
                     localStorage.removeItem('currentScoutingSession');
