@@ -615,6 +615,7 @@ function updatePlayersGrid() {
     container.innerHTML = validPlayers.map(player => {
         const displayName = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
         const role = player.role || '';
+        const roleShort = role ? role.slice(0, 3) : '';
         const roleClass = role === 'Palleggiatore' ? 'role-pal'
                         : role === 'Opposto' ? 'role-opp'
                         : role === 'Schiacciatore' ? 'role-sch'
@@ -624,7 +625,7 @@ function updatePlayersGrid() {
         return `
             <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${displayName}">
                 <div class="player-line1"><span class="player-number">${player.number}</span> <span class="player-name">${displayName}</span></div>
-                <div class="player-role">${role}</div>
+                <div class="player-role">${roleShort}</div>
             </button>
         `;
     }).join('');
