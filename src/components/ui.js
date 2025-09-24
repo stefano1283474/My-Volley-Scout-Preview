@@ -276,7 +276,7 @@ class UIComponents {
             small: '400px',
             medium: '600px',
             large: '800px',
-            fullscreen: '95vw'
+            fullscreen: '100%'
         };
         return sizes[size] || sizes.medium;
     }

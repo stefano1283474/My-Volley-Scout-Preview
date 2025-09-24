@@ -648,8 +648,8 @@ body {
 /* Dialog roster */
 #roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
 #roster-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
+  width: min(920px, 100%);
+  max-width: 100%;
   border: none;
   border-radius: 12px;
   padding: 1rem;
@@ -680,8 +680,9 @@ body {
 /* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
 @media (max-width: 480px) {
   #roster-dialog {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 96vh;
     max-height: 96vh;
     border-radius: 0; /* usa tutto lo schermo */
@@ -919,8 +920,8 @@ body {
 /* Dialog roster */
 #roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
 #roster-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
+  width: min(920px, 100%);
+  max-width: 100%;
   border: none;
   border-radius: 12px;
   padding: 1rem;
@@ -951,8 +952,9 @@ body {
 /* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
 @media (max-width: 480px) {
   #roster-dialog {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 96vh;
     max-height: 96vh;
     border-radius: 0; /* usa tutto lo schermo */
@@ -1189,8 +1191,8 @@ body {
 /* Dialog roster */
 #roster-dialog::backdrop { background: rgba(0,0,0,0.3); }
 #roster-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
+  width: min(920px, 100%);
+  max-width: 100%;
   border: none;
   border-radius: 12px;
   padding: 1rem;
@@ -1221,8 +1223,9 @@ body {
 /* Mobile stretto (es. iPhone 16 portrait ~430px) → dialog a piena larghezza/altezza */
 @media (max-width: 480px) {
   #roster-dialog {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 96vh;
     max-height: 96vh;
     border-radius: 0; /* usa tutto lo schermo */
@@ -1375,13 +1378,17 @@ body {
 
   /* Dialog a piena larghezza/altezza su mobile */
   #scouting-dialog {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 96vh;
     max-height: 96vh;
     border-radius: 0;
     padding: 0.75rem;
     left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
     transform: none;
   }
 }
