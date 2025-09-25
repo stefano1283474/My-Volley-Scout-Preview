@@ -206,6 +206,11 @@ function loadMatchesList() {
     const matches = getStoredMatches();
     const container = document.getElementById('matches-list');
     
+    // Verifica se l'elemento esiste prima di modificarlo
+    if (!container) {
+        return;
+    }
+    
     if (matches.length === 0) {
         container.innerHTML = '<p style="text-align: center; color: #666;">Nessuna partita salvata</p>';
         return;
