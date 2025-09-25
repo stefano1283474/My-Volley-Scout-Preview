@@ -522,6 +522,14 @@ body {
 }
 #scouting-dialog .eval-btn.selected { outline: 3px solid rgba(0,0,0,0.25); outline-offset: 2px; }
 
+/* Evidenziazione del pulsante selezionato (giocatore ed eval) */
+#scouting-dialog .player-btn.selected, .player-btn.selected {
+  outline: 3px solid rgba(25, 118, 210, 0.35);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15) inset;
+}
+
+
 /* 1..5 gradiente rosso→verde */
 #scouting-dialog .evaluation-buttons .eval-btn:nth-of-type(1) { background: #d32f2f; }
 #scouting-dialog .evaluation-buttons .eval-btn:nth-of-type(2) { background: #f57c00; }
@@ -531,24 +539,7 @@ body {
 /* Err Avv: bottone neutro/grigio */
 #scouting-dialog .evaluation-buttons .eval-btn:nth-of-type(6) { background: #9e9e9e; }
 
-#scouting-dialog .confirm-btn {
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px;
-  min-height: 48px;
-  font-size: 1.05rem;
-}
-
-#scouting-dialog .confirm-btn {
-  position: sticky;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-  align-self: stretch;
-  padding: 12px 16px;
-  font-size: 1.1rem;
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
-}
-
+/* Pulsante Conferma Azione rimosso: stile eliminato */
 @media (max-width: 480px) {
   #scouting-dialog .eval-btn { min-height: 60px; font-size: 1.1rem; }
 }
@@ -818,6 +809,11 @@ body {
 #action-summary-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
 #action-summary-box h4 { margin: 0 0 6px 0; }
 #action-summary { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 600; }
+
+/* Box descrittivo dei tasti premuti */
+#pressed-buttons-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+#pressed-buttons-box h4 { margin: 0 0 6px 0; }
+#pressed-buttons-log { font-size: 0.95rem; color: #333; word-break: break-word; }
 
 /* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
 @media (max-width: 480px) {
@@ -1660,3 +1656,56 @@ body {
 }
 #actions-log .log-list { transition: max-height 0.2s ease; }
 #actions-log.is-collapsed .log-list { display: none; }
+
+/* === UI compact fixes: header buttons and responsive players grid === */
+/* Header buttons compact sizing */
+.header .btn {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  min-height: 32px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.btn-outline { background: transparent; border: 1px solid #d7e2ff; color: #0f5dde; }
+
+/* Compact header spacing */
+.header-content { gap: 6px; }
+.auth-section .user-info { flex-wrap: wrap; }
+
+/* Reduce header title size on small mobile */
+@media (max-width: 480px) { .header h1 { font-size: 1.3rem; } }
+
+/* Prevent vertical overflow on low-height viewports */
+@media (max-height: 680px) {
+  #scouting-dialog .eval-btn { min-height: 44px; padding: 10px; }
+}
+
+/* Players grid base: responsive auto-fit to avoid overflow */
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+}
+.player-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+/* Mobile: use auto-fit instead of fixed 4 columns to adapt */
+@media (max-width: 480px) {
+  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
+  #scouting-dialog .player-btn, .player-btn { min-height: 48px; padding: 8px; }
+}
+@media (max-width: 390px) {
+  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); }
+}
+@media (max-width: 340px) {
+  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); }
+}

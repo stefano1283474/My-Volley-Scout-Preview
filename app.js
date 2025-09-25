@@ -194,6 +194,9 @@ function initializeApp() {
         if (typeof initializeRosterPage === 'function') {
             try { initializeRosterPage(); } catch (e) { console.warn('initializeRosterPage errore:', e); }
         }
+        if (typeof initializeMatchDataPage === 'function') {
+            try { initializeMatchDataPage(); } catch (e) { console.warn('initializeMatchDataPage errore:', e); }
+        }
         
         // Pulsante INIZIA SET rimosso: nessuna inizializzazione necessaria
         
@@ -577,6 +580,8 @@ function initializeGuidedScouting() {
         btn.addEventListener('click', (e) => {
             const evaluation = parseInt(e.currentTarget.dataset.eval || e.currentTarget.textContent.trim()[0]);
             selectEvaluation(evaluation);
+            // Avvio automatico della costruzione della quartina: niente più pulsante di conferma
+            submitGuidedAction();
         });
     });
     
@@ -635,15 +640,24 @@ function updatePlayersGrid() {
         btn.addEventListener('click', (e) => {
             const number = e.currentTarget.dataset.number;
             const name = e.currentTarget.dataset.name;
-            selectPlayer(number, name);
+            // Passo anche il riferimento al bottone per evidenziare la selezione
+            selectPlayer(number, name, e.currentTarget);
         });
     });
 }
 
-function selectPlayer(number, name) {
+function selectPlayer(number, name, btnEl) {
     appState.selectedPlayer = { number, name };
-    
-    // Aggiorna entrambi gli elementi per compatibilità
+
+    // Evidenzia visivamente il giocatore selezionato, sovrascrivendo selezioni precedenti
+    const playerButtons = document.querySelectorAll('.player-btn');
+    playerButtons.forEach(b => b.classList.remove('selected'));
+    if (btnEl) btnEl.classList.add('selected');
+
+    // Persisti il fondamentale calcolato per coerenza tra descrittivo e quartina
+    appState.calculatedFundamental = predictNextFundamental();
+
+    // Aggiorna elementi di compatibilità
     const oldElement = document.getElementById('selected-player-info');
     if (oldElement) {
         oldElement.textContent = `${number} - ${name}`;
@@ -652,19 +666,46 @@ function selectPlayer(number, name) {
     if (newElement) {
         newElement.textContent = `${number} - ${name}`;
     }
-    
-    // Aggiorna il fondamentale corrente
+
+    // Aggiorna UI
     updateNextFundamental();
-    
-    // Mostra box riepilogo azione se esiste
+
     const summaryBox = document.getElementById('action-summary-box');
     if (summaryBox) {
         summaryBox.style.display = 'block';
     }
-    
+
     updateActionSummary();
+
+    // Campo descrittivo "parlante" della quartina corrente
+    function updateDescriptiveQuartet() {
+        const box = document.getElementById('pressed-buttons-box');
+        const el = document.getElementById('pressed-buttons-log');
+        if (!el) return;
     
-    // Passa alla selezione della valutazione
+        // Caso speciale: Err Avv richiesto come “– Err Avv”
+        if (appState.opponentErrorPressed) {
+            el.textContent = '– Err Avv';
+            if (box) box.style.display = 'block';
+            return;
+        }
+    
+        const player = appState.selectedPlayer;
+        const fund = appState.calculatedFundamental || predictNextFundamental();
+        const evalVal = appState.selectedEvaluation;
+    
+        if (player && fund) {
+            const names = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
+            const nn = String(player.number || '').padStart(2, '0');
+            const evalText = (evalVal ? `Val${evalVal}` : 'Val?');
+            el.textContent = `${nn} ${names[fund] || fund} ${evalText}`;
+            if (box) box.style.display = 'block';
+        } else {
+            el.textContent = '';
+            if (box) box.style.display = 'none';
+        }
+    }
+    
     showScoutingStep('step-action');
 }
 
@@ -684,6 +725,8 @@ function selectEvaluation(evaluation) {
     
     if (selectedBtn) {
         selectedBtn.classList.add('selected');
+        // Registra il testo del pulsante di valutazione premuto (es: "4 - Positivo")
+        updateDescriptiveQuartet();
     }
 }
 
@@ -698,7 +741,7 @@ function submitGuidedAction() {
         return;
     }
     
-    const fundamental = predictNextFundamental();
+    const fundamental = appState.calculatedFundamental || predictNextFundamental();
     const evaluation = appState.selectedEvaluation;
     const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${fundamental}${evaluation}`;
     appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
@@ -748,6 +791,9 @@ function submitGuidedAction() {
 
 function submitOpponentError() {
     const actionString = 'avv';
+    // Imposta flag per mostrare il descrittivo “– Err Avv”
+    appState.opponentErrorPressed = true;
+    updateDescriptiveQuartet();
     try {
         const result = parseAction(actionString);
         processActionResult(result);
@@ -765,8 +811,17 @@ function submitOpponentError() {
         updateNextFundamental();
         showScoutingStep('step-player');
         updateActionSummary();
+        // Pulisci descrittivo e flag
+        appState.selectedPlayer = null;
+        appState.selectedEvaluation = null;
+        appState.calculatedFundamental = null;
+        appState.opponentErrorPressed = false;
+        updateDescriptiveQuartet();
     } catch (error) {
         alert(`Errore: ${error.message}`);
+        // In caso di errore, azzera il flag per non lasciare il descrittivo attivo
+        appState.opponentErrorPressed = false;
+        updateDescriptiveQuartet();
     }
 }
 
@@ -961,6 +1016,10 @@ function startSet() {
     appState.setStarted = true;
     appState.selectedPlayer = null;
     appState.selectedEvaluation = null;
+    
+    // Inizializza il log dei tasti premuti
+    // Reset del descrittivo
+    updateDescriptiveQuartet();
     
     // Mostra sezione scouting se esiste (versione completa)
     const scoutingSection = document.getElementById('scouting-section');
@@ -1204,4 +1263,57 @@ function rotateTeam() {
     const currentIndex = rotationSequence.indexOf(appState.currentRotation);
     const nextIndex = (currentIndex + 1) % rotationSequence.length;
     appState.currentRotation = rotationSequence[nextIndex];
+}
+
+// === MATCH DATA PAGE ===
+function initializeMatchDataPage() {
+    console.log('Initializing Match Data Page');
+    const form = document.getElementById('new-match-form');
+    if (form && !form.hasAttribute('data-initialized')) {
+        form.addEventListener('submit', handleNewMatch);
+        form.setAttribute('data-initialized', 'true');
+    }
+    
+    loadMatchesList();
+
+    // Gestione nuovi pulsanti
+    const newMatchBtn = document.getElementById('new-match-btn');
+    const loadMatchesBtn = document.getElementById('load-matches-btn');
+    const newMatchSection = document.getElementById('new-match-section');
+    const matchesListSection = document.getElementById('matches-list-section');
+
+    console.log('newMatchBtn:', newMatchBtn);
+    console.log('loadMatchesBtn:', loadMatchesBtn);
+    console.log('newMatchSection:', newMatchSection);
+    console.log('matchesListSection:', matchesListSection);
+}
+
+// Funzione loadMatchesList con controllo null - versione aggiornata
+function loadMatchesList() {
+    console.log('loadMatchesList chiamata - versione aggiornata');
+    const container = document.getElementById('matches-list');
+    if (!container) {
+        console.warn('Elemento matches-list non trovato nella pagina corrente - questo è normale se non siamo nella pagina matches');
+        return;
+    }
+    
+    // Qui andrà la logica per caricare e visualizzare le partite
+    container.innerHTML = '<p>Lista partite in caricamento... (versione aggiornata)</p>';
+}
+
+// Campo descrittivo: elenco dei tasti premuti
+function addPressedButton(label) {
+    if (!appState.pressedButtons) appState.pressedButtons = [];
+    appState.pressedButtons.push(label);
+    updatePressedButtonsDisplay();
+}
+
+function updatePressedButtonsDisplay() {
+    const el = document.getElementById('pressed-buttons-log');
+    const box = document.getElementById('pressed-buttons-box');
+    if (!el) return;
+    el.textContent = (appState.pressedButtons && appState.pressedButtons.length)
+        ? appState.pressedButtons.join(' • ')
+        : '';
+    if (box) box.style.display = (appState.pressedButtons && appState.pressedButtons.length) ? 'block' : 'none';
 }

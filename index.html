@@ -148,14 +148,17 @@
                         </div>
                       </div>
                   
-                      <!-- Riepilogo azione -->
-                      <div id="action-summary-box">
-                        <h4>Riepilogo azione</h4>
-                        <div id="action-summary"></div>
+                      <div id="action-summary-box" class="summary-box">
+                        <div class="summary-title">Riepilogo quartine</div>
+                        <div id="action-summary" class="summary-content"></div>
                       </div>
-                  
-                      <!-- Conferma -->
-                      <button id="confirm-guided-action" class="confirm-btn" onclick="submitGuidedAction()">Conferma Azione</button>
+
+                      <!-- Pulsante Conferma Azione rimosso: il flusso è automatico al click sulla valutazione -->
+
+                      <div id="pressed-buttons-box" class="summary-box" style="display:none;">
+                        <div class="summary-title">Quartina descrittiva</div>
+                        <div id="pressed-buttons-log" class="summary-content"></div>
+                      </div>
                   
                       <!-- Log Azioni -->
                       <div id="actions-log" class="actions-log">
@@ -253,6 +256,6 @@
     </script>
 
     <!-- App script -->
-    <script src="app.js?v=5" defer></script>
+    <script src="app.js?v=6" defer></script>
 </body>
 </html>
