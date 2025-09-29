@@ -524,8 +524,56 @@ function initializeScoutingPage() {
             });
         }
         
+        // Fallback: se il roster non è ancora caricato, prova a recuperarlo dal TeamsModule o dal localStorage
+        try {
+            if (!Array.isArray(appState.currentRoster) || appState.currentRoster.length === 0) {
+                let roster = [];
+                // 1) prova dal modulo Teams
+                if (window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') {
+                    const team = window.teamsModule.getCurrentTeam();
+                    if (team && Array.isArray(team.players)) roster = team.players;
+                }
+                // 2) fallback: dal localStorage usando selectedTeamId
+                if (!roster || roster.length === 0) {
+                    const selId = localStorage.getItem('selectedTeamId');
+                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    const team = storedTeams.find(t => String(t.id) === String(selId));
+                    if (team && Array.isArray(team.players)) roster = team.players;
+                }
+                if (Array.isArray(roster) && roster.length > 0) {
+                    appState.currentRoster = roster;
+                }
+            }
+        } catch (_) {}
+
+        // Ascolta gli aggiornamenti del modulo Teams per ripopolare la griglia appena disponibili
+        try {
+            if (window.teamsModule) {
+                if (typeof window.teamsModule.onTeamsUpdate === 'function') {
+                    window.teamsModule.onTeamsUpdate(() => {
+                        try {
+                            const t = window.teamsModule.getCurrentTeam?.();
+                            if (t && Array.isArray(t.players)) appState.currentRoster = t.players;
+                            updatePlayersGrid();
+                        } catch (_) {}
+                    });
+                }
+                if (typeof window.teamsModule.onTeamChange === 'function') {
+                    window.teamsModule.onTeamChange((team) => {
+                        try {
+                            if (team && Array.isArray(team.players)) appState.currentRoster = team.players;
+                            updatePlayersGrid();
+                        } catch (_) {}
+                    });
+                }
+            }
+        } catch (_) {}
+
         // Inizializza interfaccia guidata
         initializeGuidedScouting();
+
+        // Popola subito la griglia giocatori (o mostra un messaggio se il roster non è caricato)
+        try { updatePlayersGrid(); } catch (_) {}
     }
 }
 
@@ -574,9 +622,14 @@ function initializeGuidedScouting() {
         });
     }
     
-    // Event listeners per valutazioni
+    // Event listeners per valutazioni (escludi "Err Avv" che ha il suo onclick handler)
     const evalButtons = document.querySelectorAll('.eval-btn');
     evalButtons.forEach(btn => {
+        // Salta il pulsante "Err Avv" che ha già il suo onclick handler
+        if (btn.textContent.includes('Err Avv')) {
+            return;
+        }
+        
         btn.addEventListener('click', (e) => {
             const evaluation = parseInt(e.currentTarget.dataset.eval || e.currentTarget.textContent.trim()[0]);
             selectEvaluation(evaluation);
@@ -620,17 +673,23 @@ function updatePlayersGrid() {
     container.innerHTML = validPlayers.map(player => {
         const displayName = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
         const role = player.role || '';
-        const roleShort = role ? role.slice(0, 3) : '';
+        const roleShort = role ? (role[0] || '').toUpperCase() : '';
         const roleClass = role === 'Palleggiatore' ? 'role-pal'
                         : role === 'Opposto' ? 'role-opp'
                         : role === 'Schiacciatore' ? 'role-sch'
                         : role === 'Centrale' ? 'role-ctr'
                         : role === 'Libero' ? 'role-lib'
                         : '';
+        const nickname = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
         return `
-            <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${displayName}">
-                <div class="player-line1"><span class="player-number">${player.number}</span> <span class="player-name">${displayName}</span></div>
-                <div class="player-role">${roleShort}</div>
+            <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${nickname}">
+                <div class="player-line1">
+                    <span class="player-number">${player.number}</span>
+                    <span class="player-role">${roleShort}</span>
+                </div>
+                <div class="player-line2">
+                    <span class="player-name">${nickname}</span>
+                </div>
             </button>
         `;
     }).join('');
@@ -664,7 +723,17 @@ function selectPlayer(number, name, btnEl) {
     }
     const newElement = document.getElementById('selected-player-display');
     if (newElement) {
-        newElement.textContent = `${number} - ${name}`;
+        const roleShort = (btnEl && btnEl.dataset && btnEl.dataset.role ? (btnEl.dataset.role[0] || '').toUpperCase() : '');
+        const nickname = name || '';
+        newElement.innerHTML = `
+            <div class="player-line1">
+                <span class="player-number">${String(number).padStart(2, '0')}</span>
+                <span class="player-role">${roleShort}</span>
+            </div>
+            <div class="player-line2">
+                <span class="player-name">${nickname}</span>
+            </div>
+        `;
     }
 
     // Aggiorna UI
@@ -952,19 +1021,44 @@ function predictNextFundamental() {
     const currentActionLogs = getCurrentActionLogs();
     if (currentActionLogs.length > 0) {
         const lastLog = currentActionLogs[currentActionLogs.length - 1];
-        const act = lastLog.action || '';
-        const lastFund = act.charAt(2);
-        const lastEval = parseInt(act.charAt(3));
-        if (lastFund === 'd') {
-            if (lastEval === 2) return 'd';
-            else if (lastEval >= 3 && lastEval <= 5) return 'a';
-        } else if (lastFund === 'r') {
-            if (lastEval === 2) return 'd';
-            else if (lastEval >= 3 && lastEval <= 5) return 'a';
-        } else if (lastFund === 'a' || lastFund === 'b') {
-            if (lastEval !== 1 && lastEval !== 5) return 'd';
+
+        // Se il log contiene il risultato del rally precedente, usa quello
+        if (lastLog.result && lastLog.result.result) {
+            const res = lastLog.result.result;
+            if (res === 'home_point') return 'b';   // abbiamo fatto punto: prossimo fondamentale è Servizio
+            if (res === 'away_point') return 'r';   // punto avversario: prossimo fondamentale è Ricezione
+        }
+
+        // Altrimente siamo nel mezzo di una sequenza: analizza l'ultimo token dell'azione
+        const actString = lastLog.action || '';
+        const tokens = actString.trim().split(/\s+/);
+        const lastPart = tokens[tokens.length - 1] || '';
+
+        // Caso speciale: "avv" (errore avversario) chiude l'azione con punto nostro => prossimo è Servizio
+        if (lastPart.toLowerCase() === 'avv') return 'b';
+
+        if (lastPart.length >= 4) {
+            const lastFund = lastPart.charAt(2);
+            const lastEval = parseInt(lastPart.charAt(3));
+
+            // Se l'azione si chiude con A5, B5, M5 => prossimo fondamentale è Servizio (b)
+            if ((lastFund === 'a' || lastFund === 'b' || lastFund === 'm') && lastEval === 5) {
+                return 'b';
+            }
+
+            // Logica esistente per la predizione durante lo scambio
+            if (lastFund === 'd') {
+                if (lastEval === 2) return 'd';
+                else if (lastEval >= 3 && lastEval <= 5) return 'a';
+            } else if (lastFund === 'r') {
+                if (lastEval === 2) return 'd';
+                else if (lastEval >= 3 && lastEval <= 5) return 'a';
+            } else if (lastFund === 'a' || lastFund === 'b') {
+                if (lastEval !== 1 && lastEval !== 5) return 'd';
+            }
         }
     }
+    // Fallback basato sulla fase corrente
     if (appState.currentPhase === 'servizio') return 'b';
     if (appState.currentPhase === 'ricezione') return 'r';
     return 'a';
@@ -972,11 +1066,12 @@ function predictNextFundamental() {
 
 function updateNextFundamental() {
     const fundamental = predictNextFundamental();
-    const names = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
+    const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
+    const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');
-    if (el) el.textContent = names[fundamental] || 'Sconosciuto';
+    if (el) el.textContent = namesWithCode[fundamental] || 'Sconosciuto';
     const cur = document.getElementById('current-fundamental');
-    if (cur) cur.textContent = names[fundamental] || 'Sconosciuto';
+    if (cur) cur.textContent = namesPlain[fundamental] || 'Sconosciuto';
 }
 
 function startSet() {
@@ -1035,9 +1130,9 @@ function startSet() {
     updatePlayersGrid();
     
     // Apri l'interfaccia guidata se esiste (versione completa)
-    if (typeof showScoutingStep === 'function' && typeof openDialog === 'function') {
+    if (typeof showScoutingStep === 'function') {
         showScoutingStep('step-player');
-        openDialog('scouting-dialog');
+        // niente openDialog: contenuto embedded nella pagina
     }
     
     // Passa alla pagina di scouting
@@ -1316,4 +1411,49 @@ function updatePressedButtonsDisplay() {
         ? appState.pressedButtons.join(' • ')
         : '';
     if (box) box.style.display = (appState.pressedButtons && appState.pressedButtons.length) ? 'block' : 'none';
+}
+// Campo descrittivo "parlante" della quartina corrente
+function updateDescriptiveQuartet() {
+    const box = document.getElementById('pressed-buttons-box');
+    const el = document.getElementById('pressed-buttons-log');
+    if (!el) return;
+
+    // Caso speciale: Err Avv richiesto come "– Err Avv"
+    if (appState.opponentErrorPressed) {
+        el.textContent = '– Err Avv';
+        if (box) box.style.display = 'block';
+        return;
+    }
+
+    const player = appState.selectedPlayer;
+    const fund = appState.calculatedFundamental || predictNextFundamental();
+    const evalVal = appState.selectedEvaluation;
+
+    if (player && fund) {
+        const names = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
+        const nn = String(player.number || '').padStart(2, '0');
+        const evalText = (evalVal ? `Val${evalVal}` : 'Val?');
+        el.textContent = `${nn} ${names[fund] || fund} ${evalText}`;
+        if (box) box.style.display = 'block';
+    } else {
+        el.textContent = '';
+        if (box) box.style.display = 'none';
+    }
+}
+
+function checkSetEnd() {
+    // Determina i punti target per il set corrente (standard volley: 25 punti, tie-break a 15)
+    const targetPoints = (appState.currentSet === 5) ? 15 : 25;
+    const home = appState.homeScore;
+    const away = appState.awayScore;
+    const lead = Math.abs(home - away);
+
+    // Fine set quando una delle squadre raggiunge i punti target con almeno 2 punti di vantaggio
+    if ((home >= targetPoints || away >= targetPoints) && lead >= 2) {
+        // Segna il set come terminato; l'avvio del prossimo set resta a scelta dell'utente
+        appState.setStarted = false;
+        console.log(`Set ${appState.currentSet} concluso: ${home}-${away}`);
+        return true;
+    }
+    return false;
 }

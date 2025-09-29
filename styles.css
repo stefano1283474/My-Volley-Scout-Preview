@@ -15,6 +15,7 @@ body {
     min-height: 100vh; /* fallback */
     min-height: 100dvh; /* usa altezza dinamica se supportata */
     overflow-x: hidden; /* Previeni overflow orizzontale globale */
+    overflow-y: auto; /* Abilita scroll verticale pagina */
 }
 
 /* Layout principale */
@@ -97,12 +98,13 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
-    max-width: 100%;
     /* Evita overflow in layout flex nelle pagine alte */
     min-height: 0;
     overflow-x: hidden;
+    overflow-y: auto; /* Abilita scroll verticale contenuto principale */
     display: flex;          /* NUOVO: contenitore flex */
     flex-direction: column; /* NUOVO: verticale */
+    box-sizing: border-box;
 }
 
 /* Pages */
@@ -142,8 +144,10 @@ body {
     margin-bottom: 2rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid #e0e0e0;
+    width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .section h3 {
@@ -459,8 +463,8 @@ body {
 /* Dialog Scouting: adattabile e con scroll interno dove serve */
 #scouting-dialog::backdrop { background: rgba(0,0,0,0.3); }
 #scouting-dialog {
-  width: min(960px, 100%);
-  max-width: 100%;
+  width: min(95vw, 500px);
+  max-width: 95vw;
   border: none;
   border-radius: 12px;
   padding: 1rem;
@@ -469,10 +473,8 @@ body {
 #scouting-dialog[open] {
   position: fixed;
   top: 2vh;
-  left: 0;
-  right: 0;
-  margin-left: auto;
-  margin-right: auto;
+  left: 50%;
+  transform: translateX(-50%);
   max-height: 96vh;
   overflow: hidden; /* il contenuto interno scorre */
 }
@@ -486,12 +488,16 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   padding: 10px;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   background: #fff;
 }
+.player-btn .player-line1 { display: flex; align-items: center; gap: 6px; line-height: 1; font-weight: 700; }
+.player-btn .player-line1 .player-number { font-size: 1rem; font-weight: 800; }
+.player-btn .player-line1 .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
+.player-btn .player-line2 { line-height: 1.1; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* Colori per ruolo (tinta leggera + bordo) */
 #scouting-dialog .player-btn.role-pal { border-color: #1976d2; background: #e3f2fd; }
 #scouting-dialog .player-btn.role-opp { border-color: #7b1fa2; background: #f3e5f5; }
@@ -553,18 +559,19 @@ body {
   .form-group input, .form-group select { padding: 0.7rem; font-size: 1rem; }
   .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
 
-  /* Dialog a piena larghezza/altezza su mobile */
-  #scouting-dialog {
-    width: 100%;
-    max-width: 100%;
-    height: 96vh;
-    max-height: 96vh;
-    border-radius: 0;
-    padding: 0.75rem;
-    left: 0;
-    transform: none;
-    box-sizing: border-box; /* assicura che la padding non faccia uscire il layout */
-  }
+/* Dialog a piena larghezza/altezza su mobile solo se NON embedded */
+#scouting-dialog:not(.embedded) {
+  width: 100vw;
+  max-width: 100vw;
+  height: 96vh;
+  max-height: 96vh;
+  border-radius: 0;
+  padding: 0.75rem;
+  left: 0;
+  top: 0;
+  transform: none;
+  box-sizing: border-box; /* assicura che la padding non faccia uscire il layout */
+}
 }
 
 /* Evita che i mapping per aree interferiscano su desktop */
@@ -793,7 +800,13 @@ body {
 #fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
 
 /* Player grid: 4 colonne fisse, nessun taglio laterale */
-#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; }
+#scouting-dialog .players-grid { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px; 
+  width: 100%;
+  box-sizing: border-box;
+}
 #scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 8px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
 #scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 4px; font-weight: 700; }
 #scouting-dialog .player-btn .player-number { font-size: 1rem; }
@@ -801,8 +814,24 @@ body {
 #scouting-dialog .player-btn .player-role { font-size: 0.8rem; opacity: 0.9; }
 
 /* Valutazioni: 3 colonne fisse, no overflow */
-#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
-#scouting-dialog .evaluation-buttons .eval-btn { min-height: 52px; padding: 10px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; font-size: 1rem; }
+#scouting-dialog .evaluation-buttons { 
+  display: grid; 
+  grid-template-columns: repeat(3, minmax(0, 1fr)); 
+  gap: 8px; 
+  margin-top: 6px; 
+  width: 100%;
+  box-sizing: border-box;
+}
+#scouting-dialog .evaluation-buttons .eval-btn { 
+  min-height: 52px; 
+  padding: 10px; 
+  font-weight: 600; 
+  border-radius: 10px; 
+  box-sizing: border-box; 
+  min-width: 0; 
+  font-size: 1rem;
+  width: 100%;
+}
 #scouting-dialog .dialog-body { overflow-x: hidden; }
 
 /* Riepilogo azione */
@@ -815,11 +844,268 @@ body {
 #pressed-buttons-box h4 { margin: 0 0 6px 0; }
 #pressed-buttons-log { font-size: 0.95rem; color: #333; word-break: break-word; }
 
-/* iPhone 16 portrait (~430px) e mobile: evita tagli laterali */
-@media (max-width: 480px) {
-  #scouting-dialog { padding-left: 12px; padding-right: 12px; }
-  #scouting-dialog .dialog-content { max-width: 100%; }
-  #scouting-dialog .players-grid, #scouting-dialog .evaluation-buttons { gap: 8px; }
+/* Stili per il dialog di scouting in modalità fullscreen */
+#scouting-dialog:not(.embedded) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#scouting-dialog:not(.embedded) .dialog-content {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+}
+
+#scouting-dialog .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background-color: #1976d2;
+    color: white;
+    border-bottom: 1px solid #1565c0;
+}
+
+#scouting-dialog .dialog-header h4 {
+    margin: 0;
+    color: white;
+    font-size: 1.2rem;
+}
+
+#scouting-dialog:not(.embedded) .dialog-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modalità embedded: il pannello vive inline come una card */
+#scouting-dialog.embedded {
+    position: static;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+}
+#scouting-dialog.embedded .dialog-content {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+#scouting-dialog.embedded .dialog-header {
+    background-color: transparent;
+    color: inherit;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+#scouting-dialog.embedded .dialog-header h4 {
+    color: #1976d2;
+    font-weight: 700;
+}
+#scouting-dialog.embedded .dialog-body {
+    padding: 8px 0;
+    overflow-y: auto;
+}
+
+/* Mobile compact layout per iPhone 16 (~393-430px) */
+@media (max-width: 430px) {
+  /* Compatta padding generale della pagina */
+  .main { padding: 6px; }
+  .section { padding: 8px; margin-bottom: 8px; }
+  #scouting-section .section-header { margin-bottom: 4px; }
+  #scouting-section .section-header .secondary-btn { padding: 5px 8px; font-size: 0.9rem; }
+
+  /* Card embedded: riduci padding e header */
+  #scouting-dialog.embedded .dialog-content { padding: 6px; }
+  #scouting-dialog.embedded .dialog-header { padding: 0 0 4px 0; }
+  #scouting-dialog.embedded .dialog-header h4 { font-size: 1rem; }
+
+  /* Scoreboard più compatto */
+  
+  #scouting-dialog .current-info { font-size: 0.85rem; }
+
+  /* Mostra e compatta il banner Fondamentale */
+  #scouting-dialog.embedded #fundamental-banner { display: block; margin: 6px 0; padding: 6px 8px; border-radius: 6px; }
+  #scouting-dialog.embedded #fundamental-banner .label, #scouting-dialog.embedded #fundamental-banner .value { text-transform: uppercase; font-size: 1rem; }
+  #scouting-dialog.embedded #fundamental-banner .label { opacity: 0.9; margin-right: 4px; }
+
+  /* Spaziature passi scouting ridotte */
+  .scouting-step { margin-bottom: 6px; }
+
+  /* Griglia giocatori: 4 colonne fisse e card più piatte */
+  #scouting-dialog .players-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 4px; }
+  #scouting-dialog .player-btn { min-height: 40px; padding: 6px; }
+  #scouting-dialog .player-btn .player-number { font-size: 0.9rem; }
+  #scouting-dialog .player-btn .player-role { font-size: 0.7rem; }
+
+  /* Valutazioni: 3 colonne compatte sempre visibili */
+  #scouting-dialog .evaluation-buttons { gap: 6px; }
+  #scouting-dialog .evaluation-buttons .eval-btn { min-height: 40px; padding: 6px; font-size: 0.9rem; }
+}
+
+/* Stili per i passaggi di scouting */
+.scouting-step {
+    display: block;
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.scouting-step.active {
+    display: block;
+    border-top: 2px solid #1976d2;
+    padding-top: 16px;
+}
+
+
+/* Stili per il banner del fondamentale */
+#fundamental-banner {
+    background-color: #e3f2fd;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #bbdefb;
+    font-size: 1.1em;
+}
+
+#fundamental-banner .label {
+    font-weight: bold;
+    margin-right: 8px;
+    color: #1976d2;
+}
+
+#fundamental-banner .value {
+    font-weight: bold;
+    color: #d32f2f;
+}
+
+.evaluation-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.eval-btn {
+    padding: 14px 8px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    min-height: 60px;
+    font-size: 1.05em;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.eval-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.eval-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Colori per i pulsanti di valutazione */
+.eval-btn:nth-child(1) {
+    background-color: #d32f2f; /* Rosso per Errore */
+}
+
+.eval-btn:nth-child(2) {
+    background-color: #f57c00; /* Arancione per Negativo */
+}
+
+.eval-btn:nth-child(3) {
+    background-color: #fbc02d; /* Giallo per Neutro */
+    color: #333;
+}
+
+.eval-btn:nth-child(4) {
+    background-color: #66bb6a; /* Verde chiaro per Positivo */
+}
+
+.eval-btn:nth-child(5) {
+    background-color: #2e7d32; /* Verde scuro per Punto */
+}
+
+.eval-btn:nth-child(6) {
+    background-color: #9e9e9e; /* Grigio per Err Avv */
+}
+
+/* Stili per le informazioni sul giocatore e fondamentale */
+.action-info {
+    margin-bottom: 16px;
+    background-color: #f5f5f5;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.action-info p {
+    margin: 0 0 8px 0;
+}
+
+.action-info p:last-child {
+    margin-bottom: 0;
+}
+/* Stili per i box di riepilogo */
+.summary-box {
+    margin-top: 20px;
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.summary-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+/* Stili per il log delle azioni */
+#actions-log {
+    margin-top: 20px;
+}
+
+#scouting-dialog .cancel-btn {
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#scouting-dialog .cancel-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
 }
 
 @media (max-width: 480px) {
@@ -1070,7 +1356,7 @@ body {
 #fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
 
 /* Player grid: 3 colonne fisse, nessun taglio laterale */
-#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; }
+#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 #scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 8px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
 #scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 4px; font-weight: 700; }
 #scouting-dialog .player-btn .player-number { font-size: 1rem; }
@@ -1341,12 +1627,12 @@ body {
 #fundamental-banner .label { opacity: 0.9; margin-right: 6px; }
 
 /* Player grid: 3 colonne fisse, nessun taglio laterale */
-#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; }
-#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
-#scouting-dialog .player-btn .player-line1 { width: 100%; display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
-#scouting-dialog .player-btn .player-number { font-size: 1.2rem; }
-#scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; }
-#scouting-dialog .player-btn .player-role { font-size: 0.9rem; opacity: 0.9; }
+#scouting-dialog .players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#scouting-dialog .player-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 10px; border-radius: 10px; min-width: 0; box-sizing: border-box; }
+#scouting-dialog .player-btn .player-line1 { display: flex; align-items: center; gap: 6px; line-height: 1; font-weight: 700; }
+#scouting-dialog .player-btn .player-number { font-size: 1.1rem; font-weight: 800; }
+#scouting-dialog .player-btn .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
+#scouting-dialog .player-btn .player-line2 { line-height: 1.1; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* Valutazioni: 3 colonne fisse, no overflow */
 #scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
@@ -1700,12 +1986,312 @@ body {
 
 /* Mobile: use auto-fit instead of fixed 4 columns to adapt */
 @media (max-width: 480px) {
-  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
-  #scouting-dialog .player-btn, .player-btn { min-height: 48px; padding: 8px; }
+  .players-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); 
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .player-btn { 
+    min-height: 48px; 
+    padding: 8px; 
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Mantieni 4 colonne nel pannello di scouting embedded */
+  #scouting-dialog.embedded .players-grid { grid-template-columns: repeat(4, 1fr); }
+  #scouting-dialog.embedded .player-btn { min-height: 44px; padding: 6px; }
+
+  /* Pulsanti di valutazione compatti nel pannello embedded */
+  #scouting-dialog.embedded .evaluation-buttons .eval-btn { 
+    min-height: 44px; 
+    padding: 8px; 
+    font-size: 0.9rem;
+  }
 }
 @media (max-width: 390px) {
-  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); }
+  .players-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); 
+    width: 100%;
+    box-sizing: border-box;
+  }
+  /* Mantieni 4 colonne anche su schermi molto stretti */
+  #scouting-dialog.embedded .players-grid { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 340px) {
-  #scouting-dialog .players-grid, .players-grid { grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); }
+  .players-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); 
+    width: 100%;
+    box-sizing: border-box;
+  }
+  /* Mantieni 4 colonne anche su schermi estremamente stretti */
+  #scouting-dialog.embedded .players-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* Layout a due colonne per info giocatore/fondamentale */
+.action-info.two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.action-info.two-columns .section { display: flex; flex-direction: column; gap: 6px; }
+.action-info.two-columns .label { font-weight: 700; color: #555; }
+.action-info.two-columns .value { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; }
+@media (max-width: 600px) { .action-info.two-columns { grid-template-columns: 1fr; } }
+
+/* Stile per il giocatore selezionato - due righe e più in evidenza */
+#selected-player-display { display: grid; grid-template-rows: auto auto; gap: 4px; font-size: 120%; font-weight: bold; color: #0d47a1; }
+#selected-player-display .player-line1 { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+#selected-player-display .player-number { font-size: 1.1rem; font-weight: 800; }
+#selected-player-display .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
+#selected-player-display .player-line2 { font-size: 0.95rem; font-weight: 600; }
+
+/* Stile per il fondamentale - più in evidenza */
+#current-fundamental { font-size: 150%; font-weight: 800; color: #d32f2f; }
+/* Stili per il dialog delle azioni scoutizzate */
+.dialog {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.dialog-content {
+    background: white;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+}
+
+.dialog-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.dialog-body {
+    padding: 20px;
+    max-height: calc(80vh - 80px);
+    overflow-y: auto;
+}
+
+.actions-summary {
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: #f0f8ff;
+    border-radius: 6px;
+    border-left: 4px solid #2196f3;
+}
+
+.actions-summary p {
+    margin: 0;
+    font-weight: 500;
+    color: #333;
+}
+
+.actions-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.action-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background-color: #fafafa;
+    transition: box-shadow 0.2s;
+}
+
+.action-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.action-number {
+    font-weight: bold;
+    color: #2196f3;
+}
+
+.action-timestamp {
+    color: #666;
+}
+
+.action-score {
+    background-color: #e3f2fd;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    color: #1976d2;
+}
+
+.action-quartet {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 8px 0;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    color: #333;
+}
+
+.action-result {
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.action-result.home-point {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+}
+
+.action-result.away-point {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.action-result.in-progress {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.no-actions-message {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}
+
+/* Stili per il pulsante nella sezione header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+.secondary-btn {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.secondary-btn:hover {
+    background-color: #1976d2;
+}
+
+.secondary-btn:active {
+    background-color: #1565c0;
+}
+
+/* Stili per il pulsante di apertura del dialog di scouting */
+.action-buttons {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.primary-btn {
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.primary-btn:hover {
+    background-color: #1565c0;
+}
+
+.primary-btn:active {
+    background-color: #0d47a1;
+    transform: translateY(1px);
+}
+
+/* Evidenziazione del valore del Fondamentale e layout sottostante */
+.next-fundamental-info { margin-top: 8px; }
+.next-fundamental-info .fundamental-value {
+  margin-top: 6px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #0d47a1;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+
+.scoreboard-under-fundamental { margin-top: 8px; }
+.scoreboard-under-fundamental .score { font-size: 1.2rem; font-weight: 700; }
+.scoreboard-under-fundamental .home-score, .scoreboard-under-fundamental .away-score { color: #2e7d32; }
+.scoreboard-under-fundamental .away-score { color: #c62828; }
+
+#action-summary-box { margin-top: 10px; }
+#action-summary-box h4 { font-size: 0.95rem; color: #333; }
+#action-summary { font-size: 0.95rem; }
