@@ -149,16 +149,31 @@
 
                     <!-- Fondamentale -->
                      <div class="next-fundamental-info">
-                       <strong>Fondamentale:</strong>
-                       <div class="fundamental-value"><span id="next-fundamental">Servizio (b)</span></div>
+                       <strong><span id="next-fundamental">Servizio (b)</span></strong>
+                       <div id="selected-info" class="selected-info">
+                         <span id="selected-player-text">-</span>
+                         <span id="selected-evaluation-text">-</span>
+                       </div>
                      </div>
-                     <div class="scoreboard-under-fundamental">
-                       <div class="score"><span class="home-score">0</span> - <span class="away-score">0</span></div>
-                     </div>
-                     <div id="action-summary-box">
-                       <h4>Sequenza quartine</h4>
-                       <div id="action-summary"></div>
-                     </div>
+
+                    <!-- Punteggio -->
+                    <div class="score-display">
+                      <h4>Punteggio</h4>
+                      <div class="score-info">
+                        <span class="score-home">Casa: <span id="score-home">0</span></span>
+                        <span class="score-separator">-</span>
+                        <span class="score-away">Ospiti: <span id="score-away">0</span></span>
+                        <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
+                      </div>
+                    </div>
+
+                    <!-- Sequenza Quartine Azione -->
+                    <div class="action-sequence">
+                      <h4>Sequenza Azione Corrente</h4>
+                      <div id="current-action-sequence" class="sequence-display">
+                        <span class="sequence-placeholder">Nessuna azione in corso</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
             </div>

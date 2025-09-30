@@ -978,20 +978,174 @@ body {
 }
 
 
-/* Stili per il banner del fondamentale */
-#fundamental-banner {
-    background-color: #e3f2fd;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 16px;
-    border: 1px solid #bbdefb;
-    font-size: 1.1em;
+/* Stili per il banner del fondamentale - MIGLIORATO */
+.next-fundamental-info {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    color: white;
+    padding: 8px 10px;
+    border-radius: 12px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    border: none;
+    font-size: 1.2em;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
 
-#fundamental-banner .label {
+.next-fundamental-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.next-fundamental-info strong {
+    font-weight: 700;
+    font-size: 1.1em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    letter-spacing: 0.5px;
+}
+
+#next-fundamental {
+    font-weight: 800;
+    font-size: 1.3em;
+    text-transform: uppercase;
+    color: #ffeb3b;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Stili per le informazioni del giocatore e valutazione selezionati */
+.selected-info {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.3);
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1em;
+    opacity: 1;
+}
+
+.selected-info span {
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    flex: 1;
+    text-align: center;
+    padding: 0 8px;
+}
+
+/* Stili per la sezione punteggio */
+.score-display {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+}
+
+.score-display h4 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.score-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.score-home, .score-away {
+    color: #495057;
+}
+
+.score-separator {
+    font-size: 1.3em;
     font-weight: bold;
-    margin-right: 8px;
+    color: #6c757d;
+}
+
+.set-info {
+    color: #6c757d;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+#score-home, #score-away, #current-set-display {
     color: #1976d2;
+    font-weight: 700;
+    font-size: 1.2em;
+}
+
+/* Stili per la sequenza delle quartine */
+.action-sequence {
+    background: #fff3e0;
+    border: 2px solid #ffcc02;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.action-sequence h4 {
+    margin: 0 0 12px 0;
+    color: #e65100;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.sequence-display {
+    min-height: 40px;
+    background: white;
+    border: 1px solid #ffcc02;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.sequence-placeholder {
+    color: #9e9e9e;
+    font-style: italic;
+    font-family: inherit;
+}
+
+.sequence-item {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid #bbdefb;
+}
+
+.sequence-item.current {
+    background: #ffeb3b;
+    color: #e65100;
+    border-color: #ffc107;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 #fundamental-banner .value {
@@ -2271,27 +2425,3 @@ body {
     background-color: #0d47a1;
     transform: translateY(1px);
 }
-
-/* Evidenziazione del valore del Fondamentale e layout sottostante */
-.next-fundamental-info { margin-top: 8px; }
-.next-fundamental-info .fundamental-value {
-  margin-top: 6px;
-  font-size: 1.3rem;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  color: #0d47a1;
-  background: #e3f2fd;
-  border: 1px solid #bbdefb;
-  border-radius: 8px;
-  padding: 6px 10px;
-  display: inline-block;
-}
-
-.scoreboard-under-fundamental { margin-top: 8px; }
-.scoreboard-under-fundamental .score { font-size: 1.2rem; font-weight: 700; }
-.scoreboard-under-fundamental .home-score, .scoreboard-under-fundamental .away-score { color: #2e7d32; }
-.scoreboard-under-fundamental .away-score { color: #c62828; }
-
-#action-summary-box { margin-top: 10px; }
-#action-summary-box h4 { font-size: 0.95rem; color: #333; }
-#action-summary { font-size: 0.95rem; }

@@ -622,14 +622,9 @@ function initializeGuidedScouting() {
         });
     }
     
-    // Event listeners per valutazioni (escludi "Err Avv" che ha il suo onclick handler)
+    // Event listeners per valutazioni
     const evalButtons = document.querySelectorAll('.eval-btn');
     evalButtons.forEach(btn => {
-        // Salta il pulsante "Err Avv" che ha già il suo onclick handler
-        if (btn.textContent.includes('Err Avv')) {
-            return;
-        }
-        
         btn.addEventListener('click', (e) => {
             const evaluation = parseInt(e.currentTarget.dataset.eval || e.currentTarget.textContent.trim()[0]);
             selectEvaluation(evaluation);
@@ -708,7 +703,7 @@ function updatePlayersGrid() {
 function selectPlayer(number, name, btnEl) {
     appState.selectedPlayer = { number, name };
 
-    // Evidenzia visivamente il giocatore selezionato, sovrascrivendo selezioni precedenti
+    // Evidenzia visualmente il giocatore selezionato, sovrascrivendo selezioni precedenti
     const playerButtons = document.querySelectorAll('.player-btn');
     playerButtons.forEach(b => b.classList.remove('selected'));
     if (btnEl) btnEl.classList.add('selected');
@@ -735,6 +730,25 @@ function selectPlayer(number, name, btnEl) {
             </div>
         `;
     }
+
+    // Aggiorna le informazioni del giocatore selezionato nella sezione fondamentale
+    const selectedPlayerText = document.getElementById('selected-player-text');
+    if (selectedPlayerText) {
+        selectedPlayerText.textContent = `${number} - ${name}`;
+    }
+
+    // Pulisci la valutazione quando viene selezionato un giocatore
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        selectedEvaluationText.textContent = '-';
+    }
+    
+    // Reset della selezione valutazione nello stato
+    appState.selectedEvaluation = null;
+    
+    // Rimuovi la classe selected da tutti i bottoni di valutazione
+    const evaluationButtons = document.querySelectorAll('.eval-btn');
+    evaluationButtons.forEach(btn => btn.classList.remove('selected'));
 
     // Aggiorna UI
     updateNextFundamental();
@@ -797,6 +811,19 @@ function selectEvaluation(evaluation) {
         // Registra il testo del pulsante di valutazione premuto (es: "4 - Positivo")
         updateDescriptiveQuartet();
     }
+
+    // Aggiorna le informazioni della valutazione selezionata nella sezione fondamentale
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        const evalNames = {
+            1: '1 - Errore',
+            2: '2 - Negativo', 
+            3: '3 - Neutro',
+            4: '4 - Positivo',
+            5: '5 - Punto'
+        };
+        selectedEvaluationText.textContent = `${evalNames[evaluation] || evaluation}`;
+    }
 }
 
 function submitGuidedAction() {
@@ -835,6 +862,16 @@ function submitGuidedAction() {
             
             appState.currentSequence = [];
             updateActionSummary();
+            
+            // Pulisci le informazioni di giocatore e valutazione quando viene assegnato un punto
+            const selectedPlayerText = document.getElementById('selected-player-text');
+            const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+            if (selectedPlayerText) {
+                selectedPlayerText.textContent = '-';
+            }
+            if (selectedEvaluationText) {
+                selectedEvaluationText.textContent = '-';
+            }
         } catch (error) {
             alert(`Errore nell'azione: ${error.message}`);
             appState.currentSequence.pop(); // Rimuovi l'ultima se errore
@@ -860,9 +897,16 @@ function submitGuidedAction() {
 
 function submitOpponentError() {
     const actionString = 'avv';
-    // Imposta flag per mostrare il descrittivo “– Err Avv”
+    // Imposta flag per mostrare il descrittivo "– Err Avv"
     appState.opponentErrorPressed = true;
     updateDescriptiveQuartet();
+
+    // Aggiorna le informazioni della valutazione nella sezione fondamentale
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        selectedEvaluationText.textContent = 'Err Avv';
+    }
+
     try {
         const result = parseAction(actionString);
         processActionResult(result);
@@ -886,6 +930,13 @@ function submitOpponentError() {
         appState.calculatedFundamental = null;
         appState.opponentErrorPressed = false;
         updateDescriptiveQuartet();
+
+        // Reset delle informazioni nella sezione fondamentale
+        const selectedPlayerText = document.getElementById('selected-player-text');
+        const selectedEvaluationTextReset = document.getElementById('selected-evaluation-text');
+        if (selectedPlayerText) selectedPlayerText.textContent = '-';
+        if (selectedEvaluationTextReset) selectedEvaluationTextReset.textContent = '-';
+
     } catch (error) {
         alert(`Errore: ${error.message}`);
         // In caso di errore, azzera il flag per non lasciare il descrittivo attivo
@@ -1021,44 +1072,25 @@ function predictNextFundamental() {
     const currentActionLogs = getCurrentActionLogs();
     if (currentActionLogs.length > 0) {
         const lastLog = currentActionLogs[currentActionLogs.length - 1];
-
-        // Se il log contiene il risultato del rally precedente, usa quello
-        if (lastLog.result && lastLog.result.result) {
-            const res = lastLog.result.result;
-            if (res === 'home_point') return 'b';   // abbiamo fatto punto: prossimo fondamentale è Servizio
-            if (res === 'away_point') return 'r';   // punto avversario: prossimo fondamentale è Ricezione
+        const act = lastLog.action || '';
+        
+        // Regola speciale: se l'azione termina con A5, B5, M5 o Avv, il prossimo fondamentale è Servizio (b)
+        if (act.includes('avv') || act.endsWith('a5') || act.endsWith('b5') || act.endsWith('m5')) {
+            return 'b';
         }
-
-        // Altrimente siamo nel mezzo di una sequenza: analizza l'ultimo token dell'azione
-        const actString = lastLog.action || '';
-        const tokens = actString.trim().split(/\s+/);
-        const lastPart = tokens[tokens.length - 1] || '';
-
-        // Caso speciale: "avv" (errore avversario) chiude l'azione con punto nostro => prossimo è Servizio
-        if (lastPart.toLowerCase() === 'avv') return 'b';
-
-        if (lastPart.length >= 4) {
-            const lastFund = lastPart.charAt(2);
-            const lastEval = parseInt(lastPart.charAt(3));
-
-            // Se l'azione si chiude con A5, B5, M5 => prossimo fondamentale è Servizio (b)
-            if ((lastFund === 'a' || lastFund === 'b' || lastFund === 'm') && lastEval === 5) {
-                return 'b';
-            }
-
-            // Logica esistente per la predizione durante lo scambio
-            if (lastFund === 'd') {
-                if (lastEval === 2) return 'd';
-                else if (lastEval >= 3 && lastEval <= 5) return 'a';
-            } else if (lastFund === 'r') {
-                if (lastEval === 2) return 'd';
-                else if (lastEval >= 3 && lastEval <= 5) return 'a';
-            } else if (lastFund === 'a' || lastFund === 'b') {
-                if (lastEval !== 1 && lastEval !== 5) return 'd';
-            }
+        
+        const lastFund = act.charAt(2);
+        const lastEval = parseInt(act.charAt(3));
+        if (lastFund === 'd') {
+            if (lastEval === 2) return 'd';
+            else if (lastEval >= 3 && lastEval <= 5) return 'a';
+        } else if (lastFund === 'r') {
+            if (lastEval === 2) return 'd';
+            else if (lastEval >= 3 && lastEval <= 5) return 'a';
+        } else if (lastFund === 'a' || lastFund === 'b') {
+            if (lastEval !== 1 && lastEval !== 5) return 'd';
         }
     }
-    // Fallback basato sulla fase corrente
     if (appState.currentPhase === 'servizio') return 'b';
     if (appState.currentPhase === 'ricezione') return 'r';
     return 'a';
@@ -1204,11 +1236,19 @@ function updateMatchInfo() {
 }
 
 function updateScoutingUI() {
+    // Aggiorna punteggi esistenti
     const homeScoreEl = document.querySelector('.home-score');
     if (homeScoreEl) homeScoreEl.textContent = appState.homeScore;
     
     const awayScoreEl = document.querySelector('.away-score');
     if (awayScoreEl) awayScoreEl.textContent = appState.awayScore;
+    
+    // Aggiorna nuovi elementi punteggio
+    const scoreHomeEl = document.getElementById('score-home');
+    if (scoreHomeEl) scoreHomeEl.textContent = appState.homeScore;
+    
+    const scoreAwayEl = document.getElementById('score-away');
+    if (scoreAwayEl) scoreAwayEl.textContent = appState.awayScore;
     
     const rotationEl = document.getElementById('current-rotation');
     if (rotationEl) rotationEl.textContent = appState.currentRotation;
@@ -1217,7 +1257,29 @@ function updateScoutingUI() {
     if (phaseEl) phaseEl.textContent = appState.currentPhase;
     
     const setEl = document.getElementById('current-set-display');
-    if (setEl) setEl.textContent = `Set ${appState.currentSet}`;
+    if (setEl) setEl.textContent = appState.currentSet;
+    
+    // Aggiorna sequenza azione corrente
+    updateCurrentActionSequence();
+}
+
+function updateCurrentActionSequence() {
+    const sequenceEl = document.getElementById('current-action-sequence');
+    if (!sequenceEl) return;
+    
+    if (appState.currentSequence && appState.currentSequence.length > 0) {
+        // Mostra la sequenza corrente con evidenziazione dell'ultimo elemento
+        const sequenceHTML = appState.currentSequence.map((item, index) => {
+            const isLast = index === appState.currentSequence.length - 1;
+            const className = isLast ? 'sequence-item current' : 'sequence-item';
+            return `<span class="${className}">${item.quartet}</span>`;
+        }).join('');
+        
+        sequenceEl.innerHTML = sequenceHTML;
+    } else {
+        // Mostra placeholder quando non c'è sequenza
+        sequenceEl.innerHTML = '<span class="sequence-placeholder">Nessuna azione in corso</span>';
+    }
 }
 
 function updateActionSummary() {
@@ -1354,6 +1416,55 @@ function processActionResult(result) {
     }
 }
 
+function checkSetEnd() {
+    const homeScore = appState.homeScore;
+    const awayScore = appState.awayScore;
+    
+    // Regole standard della pallavolo:
+    // - Set vinto a 25 punti con almeno 2 punti di vantaggio
+    // - Set al 5° (tie-break) vinto a 15 punti con almeno 2 punti di vantaggio
+    const isSetFive = appState.currentSet === 5;
+    const winningScore = isSetFive ? 15 : 25;
+    const minScore = isSetFive ? 15 : 25;
+    
+    let setWinner = null;
+    
+    // Controlla se una squadra ha vinto
+    if (homeScore >= minScore && homeScore - awayScore >= 2) {
+        setWinner = 'home';
+    } else if (awayScore >= minScore && awayScore - homeScore >= 2) {
+        setWinner = 'away';
+    }
+    
+    if (setWinner) {
+        const winnerName = setWinner === 'home' ? 'La nostra squadra' : 'Squadra avversaria';
+        const finalScore = `${homeScore}-${awayScore}`;
+        
+        // Mostra messaggio di fine set
+        setTimeout(() => {
+            alert(`🏆 Set ${appState.currentSet} terminato!\n${winnerName} ha vinto ${finalScore}`);
+            
+            // Chiedi se iniziare il prossimo set
+            if (appState.currentSet < 5) {
+                const nextSet = confirm(`Vuoi iniziare il Set ${appState.currentSet + 1}?`);
+                if (nextSet) {
+                    appState.currentSet++;
+                    appState.homeScore = 0;
+                    appState.awayScore = 0;
+                    appState.actionsLog = [];
+                    updateScoutingUI();
+                    updateActionsLog();
+                    if (window.updateScoreHistory) {
+                        window.updateScoreHistory();
+                    }
+                }
+            } else {
+                alert('🎉 Partita terminata!');
+            }
+        }, 100);
+    }
+}
+
 function rotateTeam() {
     const currentIndex = rotationSequence.indexOf(appState.currentRotation);
     const nextIndex = (currentIndex + 1) % rotationSequence.length;
@@ -1439,21 +1550,4 @@ function updateDescriptiveQuartet() {
         el.textContent = '';
         if (box) box.style.display = 'none';
     }
-}
-
-function checkSetEnd() {
-    // Determina i punti target per il set corrente (standard volley: 25 punti, tie-break a 15)
-    const targetPoints = (appState.currentSet === 5) ? 15 : 25;
-    const home = appState.homeScore;
-    const away = appState.awayScore;
-    const lead = Math.abs(home - away);
-
-    // Fine set quando una delle squadre raggiunge i punti target con almeno 2 punti di vantaggio
-    if ((home >= targetPoints || away >= targetPoints) && lead >= 2) {
-        // Segna il set come terminato; l'avvio del prossimo set resta a scelta dell'utente
-        appState.setStarted = false;
-        console.log(`Set ${appState.currentSet} concluso: ${home}-${away}`);
-        return true;
-    }
-    return false;
 }
