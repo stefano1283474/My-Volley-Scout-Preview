@@ -12,7 +12,8 @@ const appState = {
     currentSequence: [],
     setStarted: false,
     selectedPlayer: null,
-    selectedEvaluation: null
+    selectedEvaluation: null,
+    scoreHistory: [] // Storico progressivo dei punti
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -851,6 +852,11 @@ function submitGuidedAction() {
         const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
         try {
             const result = parseAction(actionString);
+            
+            // Aggiungi informazioni del giocatore al risultato
+            result.playerName = appState.selectedPlayer.name;
+            result.actionType = appState.selectedEvaluation === 5 ? 'Punto' : 'Errore';
+            
             processActionResult(result);
             
             appState.actionsLog.push({
@@ -909,6 +915,11 @@ function submitOpponentError() {
 
     try {
         const result = parseAction(actionString);
+        
+        // Aggiungi informazioni per l'errore avversario
+        result.playerName = 'Avversario';
+        result.actionType = 'Errore';
+        
         processActionResult(result);
         
         appState.actionsLog.push({
@@ -1144,6 +1155,14 @@ function startSet() {
     appState.selectedPlayer = null;
     appState.selectedEvaluation = null;
     
+    // Inizializza lo storico punteggio con l'entry iniziale
+    appState.scoreHistory = [{
+        homeScore: 0,
+        awayScore: 0,
+        description: `Set ${setNumber} - Servizio P1 Vs P2`,
+        type: 'initial'
+    }];
+    
     // Inizializza il log dei tasti premuti
     // Reset del descrittivo
     updateDescriptiveQuartet();
@@ -1160,6 +1179,7 @@ function startSet() {
     updateCurrentPhaseDisplay();
     updateNextFundamental();
     updatePlayersGrid();
+    updateScoreHistoryDisplay(); // Aggiorna anche lo storico punteggio
     
     // Apri l'interfaccia guidata se esiste (versione completa)
     if (typeof showScoutingStep === 'function') {
@@ -1315,6 +1335,11 @@ function submitAction() {
     
     try {
         const result = parseAction(actionString);
+        
+        // Per le azioni manuali, non abbiamo informazioni specifiche del giocatore
+        result.playerName = 'Azione manuale';
+        result.actionType = result.result === 'home_point' || result.result === 'away_point' ? 'Punto' : 'Azione';
+        
         processActionResult(result);
         
         // Aggiungi al log
@@ -1402,18 +1427,92 @@ function determineFinalResult(fundamental, evaluation) {
 function processActionResult(result) {
     if (result.result === 'home_point') {
         appState.homeScore++;
+        
+        // Aggiungi al storico punteggio
+        addToScoreHistory('home', result.playerName, result.actionType);
+        
         if (appState.currentPhase === 'ricezione') {
             appState.currentPhase = 'servizio';
             rotateTeam();
         }
     } else if (result.result === 'away_point') {
         appState.awayScore++;
+        
+        // Aggiungi al storico punteggio
+        addToScoreHistory('away', result.playerName, result.actionType);
+        
         if (appState.currentPhase === 'servizio') {
             appState.currentPhase = 'ricezione';
         } else {
             appState.currentPhase = 'ricezione';
         }
     }
+    
+    // Aggiorna la visualizzazione dello storico
+    updateScoreHistoryDisplay();
+}
+
+// Funzione per aggiungere un elemento allo storico punteggio
+function addToScoreHistory(team, playerName, actionType) {
+    const historyItem = {
+        homeScore: appState.homeScore,
+        awayScore: appState.awayScore,
+        team: team,
+        playerName: playerName || 'Sconosciuto',
+        actionType: actionType || 'Punto',
+        timestamp: new Date().toLocaleTimeString()
+    };
+    
+    appState.scoreHistory.push(historyItem);
+}
+
+// Funzione per aggiornare la visualizzazione dello storico punteggio
+function updateScoreHistoryDisplay() {
+    const historyContainer = document.getElementById('score-history');
+    if (!historyContainer) return;
+    
+    // Pulisci il contenitore
+    historyContainer.innerHTML = '';
+    
+    // Aggiungi gli elementi dello storico in ordine cronologico normale (più vecchi in alto)
+    appState.scoreHistory.forEach(item => {
+        const historyElement = document.createElement('div');
+        
+        if (item.type === 'initial') {
+            historyElement.className = 'score-history-item initial';
+            
+            const scoreText = document.createElement('span');
+            scoreText.className = 'score-text';
+            scoreText.textContent = `${item.homeScore} - ${item.awayScore}`;
+            
+            const description = document.createElement('span');
+            description.className = 'score-description';
+            description.textContent = item.description;
+            
+            historyElement.appendChild(scoreText);
+            historyElement.appendChild(description);
+        } else {
+            historyElement.className = `score-history-item ${item.team === 'home' ? 'point-home' : 'point-away'}`;
+            
+            const scoreText = document.createElement('span');
+            scoreText.className = 'score-text';
+            scoreText.textContent = `${item.homeScore} - ${item.awayScore}`;
+            
+            const description = document.createElement('span');
+            description.className = 'score-description';
+            
+            if (item.team === 'home') {
+                description.textContent = `Punto di ${item.playerName}`;
+            } else {
+                description.textContent = `Errore di ${item.playerName}`;
+            }
+            
+            historyElement.appendChild(scoreText);
+            historyElement.appendChild(description);
+        }
+        
+        historyContainer.appendChild(historyElement);
+    });
 }
 
 function checkSetEnd() {

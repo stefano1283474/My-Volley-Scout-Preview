@@ -1070,6 +1070,72 @@ body {
     font-weight: 600;
 }
 
+/* Rinomino score-info in score-current per il punteggio attuale */
+.score-current {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Stili per lo storico punteggio */
+.score-history {
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.score-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+.score-history-item:hover {
+    background: #f8f9fa;
+}
+
+.score-history-item.initial {
+    background: #e3f2fd;
+    border-color: #1976d2;
+    font-weight: 600;
+}
+
+.score-history-item.point-home {
+    background: #e8f5e8;
+    border-left: 4px solid #4caf50;
+}
+
+.score-history-item.point-away {
+    background: #ffebee;
+    border-left: 4px solid #f44336;
+}
+
+.score-text {
+    font-weight: 700;
+    color: #1976d2;
+    min-width: 60px;
+}
+
+.score-description {
+    color: #495057;
+    flex: 1;
+    margin-left: 12px;
+}
+
 .score-home, .score-away {
     color: #495057;
 }
@@ -2106,7 +2172,7 @@ body {
   letter-spacing: 0;
   text-transform: none;
 }
-.btn-outline { background: transparent; border: 1px solid #d7e2ff; color: #0f5dde; }
+.btn-outline { background: transparent; border: 1px solid #d7e2ff; color: white; }
 
 /* Compact header spacing */
 .header-content { gap: 6px; }
