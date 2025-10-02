@@ -712,6 +712,9 @@ function selectPlayer(number, name, btnEl) {
     // Persisti il fondamentale calcolato per coerenza tra descrittivo e quartina
     appState.calculatedFundamental = predictNextFundamental();
 
+    // Aggiorna i testi dei pulsanti di valutazione quando viene selezionato un giocatore
+    updateEvaluationButtonTexts();
+
     // Aggiorna elementi di compatibilità
     const oldElement = document.getElementById('selected-player-info');
     if (oldElement) {
@@ -791,6 +794,22 @@ function selectPlayer(number, name, btnEl) {
     }
     
     showScoutingStep('step-action');
+}
+
+// Funzione per aggiornare i testi dei pulsanti di valutazione in base al fondamentale
+function updateEvaluationButtonTexts() {
+    const fundamental = appState.calculatedFundamental || predictNextFundamental();
+    const evalButton5 = document.querySelector('.eval-btn[data-eval="5"]');
+    
+    if (evalButton5) {
+        // Per Difesa (d) e Ricezione (r): "5 - Perfetto"
+        // Per Attacco (a), Muro (m) e Battuta/Servizio (b): "5 - Punto"
+        if (fundamental === 'd' || fundamental === 'r') {
+            evalButton5.textContent = '5 - Perfetto';
+        } else {
+            evalButton5.textContent = '5 - Punto';
+        }
+    }
 }
 
 function selectEvaluation(evaluation) {
@@ -1112,9 +1131,12 @@ function updateNextFundamental() {
     const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
     const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');
-    if (el) el.textContent = namesWithCode[fundamental] || 'Sconosciuto';
+    if (el) el.textContent = 'SELEZIONATO:';
     const cur = document.getElementById('current-fundamental');
     if (cur) cur.textContent = namesPlain[fundamental] || 'Sconosciuto';
+    
+    // Aggiorna i testi dei pulsanti di valutazione quando cambia il fondamentale
+    updateEvaluationButtonTexts();
 }
 
 function startSet() {
@@ -1474,8 +1496,11 @@ function updateScoreHistoryDisplay() {
     // Pulisci il contenitore
     historyContainer.innerHTML = '';
     
-    // Aggiungi gli elementi dello storico in ordine cronologico normale (più vecchi in alto)
-    appState.scoreHistory.forEach(item => {
+    // Aggiungi gli elementi dello storico in ordine cronologico inverso (più recenti in alto)
+    // Creiamo una copia dell'array e la invertiamo per non modificare l'originale
+    const reversedHistory = [...appState.scoreHistory].reverse();
+    
+    reversedHistory.forEach(item => {
         const historyElement = document.createElement('div');
         
         if (item.type === 'initial') {

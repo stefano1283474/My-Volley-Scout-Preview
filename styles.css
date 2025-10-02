@@ -2263,7 +2263,7 @@ body {
 #selected-player-display .player-line2 { font-size: 0.95rem; font-weight: 600; }
 
 /* Stile per il fondamentale - più in evidenza */
-#current-fundamental { font-size: 150%; font-weight: 800; color: #d32f2f; }
+#current-fundamental { font-size: 150%; font-weight: 800; color: #ffeb3b; }
 /* Stili per il dialog delle azioni scoutizzate */
 .dialog {
     display: none;
@@ -2490,4 +2490,30 @@ body {
 .primary-btn:active {
     background-color: #0d47a1;
     transform: translateY(1px);
+}
+
+/* Stile per rendere molto più visibile la fase di gioco */
+.phase-info {
+    background: linear-gradient(135deg, #1976d2, #2196f3);
+    color: white !important;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    border: 2px solid #1565c0;
+    margin: 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.phase-info strong {
+    font-size: 1.4rem !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Rende la scritta "FASE DI GIOCO:" più piccola del 30% */
+.phase-info .phase-label {
+    font-size: 0.7em; /* 30% più piccola rispetto al font-size del parent */
 }
