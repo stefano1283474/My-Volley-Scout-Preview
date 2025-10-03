@@ -93,12 +93,14 @@
                 <div class="auth-section">
                     <div id="userInfo" class="user-info">
                         <span id="userEmail"></span>
+                        <button id="analysisBtn" class="btn btn-outline desktop-only nav-btn" data-page="analysis">Analisi</button>
                         <button id="backToWelcomeBtn" class="btn btn-outline desktop-only">Cambia Squadra</button>
                         <button id="signOutBtn" class="btn btn-outline desktop-only">Esci</button>
                         <button id="headerMenuToggle" class="btn btn-outline mobile-only" aria-expanded="false" aria-controls="headerMenu" title="Menu">
                           ⋮
                         </button>
                         <div id="headerMenu" class="header-menu" hidden>
+                          <button id="analysisBtnMobile" class="menu-item nav-btn" data-page="analysis">Analisi</button>
                           <button id="backToWelcomeBtnMobile" class="menu-item">Cambia Squadra</button>
                           <button id="signOutBtnMobile" class="menu-item">Esci</button>
                         </div>
@@ -173,6 +175,17 @@
                     </div>
 
                   </div>
+                </div>
+            </div>
+            <!-- Sezione Analisi -->
+            <div class="section" id="analysis-section" style="display:none;">
+                <div class="section-header">
+                    <h3>Analisi dello Scout</h3>
+                    <button class="secondary-btn nav-btn" data-page="scouting">← Torna allo Scouting</button>
+                </div>
+                <div class="analysis-content">
+                    <p>Qui verranno visualizzate le analisi dello scouting (report, statistiche, andamento).</p>
+                    <!-- Contenuti futuri: tabelle, grafici, filtri -->
                 </div>
             </div>
         </main>

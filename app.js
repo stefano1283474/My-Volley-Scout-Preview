@@ -143,13 +143,11 @@ function switchPage(pageId) {
     const navBtn = document.querySelector(`[data-page="${pageId}"]`);
     if (navBtn) navBtn.classList.add('active');
     
-    // Per la struttura semplificata di index.html, mostra la sezione scouting
-    if (pageId === 'scouting') {
-        const scoutingSection = document.getElementById('scouting-section');
-        if (scoutingSection) {
-            scoutingSection.style.display = 'block';
-        }
-    }
+    // Per la struttura semplificata di index.html, mostra la sezione corretta
+    const scoutingSection = document.getElementById('scouting-section');
+    const analysisSection = document.getElementById('analysis-section');
+    if (scoutingSection) scoutingSection.style.display = (pageId === 'scouting') ? 'block' : 'none';
+    if (analysisSection) analysisSection.style.display = (pageId === 'analysis') ? 'block' : 'none';
 
     // Inizializza/aggiorna la pagina specifica se necessario
     try {
@@ -162,6 +160,9 @@ function switchPage(pageId) {
             if (dlg && dlg.open) dlg.close();
         } else if (pageId === 'roster') {
             if (typeof renderRosterTable === 'function') renderRosterTable();
+        } else if (pageId === 'analysis') {
+            // Inizializzazioni future per la pagina Analisi
+            // Placeholder: potremmo aggiornare riepiloghi, grafici, ecc.
         }
     } catch (e) {
         console.warn('Aggiornamento pagina non riuscito:', e);
@@ -210,12 +211,19 @@ function initializeApp() {
             });
             console.log('Event listener aggiunto al pulsante Cambia Squadra');
         }
+
+        // Pulsante Analisi (desktop)
+        const analysisBtn = document.getElementById('analysisBtn');
+        if (analysisBtn) {
+            analysisBtn.addEventListener('click', () => switchPage('analysis'));
+        }
     
         // Header mobile overflow menu
         const headerMenuToggle = document.getElementById('headerMenuToggle');
         const headerMenu = document.getElementById('headerMenu');
         const backToWelcomeBtnMobile = document.getElementById('backToWelcomeBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+        const analysisBtnMobile = document.getElementById('analysisBtnMobile');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
                 const isHidden = headerMenu.hasAttribute('hidden');
@@ -227,6 +235,14 @@ function initializeApp() {
                     headerMenu.setAttribute('hidden', '');
                     headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
+            });
+        }
+        if (analysisBtnMobile) {
+            analysisBtnMobile.addEventListener('click', () => {
+                switchPage('analysis');
+                // Chiudi il menu mobile dopo la navigazione
+                if (headerMenu) headerMenu.setAttribute('hidden', '');
+                if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
             });
         }
         if (backToWelcomeBtnMobile) {

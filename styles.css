@@ -2434,10 +2434,16 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    gap: 12px;              /* Spazio tra titolo e bottone */
+    flex-wrap: wrap;        /* Su schermi stretti il bottone va a capo */
+    border-bottom: 2px solid #e3f2fd; /* Bordo della sezione per separazione visiva */
+    padding-bottom: 8px;    /* Spazio dal contenuto seguente */
 }
 
 .section-header h3 {
     margin: 0;
+    padding: 0;
+    border: none;           /* Evita sovrapposizione con il bottone */
 }
 
 .secondary-btn {
@@ -2453,10 +2459,17 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;    /* Mantiene il testo su una riga per evitare tagli */
 }
 
 .secondary-btn:hover {
     background-color: #1976d2;
+}
+
+/* I bottoni di navigazione non devono crescere e invadere il titolo */
+.section-header .nav-btn {
+    flex: 0 0 auto;
+    min-width: auto;
 }
 
 .secondary-btn:active {
