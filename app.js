@@ -12,7 +12,8 @@ const appState = {
     currentSequence: [],
     setStarted: false,
     selectedPlayer: null,
-    selectedEvaluation: null
+    selectedEvaluation: null,
+    scoreHistory: [] // Storico progressivo dei punti
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -142,13 +143,11 @@ function switchPage(pageId) {
     const navBtn = document.querySelector(`[data-page="${pageId}"]`);
     if (navBtn) navBtn.classList.add('active');
     
-    // Per la struttura semplificata di index.html, mostra la sezione scouting
-    if (pageId === 'scouting') {
-        const scoutingSection = document.getElementById('scouting-section');
-        if (scoutingSection) {
-            scoutingSection.style.display = 'block';
-        }
-    }
+    // Per la struttura semplificata di index.html, mostra la sezione corretta
+    const scoutingSection = document.getElementById('scouting-section');
+    const analysisSection = document.getElementById('analysis-section');
+    if (scoutingSection) scoutingSection.style.display = (pageId === 'scouting') ? 'block' : 'none';
+    if (analysisSection) analysisSection.style.display = (pageId === 'analysis') ? 'block' : 'none';
 
     // Inizializza/aggiorna la pagina specifica se necessario
     try {
@@ -161,6 +160,9 @@ function switchPage(pageId) {
             if (dlg && dlg.open) dlg.close();
         } else if (pageId === 'roster') {
             if (typeof renderRosterTable === 'function') renderRosterTable();
+        } else if (pageId === 'analysis') {
+            // Inizializzazioni future per la pagina Analisi
+            // Placeholder: potremmo aggiornare riepiloghi, grafici, ecc.
         }
     } catch (e) {
         console.warn('Aggiornamento pagina non riuscito:', e);
@@ -209,12 +211,19 @@ function initializeApp() {
             });
             console.log('Event listener aggiunto al pulsante Cambia Squadra');
         }
+
+        // Pulsante Analisi (desktop)
+        const analysisBtn = document.getElementById('analysisBtn');
+        if (analysisBtn) {
+            analysisBtn.addEventListener('click', () => switchPage('analysis'));
+        }
     
         // Header mobile overflow menu
         const headerMenuToggle = document.getElementById('headerMenuToggle');
         const headerMenu = document.getElementById('headerMenu');
         const backToWelcomeBtnMobile = document.getElementById('backToWelcomeBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+        const analysisBtnMobile = document.getElementById('analysisBtnMobile');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
                 const isHidden = headerMenu.hasAttribute('hidden');
@@ -226,6 +235,14 @@ function initializeApp() {
                     headerMenu.setAttribute('hidden', '');
                     headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
+            });
+        }
+        if (analysisBtnMobile) {
+            analysisBtnMobile.addEventListener('click', () => {
+                switchPage('analysis');
+                // Chiudi il menu mobile dopo la navigazione
+                if (headerMenu) headerMenu.setAttribute('hidden', '');
+                if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
             });
         }
         if (backToWelcomeBtnMobile) {
@@ -524,8 +541,56 @@ function initializeScoutingPage() {
             });
         }
         
+        // Fallback: se il roster non è ancora caricato, prova a recuperarlo dal TeamsModule o dal localStorage
+        try {
+            if (!Array.isArray(appState.currentRoster) || appState.currentRoster.length === 0) {
+                let roster = [];
+                // 1) prova dal modulo Teams
+                if (window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') {
+                    const team = window.teamsModule.getCurrentTeam();
+                    if (team && Array.isArray(team.players)) roster = team.players;
+                }
+                // 2) fallback: dal localStorage usando selectedTeamId
+                if (!roster || roster.length === 0) {
+                    const selId = localStorage.getItem('selectedTeamId');
+                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    const team = storedTeams.find(t => String(t.id) === String(selId));
+                    if (team && Array.isArray(team.players)) roster = team.players;
+                }
+                if (Array.isArray(roster) && roster.length > 0) {
+                    appState.currentRoster = roster;
+                }
+            }
+        } catch (_) {}
+
+        // Ascolta gli aggiornamenti del modulo Teams per ripopolare la griglia appena disponibili
+        try {
+            if (window.teamsModule) {
+                if (typeof window.teamsModule.onTeamsUpdate === 'function') {
+                    window.teamsModule.onTeamsUpdate(() => {
+                        try {
+                            const t = window.teamsModule.getCurrentTeam?.();
+                            if (t && Array.isArray(t.players)) appState.currentRoster = t.players;
+                            updatePlayersGrid();
+                        } catch (_) {}
+                    });
+                }
+                if (typeof window.teamsModule.onTeamChange === 'function') {
+                    window.teamsModule.onTeamChange((team) => {
+                        try {
+                            if (team && Array.isArray(team.players)) appState.currentRoster = team.players;
+                            updatePlayersGrid();
+                        } catch (_) {}
+                    });
+                }
+            }
+        } catch (_) {}
+
         // Inizializza interfaccia guidata
         initializeGuidedScouting();
+
+        // Popola subito la griglia giocatori (o mostra un messaggio se il roster non è caricato)
+        try { updatePlayersGrid(); } catch (_) {}
     }
 }
 
@@ -620,17 +685,23 @@ function updatePlayersGrid() {
     container.innerHTML = validPlayers.map(player => {
         const displayName = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
         const role = player.role || '';
-        const roleShort = role ? role.slice(0, 3) : '';
+        const roleShort = role ? (role[0] || '').toUpperCase() : '';
         const roleClass = role === 'Palleggiatore' ? 'role-pal'
                         : role === 'Opposto' ? 'role-opp'
                         : role === 'Schiacciatore' ? 'role-sch'
                         : role === 'Centrale' ? 'role-ctr'
                         : role === 'Libero' ? 'role-lib'
                         : '';
+        const nickname = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
         return `
-            <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${displayName}">
-                <div class="player-line1"><span class="player-number">${player.number}</span> <span class="player-name">${displayName}</span></div>
-                <div class="player-role">${roleShort}</div>
+            <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${nickname}">
+                <div class="player-line1">
+                    <span class="player-number">${player.number}</span>
+                    <span class="player-role">${roleShort}</span>
+                </div>
+                <div class="player-line2">
+                    <span class="player-name">${nickname}</span>
+                </div>
             </button>
         `;
     }).join('');
@@ -649,13 +720,16 @@ function updatePlayersGrid() {
 function selectPlayer(number, name, btnEl) {
     appState.selectedPlayer = { number, name };
 
-    // Evidenzia visivamente il giocatore selezionato, sovrascrivendo selezioni precedenti
+    // Evidenzia visualmente il giocatore selezionato, sovrascrivendo selezioni precedenti
     const playerButtons = document.querySelectorAll('.player-btn');
     playerButtons.forEach(b => b.classList.remove('selected'));
     if (btnEl) btnEl.classList.add('selected');
 
     // Persisti il fondamentale calcolato per coerenza tra descrittivo e quartina
     appState.calculatedFundamental = predictNextFundamental();
+
+    // Aggiorna i testi dei pulsanti di valutazione quando viene selezionato un giocatore
+    updateEvaluationButtonTexts();
 
     // Aggiorna elementi di compatibilità
     const oldElement = document.getElementById('selected-player-info');
@@ -664,8 +738,37 @@ function selectPlayer(number, name, btnEl) {
     }
     const newElement = document.getElementById('selected-player-display');
     if (newElement) {
-        newElement.textContent = `${number} - ${name}`;
+        const roleShort = (btnEl && btnEl.dataset && btnEl.dataset.role ? (btnEl.dataset.role[0] || '').toUpperCase() : '');
+        const nickname = name || '';
+        newElement.innerHTML = `
+            <div class="player-line1">
+                <span class="player-number">${String(number).padStart(2, '0')}</span>
+                <span class="player-role">${roleShort}</span>
+            </div>
+            <div class="player-line2">
+                <span class="player-name">${nickname}</span>
+            </div>
+        `;
     }
+
+    // Aggiorna le informazioni del giocatore selezionato nella sezione fondamentale
+    const selectedPlayerText = document.getElementById('selected-player-text');
+    if (selectedPlayerText) {
+        selectedPlayerText.textContent = `${number} - ${name}`;
+    }
+
+    // Pulisci la valutazione quando viene selezionato un giocatore
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        selectedEvaluationText.textContent = '-';
+    }
+    
+    // Reset della selezione valutazione nello stato
+    appState.selectedEvaluation = null;
+    
+    // Rimuovi la classe selected da tutti i bottoni di valutazione
+    const evaluationButtons = document.querySelectorAll('.eval-btn');
+    evaluationButtons.forEach(btn => btn.classList.remove('selected'));
 
     // Aggiorna UI
     updateNextFundamental();
@@ -709,6 +812,22 @@ function selectPlayer(number, name, btnEl) {
     showScoutingStep('step-action');
 }
 
+// Funzione per aggiornare i testi dei pulsanti di valutazione in base al fondamentale
+function updateEvaluationButtonTexts() {
+    const fundamental = appState.calculatedFundamental || predictNextFundamental();
+    const evalButton5 = document.querySelector('.eval-btn[data-eval="5"]');
+    
+    if (evalButton5) {
+        // Per Difesa (d) e Ricezione (r): "5 - Perfetto"
+        // Per Attacco (a), Muro (m) e Battuta/Servizio (b): "5 - Punto"
+        if (fundamental === 'd' || fundamental === 'r') {
+            evalButton5.textContent = '5 - Perfetto';
+        } else {
+            evalButton5.textContent = '5 - Punto';
+        }
+    }
+}
+
 function selectEvaluation(evaluation) {
     appState.selectedEvaluation = evaluation;
     
@@ -727,6 +846,19 @@ function selectEvaluation(evaluation) {
         selectedBtn.classList.add('selected');
         // Registra il testo del pulsante di valutazione premuto (es: "4 - Positivo")
         updateDescriptiveQuartet();
+    }
+
+    // Aggiorna le informazioni della valutazione selezionata nella sezione fondamentale
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        const evalNames = {
+            1: '1 - Errore',
+            2: '2 - Negativo', 
+            3: '3 - Neutro',
+            4: '4 - Positivo',
+            5: '5 - Punto'
+        };
+        selectedEvaluationText.textContent = `${evalNames[evaluation] || evaluation}`;
     }
 }
 
@@ -755,6 +887,11 @@ function submitGuidedAction() {
         const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
         try {
             const result = parseAction(actionString);
+            
+            // Aggiungi informazioni del giocatore al risultato
+            result.playerName = appState.selectedPlayer.name;
+            result.actionType = appState.selectedEvaluation === 5 ? 'Punto' : 'Errore';
+            
             processActionResult(result);
             
             appState.actionsLog.push({
@@ -766,6 +903,16 @@ function submitGuidedAction() {
             
             appState.currentSequence = [];
             updateActionSummary();
+            
+            // Pulisci le informazioni di giocatore e valutazione quando viene assegnato un punto
+            const selectedPlayerText = document.getElementById('selected-player-text');
+            const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+            if (selectedPlayerText) {
+                selectedPlayerText.textContent = '-';
+            }
+            if (selectedEvaluationText) {
+                selectedEvaluationText.textContent = '-';
+            }
         } catch (error) {
             alert(`Errore nell'azione: ${error.message}`);
             appState.currentSequence.pop(); // Rimuovi l'ultima se errore
@@ -791,11 +938,23 @@ function submitGuidedAction() {
 
 function submitOpponentError() {
     const actionString = 'avv';
-    // Imposta flag per mostrare il descrittivo “– Err Avv”
+    // Imposta flag per mostrare il descrittivo "– Err Avv"
     appState.opponentErrorPressed = true;
     updateDescriptiveQuartet();
+
+    // Aggiorna le informazioni della valutazione nella sezione fondamentale
+    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+    if (selectedEvaluationText) {
+        selectedEvaluationText.textContent = 'Err Avv';
+    }
+
     try {
         const result = parseAction(actionString);
+        
+        // Aggiungi informazioni per l'errore avversario
+        result.playerName = 'Avversario';
+        result.actionType = 'Errore';
+        
         processActionResult(result);
         
         appState.actionsLog.push({
@@ -817,6 +976,13 @@ function submitOpponentError() {
         appState.calculatedFundamental = null;
         appState.opponentErrorPressed = false;
         updateDescriptiveQuartet();
+
+        // Reset delle informazioni nella sezione fondamentale
+        const selectedPlayerText = document.getElementById('selected-player-text');
+        const selectedEvaluationTextReset = document.getElementById('selected-evaluation-text');
+        if (selectedPlayerText) selectedPlayerText.textContent = '-';
+        if (selectedEvaluationTextReset) selectedEvaluationTextReset.textContent = '-';
+
     } catch (error) {
         alert(`Errore: ${error.message}`);
         // In caso di errore, azzera il flag per non lasciare il descrittivo attivo
@@ -953,6 +1119,12 @@ function predictNextFundamental() {
     if (currentActionLogs.length > 0) {
         const lastLog = currentActionLogs[currentActionLogs.length - 1];
         const act = lastLog.action || '';
+        
+        // Regola speciale: se l'azione termina con A5, B5, M5 o Avv, il prossimo fondamentale è Servizio (b)
+        if (act.includes('avv') || act.endsWith('a5') || act.endsWith('b5') || act.endsWith('m5')) {
+            return 'b';
+        }
+        
         const lastFund = act.charAt(2);
         const lastEval = parseInt(act.charAt(3));
         if (lastFund === 'd') {
@@ -972,11 +1144,15 @@ function predictNextFundamental() {
 
 function updateNextFundamental() {
     const fundamental = predictNextFundamental();
-    const names = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
+    const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
+    const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');
-    if (el) el.textContent = names[fundamental] || 'Sconosciuto';
+    if (el) el.textContent = 'SELEZIONATO:';
     const cur = document.getElementById('current-fundamental');
-    if (cur) cur.textContent = names[fundamental] || 'Sconosciuto';
+    if (cur) cur.textContent = namesPlain[fundamental] || 'Sconosciuto';
+    
+    // Aggiorna i testi dei pulsanti di valutazione quando cambia il fondamentale
+    updateEvaluationButtonTexts();
 }
 
 function startSet() {
@@ -1017,6 +1193,14 @@ function startSet() {
     appState.selectedPlayer = null;
     appState.selectedEvaluation = null;
     
+    // Inizializza lo storico punteggio con l'entry iniziale
+    appState.scoreHistory = [{
+        homeScore: 0,
+        awayScore: 0,
+        description: `Set ${setNumber} - Servizio P1 Vs P2`,
+        type: 'initial'
+    }];
+    
     // Inizializza il log dei tasti premuti
     // Reset del descrittivo
     updateDescriptiveQuartet();
@@ -1033,11 +1217,12 @@ function startSet() {
     updateCurrentPhaseDisplay();
     updateNextFundamental();
     updatePlayersGrid();
+    updateScoreHistoryDisplay(); // Aggiorna anche lo storico punteggio
     
     // Apri l'interfaccia guidata se esiste (versione completa)
-    if (typeof showScoutingStep === 'function' && typeof openDialog === 'function') {
+    if (typeof showScoutingStep === 'function') {
         showScoutingStep('step-player');
-        openDialog('scouting-dialog');
+        // niente openDialog: contenuto embedded nella pagina
     }
     
     // Passa alla pagina di scouting
@@ -1109,11 +1294,19 @@ function updateMatchInfo() {
 }
 
 function updateScoutingUI() {
+    // Aggiorna punteggi esistenti
     const homeScoreEl = document.querySelector('.home-score');
     if (homeScoreEl) homeScoreEl.textContent = appState.homeScore;
     
     const awayScoreEl = document.querySelector('.away-score');
     if (awayScoreEl) awayScoreEl.textContent = appState.awayScore;
+    
+    // Aggiorna nuovi elementi punteggio
+    const scoreHomeEl = document.getElementById('score-home');
+    if (scoreHomeEl) scoreHomeEl.textContent = appState.homeScore;
+    
+    const scoreAwayEl = document.getElementById('score-away');
+    if (scoreAwayEl) scoreAwayEl.textContent = appState.awayScore;
     
     const rotationEl = document.getElementById('current-rotation');
     if (rotationEl) rotationEl.textContent = appState.currentRotation;
@@ -1122,7 +1315,29 @@ function updateScoutingUI() {
     if (phaseEl) phaseEl.textContent = appState.currentPhase;
     
     const setEl = document.getElementById('current-set-display');
-    if (setEl) setEl.textContent = `Set ${appState.currentSet}`;
+    if (setEl) setEl.textContent = appState.currentSet;
+    
+    // Aggiorna sequenza azione corrente
+    updateCurrentActionSequence();
+}
+
+function updateCurrentActionSequence() {
+    const sequenceEl = document.getElementById('current-action-sequence');
+    if (!sequenceEl) return;
+    
+    if (appState.currentSequence && appState.currentSequence.length > 0) {
+        // Mostra la sequenza corrente con evidenziazione dell'ultimo elemento
+        const sequenceHTML = appState.currentSequence.map((item, index) => {
+            const isLast = index === appState.currentSequence.length - 1;
+            const className = isLast ? 'sequence-item current' : 'sequence-item';
+            return `<span class="${className}">${item.quartet}</span>`;
+        }).join('');
+        
+        sequenceEl.innerHTML = sequenceHTML;
+    } else {
+        // Mostra placeholder quando non c'è sequenza
+        sequenceEl.innerHTML = '<span class="sequence-placeholder">Nessuna azione in corso</span>';
+    }
 }
 
 function updateActionSummary() {
@@ -1158,6 +1373,11 @@ function submitAction() {
     
     try {
         const result = parseAction(actionString);
+        
+        // Per le azioni manuali, non abbiamo informazioni specifiche del giocatore
+        result.playerName = 'Azione manuale';
+        result.actionType = result.result === 'home_point' || result.result === 'away_point' ? 'Punto' : 'Azione';
+        
         processActionResult(result);
         
         // Aggiungi al log
@@ -1245,17 +1465,143 @@ function determineFinalResult(fundamental, evaluation) {
 function processActionResult(result) {
     if (result.result === 'home_point') {
         appState.homeScore++;
+        
+        // Aggiungi al storico punteggio
+        addToScoreHistory('home', result.playerName, result.actionType);
+        
         if (appState.currentPhase === 'ricezione') {
             appState.currentPhase = 'servizio';
             rotateTeam();
         }
     } else if (result.result === 'away_point') {
         appState.awayScore++;
+        
+        // Aggiungi al storico punteggio
+        addToScoreHistory('away', result.playerName, result.actionType);
+        
         if (appState.currentPhase === 'servizio') {
             appState.currentPhase = 'ricezione';
         } else {
             appState.currentPhase = 'ricezione';
         }
+    }
+    
+    // Aggiorna la visualizzazione dello storico
+    updateScoreHistoryDisplay();
+}
+
+// Funzione per aggiungere un elemento allo storico punteggio
+function addToScoreHistory(team, playerName, actionType) {
+    const historyItem = {
+        homeScore: appState.homeScore,
+        awayScore: appState.awayScore,
+        team: team,
+        playerName: playerName || 'Sconosciuto',
+        actionType: actionType || 'Punto',
+        timestamp: new Date().toLocaleTimeString()
+    };
+    
+    appState.scoreHistory.push(historyItem);
+}
+
+// Funzione per aggiornare la visualizzazione dello storico punteggio
+function updateScoreHistoryDisplay() {
+    const historyContainer = document.getElementById('score-history');
+    if (!historyContainer) return;
+    
+    // Pulisci il contenitore
+    historyContainer.innerHTML = '';
+    
+    // Aggiungi gli elementi dello storico in ordine cronologico inverso (più recenti in alto)
+    // Creiamo una copia dell'array e la invertiamo per non modificare l'originale
+    const reversedHistory = [...appState.scoreHistory].reverse();
+    
+    reversedHistory.forEach(item => {
+        const historyElement = document.createElement('div');
+        
+        if (item.type === 'initial') {
+            historyElement.className = 'score-history-item initial';
+            
+            const scoreText = document.createElement('span');
+            scoreText.className = 'score-text';
+            scoreText.textContent = `${item.homeScore} - ${item.awayScore}`;
+            
+            const description = document.createElement('span');
+            description.className = 'score-description';
+            description.textContent = item.description;
+            
+            historyElement.appendChild(scoreText);
+            historyElement.appendChild(description);
+        } else {
+            historyElement.className = `score-history-item ${item.team === 'home' ? 'point-home' : 'point-away'}`;
+            
+            const scoreText = document.createElement('span');
+            scoreText.className = 'score-text';
+            scoreText.textContent = `${item.homeScore} - ${item.awayScore}`;
+            
+            const description = document.createElement('span');
+            description.className = 'score-description';
+            
+            if (item.team === 'home') {
+                description.textContent = `Punto di ${item.playerName}`;
+            } else {
+                description.textContent = `Errore di ${item.playerName}`;
+            }
+            
+            historyElement.appendChild(scoreText);
+            historyElement.appendChild(description);
+        }
+        
+        historyContainer.appendChild(historyElement);
+    });
+}
+
+function checkSetEnd() {
+    const homeScore = appState.homeScore;
+    const awayScore = appState.awayScore;
+    
+    // Regole standard della pallavolo:
+    // - Set vinto a 25 punti con almeno 2 punti di vantaggio
+    // - Set al 5° (tie-break) vinto a 15 punti con almeno 2 punti di vantaggio
+    const isSetFive = appState.currentSet === 5;
+    const winningScore = isSetFive ? 15 : 25;
+    const minScore = isSetFive ? 15 : 25;
+    
+    let setWinner = null;
+    
+    // Controlla se una squadra ha vinto
+    if (homeScore >= minScore && homeScore - awayScore >= 2) {
+        setWinner = 'home';
+    } else if (awayScore >= minScore && awayScore - homeScore >= 2) {
+        setWinner = 'away';
+    }
+    
+    if (setWinner) {
+        const winnerName = setWinner === 'home' ? 'La nostra squadra' : 'Squadra avversaria';
+        const finalScore = `${homeScore}-${awayScore}`;
+        
+        // Mostra messaggio di fine set
+        setTimeout(() => {
+            alert(`🏆 Set ${appState.currentSet} terminato!\n${winnerName} ha vinto ${finalScore}`);
+            
+            // Chiedi se iniziare il prossimo set
+            if (appState.currentSet < 5) {
+                const nextSet = confirm(`Vuoi iniziare il Set ${appState.currentSet + 1}?`);
+                if (nextSet) {
+                    appState.currentSet++;
+                    appState.homeScore = 0;
+                    appState.awayScore = 0;
+                    appState.actionsLog = [];
+                    updateScoutingUI();
+                    updateActionsLog();
+                    if (window.updateScoreHistory) {
+                        window.updateScoreHistory();
+                    }
+                }
+            } else {
+                alert('🎉 Partita terminata!');
+            }
+        }, 100);
     }
 }
 
@@ -1316,4 +1662,32 @@ function updatePressedButtonsDisplay() {
         ? appState.pressedButtons.join(' • ')
         : '';
     if (box) box.style.display = (appState.pressedButtons && appState.pressedButtons.length) ? 'block' : 'none';
+}
+// Campo descrittivo "parlante" della quartina corrente
+function updateDescriptiveQuartet() {
+    const box = document.getElementById('pressed-buttons-box');
+    const el = document.getElementById('pressed-buttons-log');
+    if (!el) return;
+
+    // Caso speciale: Err Avv richiesto come "– Err Avv"
+    if (appState.opponentErrorPressed) {
+        el.textContent = '– Err Avv';
+        if (box) box.style.display = 'block';
+        return;
+    }
+
+    const player = appState.selectedPlayer;
+    const fund = appState.calculatedFundamental || predictNextFundamental();
+    const evalVal = appState.selectedEvaluation;
+
+    if (player && fund) {
+        const names = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
+        const nn = String(player.number || '').padStart(2, '0');
+        const evalText = (evalVal ? `Val${evalVal}` : 'Val?');
+        el.textContent = `${nn} ${names[fund] || fund} ${evalText}`;
+        if (box) box.style.display = 'block';
+    } else {
+        el.textContent = '';
+        if (box) box.style.display = 'none';
+    }
 }

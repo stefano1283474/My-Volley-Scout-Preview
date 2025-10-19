@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>My Volley Scout PWA</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=1">
+    <link rel="stylesheet" href="styles.css?v=2">
     <meta name="theme-color" content="#2563eb">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
     <script>
@@ -15,6 +15,28 @@
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => console.log('Service Worker registrato:', registration))
                     .catch(error => console.log('Registrazione Service Worker fallita:', error));
+            });
+        }
+
+        // Gestione Service Worker: su localhost disattiva e pulisci cache; in produzione registra
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    if (location.hostname === 'localhost') {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(regs.map(r => r.unregister()));
+                        if (window.caches && caches.keys) {
+                            const keys = await caches.keys();
+                            await Promise.all(keys.map(k => caches.delete(k)));
+                        }
+                        console.log('SW e cache puliti su localhost');
+                    } else {
+                        const registration = await navigator.serviceWorker.register('/sw.js');
+                        console.log('Service Worker registrato:', registration);
+                    }
+                } catch (error) {
+                    console.log('Gestione Service Worker fallita:', error);
+                }
             });
         }
 
@@ -71,12 +93,14 @@
                 <div class="auth-section">
                     <div id="userInfo" class="user-info">
                         <span id="userEmail"></span>
+                        <button id="analysisBtn" class="btn btn-outline desktop-only nav-btn" data-page="analysis">Analisi</button>
                         <button id="backToWelcomeBtn" class="btn btn-outline desktop-only">Cambia Squadra</button>
                         <button id="signOutBtn" class="btn btn-outline desktop-only">Esci</button>
                         <button id="headerMenuToggle" class="btn btn-outline mobile-only" aria-expanded="false" aria-controls="headerMenu" title="Menu">
                           ⋮
                         </button>
                         <div id="headerMenu" class="header-menu" hidden>
+                          <button id="analysisBtnMobile" class="menu-item nav-btn" data-page="analysis">Analisi</button>
                           <button id="backToWelcomeBtnMobile" class="menu-item">Cambia Squadra</button>
                           <button id="signOutBtnMobile" class="menu-item">Esci</button>
                         </div>
@@ -91,89 +115,98 @@
                 
                 <!-- Sezione INIZIA SET rimossa -->
 
-                <h3>Scouting Azioni</h3>
+                    <div class="section-header">
+                       <h3>Scouting Azioni</h3>
+                       <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Visualizza Azioni</button>
+                     </div>
                 
-                <div class="game-status">
-                    <div class="score">
-                        <span class="home-score">0</span> - <span class="away-score">0</span>
-                    </div>
-                    <div class="current-info">
-                        <span id="current-rotation">P1</span> | 
-                        <span id="current-phase">Servizio</span> | 
-                        <span id="current-set-display">Set 1</span>
-                    </div>
-                </div>
+                <!-- Pulsante per aprire il dialog di scouting -->
+                <!-- RIMOSSO: pulsante di apertura del dialog -->
                 
-                <div class="scouting-info">
-                    <div class="phase-info">
-                        <strong>Fase di gioco: <span id="current-phase-2">servizio</span></strong>
-                    </div>
-                    <div class="next-fundamental-info">
-                        <strong>Prossimo fondamentale: <span id="next-fundamental">Servizio (b)</span></strong>
-                    </div>
-                </div>
-                
-                <div id="scouting-dialog" class="dialog">
-                  <div class="dialog-content">
-                    <div class="dialog-header">
-                      <h3>Selezione Azione</h3>
-                    </div>
-                    <div class="dialog-body dialog-form">
-                      <!-- Banner Fondamentale in alto -->
-                      <div id="fundamental-banner"><span class="label">Fondamentale:</span> <span class="value" id="current-fundamental-banner"></span></div>
-                  
-                      <!-- Step: Seleziona Giocatore -->
-                      <div class="scouting-step" id="step-player">
-                        <div class="step-header">
-                          <h4>Seleziona Giocatore</h4>
-                          <button class="close-btn" onclick="closeDialog('scouting-dialog')" aria-label="Chiudi">×</button>
-                        </div>
-                        <div id="players-grid" class="players-grid"></div>
-                      </div>
-                  
-                      <!-- Step: Valutazioni -->
-                      <div class="scouting-step" id="step-action">
-                        <h4>Seleziona Azione</h4>
-                        <div class="action-info">
-                          <p class="player-info"><strong>Giocatore selezionato:</strong> <span id="selected-player-display"></span></p>
-                          <p class="fundamental-info"><strong>Fondamentale:</strong> <span id="current-fundamental"></span></p>
-                        </div>
-                        <div class="evaluation-buttons">
-                          <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">1 - Errore</button>
-                          <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">2 - Negativo</button>
-                          <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">3 - Neutro</button>
-                          <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">4 - Positivo</button>
-                          <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">5 - Punto</button>
-                          <button class="eval-btn" onclick="submitOpponentError()">Err Avv</button>
-                        </div>
-                      </div>
-                  
-                      <div id="action-summary-box" class="summary-box">
-                        <div class="summary-title">Riepilogo quartine</div>
-                        <div id="action-summary" class="summary-content"></div>
-                      </div>
+                <div id="scouting-dialog" class="embedded">
+                  <div class="scaffold">
 
-                      <!-- Pulsante Conferma Azione rimosso: il flusso è automatico al click sulla valutazione -->
 
-                      <div id="pressed-buttons-box" class="summary-box" style="display:none;">
-                        <div class="summary-title">Quartina descrittiva</div>
-                        <div id="pressed-buttons-log" class="summary-content"></div>
+                    <!-- Fondamentale previsto -->
+<div class="phase-info">
+  <strong><span id="current-fundamental">Servizio</span></strong>
+</div>
+
+
+
+                    <!-- Griglia giocatori -->
+                    <div id="players-grid" class="players-grid"></div>
+
+                    <!-- Sezione valutazione -->
+                    <h4>Valutazione</h4>
+                    <div class="evaluation-buttons">
+                      <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">1 - Errore</button>
+                      <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">2 - Negativo</button>
+                      <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">3 - Neutro</button>
+                      <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">4 - Positivo</button>
+                      <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">5 - Punto</button>
+                      <button class="eval-btn" onclick="submitOpponentError()">Err Avv</button>
+                    </div>
+
+                    <!-- Fondamentale -->
+                     <div class="next-fundamental-info">
+                       <strong><span id="next-fundamental">Servizio (b)</span></strong>
+                       <div id="selected-info" class="selected-info">
+                         <span id="selected-player-text">-</span>
+                         <span id="selected-evaluation-text">-</span>
+                       </div>
+                     </div>
+
+                    <!-- Punteggio -->
+                    <div class="score-display">
+                      <h4>Storico Punteggio</h4>
+                      <div class="score-current">
+                        <span class="score-home">Casa: <span id="score-home">0</span></span>
+                        <span class="score-separator">-</span>
+                        <span class="score-away">Ospiti: <span id="score-away">0</span></span>
+                        <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
                       </div>
-                  
-                      <!-- Log Azioni -->
-                      <div id="actions-log" class="actions-log">
-                        <button id="actions-log-toggle" class="log-toggle" aria-expanded="true" aria-controls="actions-list">
-                          <span class="toggle-icon">▼</span>
-                          Log Azioni
-                          <span class="log-count-badge" id="actions-log-count">0</span>
-                        </button>
-                        <div id="actions-list" class="log-list"></div>
+                      <div id="score-history" class="score-history">
+                        <div class="score-history-item initial">
+                          <span class="score-text">0 - 0</span>
+                          <span class="score-description">Set 1 - Servizio P1 Vs P2</span>
+                        </div>
                       </div>
                     </div>
+
                   </div>
                 </div>
             </div>
+            <!-- Sezione Analisi -->
+            <div class="section" id="analysis-section" style="display:none;">
+                <div class="section-header">
+                    <h3>Analisi dello Scout</h3>
+                    <button class="secondary-btn nav-btn" data-page="scouting">← Torna allo Scouting</button>
+                </div>
+                <div class="analysis-content">
+                    <p>Qui verranno visualizzate le analisi dello scouting (report, statistiche, andamento).</p>
+                    <!-- Contenuti futuri: tabelle, grafici, filtri -->
+                </div>
+            </div>
         </main>
+
+        <!-- Dialog per visualizzare le azioni scoutizzate -->
+        <div id="actions-dialog" class="dialog">
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3>Azioni Scoutizzate</h3>
+                    <button class="close-btn" onclick="closeActionsDialog()" aria-label="Chiudi">×</button>
+                </div>
+                <div class="dialog-body">
+                    <div class="actions-summary">
+                        <p>Totale azioni: <span id="total-actions-count">0</span></p>
+                    </div>
+                    <div id="actions-list-dialog" class="actions-list-container">
+                        <p class="no-actions-message">Nessuna azione scoutizzata ancora.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -184,6 +217,91 @@
     <script src="./firebase-config.js?v=4"></script>
     
     <script>
+        // Funzioni per gestire il dialog delle azioni scoutizzate
+        function openActionsDialog() {
+            const dialog = document.getElementById('actions-dialog');
+            if (dialog) {
+                populateActionsDialog();
+                dialog.style.display = 'flex';
+            }
+        }
+
+        function closeActionsDialog() {
+            const dialog = document.getElementById('actions-dialog');
+            if (dialog) {
+                dialog.style.display = 'none';
+            }
+        }
+
+        function populateActionsDialog() {
+            const totalCountElement = document.getElementById('total-actions-count');
+            const actionsListContainer = document.getElementById('actions-list-dialog');
+            
+            if (!totalCountElement || !actionsListContainer) return;
+            
+            // Ottieni le azioni dal log globale
+            const actions = window.appState ? window.appState.actionsLog : [];
+            
+            // Aggiorna il conteggio totale
+            totalCountElement.textContent = actions.length;
+            
+            if (actions.length === 0) {
+                actionsListContainer.innerHTML = '<p class="no-actions-message">Nessuna azione scoutizzata ancora.</p>';
+                return;
+            }
+            
+            // Crea la lista delle azioni
+            const actionsHTML = actions.map((log, index) => {
+                let resultText = '';
+                let resultClass = '';
+                
+                switch (log.result?.result) {
+                    case 'home_point':
+                        resultText = '🏐 Punto Casa';
+                        resultClass = 'home-point';
+                        break;
+                    case 'away_point':
+                        resultText = '🏐 Punto Ospiti';
+                        resultClass = 'away-point';
+                        break;
+                    default:
+                        resultText = '↔️ In corso';
+                        resultClass = 'in-progress';
+                }
+                
+                const actionDisplay = log.action || '';
+                const timestamp = log.timestamp || `Azione ${index + 1}`;
+                const score = log.score || '';
+                
+                return `
+                    <div class="action-item">
+                        <div class="action-header">
+                            <span class="action-number">#${index + 1}</span>
+                            <span class="action-timestamp">${timestamp}</span>
+                            ${score ? `<span class="action-score">${score}</span>` : ''}
+                        </div>
+                        <div class="action-quartet">${actionDisplay}</div>
+                        <div class="action-result ${resultClass}">${resultText}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            actionsListContainer.innerHTML = actionsHTML;
+        }
+
+        // Funzione per aggiornare i valori del game status nel dialog
+        function updateGameStatusInDialog() {
+            // Non è più necessario copiare i valori poiché ora usiamo gli stessi elementi
+        }
+
+        // Chiudi il dialog cliccando fuori dal contenuto
+        document.addEventListener('click', function(e) {
+            const dialog = document.getElementById('actions-dialog');
+            if (dialog && e.target === dialog) {
+                closeActionsDialog();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             // Avvia subito il guard di autenticazione
             checkAuthAndSession();
