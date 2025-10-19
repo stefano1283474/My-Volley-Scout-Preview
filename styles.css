@@ -1626,19 +1626,8 @@ body {
 
 /* Griglia giocatori ed evaluation buttons: touch-friendly su smartphone */
 @media (max-width: 480px) {
-  #scouting-dialog .players-grid { grid-template-columns: repeat(4, 1fr); }
   #scouting-dialog .player-btn { min-height: 52px; padding: 8px; }
   #scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; }
-}
-
-/* Sotto 390px: mantieni 4 colonne */
-@media (max-width: 390px) {
-  #scouting-dialog .players-grid { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* Telefoni molto stretti: mantieni 4 colonne, riducendo automaticamente le larghezze */
-@media (max-width: 340px) {
-  #scouting-dialog .players-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* --- Log Azioni comprimibile --- */
