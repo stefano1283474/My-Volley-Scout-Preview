@@ -283,7 +283,17 @@
         
         <!-- Roster Editor Section -->
         <div class="teams-section" id="rosterEditor" style="display:none; margin-top:20px;">
-            <h2 class="section-title">Roster — <input id="rosterTeamNameInput" type="text" placeholder="Nome squadra" style="font-size:inherit; font-weight:inherit; border:none; background:transparent; border-bottom:1px dashed #ccc; outline:none; max-width:60%;" value="Seleziona una squadra" disabled /></h2>
+            <h2 class="section-title">Roster — dati squadra</h2>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin:8px 0 12px 0;">
+                <div>
+                    <label for="rosterClubNameInput" style="display:block; font-size:13px; color:#666; margin-bottom:4px;">Nome Società</label>
+                    <input id="rosterClubNameInput" type="text" placeholder="Es. Bollate Team Volley" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px;" disabled />
+                </div>
+                <div>
+                    <label for="rosterTeamNameInput" style="display:block; font-size:13px; color:#666; margin-bottom:4px;">Nome Squadra</label>
+                    <input id="rosterTeamNameInput" type="text" placeholder="Es. 2Div F" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px;" value="Seleziona una squadra" disabled />
+                </div>
+            </div>
             <div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px;">
                 <button class="btn btn-primary" id="confirmRosterBtn">Conferma e procedi</button>
                 <button class="btn btn-secondary" id="addPlayerBtn">Aggiungi giocatore</button>
@@ -378,6 +388,7 @@
         // Nuovi elementi Roster Editor
         const rosterEditor = document.getElementById('rosterEditor');
         const rosterTeamNameInput = document.getElementById('rosterTeamNameInput');
+        const rosterClubNameInput = document.getElementById('rosterClubNameInput');
         const rosterTableBody = document.getElementById('rosterTableBody');
         const importRosterBtn = document.getElementById('importRosterBtn');
         const rosterImportFile = document.getElementById('rosterImportFile');
@@ -641,8 +652,15 @@
         function showRosterEditor(isNew = false) {
             if (!selectedTeam) return;
             if (rosterTeamNameInput) {
+                const teamName = selectedTeam.teamName || String(selectedTeam.name || '').split(' - ')[0] || '';
                 rosterTeamNameInput.disabled = false;
-                rosterTeamNameInput.value = selectedTeam.name || '';
+                rosterTeamNameInput.value = teamName;
+            }
+            if (rosterClubNameInput) {
+                const parts = String(selectedTeam.name || '').split(' - ');
+                const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
+                rosterClubNameInput.disabled = false;
+                rosterClubNameInput.value = inferredClub;
             }
             rosterTableBody.innerHTML = '';
             const players = Array.isArray(selectedTeam.players) ? selectedTeam.players : [];
@@ -661,6 +679,10 @@
             if (rosterTeamNameInput) {
                 rosterTeamNameInput.value = 'Seleziona una squadra';
                 rosterTeamNameInput.disabled = true;
+            }
+            if (rosterClubNameInput) {
+                rosterClubNameInput.value = '';
+                rosterClubNameInput.disabled = true;
             }
             selectedTeam = null;
         }
@@ -694,8 +716,10 @@
                     const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
                     return { number, name, surname, role, nickname };
                 }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
-                const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
-                const updatedTeam = { id: selectedTeam.id, name: currentName, players };
+                const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
+                const newClubName = (rosterClubNameInput && rosterClubNameInput.value.trim()) || '';
+                const currentName = newTeamName + (newClubName ? ` - ${newClubName}` : '');
+                const updatedTeam = { id: selectedTeam.id, name: currentName, teamName: newTeamName, clubName: newClubName, players };
                 const result = await window.teamsModule.saveTeam(updatedTeam);
                 if (!result.success) throw new Error(result.error || 'Salvataggio fallito');
                 selectedTeam = result.team;
@@ -717,7 +741,9 @@
                     const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
                     return { number, name, surname, role, nickname };
                 }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
-                const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
+                const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
+                const clubNameExp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
+                const currentName = teamNameExp + (clubNameExp ? ` - ${clubNameExp}` : '');
                 const header = ['Squadra','Numero','Nome','Cognome','Ruolo','Soprannome'];
                 const lines = [header.join(',')];
                 players.forEach(p => {
@@ -765,8 +791,10 @@
                     if (idx.numero === -1 || idx.nome === -1 || idx.cognome === -1 || idx.ruolo === -1) {
                         throw new Error('Intestazioni richieste mancanti. Richieste: Numero, Nome, Cognome, Ruolo. Opzionale: Squadra, Soprannome');
                     }
-                    const currentName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || selectedTeam.name;
-                    const importedPlayers = [];
+                const teamNameImp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
+                const clubNameImp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
+                const currentName = teamNameImp + (clubNameImp ? ` - ${clubNameImp}` : '');
+                const importedPlayers = [];
                     for (let i = 1; i < lines.length; i++) {
                         const cols = splitCSVLine(lines[i]);
                         if (!cols.length) continue;

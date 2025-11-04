@@ -18,7 +18,9 @@ const appState = {
     // Blocco temporaneo e auto-chiusura azione
     autoClosePending: false,
     autoCloseTimerId: null,
-    autoClosePayload: null
+    autoClosePayload: null,
+    // Flag per pulire le pillole dopo chiusura azione
+    justClosedAction: false
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -960,12 +962,16 @@ function selectPlayer(number, name, btnEl) {
         // Rimuovi evidenza dai bottoni valutazione
         const evaluationButtons = document.querySelectorAll('.eval-btn');
         evaluationButtons.forEach(btn => btn.classList.remove('selected'));
-        // Aggiorna descrittivo
+        // Segna chiusura azione per svuotare le pillole e aggiorna descrittivo/fondamentale
+        appState.justClosedAction = true;
         updateDescriptiveQuartet();
+        updateNextFundamental();
     }
 
     // Imposta il nuovo giocatore selezionato
     appState.selectedPlayer = { number, name };
+    // Nuova selezione: non siamo più in stato appena chiuso
+    appState.justClosedAction = false;
 
     // Evidenzia visualmente il giocatore selezionato, sovrascrivendo selezioni precedenti
     const playerButtons = document.querySelectorAll('.player-btn');
@@ -1039,6 +1045,40 @@ function updateEvaluationButtonTexts() {
 }
 
 function selectEvaluation(evaluation) {
+    // Se è in corso un timer di auto-chiusura, consenti cambio valutazione:
+    // - Se la nuova valutazione NON chiude l'azione, interrompi il timer
+    // - Se la nuova valutazione chiude l'azione, riavvia il timer con il nuovo payload
+    try {
+        if (appState.autoClosePending) {
+            const f = appState.calculatedFundamental || predictNextFundamental();
+            const resType = determineFinalResult(f, evaluation);
+            const closes = resType === 'home_point' || resType === 'away_point';
+            // Ferma il timer corrente
+            if (appState.autoCloseTimerId) {
+                clearTimeout(appState.autoCloseTimerId);
+                appState.autoCloseTimerId = null;
+            }
+            if (!closes) {
+                // Non più terminale: annulla la chiusura automatica
+                appState.autoClosePending = false;
+                appState.autoClosePayload = null;
+            } else {
+                // Terminale: riavvia con il nuovo evaluation
+                appState.autoClosePending = true;
+                appState.autoClosePayload = {
+                    player: appState.selectedPlayer,
+                    evaluation,
+                    fundamental: f
+                };
+                appState.autoCloseTimerId = setTimeout(() => {
+                    performAutoCloseAfterTimeout();
+                }, 3000);
+            }
+        }
+    } catch (_) {}
+
+    // Inizia nuova selezione valutazione: riattiva pillole
+    appState.justClosedAction = false;
     appState.selectedEvaluation = evaluation;
     
     // Evidenzia il pulsante selezionato
@@ -1071,6 +1111,17 @@ function selectEvaluation(evaluation) {
         selectedEvaluationText.textContent = `${evalNames[evaluation] || evaluation}`;
     }
 
+    // Aggiorna live fase e fondamentale previsto in base alla valutazione corrente
+    try {
+        const currentFundamental = appState.calculatedFundamental || predictNextFundamental();
+        // Aggiorna la fase di gioco in modo reattivo (senza chiusura dell'azione)
+        updateGamePhase(currentFundamental, evaluation);
+        // Aggiorna subito il banner e l'etichetta "Elenco player per" con il fondamentale previsto successivo
+        updateNextFundamental();
+    } catch (err) {
+        console.warn('Aggiornamento live fondamentale/phase fallito:', err);
+    }
+
     // Se la valutazione decreta la fine dell'azione, avvia timer 3s e blocca ulteriori pressioni
     maybeStartAutoCloseTimer(evaluation);
 }
@@ -1091,10 +1142,6 @@ function maybeStartAutoCloseTimer(evaluation) {
             evaluation,
             fundamental
         };
-
-        // Disabilita pulsanti valutazione (e giocatori per evitare conflitti)
-        document.querySelectorAll('.eval-btn').forEach(btn => btn.disabled = true);
-        document.querySelectorAll('.player-btn').forEach(btn => btn.disabled = true);
 
         // Avvia timer 3 secondi
         if (appState.autoCloseTimerId) clearTimeout(appState.autoCloseTimerId);
@@ -1134,6 +1181,9 @@ function performAutoCloseAfterTimeout() {
     submitGuidedAction();
 
     // Non ripristinare selezioni precedenti: dopo la chiusura si torna alla selezione giocatore
+    try {
+        updateNextFundamental();
+    } catch(_) {}
 }
 
 function submitGuidedAction() {
@@ -1187,6 +1237,9 @@ function submitGuidedAction() {
             if (selectedEvaluationText) {
                 selectedEvaluationText.textContent = '-';
             }
+            // Segna chiusura azione e svuota le pillole
+            appState.justClosedAction = true;
+            updateDescriptiveQuartet();
         } catch (error) {
             alert(`Errore nell'azione: ${error.message}`);
             appState.currentSequence.pop(); // Rimuovi l'ultima se errore
@@ -1249,6 +1302,8 @@ function submitOpponentError() {
         appState.selectedEvaluation = null;
         appState.calculatedFundamental = null;
         appState.opponentErrorPressed = false;
+        // Segna chiusura azione ed azzera pillole
+        appState.justClosedAction = true;
         updateDescriptiveQuartet();
 
         // Reset delle informazioni nella sezione fondamentale
@@ -1389,6 +1444,39 @@ function getCurrentActionLogs() {
 }
 
 function predictNextFundamental() {
+    // 1) Se esiste una valutazione in corso, prevedi il prossimo fondamentale LIVE
+    try {
+        const pendingEval = appState.selectedEvaluation;
+        const pendingFund = appState.calculatedFundamental;
+        if (pendingFund && pendingEval) {
+            const e = parseInt(pendingEval, 10);
+            const f = String(pendingFund);
+            // Usa la stessa logica del risultato finale per decidere il prossimo fondamentale
+            const res = determineFinalResult(f, e);
+            if (res === 'home_point') {
+                return 'b'; // nostro punto → prossimo è servizio
+            }
+            if (res === 'away_point') {
+                return 'r'; // punto avversario → prossimo è ricezione
+            }
+            // Azione che continua: regole transitorie
+            if (f === 'r') {
+                if (e === 2) return 'd';
+                if (e === 3 || e === 4 || e === 5) return 'a';
+            } else if (f === 'd') {
+                if (e === 2) return 'd';
+                if (e === 3 || e === 4 || e === 5) return 'a';
+            } else if (f === 'a' || f === 'b') {
+                if (e !== 1 && e !== 5) return 'd';
+            }
+        }
+        // Caso speciale: tasto Err Avv mostrato live
+        if (appState.opponentErrorPressed) {
+            return 'b';
+        }
+    } catch(_) {}
+
+    // 2) Altrimenti usa lo storico delle azioni concluse
     const currentActionLogs = getCurrentActionLogs();
     if (currentActionLogs.length > 0) {
         const lastLog = currentActionLogs[currentActionLogs.length - 1];
@@ -1599,9 +1687,12 @@ function updateScoutingUI() {
 
     // Aggiorna nomi squadre nella testata punteggio (mia squadra + avversaria)
     const myTeamName = appState?.currentMatch?.myTeam || appState?.currentMatch?.homeTeam || '';
+    // Mostra solo il nome della società per la mia squadra (rimuove eventuale "Nome Squadra - Nome Società")
+    const partsMy = String(myTeamName).split(' - ');
+    const myClubOnly = partsMy.length >= 2 ? partsMy.slice(1).join(' - ') : myTeamName;
     const opponentName = appState?.currentMatch?.opponentTeam || appState?.currentMatch?.awayTeam || '';
     const scoreTeamMyEl = document.getElementById('score-team-my');
-    if (scoreTeamMyEl) scoreTeamMyEl.textContent = myTeamName || '-';
+    if (scoreTeamMyEl) scoreTeamMyEl.textContent = myClubOnly || '-';
     const scoreTeamOppEl = document.getElementById('score-team-opponent');
     if (scoreTeamOppEl) scoreTeamOppEl.textContent = opponentName || '-';
     
@@ -1968,6 +2059,13 @@ function updateDescriptiveQuartet() {
     const box = document.getElementById('pressed-buttons-box');
     const el = document.getElementById('pressed-buttons-log');
     if (!el) return;
+
+    // Se l'azione è appena stata chiusa, svuota le pillole
+    if (appState.justClosedAction) {
+        el.innerHTML = '';
+        if (box) box.style.display = 'none';
+        return;
+    }
 
     // Caso speciale: Err Avv richiesto come "– Err Avv"
     if (appState.opponentErrorPressed) {

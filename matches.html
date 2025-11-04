@@ -328,7 +328,10 @@
             <div class="team-info">
                 <div class="team-icon">🏐</div>
                 <div class="team-details">
-                    <h2 id="teamName">Caricamento...</h2>
+                    <div id="teamTitle" style="line-height:1.2;">
+                        <div id="clubNameTop" style="font-size:18px; font-weight:600; color:#111;">Caricamento...</div>
+                        <div id="teamNameBottom" style="font-size:16px; color:#333;">Caricamento...</div>
+                    </div>
                     <div class="team-stats" id="teamStats">Caricamento statistiche...</div>
                 </div>
             </div>
@@ -552,7 +555,14 @@
 
         function updateTeamInfo() {
             if (!selectedTeam) return;
-            teamName.textContent = selectedTeam.name;
+            const clubEl = document.getElementById('clubNameTop');
+            const teamEl = document.getElementById('teamNameBottom');
+            const nameCombined = selectedTeam.name || '';
+            const parts = String(nameCombined).split(' - ');
+            const inferredTeam = selectedTeam.teamName || (parts.length ? parts[0] : '');
+            const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
+            if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
+            if (teamEl) teamEl.textContent = inferredTeam || '—';
             const playerCount = Array.isArray(selectedTeam.players) ? selectedTeam.players.length : (selectedTeam.players || 0);
             const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
             const selName = selectedTeam?.name;

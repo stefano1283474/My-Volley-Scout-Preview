@@ -104,7 +104,22 @@ class TeamsModule {
         try {
             const stored = localStorage.getItem('volleyTeams');
             const teams = stored ? JSON.parse(stored) : [];
-            return teams.map(team => ({ ...team, source: 'local' }));
+            // Backward compatibility: deriviamo teamName e clubName da name se mancano
+            return teams.map(team => {
+                const out = { ...team, source: 'local' };
+                if (!out.teamName || !out.clubName) {
+                    const parts = String(out.name || '').split(' - ');
+                    if (parts.length >= 2) {
+                        out.teamName = out.teamName || parts[0];
+                        out.clubName = out.clubName || parts.slice(1).join(' - ');
+                    } else {
+                        // se non presente il separatore, assumiamo che name sia il nome squadra
+                        out.teamName = out.teamName || out.name || '';
+                        out.clubName = out.clubName || '';
+                    }
+                }
+                return out;
+            });
         } catch (error) {
             console.error('Errore nel caricamento squadre locali:', error);
             return [];
@@ -132,17 +147,26 @@ class TeamsModule {
      */
     async saveTeam(teamData) {
         try {
+            // Normalizza input: supporta {name} legacy o {teamName, clubName}
+            const inputName = (teamData.name || '').trim();
+            const inputTeamName = (teamData.teamName || '').trim();
+            const inputClubName = (teamData.clubName || '').trim();
+            // Costruisci il nome combinato per compatibilità: "Squadra - Società"
+            const combinedName = (inputTeamName || inputName || '').trim() + (inputClubName ? ` - ${inputClubName}` : '');
+
             const team = {
                 id: teamData.id || Date.now(),
-                name: teamData.name.trim(),
+                name: combinedName.trim(),
+                teamName: inputTeamName || (inputName || '').trim(),
+                clubName: inputClubName || '',
                 players: teamData.players || [],
                 createdAt: teamData.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
             
             // Validazione
-            if (!team.name) {
-                throw new Error('Il nome della squadra è obbligatorio');
+            if (!team.teamName) {
+                throw new Error('Il Nome Squadra è obbligatorio');
             }
             
             if (this.teamExists(team.name, team.id)) {
@@ -363,12 +387,25 @@ class TeamsModule {
                 row[header] = values[index];
             });
             
-            const teamName = row.squadra;
-            if (!teamName) continue;
-            
-            if (!teams.has(teamName)) {
-                teams.set(teamName, {
-                    name: teamName,
+            const fullName = row.squadra;
+            if (!fullName) continue;
+
+            // Prova a dividere "Squadra - Società" se presente
+            let parsedTeamName = '';
+            let parsedClubName = '';
+            const parts = fullName.split(' - ');
+            if (parts.length >= 2) {
+                parsedTeamName = parts[0];
+                parsedClubName = parts.slice(1).join(' - ');
+            } else {
+                parsedTeamName = fullName;
+            }
+
+            if (!teams.has(fullName)) {
+                teams.set(fullName, {
+                    name: fullName,
+                    teamName: parsedTeamName,
+                    clubName: parsedClubName,
                     players: []
                 });
             }
@@ -383,7 +420,7 @@ class TeamsModule {
             
             // Aggiungi solo se ha almeno un campo compilato
             if (player.number || player.name || player.surname) {
-                teams.get(teamName).players.push(player);
+                teams.get(fullName).players.push(player);
             }
         }
         
