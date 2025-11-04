@@ -922,6 +922,19 @@ function updatePlayersGrid() {
 }
 
 function selectPlayer(number, name, btnEl) {
+    // Se durante il countdown di auto-chiusura viene premuto un player,
+    // interrompi il timer e torna al flusso normale (chiusura su click player)
+    if (appState.autoClosePending) {
+        try {
+            if (appState.autoCloseTimerId) {
+                clearTimeout(appState.autoCloseTimerId);
+                appState.autoCloseTimerId = null;
+            }
+        } catch (_) {}
+        appState.autoClosePending = false;
+        appState.autoClosePayload = null;
+    }
+
     // Se esiste già una selezione (player + valutazione), chiudi l'azione precedente
     const prevPlayer = appState.selectedPlayer;
     const hadEvaluation = appState.selectedEvaluation != null;
@@ -1264,6 +1277,20 @@ function submitGuidedAction() {
 }
 
 function submitOpponentError() {
+    // Se è attivo il countdown di auto-chiusura (es. dopo "5 - Punto"),
+    // prima chiudi immediatamente l'azione pendente (usando il payload salvato),
+    // poi registra "Errore Avversario" come azione successiva.
+    if (appState.autoClosePending && appState.autoClosePayload) {
+        try {
+            if (appState.autoCloseTimerId) {
+                clearTimeout(appState.autoCloseTimerId);
+                appState.autoCloseTimerId = null;
+            }
+        } catch (_) {}
+        // Chiudi immediatamente l'azione pendente
+        try { performAutoCloseAfterTimeout(); } catch (_) {}
+    }
+
     const actionString = 'avv';
     // Imposta flag per mostrare il descrittivo "– Err Avv"
     appState.opponentErrorPressed = true;
@@ -1922,20 +1949,25 @@ function updateScoreHistoryDisplay() {
             historyElement.appendChild(description);
         } else {
             historyElement.className = `score-history-item ${item.team === 'home' ? 'point-home' : 'point-away'}`;
-            
+
             const scoreText = document.createElement('span');
             scoreText.className = 'score-text';
             scoreText.textContent = `${item.homeScore} - ${item.awayScore}`;
-            
+
             const description = document.createElement('span');
             description.className = 'score-description';
-            
+
             if (item.team === 'home') {
-                description.textContent = `Punto di ${item.playerName}`;
+                // Caso speciale: errore avversario premuto dalla sezione Player
+                if ((item.actionType === 'Errore') && (String(item.playerName).toLowerCase() === 'avversario')) {
+                    description.textContent = 'Errore Avversario';
+                } else {
+                    description.textContent = `Punto di ${item.playerName}`;
+                }
             } else {
                 description.textContent = `Errore di ${item.playerName}`;
             }
-            
+
             historyElement.appendChild(scoreText);
             historyElement.appendChild(description);
         }
