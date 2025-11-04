@@ -72,6 +72,81 @@
                 } catch (e) { console.warn('Auto-ripristino SW/cache non riuscito:', e); }
             }, 2000);
         });
+        // Collega il bottone Salva dopo il caricamento della pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('save-match-btn');
+            if (saveBtn && !saveBtn.dataset.bound) {
+                saveBtn.addEventListener('click', async function() {
+                    try {
+                        saveBtn.disabled = true;
+                        saveBtn.textContent = '💾 Salvataggio…';
+
+                        const sessionRaw = localStorage.getItem('currentScoutingSession');
+                        if (!sessionRaw) { alert('Nessuna sessione di scouting attiva.'); return; }
+                        let sessionData = {};
+                        try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
+
+                        const currentTeam = window.teamsModule?.getCurrentTeam?.();
+                        const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId;
+                        const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+                        const scoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
+
+                        const payload = {
+                            id: sessionData.id || ('match_' + Date.now()),
+                            teamId: selectedTeamId || null,
+                            myTeam: currentTeam?.name || null,
+                            opponentTeam: sessionData.opponent || sessionData.opponentTeam || 'Sconosciuta',
+                            matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+                            eventType: sessionData.eventType || 'partita',
+                            location: sessionData.location || 'casa',
+                            venue: sessionData.venue || '',
+                            description: sessionData.description || '',
+                            setConfig: sessionData.setConfig || {},
+                            sessionStartTime: sessionData.startTime || null,
+                            scoutingEndTime: new Date().toISOString(),
+                            status: 'in_progress',
+                            score: {
+                                home: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+                                away: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0
+                            },
+                            scoreHistory,
+                            actions,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        };
+
+                        // Salvataggio locale
+                        try {
+                            const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                            const idx = local.findIndex(m => m.id === payload.id);
+                            if (idx >= 0) local[idx] = payload; else local.unshift(payload);
+                            localStorage.setItem('volleyMatches', JSON.stringify(local));
+                        } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
+
+                        // Salvataggio su Firestore
+                        let cloudSaved = false;
+                        try {
+                            if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
+                                const user = window.authFunctions.getCurrentUser();
+                                if (user) {
+                                    const res = await window.firestoreFunctions.saveMatch(payload);
+                                    cloudSaved = !!res?.success;
+                                }
+                            }
+                        } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
+
+                        alert(cloudSaved ? 'Partita salvata su cloud e in locale!' : 'Partita salvata in locale. (Cloud non disponibile)');
+                    } catch (error) {
+                        console.error('Errore nel salvataggio partita:', error);
+                        alert('Errore nel salvataggio della partita.');
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '💾 Salva';
+                    }
+                });
+                saveBtn.dataset.bound = '1';
+            }
+        });
     </script>
     <script src="./src/modules/teams/teams.js"></script>
 </head>
@@ -100,9 +175,10 @@
                           ⋮
                         </button>
                         <div id="headerMenu" class="header-menu" hidden>
-                          <button id="analysisBtnMobile" class="menu-item nav-btn" data-page="analysis">Analisi</button>
-                          <button id="backToWelcomeBtnMobile" class="menu-item">Cambia Squadra</button>
-                          <button id="signOutBtnMobile" class="menu-item">Esci</button>
+                          <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">Salva</button>
+                          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">Vai a Elenco Partite</button>
+                          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">Vai a Elenco Squadre</button>
+                          <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">Esci</button>
                         </div>
                     </div>
                 </div>
@@ -115,10 +191,21 @@
                 
                 <!-- Sezione INIZIA SET rimossa -->
 
-                    <div class="section-header">
-                       <h3>Scouting Azioni</h3>
-                       <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Visualizza Azioni</button>
-                     </div>
+                    <div class="section-panel">
+                      <div class="section-header">
+                         <h3>Scouting Azioni</h3>
+                      </div>
+                    </div>
+
+                    <!-- Punteggio attuale tra titolo e sezione player -->
+                    <div class="section-panel" id="punteggio-section">
+                      <div class="score-current">
+                        <span class="team-name team-my" id="score-team-my">-</span>
+                        <span class="score-values"><span id="score-home">0</span> - <span id="score-away">0</span></span>
+                        <span class="team-name team-opponent" id="score-team-opponent">-</span>
+                        <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
+                      </div>
+                    </div>
                 
                 <!-- Pulsante per aprire il dialog di scouting -->
                 <!-- RIMOSSO: pulsante di apertura del dialog -->
@@ -127,44 +214,50 @@
                   <div class="scaffold">
 
 
-                    <!-- Fondamentale previsto -->
-<div class="phase-info">
-  <strong><span id="current-fundamental">Servizio</span></strong>
-</div>
+                    <!-- Elenco player -->
+                    <div class="section-panel">
+                      <h4 class="players-title">Elenco player per: <span id="current-fundamental" class="fundamental-inline">Servizio</span></h4>
+                      <!-- Griglia giocatori -->
+                      <div id="players-grid" class="players-grid"></div>
+                    </div>
 
 
-
-                    <!-- Griglia giocatori -->
-                    <div id="players-grid" class="players-grid"></div>
 
                     <!-- Sezione valutazione -->
-                    <h4>Valutazione</h4>
-                    <div class="evaluation-buttons">
-                      <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">1 - Errore</button>
-                      <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">2 - Negativo</button>
-                      <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">3 - Neutro</button>
-                      <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">4 - Positivo</button>
-                      <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">5 - Punto</button>
-                      <button class="eval-btn" onclick="submitOpponentError()">Err Avv</button>
+                    <div class="section-panel">
+                      <h4>Valutazione</h4>
+                      <div class="evaluation-buttons">
+                        <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">=</button>
+                        <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">-</button>
+                        <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">/</button>
+                        <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">+</button>
+                        <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">#</button>
+                      </div>
                     </div>
 
                     <!-- Fondamentale -->
                      <div class="next-fundamental-info">
                        <strong><span id="next-fundamental">Servizio (b)</span></strong>
+                       <div class="layout-switch">
+                         <label class="switch-inline">
+                           <input type="checkbox" id="multi-line-toggle" />
+                           <span>Riga<br>multipla</span>
+                         </label>
+                       </div>
                        <div id="selected-info" class="selected-info">
-                         <span id="selected-player-text">-</span>
-                         <span id="selected-evaluation-text">-</span>
+                         <!-- Nuovo formato unificato -->
+                         <span id="pressed-buttons-log"> </span>
+                         <!-- Elementi legacy (nascosti) per compatibilità temporanea -->
+                         <span id="selected-player-text" style="display:none">-</span>
+                         <span id="selected-evaluation-text" style="display:none">-</span>
                        </div>
                      </div>
 
                     <!-- Punteggio -->
                     <div class="score-display">
-                      <h4>Storico Punteggio</h4>
-                      <div class="score-current">
-                        <span class="score-home">Casa: <span id="score-home">0</span></span>
-                        <span class="score-separator">-</span>
-                        <span class="score-away">Ospiti: <span id="score-away">0</span></span>
-                        <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
+                      <div class="score-header">
+                        <h4>Storico Punteggio</h4>
+                        <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Visualizza Azioni</button>
                       </div>
                       <div id="score-history" class="score-history">
                         <div class="score-history-item initial">

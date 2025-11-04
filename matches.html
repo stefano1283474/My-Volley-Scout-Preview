@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100());
+            background: #ffffff; /* sfondo bianco */
             min-height: 100vh;
             color: #333;
         }
@@ -30,17 +30,15 @@
             border-radius: 20px;
             padding: 20px 30px;
             margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: grid;
+            grid-template-columns: auto 1fr auto; /* sinistra | centro | destra */
+            align-items: start; /* posiziona verso l'alto */
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #0d6efd; /* contorno blu */
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        .header .team-info { justify-self: center; }
+        .header-left-col { justify-self: start; align-self: start; display:flex; flex-direction:column; gap:8px; }
 
         .back-btn {
             background: #f8f9fa;
@@ -54,6 +52,7 @@
             align-items: center;
             gap: 5px;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .back-btn:hover {
@@ -82,6 +81,9 @@
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .team-stats {
@@ -89,25 +91,43 @@
             font-size: 14px;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .btn-logout {
-            background: #ff4757;
-            color: white;
-            border: none;
-            padding: 8px 16px;
+        /* Account menu */
+        .account { position: relative; }
+        .account-btn {
+            background: #ffffff;
+            color: #0d6efd;
+            border: 1px solid #e9ecef;
+            padding: 8px;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        .btn-logout:hover {
-            background: #ff3742;
+        .account-avatar { font-size: 20px; line-height: 1; }
+        .account-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 10px;
+            min-width: 220px;
+        }
+        .account-row { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+        .account-label { color:#666; font-size:12px; }
+        .account-value { color:#333; font-size:14px; }
+        .menu-item {
+            background: #ffffff;
+            color: #0d6efd;
+            border: 1px solid #e9ecef;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
         }
 
         .actions-section {
@@ -173,6 +193,7 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #0d6efd; /* contorno blu */
         }
 
         .section-title {
@@ -191,11 +212,11 @@
         .match-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: block; /* singola riga */
+            white-space: nowrap; /* evita a capo */
+            overflow-x: auto; /* consente scroll se troppo lunga */
             transition: all 0.3s ease;
         }
 
@@ -204,25 +225,7 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
         }
 
-        .match-info {
-            flex: 1;
-        }
-
-        .match-opponent {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .match-details {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .match-actions {
-            display: flex;
-            gap: 10px;
-        }
+        .match-line { color:#333; font-size:16px; }
 
         .btn {
             padding: 8px 16px;
@@ -237,23 +240,24 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #0d6efd; /* blu pieno */
+            color: #ffffff;
         }
 
         .btn-primary:hover {
+            background: #0b5ed7; /* blu più scuro */
             transform: translateY(-1px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
         }
 
         .btn-secondary {
-            background: #f8f9fa;
-            color: #666;
+            background: #ffffff; /* bianco pieno */
+            color: #0d6efd; /* testo blu */
             border: 1px solid #e9ecef;
         }
 
         .btn-secondary:hover {
-            background: #e9ecef;
+            background: #f8f9fa; /* scala di bianco */
         }
 
         .empty-state {
@@ -268,19 +272,26 @@
             opacity: 0.5;
         }
 
+        /* Tabs */
+        .tabs { display:flex; gap:10px; margin: 0 0 16px 0; }
+        .tab-button {
+            background:#ffffff; border:1px solid #e9ecef; color:#0d6efd;
+            padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:600;
+        }
+        .tab-button.active {
+            background: #0d6efd; /* blu pieno */
+            color:#ffffff; border:1px solid #0d6efd;
+        }
+        .tab-panel { margin-top: 0; }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
             }
 
             .header {
-                flex-direction: column;
+                grid-template-columns: auto 1fr auto;
                 gap: 15px;
-            }
-
-            .header-left {
-                width: 100%;
-                justify-content: space-between;
             }
 
             .actions-grid {
@@ -288,9 +299,9 @@
             }
 
             .match-card {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
+                /* mantiene singola riga anche su mobile */
+                text-align: left;
+                white-space: nowrap;
             }
         }
     </style>
@@ -299,51 +310,88 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="header-left">
-                <a href="welcome.html" class="back-btn">
-                    ← Torna alle squadre
-                </a>
-                <div class="team-info">
-                    <div class="team-icon">🏐</div>
-                    <div class="team-details">
-                        <h2 id="teamName">Caricamento...</h2>
-                        <div class="team-stats" id="teamStats">Caricamento statistiche...</div>
+            <div class="header-left-col">
+                <a href="welcome.html" class="back-btn" aria-label="Torna alle squadre" title="Torna alle squadre">←</a>
+                <div class="account">
+                    <button id="accountBtn" class="account-btn" aria-expanded="false" aria-controls="accountMenu" title="Account">
+                        <span class="account-avatar">👤</span>
+                    </button>
+                    <div id="accountMenu" class="account-menu" hidden>
+                        <div class="account-row">
+                            <div class="account-label">Utente</div>
+                            <div class="account-value" id="accountEmail">Caricamento...</div>
+                        </div>
+                        <button class="menu-item" id="accountLogout">Esci</button>
                     </div>
                 </div>
             </div>
-            <div class="user-info">
-                <span id="userName">Caricamento...</span>
-                <button class="btn-logout" id="logoutBtn">Esci</button>
-            </div>
-        </div>
-
-        <!-- Actions Section -->
-        <div class="actions-section">
-            <div class="actions-grid">
-                <div class="action-card" id="newMatchBtn">
-                    <div class="action-icon">🆕</div>
-                    <div class="action-title">Nuova Partita</div>
-                    <div class="action-description">Configura una nuova partita e inizia lo scouting</div>
-                </div>
-                
-                <div class="action-card" id="archiveBtn">
-                    <div class="action-icon">📚</div>
-                    <div class="action-title">Archivio Partite</div>
-                    <div class="action-description">Visualizza e gestisci le partite precedenti</div>
-                </div>
-                
-                <!-- NEW: Roster Management Card -->
-                <div class="action-card" id="rosterBtn">
-                    <div class="action-icon">👥</div>
-                    <div class="action-title">Roster</div>
-                    <div class="action-description">Seleziona e gestisci i giocatori della squadra</div>
+            <div class="team-info">
+                <div class="team-icon">🏐</div>
+                <div class="team-details">
+                    <h2 id="teamName">Caricamento...</h2>
+                    <div class="team-stats" id="teamStats">Caricamento statistiche...</div>
                 </div>
             </div>
+            <div></div>
         </div>
 
-        <!-- Recent Matches Section -->
-        <div class="matches-section">
-            <h2 class="section-title">Partite Recenti</h2>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button id="tabNew" class="tab-button active">Nuova partita</button>
+            <button id="tabList" class="tab-button">Elenco Partite</button>
+        </div>
+
+        <!-- Tab: Nuova partita -->
+        <div id="newMatchSection" class="matches-section tab-panel" style="display:block;">
+            <h2 class="section-title">Nuova partita</h2>
+            <form id="inlineMatchForm" class="new-match-form" style="display:flex; flex-direction:column; gap:14px;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+                    <div>
+                        <label for="opponent-team" style="display:block; margin-bottom:6px; color:#555;">Avversario</label>
+                        <input type="text" id="opponent-team" name="opponent-team" class="input" placeholder="Nome squadra avversaria" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label for="home-away" style="display:block; margin-bottom:6px; color:#555;">Casa/Trasferta</label>
+                        <select id="home-away" name="home-away" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
+                            <option value="home">Casa</option>
+                            <option value="away">Trasferta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="match-type" style="display:block; margin-bottom:6px; color:#555;">Tipo partita</label>
+                        <select id="match-type" name="match-type" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
+                            <option value="campionato">Campionato</option>
+                            <option value="coppa">Coppa</option>
+                            <option value="pgs">PGS</option>
+                            <option value="csi">CSI</option>
+                            <option value="amichevole">Amichevole</option>
+                            <option value="torneo">Torneo</option>
+                        </select>
+                    </div>
+                    <div id="tournamentNameWrapper" style="display:none;">
+                        <label for="tournament-name" style="display:block; margin-bottom:6px; color:#555;">Nome torneo</label>
+                        <input type="text" id="tournament-name" name="tournament-name" class="input" placeholder="Inserisci il nome del torneo" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label for="match-date" style="display:block; margin-bottom:6px; color:#555;">Data</label>
+                        <input type="date" id="match-date" name="match-date" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
+                    </div>
+                </div>
+                <div>
+                    <label for="match-description" style="display:block; margin-bottom:6px; color:#555;">Descrizione (opzionale)</label>
+                    <textarea id="match-description" name="match-description" rows="3" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="submit" class="btn btn-primary">Crea partita</button>
+                </div>
+            </form>
+        </div>
+
+        
+        
+        <!-- Tab: Elenco Partite -->
+        <div id="listSection" class="matches-section tab-panel" style="display:none;">
+            <h2 class="section-title">Elenco Partite</h2>
             
             <div class="matches-list" id="matchesList">
                 <!-- Matches will be loaded here -->
@@ -356,37 +404,10 @@
                 <p>Inizia creando la tua prima partita!</p>
             </div>
         </div>
-         <!-- NEW: Roster Dialog -->
-         <dialog id="rosterDialog" class="roster-dialog">
-             <form method="dialog" class="dialog-form" id="rosterForm">
-                 <h3 id="rosterDialogTitle">Gestisci Roster</h3>
-                 <div class="roster-toolbar" style="display:flex; gap:10px; align-items:center; margin:10px 0;">
-                     <button type="button" class="btn" id="addPlayerBtn">Aggiungi Giocatore</button>
-                     <button type="button" class="btn" id="exportRosterBtn">Esporta CSV</button>
-                     <button type="button" class="btn" id="importRosterBtn">Importa CSV</button>
-                     <input type="file" id="importRosterFile" accept="text/csv,.csv" style="display:none" />
-                 </div>
-                 <div class="roster-table-wrapper" style="max-height:50vh; overflow:auto; border:1px solid #eee; border-radius:10px; background:#fff;">
-                     <table class="roster-table" style="width:100%; border-collapse:collapse;">
-                         <thead>
-                             <tr style="background:#f7f7f9;">
-                                 <th style="text-align:left; padding:10px; border-bottom:1px solid #eee; width:90px;">Numero</th>
-                                 <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Nome</th>
-                                 <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Cognome</th>
-                                 <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Ruolo</th>
-                                 <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Soprannome</th>
-                                 <th style="text-align:right; padding:10px; border-bottom:1px solid #eee; width:80px;">Azioni</th>
-                             </tr>
-                         </thead>
-                         <tbody id="rosterTableBody"></tbody>
-                     </table>
-                 </div>
-                 <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
-                     <button type="button" class="btn" id="closeRosterBtn">Chiudi</button>
-                     <button type="button" class="btn btn-primary" id="saveRosterBtn">Salva</button>
-                 </div>
-             </form>
-         </dialog>
+        
+        
+
+        
      </div>
  
       <!-- Loading Screen -->
@@ -425,26 +446,20 @@
         let matches = [];
 
         // Elementi DOM
-        const userName = document.getElementById('userName');
         const teamName = document.getElementById('teamName');
         const teamStats = document.getElementById('teamStats');
-        const logoutBtn = document.getElementById('logoutBtn');
+        const accountBtn = document.getElementById('accountBtn');
+        const accountMenu = document.getElementById('accountMenu');
+        const accountEmail = document.getElementById('accountEmail');
+        const accountLogout = document.getElementById('accountLogout');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
         const loadingScreen = document.getElementById('loadingScreen');
-        const newMatchBtn = document.getElementById('newMatchBtn');
-        const archiveBtn = document.getElementById('archiveBtn');
-        // NEW: Roster elements
-        const rosterBtn = document.getElementById('rosterBtn');
-        const rosterDialog = document.getElementById('rosterDialog');
-        const rosterDialogTitle = document.getElementById('rosterDialogTitle');
-        const rosterTableBody = document.getElementById('rosterTableBody');
-        const addPlayerBtn = document.getElementById('addPlayerBtn');
-        const saveRosterBtn = document.getElementById('saveRosterBtn');
-        const exportRosterBtn = document.getElementById('exportRosterBtn');
-        const closeRosterBtn = document.getElementById('closeRosterBtn');
-        const importRosterBtn = document.getElementById('importRosterBtn');
-        const importRosterFile = document.getElementById('importRosterFile');
+        const tabNew = document.getElementById('tabNew');
+        const tabList = document.getElementById('tabList');
+        const newMatchSection = document.getElementById('newMatchSection');
+        const listSection = document.getElementById('listSection');
+        const inlineMatchForm = document.getElementById('inlineMatchForm');
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -466,15 +481,36 @@
                 }
                 
                 currentUser = user;
-                userName.textContent = user.email;
+                if (accountEmail) accountEmail.textContent = user.email;
                 loadSelectedTeam();
                 hideLoadingScreen();
             });
 
             // Event listeners
-            logoutBtn.addEventListener('click', handleLogout);
-            newMatchBtn.addEventListener('click', () => window.location.href = 'match-setup.html');
-            archiveBtn.addEventListener('click', handleShowArchive);
+            if (accountBtn && accountMenu){
+                accountBtn.addEventListener('click', () => {
+                    const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
+                    accountBtn.setAttribute('aria-expanded', (!expanded).toString());
+                    accountMenu.hidden = expanded;
+                });
+                document.addEventListener('click', (e) => {
+                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && e.target !== accountBtn){
+                        accountMenu.hidden = true;
+                        accountBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            if (accountLogout){
+                accountLogout.addEventListener('click', handleLogout);
+            }
+            // Tabs
+            if (tabNew) tabNew.addEventListener('click', () => switchTab('new'));
+            if (tabList) tabList.addEventListener('click', () => switchTab('list'));
+            // Form nuova partita
+            if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
+            // Mostra/nascondi campo torneo
+            const matchTypeSelect = document.getElementById('match-type');
+            if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
         }
 
         function loadSelectedTeam() {
@@ -501,19 +537,15 @@
             }
 
             updateTeamInfo();
+            // Imposta tab predefinita e data odierna
+            switchTab('new');
+            const dateInput = document.getElementById('match-date');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().slice(0,10);
+            }
+            toggleTournamentField();
 
-            // Se è il primo accesso o la squadra non ha giocatori, apri il dialog del roster una volta
-            try {
-                const noPlayers = !Array.isArray(selectedTeam.players) || selectedTeam.players.length === 0;
-                if (noPlayers) {
-                    const key = `rosterPromptShown_${selectedTeam.id || selectedTeam.name}`;
-                    if (!sessionStorage.getItem(key)) {
-                        sessionStorage.setItem(key, '1');
-                        // Piccolo delay per sicurezza UI
-                        setTimeout(() => openRosterDialog(), 300);
-                    }
-                }
-            } catch {}
+            // Prompt roster rimosso: questa pagina mostra solo l'elenco partite
 
             loadMatches();
         }
@@ -522,11 +554,14 @@
             if (!selectedTeam) return;
             teamName.textContent = selectedTeam.name;
             const playerCount = Array.isArray(selectedTeam.players) ? selectedTeam.players.length : (selectedTeam.players || 0);
+            const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
+            const selName = selectedTeam?.name;
             const matchesCount = Array.isArray(matches) ? matches.filter(m => {
                 const my = m.myTeam || m.teamName;
                 const home = m.homeTeam;
                 const away = m.awayTeam;
-                return my === selectedTeam.name || home === selectedTeam.name || away === selectedTeam.name;
+                const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
+                return (teamIdMatch) || (selName && (my === selName || home === selName || away === selName));
             }).length : 0;
             teamStats.textContent = `${playerCount} giocatori • ${matchesCount} partite`;
         }
@@ -555,13 +590,87 @@
             }
         }
 
+        function switchTab(tab){
+            const isNew = tab === 'new';
+            if (newMatchSection && listSection){
+                newMatchSection.style.display = isNew ? 'block' : 'none';
+                listSection.style.display = isNew ? 'none' : 'block';
+            }
+            if (tabNew && tabList){
+                tabNew.classList.toggle('active', isNew);
+                tabList.classList.toggle('active', !isNew);
+            }
+        }
+
+        function toggleTournamentField(){
+            const sel = document.getElementById('match-type');
+            const wrap = document.getElementById('tournamentNameWrapper');
+            if (sel && wrap){
+                const isTournament = sel.value === 'torneo';
+                wrap.style.display = isTournament ? 'block' : 'none';
+            }
+        }
+
+        async function handleInlineMatchSubmit(e){
+            e.preventDefault();
+            if (!selectedTeam){
+                alert('Seleziona una squadra prima di creare una partita');
+                return;
+            }
+            const fd = new FormData(inlineMatchForm);
+            const matchData = {
+                myTeam: selectedTeam.name,
+                opponentTeam: fd.get('opponent-team')?.trim() || 'Avversario',
+                homeAway: fd.get('home-away') || 'home',
+                matchType: fd.get('match-type') || 'campionato',
+                date: fd.get('match-date') || new Date().toISOString().slice(0,10),
+                description: fd.get('match-description')?.trim() || ''
+            };
+            // Imposta correttamente le squadre di casa/trasferta per il modulo partite
+            const isHome = (matchData.homeAway === 'home');
+            matchData.homeTeam = isHome ? matchData.myTeam : matchData.opponentTeam;
+            matchData.awayTeam = isHome ? matchData.opponentTeam : matchData.myTeam;
+            if (matchData.matchType === 'torneo'){
+                const tn = (fd.get('tournament-name') || '').toString().trim();
+                if (!tn){
+                    alert('Inserisci il nome del torneo');
+                    return;
+                }
+                matchData.tournamentName = tn;
+            }
+            try {
+                if (window.matchesModule?.createMatch){
+                    const res = await window.matchesModule.createMatch(matchData);
+                    if (res.success){
+                        alert('Partita creata!');
+                        // passa al tab elenco e aggiorna
+                        switchTab('list');
+                        loadMatches();
+                        inlineMatchForm.reset();
+                        const dateInput = document.getElementById('match-date');
+                        if (dateInput) dateInput.value = new Date().toISOString().slice(0,10);
+                        toggleTournamentField();
+                    } else {
+                        alert('Errore creazione partita: ' + (res.error || 'Sconosciuto'));
+                    }
+                } else {
+                    alert('Modulo partite non disponibile');
+                }
+            } catch (err){
+                console.error(err);
+                alert('Errore nella creazione partita');
+            }
+        }
+
         function renderMatches() {
+            const selName = selectedTeam?.name || null;
+            const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
             const relevant = Array.isArray(matches) ? matches.filter(m => {
-                const sel = selectedTeam?.name;
                 const my = m.myTeam || m.teamName;
                 const home = m.homeTeam;
                 const away = m.awayTeam;
-                return sel && (my === sel || home === sel || away === sel);
+                const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
+                return (teamIdMatch) || (selName && (my === selName || home === selName || away === selName));
             }) : [];
 
             if (relevant.length === 0) {
@@ -583,28 +692,18 @@
             card.className = 'match-card';
 
             const opp = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === selectedTeam?.name) ? match.awayTeam : match.homeTeam) : 'Avversario');
-            const date = match.date || match.matchDate || match.createdAt || '';
-            const type = match.type || match.matchType || 'Partita';
-            const locationRaw = match.location || match.homeAway || '';
-            const location = locationRaw === 'home' ? 'Casa' : (locationRaw === 'away' ? 'Trasferta' : (locationRaw || ''));
-            const status = match.status || 'Pianificata';
-            const locationIcon = location === 'Casa' ? '🏠' : (location === 'Trasferta' ? '✈️' : '📍');
-            const statusColor = status === 'Completata' ? '#28a745' : (status === 'in_progress' ? '#17a2b8' : '#ffc107');
+            const rawDate = match.date || match.matchDate || match.createdAt || '';
+            const date = typeof rawDate === 'string' ? rawDate : (rawDate ? new Date(rawDate).toISOString().slice(0,10) : '');
+            const rawType = match.type || match.matchType || 'Partita';
+            const typeMap = { campionato: 'Campionato', coppa: 'Coppa', pgs: 'PGS', csi: 'CSI', amichevole: 'Amichevole', torneo: 'Torneo' };
+            const typeKey = String(rawType).toLowerCase();
+            const typeLabel = typeMap[typeKey] || rawType;
 
-            card.innerHTML = `
-                <div class="match-info">
-                    <div class="match-opponent">${locationIcon} vs ${opp}</div>
-                    <div class="match-details">
-                        📅 ${date} • ${type} • 
-                        <span style="color: ${statusColor}">${status}</span>
-                        ${match.result ? ` • Risultato: ${match.result}` : ''}
-                    </div>
-                </div>
-                <div class="match-actions">
-                    <button class="btn btn-primary" onclick="viewMatch('${match.id}')">Visualizza</button>
-                    <button class="btn btn-secondary" onclick="editMatch('${match.id}')">Modifica</button>
-                </div>
-            `;
+            // Singola riga: Data • Tipo partita • Avversario (senza icone, senza status)
+            card.innerHTML = `<div class="match-line">${date} • ${typeLabel} • ${opp}</div>`;
+            card.style.cursor = 'pointer';
+            // Apri configurazione set cliccando la card
+            card.addEventListener('click', () => scoutMatch(match.id));
             return card;
         }
 
@@ -625,31 +724,53 @@
             window.location.href = 'match-view.html';
         }
 
-        function editMatch(matchId) {
-            if (window.matchesModule) {
-                // Carica la partita per modifica
-                const result = window.matchesModule.loadMatch(matchId);
-                if (result.success) {
-                    window.location.href = 'match-setup.html';
+        // Modifica partita: non più usata in questa vista
+
+        // Avvia configurazione set per la partita selezionata
+        function scoutMatch(matchId) {
+            try {
+                const match = matches.find(m => m.id === matchId);
+                if (!match) return alert('Partita non trovata');
+                
+                // Se la partita ha stato/progressi salvati, riprendi direttamente
+                const hasProgress = (
+                    match.status === 'in_progress' ||
+                    (Array.isArray(match.actions) && match.actions.length > 0) ||
+                    (Array.isArray(match.scoreHistory) && match.scoreHistory.length > 0)
+                );
+
+                if (hasProgress) {
+                    // Assicura il roster selezionato coerente
+                    if (match.teamId) {
+                        localStorage.setItem('selectedTeamId', match.teamId);
+                    }
+                    // Imposta la sessione corrente e apri direttamente lo scouting
+                    localStorage.setItem('currentScoutingSession', JSON.stringify(match));
+                    window.location.href = 'index.html';
                 } else {
-                    alert('Errore nel caricamento partita: ' + result.error);
+                    // Altrimenti, mappa nei campi attesi da set-config.html
+                    const setup = {
+                        opponent: match.opponent || match.opponentTeam || 'Avversario',
+                        matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
+                        eventType: match.eventType || match.matchType || 'partita',
+                        location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
+                        venue: match.venue || '',
+                        description: match.description || '',
+                        teamId: match.teamId || localStorage.getItem('selectedTeamId') || null,
+                        createdAt: match.createdAt || new Date().toISOString(),
+                        status: match.status || 'planned',
+                        id: match.id
+                    };
+                    localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
+                    window.location.href = 'set-config.html';
                 }
+            } catch (e) {
+                console.error('Errore nell\'avvio scouting:', e);
+                alert('Impossibile avviare scouting per questa partita');
             }
         }
 
-        function handleShowArchive() {
-            if (window.matchesModule) {
-                window.matchesModule.showMatchArchive();
-            } else {
-                // Fallback: mostra tutte le partite completate
-                const completedMatches = matches.filter(m => m.status === 'Completata');
-                if (completedMatches.length === 0) {
-                    alert('Nessuna partita completata nell\'archivio');
-                } else {
-                    alert(`Archivio: ${completedMatches.length} partite completate`);
-                }
-            }
-        }
+        // Archivio partite rimosso da questa pagina
 
         async function handleLogout() {
              try {
@@ -662,21 +783,7 @@
              }
          }
  
-         // --- Roster management ---
-         if (rosterBtn) {
-             rosterBtn.addEventListener('click', openRosterDialog);
-         }
-         if (addPlayerBtn) addPlayerBtn.addEventListener('click', () => addRosterRow());
-         if (saveRosterBtn) saveRosterBtn.addEventListener('click', saveRosterChanges);
-         if (exportRosterBtn) exportRosterBtn.addEventListener('click', exportCurrentTeamCSV);
-         if (closeRosterBtn) closeRosterBtn.addEventListener('click', () => rosterDialog.close());
-         if (importRosterBtn) importRosterBtn.addEventListener('click', () => importRosterFile && importRosterFile.click());
-         if (importRosterFile) importRosterFile.addEventListener('change', (e) => {
-             const f = e.target.files && e.target.files[0];
-             if (f) importRosterCSV(f);
-             // consenti reimport dello stesso file
-             e.target.value = '';
-         });
+         // --- Roster management rimosso: nessun listener in questa pagina ---
  
          function openRosterDialog() {
              if (!selectedTeam) {

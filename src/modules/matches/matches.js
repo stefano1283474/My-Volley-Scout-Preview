@@ -82,18 +82,34 @@ class MatchesModule {
             
             // Carica da Firestore se disponibile
             let firestoreMatches = [];
+            // 1) Struttura annidata: users/{uid}/matches
             if (window.authModule?.isAuthenticated() && window.firestoreService?.loadUserMatches) {
                 const result = await window.firestoreService.loadUserMatches();
                 if (result.success) {
                     firestoreMatches = result.documents.map(doc => ({
                         ...doc,
-                        source: 'firestore'
+                        source: 'firestore_nested'
                     }));
+                }
+            }
+            // 2) Struttura top-level: collection 'matches' con userId
+            let firestoreTopLevel = [];
+            if (window.authModule?.isAuthenticated() && window.firestoreFunctions?.getUserMatches) {
+                try {
+                    const res2 = await window.firestoreFunctions.getUserMatches();
+                    if (res2?.success) {
+                        firestoreTopLevel = res2.documents.map(doc => ({
+                            ...doc,
+                            source: 'firestore_top'
+                        }));
+                    }
+                } catch (e) {
+                    console.warn('Caricamento partite (top-level) non riuscito:', e);
                 }
             }
             
             // Combina e deduplica
-            const allMatches = [...localMatches, ...firestoreMatches];
+            const allMatches = [...localMatches, ...firestoreMatches, ...firestoreTopLevel];
             this.state.matches = this.deduplicateMatches(allMatches);
             
             this.notifyMatchesUpdate();
@@ -156,6 +172,8 @@ class MatchesModule {
                 matchType: matchData.matchType, // 'campionato', 'coppa', 'amichevole', 'playoff'
                 date: matchData.date || new Date().toLocaleDateString('it-IT'),
                 description: matchData.description || '',
+                // opzionale: nome torneo quando tipo è "torneo"
+                tournamentName: matchData.matchType === 'torneo' ? (matchData.tournamentName || '').trim() : undefined,
                 sets: [],
                 currentSet: 1,
                 score: { home: 0, away: 0 },
@@ -201,6 +219,10 @@ class MatchesModule {
         
         if (!data.matchType) {
             errors.push('Seleziona il tipo di partita');
+        }
+
+        if (data.matchType === 'torneo' && !data.tournamentName?.trim()) {
+            errors.push('Inserisci il nome del torneo');
         }
         
         if (data.myTeam?.trim().toLowerCase() === data.opponentTeam?.trim().toLowerCase()) {

@@ -6,310 +6,159 @@
     <title>My Volley Scout - Benvenuto</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* Tema minimal monocromatico (solo bianco e grigi) */
+        :root {
+            --bg: #f7f8fa;        /* sfondo chiaro */
+            --surface: #ffffff;   /* superfici bianche */
+            --text: #1f2937;      /* grigio scuro per il testo */
+            --muted: #6b7280;     /* grigio medio per testo secondario */
+            --border: #e5e7eb;    /* grigio chiaro per bordi */
+            --accent: #0d6efd;    /* blu pieno */
+            --accent-600: #0b5ed7; /* blu scuro per hover */
+            --radius: 12px;       /* più compatto */
+            --radius-sm: 10px;    /* più compatto su mobile */
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
-            background: #f6f7f9;
+            background: var(--bg);
             min-height: 100vh;
-            color: #0f172a;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 24px;
-        }
+        .container { max-width: 960px; margin: 0 auto; padding: 16px; }
 
+        /* Header essenziale */
         .header {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 20px;
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
+        .logo { display: flex; align-items: center; gap: 10px; }
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: #6366f1;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: white;
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--accent); /* icona in blu */
         }
+        .logo-text { font-size: 16px; font-weight: 600; color: var(--text); }
 
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-name {
-            font-weight: 500;
-            color: #475569;
-        }
-
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-name { font-weight: 400; color: var(--muted); }
         .btn-logout {
-            background: #ef4444;
-            color: white;
-            border: 1px solid transparent;
-            padding: 8px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            background: #ffffff;
+            color: var(--accent);
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 999px;
+            cursor: pointer; font-weight: 600;
+            transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
         }
+        .btn-logout:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
 
-        .btn-logout:hover {
-            background: #dc2626;
-            transform: translateY(-1px);
-        }
-
+        /* Sezione benvenuto */
         .welcome-section {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 28px;
-            margin-bottom: 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 20px; margin-bottom: 16px; text-align: center;
         }
+        .welcome-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; color: var(--text); }
+        .welcome-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
 
-        .welcome-title {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #0f172a;
-        }
-
-        .welcome-subtitle {
-            font-size: 16px;
-            color: #64748b;
-            margin-bottom: 18px;
-        }
-
+        /* Sezione squadre */
         .teams-section {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 18px;
         }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #0f172a;
-        }
-
-        .teams-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
+        .section-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 12px; color: var(--text); }
+        .teams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
 
         .team-card {
-            background: white;
-            border-radius: 12px;
-            padding: 18px;
-            border: 1px solid #e5e7eb;
-            transition: border-color 0.2s ease, transform 0.2s ease;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 14px; border: 1px solid var(--border);
+            transition: border-color .15s ease, transform .15s ease, background .15s ease;
             cursor: pointer;
         }
+        .team-card:hover { transform: translateY(-1px); border-color: var(--accent); }
+        .team-name { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px; color: var(--text); }
+        .team-info { color: var(--muted); margin-bottom: 10px; font-size: 13px; }
+        .team-actions { display: flex; gap: 6px; }
 
-        .team-card:hover {
-            transform: translateY(-2px);
-            border-color: #6366f1;
-        }
-
-        .team-name {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #0f172a;
-        }
-
-        .team-info {
-            color: #64748b;
-            margin-bottom: 12px;
-        }
-
-        .team-actions {
-            display: flex;
-            gap: 8px;
-        }
-
+        /* Bottoni */
         .btn {
-            padding: 8px 14px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            background: #ffffff;
-            color: #0f172a;
+            padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px;
+            transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+            text-decoration: none; display: inline-block; text-align: center;
+            background: #ffffff; color: var(--text);
         }
 
-        .btn-primary {
-            background: #6366f1;
-            border-color: #6366f1;
-            color: white;
-        }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+        .btn-primary:hover { transform: translateY(-1px); background: var(--accent-600); border-color: var(--accent-600); }
+        .btn-secondary { background: #ffffff; color: var(--accent); border-color: var(--border); }
+        .btn-secondary:hover { border-color: #dbe1e6; background: #f8f9fa; }
+        .btn-danger { background: #ffffff; color: var(--accent); border-color: var(--border); }
+        .btn-danger:hover { border-color: #dbe1e6; background: #f8f9fa; }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
-            background: #4f46e5;
-            border-color: #4f46e5;
+        .actions-section { 
+            display: grid; 
+            grid-template-columns: repeat(3, minmax(0, 1fr)); 
+            gap: 8px; 
+            align-items: stretch; 
+            justify-content: center; 
+            width: 100%;
         }
-
-        .btn-secondary {
-            background: #ffffff;
-            color: #334155;
-        }
-
-        .btn-secondary:hover {
-            border-color: #cbd5e1;
-            background: #f8fafc;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            border-color: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-            border-color: #dc2626;
-        }
-
-        .actions-section {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
         .action-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            border: 1px solid #e5e7eb;
-            transition: border-color 0.2s ease, transform 0.2s ease;
-            cursor: pointer;
-            min-width: 200px;
+            background: var(--surface); border-radius: 999px;
+            padding: 8px 12px; border: 1px solid var(--accent);
+            transition: border-color .15s ease, transform .15s ease, background .15s ease;
+            cursor: pointer; min-height: auto;
+            display: flex; align-items: center; gap: 8px; text-align: left;
+            white-space: normal; /* consenti due righe di testo */
+            line-height: 1.2;
+            min-width: 0; /* consenti wrapping del testo dentro la cella */
         }
+        .action-card:hover { transform: translateY(-1px); border-color: var(--accent); background: #f8fbff; }
+        .action-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent); margin: 0; }
+        .action-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text); }
+        .action-description { display: none; }
 
-        .action-card:hover {
-            transform: translateY(-2px);
-            border-color: #6366f1;
-        }
-
-        .action-icon {
-            width: 52px;
-            height: 52px;
-            background: #6366f1;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 12px;
-            font-size: 20px;
-            color: white;
-        }
-
-        .action-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #0f172a;
-        }
-
-        .action-description {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 32px;
-            color: #64748b;
-        }
-
-        .empty-icon {
-            font-size: 44px;
-            margin-bottom: 12px;
-            opacity: 0.6;
-        }
+        .empty-state { text-align: center; padding: 32px; color: var(--muted); }
+        .empty-icon { font-size: 44px; margin-bottom: 12px; opacity: 0.6; }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-
-            .welcome-section {
-                padding: 22px;
-            }
-
-            .welcome-title {
-                font-size: 22px;
-            }
-
-            .teams-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .actions-section {
-                flex-direction: column;
-            }
+            .container { padding: 18px; }
+            .header { flex-direction: column; gap: 12px; text-align: center; }
+            .welcome-section { padding: 24px; }
+            .welcome-title { font-size: 24px; }
+            .teams-grid { grid-template-columns: 1fr; }
+            .actions-section { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
 
         /* Ultra-compact smartphone tweaks */
         @media (max-width: 480px) {
             .container { padding: 12px; }
-
-            .header { padding: 10px 12px; border-radius: 10px; }
+            .header { padding: 10px 12px; border-radius: var(--radius-sm); }
             .logo { gap: 8px; }
-            .logo-icon { width: 32px; height: 32px; font-size: 16px; }
+            .logo-icon { width: 32px; height: 32px; }
             .logo-text { font-size: 16px; }
             .user-name { font-size: 13px; }
-            .btn-logout { padding: 8px 12px; font-size: 14px; border-radius: 8px; }
+            .btn-logout { padding: 8px 12px; font-size: 14px; border-radius: var(--radius-sm); }
 
             .welcome-section { padding: 16px; margin-bottom: 14px; }
             .welcome-title { font-size: 20px; margin-bottom: 6px; }
@@ -326,9 +175,9 @@
 
             .btn { padding: 8px 12px; font-size: 14px; min-height: 40px; }
 
-            .actions-section { display: grid; grid-template-columns: 1fr; gap: 10px; }
-            .action-card { padding: 14px; min-width: auto; border-radius: 10px; }
-            .action-icon { width: 40px; height: 40px; font-size: 18px; margin-bottom: 8px; }
+            .actions-section { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+            .action-card { padding: 16px; min-width: 0; border-radius: var(--radius-sm); border: 1px solid var(--accent); white-space: normal; line-height: 1.25; }
+            .action-icon { width: 40px; height: 40px; margin-bottom: 8px; }
             .action-title { font-size: 15px; margin-bottom: 2px; }
             .action-description { display: none; }
 
@@ -347,7 +196,15 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">
-                <div class="logo-icon">🏐</div>
+                <div class="logo-icon" aria-hidden="true">
+                    <!-- Icona minimal monocromatica (pallone stilizzato) -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M3 12h18" />
+                        <path d="M12 3c4.5 2.5 4.5 15.5 0 18.0" />
+                        <path d="M5 7c5 3 9 3 14 0" />
+                    </svg>
+                </div>
                 <div class="logo-text">My Volley Scout</div>
             </div>
             <div class="user-info">
@@ -358,8 +215,45 @@
 
         <!-- Welcome Section -->
         <div class="welcome-section">
-            <h1 class="welcome-title">My Volley Scout</h1>
-            <p class="welcome-subtitle">Gestisci roster, gare e scouting in modo semplice. Crea una squadra o importa da CSV per iniziare.</p>
+            <h1 class="welcome-title">Benvenuto su My Volley Scout</h1>
+            <p class="welcome-subtitle">Organizza squadre, partite e scouting con una UI essenziale. Inizia da una nuova squadra o importa un CSV.</p>
+
+            <!-- Quick Actions -->
+            <div class="actions-section" style="margin-top: 16px;">
+                <button class="action-card" id="createTeamBtn" type="button" aria-label="Crea Squadra">
+                    <div class="action-icon" aria-hidden="true">
+                        <!-- icona plus monocromatica -->
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="action-title">Crea Squadra</div>
+                </button>
+
+                <button class="action-card" id="importTeamBtn" type="button" aria-label="Importa Squadra">
+                    <div class="action-icon" aria-hidden="true">
+                        <!-- icona download monocromatica -->
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 5v10" stroke-linecap="round" />
+                            <path d="M8 11l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M5 19h14" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="action-title">Importa Squadra</div>
+                </button>
+
+                <button class="action-card" id="exportAllBtn" type="button" aria-label="Esporta Squadra">
+                    <div class="action-icon" aria-hidden="true">
+                        <!-- icona upload monocromatica -->
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
+                            <path d="M12 19V9" stroke-linecap="round" />
+                            <path d="M8 13l4-4 4 4" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M5 5h14" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="action-title">Esporta Squadra</div>
+                </button>
+            </div>
         </div>
 
         <!-- Teams Section -->
@@ -373,31 +267,18 @@
 
             <!-- Empty State -->
             <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-icon">📋</div>
+                <div class="empty-icon" aria-hidden="true">
+                    <!-- icona clipboard monocromatica -->
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 4h6a2 2 0 0 1 2 2v1h1.5a1.5 1.5 0 0 1 1.5 1.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.5A1.5 1.5 0 0 1 5.5 7H7V6a2 2 0 0 1 2-2Z" stroke-linejoin="round" />
+                        <path d="M9 6h6" stroke-linecap="round" />
+                    </svg>
+                </div>
                 <p>Non hai ancora creato nessuna squadra</p>
                 <p>Inizia creando la tua prima squadra!</p>
             </div>
 
-            <!-- Actions -->
-            <div class="actions-section">
-                <div class="action-card" id="createTeamBtn">
-                    <div class="action-icon">➕</div>
-                    <div class="action-title">Nuova Squadra</div>
-                    <div class="action-description">Crea una nuova squadra con roster</div>
-                </div>
-                
-                <div class="action-card" id="importTeamBtn">
-                    <div class="action-icon">📥</div>
-                    <div class="action-title">Importa CSV</div>
-                    <div class="action-description">Importa squadra da file CSV</div>
-                </div>
-                
-                <div class="action-card" id="exportAllBtn">
-                    <div class="action-icon">📤</div>
-                    <div class="action-title">Esporta Tutto</div>
-                    <div class="action-description">Esporta tutte le squadre</div>
-                </div>
-            </div>
+            <!-- Actions spostate nel blocco welcome per flusso migliore -->
         </div>
         
         <!-- Roster Editor Section -->
@@ -435,7 +316,7 @@
     <!-- Loading Screen -->
     <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center;">
-            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
         </div>
     </div>
@@ -634,16 +515,16 @@
         // Funzioni squadre
         function selectTeam(teamId) {
             if (!window.teamsModule) return;
-            // Cerca la squadra dalla lista locale, fallback a modulo
+            // Cerca la squadra dalla lista locale, fallback al modulo
             let team = teams.find(t => t.id === teamId);
             if (!team && window.teamsModule.getTeamById) {
                 try { team = window.teamsModule.getTeamById(teamId); } catch (_) {}
             }
             if (!team) return;
-            // Seleziona nel modulo e mostra editor roster
+            // Seleziona la squadra e passa alla pagina partite
             window.teamsModule.selectTeam(teamId);
-            selectedTeam = { ...team, players: Array.isArray(team.players) ? team.players : [] };
-            showRosterEditor();
+            localStorage.setItem('selectedTeamId', team.id);
+            window.location.href = 'matches.html';
         }
 
         function editTeam(teamId) {

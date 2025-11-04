@@ -60,7 +60,7 @@
             background: white;
             border-radius: 12px;
             padding: 32px;
-            border: 1px solid #e5e5e5;
+            border: 2px solid #0d6efd; /* bordo blu coerente */
         }
 
         .form-grid {
@@ -483,26 +483,66 @@
             submitBtn.textContent = 'Salvataggio...';
 
             try {
-                // Salva i dati della partita nel localStorage per ora
-                // TODO: Salvare in Firestore
+                // Genera ID partita e arricchisci con info squadra
                 const matchId = 'match_' + Date.now();
                 matchData.id = matchId;
-                
+                const currentTeam = window.teamsModule?.getCurrentTeam?.();
+                const selectedTeamId = matchData.teamId;
+                const myTeamName = currentTeam?.name || null;
+
+                // Prepara payload coerente con uso generale
+                const payload = {
+                    id: matchId,
+                    teamId: selectedTeamId,
+                    myTeam: myTeamName,
+                    opponentTeam: matchData.opponent,
+                    matchDate: matchData.matchDate,
+                    eventType: matchData.eventType,
+                    location: matchData.location,
+                    venue: matchData.venue || '',
+                    description: matchData.description || '',
+                    status: 'planned',
+                    createdAt: matchData.createdAt,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // 1) Persistenza locale: aggiungi/aggiorna in volleyMatches
+                try {
+                    const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                    local.unshift(payload);
+                    localStorage.setItem('volleyMatches', JSON.stringify(local));
+                } catch (e) {
+                    console.warn('Salvataggio locale partita non riuscito:', e);
+                }
+
+                // 2) Persistenza cloud (se utente loggato e funzioni disponibili)
+                try {
+                    if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
+                        const user = window.authFunctions.getCurrentUser();
+                        if (user) {
+                            await window.firestoreFunctions.saveMatch(payload);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Salvataggio cloud non riuscito (proseguo):', e);
+                }
+
+                // 3) Imposta setup corrente per set-config
                 localStorage.setItem('currentMatchSetup', JSON.stringify(matchData));
-                
-                showSuccess('Dati partita salvati! Reindirizzamento alla configurazione set...');
-                
-                // Reindirizza alla configurazione dei set dopo 2 secondi
+
+                showSuccess('Partita salvata! Reindirizzamento alla configurazione set...');
+
+                // Reindirizza alla configurazione dei set dopo breve attesa
                 setTimeout(() => {
                     window.location.href = 'set-config.html';
-                }, 2000);
-                
+                }, 1200);
+
             } catch (error) {
                 console.error('Errore nel salvataggio:', error);
                 showError('Errore nel salvataggio dei dati. Riprova.');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Continua Setup →';
+                submitBtn.textContent = 'Continua →';
             }
         }
     </script>

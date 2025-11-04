@@ -22,15 +22,15 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 24px;
+            padding: 12px; /* ridotto del 50% */
         }
 
         .header {
             background: white;
             border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #e2e8f0;
+            padding: 12px; /* ridotto del 50% */
+            margin-bottom: 12px; /* ridotto del 50% */
+            border: 2px solid #0d6efd; /* bordo blu evidente */
         }
 
         .header-left {
@@ -68,20 +68,27 @@
         .match-info {
             background: white;
             border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #e2e8f0;
+            padding: 12px; /* ridotto del 50% */
+            margin-bottom: 12px; /* ridotto del 50% */
+            border: 2px solid #0d6efd; /* bordo blu evidente */
         }
 
         .match-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            gap: 8px; /* ridotto del 50% */
             text-align: center;
         }
 
+        /* Riga per accoppiare due campi affiancati */
+        .match-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
         .match-detail {
-            padding: 16px;
+            padding: 8px; /* ridotto del 50% */
             background: #f8fafc;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
@@ -105,8 +112,8 @@
         .config-section {
             background: white;
             border-radius: 12px;
-            padding: 32px;
-            border: 1px solid #e2e8f0;
+            padding: 16px; /* ridotto del 50% */
+            border: 2px solid #0d6efd; /* bordo blu evidente */
         }
 
         .section-title {
@@ -120,72 +127,58 @@
         .section-subtitle {
             text-align: center;
             color: #64748b;
-            margin-bottom: 24px;
+            margin-bottom: 12px; /* ridotto del 50% */
             font-size: 14px;
         }
 
         .config-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px; /* ridotto del 50% */
+            margin-bottom: 12px; /* ridotto del 50% */
         }
 
         .config-card {
             background: #f8fafc;
             border-radius: 12px;
-            padding: 24px;
+            padding: 12px; /* ridotto del 50% */
             border: 1px solid #e2e8f0;
         }
 
         .config-card-title {
             font-size: 18px;
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: 8px; /* ridotto del 50% */
             color: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .set-selector {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .set-btn {
-            padding: 12px;
+        /* Select generico, coerente con palette bianco/blu */
+        .form-select {
+            width: 100%;
+            padding: 8px 12px; /* compatibile con riduzione */
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            text-align: center;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #1e293b;
             font-size: 14px;
         }
-
-        .set-btn:hover {
-            border-color: #3b82f6;
-            background: #f1f5f9;
-        }
-
-        .set-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
+        .form-select:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13,110,253,0.1);
         }
 
         .phase-selector {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 6px; /* ridotto del 50% */
         }
 
         .phase-btn {
-            padding: 20px;
+            padding: 10px; /* ridotto del 50% */
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             background: white;
@@ -195,14 +188,14 @@
         }
 
         .phase-btn:hover {
-            border-color: #3b82f6;
-            background: #f1f5f9;
+            border-color: #0d6efd; /* blu pieno */
+            background: #f8fbff;
         }
 
         .phase-btn.active {
-            background: #3b82f6;
+            background: #0d6efd; /* blu pieno */
             color: white;
-            border-color: #3b82f6;
+            border-color: #0d6efd;
         }
 
         .phase-icon {
@@ -221,36 +214,7 @@
             opacity: 0.7;
         }
 
-        .rotation-selector {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 8px;
-        }
-
-        .rotation-btn {
-            aspect-ratio: 1;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            font-size: 14px;
-        }
-
-        .rotation-btn:hover {
-            border-color: #3b82f6;
-            background: #f1f5f9;
-        }
-
-        .rotation-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
+        /* eliminati i bottoni rotazione: uso select */
 
         .optional-label {
             color: #64748b;
@@ -259,21 +223,21 @@
         }
 
         .start-button {
-            background: #10b981;
+            background: #0d6efd; /* blu pieno */
             color: white;
             border: none;
-            padding: 16px 32px;
+            padding: 8px 16px; /* ridotto del 50% */
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             width: 100%;
-            margin-top: 24px;
+            margin-top: 12px; /* ridotto del 50% */
         }
 
         .start-button:hover {
-            background: #059669;
+            background: #0b5ed7; /* accento hover */
         }
 
         .start-button:disabled {
@@ -302,7 +266,7 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 16px;
+                padding: 8px; /* ridotto del 50% */
             }
 
             .header {
@@ -313,15 +277,15 @@
             .header-left {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 12px;
+                gap: 6px; /* ridotto del 50% */
             }
 
             .config-section {
-                padding: 24px;
+                padding: 12px; /* ridotto del 50% */
             }
 
             .config-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .set-selector {
@@ -333,8 +297,8 @@
             }
 
             .phase-selector {
-                grid-template-columns: 1fr;
-                gap: 8px;
+                grid-template-columns: 1fr 1fr; /* affianca anche su mobile */
+                gap: 6px; /* ridotto del 50% */
             }
         }
     </style>
@@ -356,6 +320,7 @@
 
         <!-- Match Info -->
         <div class="match-info">
+            <h2 class="section-title" style="font-size:18px; text-align:left; margin-bottom:8px;">Dati della partita</h2>
             <div class="match-summary" id="matchSummary">
                 <!-- Match details will be loaded here -->
             </div>
@@ -365,78 +330,64 @@
         <div class="config-section">
             <h2 class="section-title">Setup Set</h2>
 
-            <div class="validation-info">
-                <strong>Requisiti:</strong> Seleziona il set, la fase di inizio e la rotazione della tua squadra per abilitare il pulsante "SCOUT!"
-            </div>
+            
 
             <div class="error-message" id="errorMessage"></div>
 
             <div class="config-grid">
                 <!-- Set Selection -->
                 <div class="config-card">
-                    <div class="config-card-title">
-                        Selezione Set
-                    </div>
-                    <div class="set-selector">
-                        <div class="set-btn" data-set="1">Set 1</div>
-                        <div class="set-btn" data-set="2">Set 2</div>
-                        <div class="set-btn" data-set="3">Set 3</div>
-                        <div class="set-btn" data-set="4">Set 4</div>
-                        <div class="set-btn" data-set="5">Set 5</div>
-                    </div>
+                    <div class="config-card-title">Selezione Set</div>
+                    <select id="setSelect" class="form-select">
+                        <option value="1">Set 1</option>
+                        <option value="2">Set 2</option>
+                        <option value="3">Set 3</option>
+                        <option value="4">Set 4</option>
+                        <option value="5">Set 5</option>
+                        <option value="6">Set 6</option>
+                    </select>
                 </div>
 
                 <!-- Phase Selection -->
                 <div class="config-card">
-                    <div class="config-card-title">
-                        Fase di Inizio
-                    </div>
+                    <div class="config-card-title">Fase di Inizio</div>
                     <div class="phase-selector">
-                        <div class="phase-btn" data-phase="servizio">
-                            <div class="phase-title">Servizio</div>
-                            <div class="phase-desc">La tua squadra serve</div>
-                        </div>
-                        <div class="phase-btn" data-phase="ricezione">
-                            <div class="phase-title">Ricezione</div>
-                            <div class="phase-desc">La tua squadra riceve</div>
-                        </div>
+                        <div class="phase-btn" data-phase="servizio">Servizio</div>
+                        <div class="phase-btn" data-phase="ricezione">Ricezione</div>
                     </div>
                 </div>
 
                 <!-- Our Team Rotation -->
                 <div class="config-card">
-                    <div class="config-card-title">
-                        Rotazione Nostra Squadra
-                    </div>
-                    <div class="rotation-selector">
-                        <div class="rotation-btn" data-rotation="1">1</div>
-                        <div class="rotation-btn" data-rotation="2">2</div>
-                        <div class="rotation-btn" data-rotation="3">3</div>
-                        <div class="rotation-btn" data-rotation="4">4</div>
-                        <div class="rotation-btn" data-rotation="5">5</div>
-                        <div class="rotation-btn" data-rotation="6">6</div>
-                    </div>
+                    <div class="config-card-title">Rotazione Nostra</div>
+                    <select id="ourRotationSelect" class="form-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
                 </div>
 
                 <!-- Opponent Rotation (Optional) -->
                 <div class="config-card">
-                    <div class="config-card-title">
-                        Rotazione Avversari
-                    </div>
+                    <div class="config-card-title">Rotazione Avversari</div>
                     <div class="optional-label">Opzionale - Se conosciuta</div>
-                    <div class="rotation-selector">
-                        <div class="rotation-btn" data-opponent-rotation="1">1</div>
-                        <div class="rotation-btn" data-opponent-rotation="2">2</div>
-                        <div class="rotation-btn" data-opponent-rotation="3">3</div>
-                        <div class="rotation-btn" data-opponent-rotation="4">4</div>
-                        <div class="rotation-btn" data-opponent-rotation="5">5</div>
-                        <div class="rotation-btn" data-opponent-rotation="6">6</div>
-                    </div>
+                    <select id="opponentRotationSelect" class="form-select">
+                        <option value="">Non specificata</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
                 </div>
             </div>
 
             <button class="start-button" id="scoutBtn" disabled>
-                SCOUT!
+                Start Scout
             </button>
         </div>
     </div>
@@ -470,10 +421,10 @@
         const matchSummary = document.getElementById('matchSummary');
         const errorMessage = document.getElementById('errorMessage');
         const scoutBtn = document.getElementById('scoutBtn');
-        const setButtons = document.querySelectorAll('.set-btn');
+        const setSelect = document.getElementById('setSelect');
         const phaseButtons = document.querySelectorAll('.phase-btn');
-        const rotationButtons = document.querySelectorAll('.rotation-btn');
-        const opponentRotationButtons = document.querySelectorAll('[data-opponent-rotation]');
+        const ourRotationSelect = document.getElementById('ourRotationSelect');
+        const opponentRotationSelect = document.getElementById('opponentRotationSelect');
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -531,35 +482,39 @@
             };
 
             matchSummary.innerHTML = `
-                <div class="match-detail">
-                    <div class="match-detail-label">Avversario</div>
-                    <div class="match-detail-value">${matchData.opponent}</div>
+                <div class="match-row">
+                    <div class="match-detail">
+                        <div class="match-detail-label">Avversario</div>
+                        <div class="match-detail-value">${matchData.opponent}</div>
+                    </div>
+                    <div class="match-detail">
+                        <div class="match-detail-label">Data</div>
+                        <div class="match-detail-value">${formatDate(matchData.matchDate)}</div>
+                    </div>
                 </div>
-                <div class="match-detail">
-                    <div class="match-detail-label">Data</div>
-                    <div class="match-detail-value">${formatDate(matchData.matchDate)}</div>
-                </div>
-                <div class="match-detail">
-                    <div class="match-detail-label">Tipo</div>
-                    <div class="match-detail-value">${eventTypeMap[matchData.eventType] || matchData.eventType}</div>
-                </div>
-                <div class="match-detail">
-                    <div class="match-detail-label">Luogo</div>
-                    <div class="match-detail-value">${locationIcon} ${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
+                <div class="match-row">
+                    <div class="match-detail">
+                        <div class="match-detail-label">Tipo</div>
+                        <div class="match-detail-value">${eventTypeMap[matchData.eventType] || matchData.eventType}</div>
+                    </div>
+                    <div class="match-detail">
+                        <div class="match-detail-label">Luogo</div>
+                        <div class="match-detail-value">${locationIcon} ${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
+                    </div>
                 </div>
             `;
         }
 
         function setupEventListeners() {
-            // Set selection
-            setButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    setButtons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    setConfig.set = this.dataset.set;
+            // Set selection (select)
+            if (setSelect) {
+                setSelect.addEventListener('change', function(){
+                    setConfig.set = this.value;
                     validateConfig();
                 });
-            });
+                // default iniziale
+                setConfig.set = setSelect.value;
+            }
 
             // Phase selection
             phaseButtons.forEach(btn => {
@@ -571,30 +526,21 @@
                 });
             });
 
-            // Our rotation selection
-            rotationButtons.forEach(btn => {
-                if (!btn.dataset.opponentRotation) {
-                    btn.addEventListener('click', function() {
-                        rotationButtons.forEach(b => {
-                            if (!b.dataset.opponentRotation) {
-                                b.classList.remove('active');
-                            }
-                        });
-                        this.classList.add('active');
-                        setConfig.ourRotation = this.dataset.rotation;
-                        validateConfig();
-                    });
-                }
-            });
-
-            // Opponent rotation selection (optional)
-            opponentRotationButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    opponentRotationButtons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    setConfig.opponentRotation = this.dataset.opponentRotation;
+            // Our rotation selection (select)
+            if (ourRotationSelect) {
+                ourRotationSelect.addEventListener('change', function(){
+                    setConfig.ourRotation = this.value;
+                    validateConfig();
                 });
-            });
+                setConfig.ourRotation = ourRotationSelect.value;
+            }
+
+            // Opponent rotation selection (optional, select)
+            if (opponentRotationSelect) {
+                opponentRotationSelect.addEventListener('change', function(){
+                    setConfig.opponentRotation = this.value || null;
+                });
+            }
 
             // Scout button
             scoutBtn.addEventListener('click', startScouting);
@@ -605,7 +551,7 @@
             scoutBtn.disabled = !isValid;
             
             if (isValid) {
-                scoutBtn.textContent = 'SCOUT!';
+                scoutBtn.textContent = 'Start Scout';
                 hideError();
             } else {
                 scoutBtn.textContent = 'Completa la configurazione';

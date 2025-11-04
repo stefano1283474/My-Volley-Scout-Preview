@@ -31,13 +31,13 @@ body {
 .header {
     background: linear-gradient(135deg, #2196F3, #1976D2);
     color: white;
-    padding: 1rem;
+    padding: 0.9rem; /* -10% altezza verticale */
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .header h1 {
     text-align: center;
-    margin-bottom: 1.5rem; /* Aumentato */
+    margin-bottom: 1.35rem; /* -10% rispetto a 1.5rem */
     font-size: 2.2rem; /* Aumentato */
     font-weight: 300;
 }
@@ -47,11 +47,11 @@ body {
 .auth-section .user-info { display: flex; align-items: center; gap: 8px; position: relative; }
 .desktop-only { display: inline-flex; }
 .mobile-only { display: none; }
-.header-menu { position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); padding: 6px; min-width: 180px; }
-.header-menu .menu-item { width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; }
+.header-menu { position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); padding: 6px; min-width: 160px; width: max-content; }
+.header-menu .menu-item { width: 100%; text-align: left; padding: 6px 10px; border: none; background: transparent; cursor: pointer; font-size: 0.95rem; line-height: 1.2; display: flex; align-items: center; gap: 8px; white-space: nowrap; border-radius: 8px; }
 .header-menu .menu-item:hover { background: #f2f7ff; }
 @media (max-width: 600px) {
-  .header { padding: 0.75rem; }
+  .header { padding: 0.675rem; /* -10% su mobile */ }
   .header h1 { font-size: 1.6rem; margin-bottom: 0; }
   .desktop-only { display: none; }
   .mobile-only { display: inline-flex; }
@@ -94,7 +94,7 @@ body {
 /* Main content */
 .main {
     flex: 1;
-    padding: 2rem 1rem;
+    padding: 0.5rem 1rem; /* ulteriore -50% spazio tra appbar e titolo */
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
@@ -117,6 +117,14 @@ body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     flex: 1 1 auto; /* NUOVO: occupa lo spazio disponibile */
+}
+
+/* Riduci ulteriore spazio interno della prima sezione scouting */
+#scouting-section {
+    padding-top: 0.5rem; /* ulteriore riduzione dello spazio sotto la top app bar */
+}
+@media (max-width: 480px) {
+  #scouting-section { padding-top: 0.25rem; }
 }
 
 .page.active {
@@ -498,14 +506,28 @@ body {
 .player-btn .player-line1 .player-number { font-size: 1rem; font-weight: 800; }
 .player-btn .player-line1 .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
 .player-btn .player-line2 { line-height: 1.1; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-/* Colori per ruolo (tinta leggera + bordo) */
-#scouting-dialog .player-btn.role-pal { border-color: #1976d2; background: #e3f2fd; }
-#scouting-dialog .player-btn.role-opp { border-color: #7b1fa2; background: #f3e5f5; }
-#scouting-dialog .player-btn.role-sch { border-color: #ef6c00; background: #fff3e0; }
-#scouting-dialog .player-btn.role-ctr { border-color: #388e3c; background: #e8f5e9; }
-#scouting-dialog .player-btn.role-lib { border-color: #fbc02d; background: #fffde7; }
+/* Colori per ruolo: sfondo bianco, bordo colorato (palette coerente) */
+#scouting-dialog .player-btn.role-pal { border-color: #1976d2; background: #fff; }
+#scouting-dialog .player-btn.role-opp { border-color: #7b1fa2; background: #fff; }
+#scouting-dialog .player-btn.role-sch { border-color: #ef6c00; background: #fff; }
+#scouting-dialog .player-btn.role-ctr { border-color: #388e3c; background: #fff; }
+#scouting-dialog .player-btn.role-lib { border-color: #fbc02d; background: #fff; }
+
+/* Segnaposto vuoto: non selezionabile, aspetto neutro */
+#scouting-dialog .player-btn.empty {
+  border-color: #e0e0e0;
+  background: #fff;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 #scouting-dialog .player-number { font-weight: 700; font-size: 1.1rem; }
+
+/* Tasto Err Avv nella griglia giocatori */
+#scouting-dialog .opponent-error-btn {
+  border: 2px solid #9e9e9e;
+  background: #fff;
+}
 
 /* Valutazioni: layout touch + gradiente 1→5 dal rosso al verde */
 #scouting-dialog .evaluation-buttons {
@@ -813,10 +835,10 @@ body {
 #scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #scouting-dialog .player-btn .player-role { font-size: 0.8rem; opacity: 0.9; }
 
-/* Valutazioni: 3 colonne fisse, no overflow */
+/* Valutazioni: 5 colonne in un'unica riga */
 #scouting-dialog .evaluation-buttons { 
   display: grid; 
-  grid-template-columns: repeat(3, minmax(0, 1fr)); 
+  grid-template-columns: repeat(5, minmax(0, 1fr)); 
   gap: 8px; 
   margin-top: 6px; 
   width: 100%;
@@ -842,7 +864,83 @@ body {
 /* Box descrittivo dei tasti premuti */
 #pressed-buttons-box { display: none; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
 #pressed-buttons-box h4 { margin: 0 0 6px 0; }
-#pressed-buttons-log { font-size: 0.95rem; color: #333; word-break: break-word; }
+#pressed-buttons-log { 
+    font-size: 0.91em; /* ridotto del ~30% rispetto a 1.3em */
+    color: #0d47a1; 
+    font-weight: 800; 
+    word-break: break-word; 
+    text-transform: uppercase;
+}
+
+/* Toggle layout vicino al banner "Hai Selezionato" */
+.next-fundamental-info .layout-switch {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  margin-top: 0;
+  font-size: 0.85em;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  color: #1976d2;
+}
+.next-fundamental-info .layout-switch .switch-inline input { accent-color: #1976d2; }
+
+/* Pillole blu: riga singola */
+#pressed-buttons-log:not(.multiline) { 
+  display: grid; 
+  grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr); 
+  align-items: center; 
+  gap: 8px; 
+}
+.selected-info .token { 
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #1976d2;
+  color: #0d47a1;
+  border-radius: 12px;
+  background: #ffffff;
+  line-height: 1.3;
+  padding: 4px 8px;
+  margin: 0;
+  white-space: normal;         /* consenti ritorno a capo */
+  overflow-wrap: anywhere;     /* evita overflow su parole lunghe */
+}
+.selected-info .token-fundamental { font-weight: 500; }
+.selected-info .token-player { font-weight: 700; }
+.selected-info .token-eval { font-weight: 700; }
+
+/* Variante multi‑linea: impilamento verticale con riga più recente in alto */
+#pressed-buttons-log.multiline { 
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* estendi ogni riga alla larghezza del contenitore */
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+.multi-line-item { 
+  display: grid;
+  grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr);
+  gap: 8px; 
+  align-items: stretch; 
+  justify-items: stretch; /* forza ogni cella a riempire il suo spazio */
+  width: 100%;
+}
+/* In modalità multi‑linea, ogni pill occupa esattamente 1/3 della riga */
+#pressed-buttons-log.multiline .multi-line-item .token {
+  display: block; /* riempi la cella della griglia */
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box; /* includi bordo e padding nel calcolo della larghezza */
+}
+/* Pillola segnaposto: invisibile ma occupa spazio per mantenere le 3 colonne */
+#pressed-buttons-log.multiline .token-placeholder {
+  visibility: hidden;
+  border-color: transparent;
+}
 
 /* Stili per il dialog di scouting in modalità fullscreen */
 #scouting-dialog:not(.embedded) {
@@ -933,7 +1031,19 @@ body {
   /* Compatta padding generale della pagina */
   .main { padding: 6px; }
   .section { padding: 8px; margin-bottom: 8px; }
-  #scouting-section .section-header { margin-bottom: 4px; }
+#scouting-section .section-header { margin-bottom: 4px; }
+#scouting-section > .section-panel:first-child { padding: 6px 8px; margin: 8px 0; border: none; background: transparent; box-shadow: none; }
+#scouting-section .section-header { 
+  justify-content: center; 
+  gap: 0; 
+  border-bottom: none; 
+  padding-bottom: 0; 
+}
+#scouting-section .section-header h3 { 
+  text-align: center; 
+  text-transform: uppercase; 
+  font-size: 1.25rem; 
+}
   #scouting-section .section-header .secondary-btn { padding: 5px 8px; font-size: 0.9rem; }
 
   /* Card embedded: riduci padding e header */
@@ -977,31 +1087,43 @@ body {
     padding-top: 16px;
 }
 
+/* Pannello riutilizzabile con bordo blu per separare le sezioni */
+.section-panel {
+    background: #ffffff;
+    border: 2px solid #1976d2;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 10px 0 12px 0;
+}
+
 
 /* Stili per il banner del fondamentale - MIGLIORATO */
 .next-fundamental-info {
-    background: linear-gradient(135deg, #1976d2, #1565c0);
-    color: white;
+    background: #ffffff;
+    color: #0d47a1;
     padding: 8px 10px;
     border-radius: 12px;
     margin: 16px 0;
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-    border: none;
+    box-shadow: none;
+    border: 2px solid #1976d2;
     font-size: 1.2em;
-    text-align: center;
+    text-align: left;
     position: relative;
     overflow: hidden;
 }
 
+/* Il toggle “Riga multipla” non riduce la larghezza disponibile */
+.next-fundamental-info { padding-right: 0; }
+
 .next-fundamental-info::before {
-    content: '';
+    content: none;
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: shimmer 2s infinite;
+    background: none;
+    animation: none;
 }
 
 @keyframes shimmer {
@@ -1018,44 +1140,116 @@ body {
 
 #next-fundamental {
     font-weight: 800;
-    font-size: 1.3em;
+    font-size: 0.84em; /* ridotto del ~30% rispetto a 1.2em */
     text-transform: uppercase;
-    color: #ffeb3b;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    color: #1976d2;
+    text-shadow: none;
 }
 
 /* Stili per le informazioni del giocatore e valutazione selezionati */
 .selected-info {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid rgba(255,255,255,0.3);
+    border-top: none;
     display: flex;
     justify-content: space-between;
-    font-size: 1.1em;
+    font-size: 1.05em;
     opacity: 1;
 }
 
 .selected-info span {
     font-weight: 700;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    text-shadow: none;
+    color: #0d47a1;
     flex: 1;
     text-align: center;
     padding: 0 8px;
 }
 
+/* Pill con bordo blu per fondamentale, giocatore e valutazione */
+/* (duplicato rimosso) la definizione unificata è sopra */
+
+
+/* Metti le tre pill sulla stessa riga (single line) */
+.selected-info #pressed-buttons-log:not(.multiline) {
+    display: grid;
+    grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr);
+    align-items: center;
+    gap: 8px; /* spazio tra le pill */
+    width: 100%;
+}
+/* Contenitore in modalità multi‑linea dentro .selected-info: impilamento verticale */
+.selected-info #pressed-buttons-log.multiline {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+/* Ogni pill occupa il suo terzo e il contenuto è centrato */
+#pressed-buttons-log:not(.multiline) .token {
+    display: block;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+/* Rinforzo per multi‑linea: la regola è posta dopo le generiche
+   per vincere eventuali sovrascritture e garantire larghezza uniforme */
+.selected-info #pressed-buttons-log.multiline .multi-line-item .token {
+    display: block;
+    width: 100%;
+    justify-self: stretch;
+    text-align: center;
+    box-sizing: border-box;
+}
+/* Placeholder in single line: invisibile ma occupa spazio */
+#pressed-buttons-log:not(.multiline) .token-placeholder {
+    visibility: hidden;
+    border-color: transparent;
+}
+
+/* === Normalizzazione finale pillole nel riquadro selezionato ===
+   Forza stessa larghezza in ogni colonna e delega lo spacing al gap della griglia. */
+.selected-info #pressed-buttons-log .token {
+    display: block !important;   /* ignora inline/inline-block precedenti */
+    width: 100% !important;      /* riempi la cella della griglia */
+    margin: 0;                    /* nessun margine orizzontale interno, usa gap */
+    text-align: center;
+    box-sizing: border-box;       /* includi bordo+padding nel 100% */
+}
+.selected-info #pressed-buttons-log.multiline .multi-line-item > * {
+    justify-self: stretch !important; /* ogni item della griglia riempie la cella */
+    width: 100% !important;
+}
+
 /* Stili per la sezione punteggio */
 .score-display {
-    background: #f8f9fa;
-    border: 2px solid #e9ecef;
+    background: #ffffff;
+    border: 2px solid #1976d2;
     border-radius: 10px;
     padding: 16px;
     margin: 12px 0;
     text-align: center;
 }
 
+.score-display .score-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    text-align: left; /* assicura titolo a sinistra */
+}
+.score-display .score-header h4 { margin: 0; }
+/* Titolo punteggio sottolineato */
+.score-display .score-header h4 {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+}
+
 .score-display h4 {
     margin: 0 0 12px 0;
-    color: #495057;
+    color: #1976d2;
     font-size: 1.1em;
     font-weight: 600;
 }
@@ -1583,8 +1777,8 @@ body {
 #scouting-dialog .player-btn .player-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #scouting-dialog .player-btn .player-role { font-size: 0.8rem; opacity: 0.9; }
 
-/* Valutazioni: 3 colonne fisse, no overflow */
-#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+/* Valutazioni: 5 colonne in un'unica riga */
+#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
 #scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
 
 /* Riepilogo azione */
@@ -1854,8 +2048,8 @@ body {
 #scouting-dialog .player-btn .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
 #scouting-dialog .player-btn .player-line2 { line-height: 1.1; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-/* Valutazioni: 3 colonne fisse, no overflow */
-#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+/* Valutazioni: 5 colonne in un'unica riga */
+#scouting-dialog .evaluation-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
 #scouting-dialog .evaluation-buttons .eval-btn { min-height: 56px; padding: 12px; font-weight: 600; border-radius: 10px; box-sizing: border-box; min-width: 0; }
 
 /* Riepilogo azione */
@@ -2103,7 +2297,7 @@ body {
 .main {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px; /* raddoppia distanza orizzontale/verticale dal bordo pagina */
 }
 
 .match-info-display {
@@ -2193,6 +2387,16 @@ body {
   background: #fff;
 }
 
+/* Allinea su due righe centrate: numero (riga 1) e soprannome (riga 2) */
+.players-grid .player-btn .player-line1,
+.players-grid .player-btn .player-line2 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
 /* Mobile: use auto-fit instead of fixed 4 columns to adapt */
 @media (max-width: 480px) {
   .players-grid { 
@@ -2252,7 +2456,7 @@ body {
 #selected-player-display .player-line2 { font-size: 0.95rem; font-weight: 600; }
 
 /* Stile per il fondamentale - più in evidenza */
-#current-fundamental { font-size: 150%; font-weight: 800; color: #ffeb3b; }
+#current-fundamental { font-size: 1.5rem; font-weight: 800; color: #1976d2; }
 /* Stili per il dialog delle azioni scoutizzate */
 .dialog {
     display: none;
@@ -2433,6 +2637,10 @@ body {
     margin: 0;
     padding: 0;
     border: none;           /* Evita sovrapposizione con il bottone */
+    color: #1976d2;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
 }
 
 .secondary-btn {
@@ -2489,6 +2697,33 @@ body {
     background-color: #1565c0;
 }
 
+/* Fondamentale inline accanto al titolo Elenco player */
+.fundamental-inline {
+    color: #1976d2;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-left: 6px;
+}
+
+/* Titolo Scouting: centrato e molto grande (pannello mantiene bordo blu) */
+#scouting-section .section-header {
+    justify-content: center;
+    gap: 0;
+    border-bottom: none; /* niente linea decorativa sotto il titolo */
+    padding-bottom: 0;
+    margin-bottom: 8px;
+}
+
+#scouting-section .section-header h3 {
+    text-align: center;
+    text-transform: uppercase;
+    /* Mantieni su una sola riga: riduci automaticamente se lo spazio si restringe */
+    white-space: nowrap;
+    line-height: 1.15;
+    font-size: clamp(1.6rem, 7.2vw, 2.4rem);
+    letter-spacing: 0.6px;
+}
+
 .primary-btn:active {
     background-color: #0d47a1;
     transform: translateY(1px);
@@ -2498,9 +2733,9 @@ body {
 .phase-info {
     background: linear-gradient(135deg, #1976d2, #2196f3);
     color: white !important;
-    padding: 12px 16px;
+    padding: 7px 16px; /* ulteriore -20% verticale */
     border-radius: 12px;
-    font-size: 1.3rem !important;
+    font-size: 1.0rem !important; /* ~-23% per ridurre altezza complessiva */
     font-weight: 800 !important;
     text-align: center;
     box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
@@ -2511,11 +2746,67 @@ body {
 }
 
 .phase-info strong {
-    font-size: 1.4rem !important;
+    font-size: 1.05rem !important; /* -25% rispetto a 1.4rem */
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Rende la scritta "FASE DI GIOCO:" più piccola del 30% */
 .phase-info .phase-label {
     font-size: 0.7em; /* 30% più piccola rispetto al font-size del parent */
+}
+#scouting-section > .section-panel:first-child {
+    padding: 5px 12px; /* -50% padding verticale per la scritta del titolo */
+    margin-top: 0;     /* rimuove lo spazio sopra il riquadro del titolo */
+    border: none;      /* elimina il bordo dal pannello titolo */
+    background: transparent; 
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------
+   HARMONIZZAZIONE SPAZIATURA PAGINA SCOUTING (scala base: 8px)
+   ------------------------------------------------------------ */
+/* Wrapper della pagina scouting (bianco arrotondato) */
+#scouting-section {
+  padding: 16px;           /* raddoppia spazio laterale e verticale */
+}
+
+/* Pannelli bordo blu: padding e margini coerenti */
+#scouting-section .section-panel {
+  padding: 8px 12px;
+  margin: 8px 0;           /* spazio uniforme tra pannelli */
+}
+
+/* Raddoppia lo spazio sotto l'ultima fila di pulsanti nella sezione player */
+#scouting-section .section-panel .players-grid {
+  margin-bottom: 8px;      /* aggiunge 8px oltre al padding del pannello (8px) → 16px totali */
+}
+
+/* Allinea il pannello "Hai Selezionato" allo spacing di riferimento */
+#scouting-section .next-fundamental-info {
+  margin: 8px 0;           /* uguale a quello tra Elenco player e Valutazione */
+}
+
+/* Allinea anche il pannello "Storico Punteggio" */
+#scouting-section .score-display {
+  margin: 8px 0;           /* uniforme tra tutte le sezioni */
+}
+
+/* Header di sezione: riduci aria e allinea al pannello */
+#scouting-section .section-header {
+  margin-bottom: 8px;
+  padding-bottom: 0;
+  gap: 8px;
+}
+
+/* Scaffold interno del pannello embedded: usa gap uniforme */
+#scouting-dialog.embedded .scaffold {
+  display: grid;
+  gap: 16px;               /* raddoppia lo spazio tra le sezioni */
+}
+
+/* Nella scaffold usiamo SOLO il gap: rimuovi i margini verticali degli item */
+#scouting-dialog.embedded .scaffold > .section-panel,
+#scouting-dialog.embedded .scaffold > .next-fundamental-info,
+#scouting-dialog.embedded .scaffold > .score-display {
+  margin: 0; /* evita somma gap+margini che crea spazi diversi */
 }

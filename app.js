@@ -13,7 +13,12 @@ const appState = {
     setStarted: false,
     selectedPlayer: null,
     selectedEvaluation: null,
-    scoreHistory: [] // Storico progressivo dei punti
+    scoreHistory: [], // Storico progressivo dei punti
+    multiLineLayout: false, // Layout "a riga multipla" per la progressione
+    // Blocco temporaneo e auto-chiusura azione
+    autoClosePending: false,
+    autoCloseTimerId: null,
+    autoClosePayload: null
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -104,6 +109,24 @@ window.loadScoutingSession = function(sessionData) {
             appState.currentPhase = md.setConfig.phase || 'servizio';
         }
 
+        // Reidrata punteggio, storico e azioni se presenti (ripresa sessione)
+        try {
+            if (md.score && typeof md.score.home === 'number' && typeof md.score.away === 'number') {
+                appState.homeScore = md.score.home;
+                appState.awayScore = md.score.away;
+            }
+            if (Array.isArray(md.scoreHistory) && md.scoreHistory.length > 0) {
+                appState.scoreHistory = md.scoreHistory;
+            }
+            if (Array.isArray(md.actions) && md.actions.length > 0) {
+                appState.actionsLog = md.actions;
+            }
+            // Contrassegna come set avviato quando si riprende
+            if (md.status === 'in_progress' || (appState.actionsLog && appState.actionsLog.length)) {
+                appState.setStarted = true;
+            }
+        } catch(_) {}
+
         // Aggiorna UI iniziale
         try { updateMatchSummary(); } catch(_) {}
         try { updateMatchInfo(); } catch(_) {}
@@ -112,6 +135,8 @@ window.loadScoutingSession = function(sessionData) {
         try { updateNextFundamental(); } catch(_) {}
         try { renderRosterTable(); } catch(_) {}
         try { updatePlayersGrid(); } catch(_) {}
+        try { updateActionsLog(); } catch(_) {}
+        try { updateScoreHistoryDisplay(); } catch(_) {}
 
         // Imposta pagina Start-Scouting attiva all’arrivo
         switchPage('scouting');
@@ -221,9 +246,9 @@ function initializeApp() {
         // Header mobile overflow menu
         const headerMenuToggle = document.getElementById('headerMenuToggle');
         const headerMenu = document.getElementById('headerMenu');
-        const backToWelcomeBtnMobile = document.getElementById('backToWelcomeBtnMobile');
+        const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
+        const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
-        const analysisBtnMobile = document.getElementById('analysisBtnMobile');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
                 const isHidden = headerMenu.hasAttribute('hidden');
@@ -236,27 +261,64 @@ function initializeApp() {
                     headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
             });
-        }
-        if (analysisBtnMobile) {
-            analysisBtnMobile.addEventListener('click', () => {
-                switchPage('analysis');
-                // Chiudi il menu mobile dopo la navigazione
-                if (headerMenu) headerMenu.setAttribute('hidden', '');
-                if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+            // Chiudi con ESC
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !headerMenu.hasAttribute('hidden')) {
+                    headerMenu.setAttribute('hidden', '');
+                    headerMenuToggle.setAttribute('aria-expanded', 'false');
+                    headerMenuToggle.focus();
+                }
             });
         }
-        if (backToWelcomeBtnMobile) {
-            backToWelcomeBtnMobile.addEventListener('click', () => {
-                localStorage.removeItem('currentScoutingSession');
-                window.location.replace('welcome.html');
+        if (goToMatchesBtnMobile) {
+            goToMatchesBtnMobile.addEventListener('click', async () => {
+                try {
+                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
+                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    window.location.href = 'matches.html';
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+        if (goToTeamsBtnMobile) {
+            goToTeamsBtnMobile.addEventListener('click', async () => {
+                try {
+                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
+                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    window.location.href = 'welcome.html';
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
             });
         }
         if (signOutBtnMobile && typeof window.authFunctions !== 'undefined') {
-            signOutBtnMobile.addEventListener('click', () => {
-                window.authFunctions.signOut();
+            signOutBtnMobile.addEventListener('click', async () => {
+                try {
+                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
+                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    await window.authFunctions.signOut();
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
             });
         }
-    
+
+        // Toggle layout "a riga multipla" nella sezione selezionato
+        try {
+            const layoutToggle = document.getElementById('multi-line-toggle');
+            if (layoutToggle) {
+                layoutToggle.checked = !!appState.multiLineLayout;
+                layoutToggle.addEventListener('change', () => {
+                    appState.multiLineLayout = layoutToggle.checked;
+                    updateDescriptiveQuartet();
+                });
+            }
+        } catch (_) {}
+
         // Adatta la pagina alla viewport all'avvio e su resize
         try {
             requestAnimationFrame(() => {
@@ -279,6 +341,65 @@ function initializeApp() {
         console.log('initializeApp completata');
     } catch (e) {
         console.error('Errore initializeApp:', e);
+    }
+}
+
+// Salva la sessione corrente (locale e cloud, se disponibile)
+async function saveCurrentMatch() {
+    try {
+        const sessionRaw = localStorage.getItem('currentScoutingSession');
+        if (!sessionRaw) return;
+        let sessionData = {};
+        try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
+
+        const currentTeam = window.teamsModule?.getCurrentTeam?.();
+        const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId;
+        const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+        const scoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
+
+        const payload = {
+            id: sessionData.id || ('match_' + Date.now()),
+            teamId: selectedTeamId || null,
+            myTeam: currentTeam?.name || null,
+            opponentTeam: sessionData.opponent || sessionData.opponentTeam || 'Sconosciuta',
+            matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+            eventType: sessionData.eventType || 'partita',
+            location: sessionData.location || 'casa',
+            venue: sessionData.venue || '',
+            description: sessionData.description || '',
+            setConfig: sessionData.setConfig || {},
+            sessionStartTime: sessionData.startTime || null,
+            scoutingEndTime: new Date().toISOString(),
+            status: 'in_progress',
+            score: {
+                home: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+                away: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0
+            },
+            scoreHistory,
+            actions,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        // Salvataggio locale
+        try {
+            const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+            const idx = local.findIndex(m => m.id === payload.id);
+            if (idx >= 0) local[idx] = payload; else local.unshift(payload);
+            localStorage.setItem('volleyMatches', JSON.stringify(local));
+        } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
+
+        // Salvataggio su Firestore (se disponibile)
+        try {
+            if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
+                const user = window.authFunctions.getCurrentUser();
+                if (user) {
+                    await window.firestoreFunctions.saveMatch(payload);
+                }
+            }
+        } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
+    } catch (error) {
+        console.warn('saveCurrentMatch errore:', error);
     }
 }
 
@@ -643,10 +764,14 @@ function initializeGuidedScouting() {
     const evalButtons = document.querySelectorAll('.eval-btn');
     evalButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // Blocca durante timer di auto-chiusura
+            if (appState.autoClosePending) return;
             const evaluation = parseInt(e.currentTarget.dataset.eval || e.currentTarget.textContent.trim()[0]);
+            // Seleziona/aggiorna la valutazione: l'ultima pressione vince
             selectEvaluation(evaluation);
-            // Avvio automatico della costruzione della quartina: niente più pulsante di conferma
-            submitGuidedAction();
+            // Non sottomettere immediatamente: la chiusura avviene alla prossima pressione di un player
+            // Se un giocatore è già selezionato, resta in attesa di conferma implicita (nuovo click player)
+            updateDescriptiveQuartet();
         });
     });
     
@@ -675,39 +800,109 @@ function updatePlayersGrid() {
         return;
     }
     
-    const validPlayers = appState.currentRoster.filter(p => p && (p.number || p.name || p.surname));
-    
-    if (validPlayers.length === 0) {
-        container.innerHTML = '<p style="color: #666;">Nessun giocatore valido nel roster.</p>';
-        return;
+    const validPlayers = appState.currentRoster
+        .filter(p => p && (p.number || p.name || p.surname))
+        .map(p => ({
+            number: p.number ?? '',
+            name: (p.nickname || `${p.name || ''} ${p.surname || ''}`.trim() || `Giocatore ${p.number}`),
+            role: p.role || ''
+        }));
+
+    const byRole = {
+        Palleggiatore: [],
+        Libero: [],
+        Schiacciatore: [],
+        Centrale: [],
+        Opposto: []
+    };
+
+    // Distribuisci i giocatori per ruolo e ordina per numero crescente
+    validPlayers.forEach(p => {
+        if (byRole[p.role] && byRole[p.role].length >= 0) byRole[p.role].push(p);
+    });
+    Object.keys(byRole).forEach(r => {
+        byRole[r].sort((a, b) => {
+            const na = parseInt(a.number, 10); const nb = parseInt(b.number, 10);
+            if (isNaN(na) && isNaN(nb)) return (a.name || '').localeCompare(b.name || '');
+            if (isNaN(na)) return 1; if (isNaN(nb)) return -1; return na - nb;
+        });
+    });
+
+    function roleClassFor(role){
+        return role === 'Palleggiatore' ? 'role-pal'
+             : role === 'Opposto' ? 'role-opp'
+             : role === 'Schiacciatore' ? 'role-sch'
+             : role === 'Centrale' ? 'role-ctr'
+             : role === 'Libero' ? 'role-lib'
+             : '';
     }
-    
-    container.innerHTML = validPlayers.map(player => {
-        const displayName = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
-        const role = player.role || '';
-        const roleShort = role ? (role[0] || '').toUpperCase() : '';
-        const roleClass = role === 'Palleggiatore' ? 'role-pal'
-                        : role === 'Opposto' ? 'role-opp'
-                        : role === 'Schiacciatore' ? 'role-sch'
-                        : role === 'Centrale' ? 'role-ctr'
-                        : role === 'Libero' ? 'role-lib'
-                        : '';
-        const nickname = player.nickname || `${player.name} ${player.surname}`.trim() || `Giocatore ${player.number}`;
+    function shortRole(role){
+        return role ? (role[0] || '').toUpperCase() : '';
+    }
+    function renderBtn(p){
+        const rc = roleClassFor(p.role);
+        const sr = shortRole(p.role);
+        const num = String(p.number || '').trim();
+        const nm = String(p.name || '').trim();
         return `
-            <button class="player-btn ${roleClass}" data-role="${role}" data-number="${player.number}" data-name="${nickname}">
+            <button class="player-btn ${rc}" data-role="${p.role}" data-number="${num}" data-name="${nm}">
                 <div class="player-line1">
-                    <span class="player-number">${player.number}</span>
-                    <span class="player-role">${roleShort}</span>
+                    <span class="player-number">${num}</span>
                 </div>
                 <div class="player-line2">
-                    <span class="player-name">${nickname}</span>
+                    <span class="player-name">${nm}</span>
                 </div>
             </button>
         `;
+    }
+    function renderEmpty(){
+        return `
+            <button class="player-btn empty" disabled aria-disabled="true">
+                <div class="player-line1"><span class="player-number">&nbsp;</span></div>
+                <div class="player-line2"><span class="player-name">&nbsp;</span></div>
+            </button>
+        `;
+    }
+
+    // Layout richiesto: 4 tasti per riga
+    const row1 = [];
+    row1.push(...byRole.Palleggiatore.slice(0,2));
+    row1.push(...byRole.Libero.slice(0,2));
+    while (row1.length < 4) row1.push(null);
+
+    const row2 = byRole.Schiacciatore.slice(0,4);
+    while (row2.length < 4) row2.push(null);
+    const row3 = byRole.Centrale.slice(0,4);
+    while (row3.length < 4) row3.push(null);
+    // Quarta riga: 3 Opposti + tasto Err Avv al posto del quarto "O"
+    const row4 = new Array(4);
+    const opps = byRole.Opposto.slice(0,3);
+    for (let i = 0; i < 3; i++) {
+        row4[i] = opps[i] || null;
+    }
+    row4[3] = { __type: 'opponent-error' };
+    
+    const ordered = [row1, row2, row3, row4].flat();
+    container.innerHTML = ordered.map(p => {
+        if (!p) return renderEmpty();
+        if (p.__type === 'opponent-error') {
+            return `
+                <button class="player-btn opponent-error-btn" type="button" title="Errore Avversario">
+                    <div class="player-line1">
+                        <span class="player-number">&nbsp;</span>
+                    </div>
+                    <div class="player-line2">
+                        <span class="player-name">Err Avv</span>
+                    </div>
+                </button>
+            `;
+        }
+        return renderBtn(p);
     }).join('');
     
     // Aggiungi event listeners
     container.querySelectorAll('.player-btn').forEach(btn => {
+        if (btn.classList.contains('opponent-error-btn')) return; // gestito separatamente
         btn.addEventListener('click', (e) => {
             const number = e.currentTarget.dataset.number;
             const name = e.currentTarget.dataset.name;
@@ -715,9 +910,61 @@ function updatePlayersGrid() {
             selectPlayer(number, name, e.currentTarget);
         });
     });
+
+    // Listener per tasto Err Avv nella griglia
+    container.querySelectorAll('.opponent-error-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            submitOpponentError();
+        });
+    });
 }
 
 function selectPlayer(number, name, btnEl) {
+    // Se esiste già una selezione (player + valutazione), chiudi l'azione precedente
+    const prevPlayer = appState.selectedPlayer;
+    const hadEvaluation = appState.selectedEvaluation != null;
+    if (prevPlayer && hadEvaluation && !appState.autoClosePending) {
+        try {
+            const fundamental = appState.calculatedFundamental || predictNextFundamental();
+            const evaluation = appState.selectedEvaluation;
+            const quartet = `${String(prevPlayer.number).padStart(2, '0')}${fundamental}${evaluation}`;
+            appState.currentSequence.push({ quartet, playerName: prevPlayer.name });
+
+            updateActionSummary();
+
+            const tempResult = determineFinalResult(fundamental, evaluation);
+            const isPoint = tempResult === 'home_point' || tempResult === 'away_point';
+            if (isPoint) {
+                const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+                const result = parseAction(actionString);
+                result.playerName = prevPlayer.name;
+                result.actionType = evaluation === 5 ? 'Punto' : 'Errore';
+                processActionResult(result);
+
+                appState.actionsLog.push({
+                    action: actionString,
+                    result: result,
+                    score: `${appState.homeScore}-${appState.awayScore}`,
+                    guided: true
+                });
+
+                appState.currentSequence = [];
+                updateActionSummary();
+            }
+        } catch (error) {
+            alert(`Errore nell'azione: ${error.message}`);
+        }
+
+        // Dopo la chiusura, azzera la valutazione selezionata
+        appState.selectedEvaluation = null;
+        // Rimuovi evidenza dai bottoni valutazione
+        const evaluationButtons = document.querySelectorAll('.eval-btn');
+        evaluationButtons.forEach(btn => btn.classList.remove('selected'));
+        // Aggiorna descrittivo
+        updateDescriptiveQuartet();
+    }
+
+    // Imposta il nuovo giocatore selezionato
     appState.selectedPlayer = { number, name };
 
     // Evidenzia visualmente il giocatore selezionato, sovrascrivendo selezioni precedenti
@@ -757,18 +1004,7 @@ function selectPlayer(number, name, btnEl) {
         selectedPlayerText.textContent = `${number} - ${name}`;
     }
 
-    // Pulisci la valutazione quando viene selezionato un giocatore
-    const selectedEvaluationText = document.getElementById('selected-evaluation-text');
-    if (selectedEvaluationText) {
-        selectedEvaluationText.textContent = '-';
-    }
-    
-    // Reset della selezione valutazione nello stato
-    appState.selectedEvaluation = null;
-    
-    // Rimuovi la classe selected da tutti i bottoni di valutazione
-    const evaluationButtons = document.querySelectorAll('.eval-btn');
-    evaluationButtons.forEach(btn => btn.classList.remove('selected'));
+    // Non azzerare la valutazione al cambio giocatore: verrà chiusa alla prossima azione se presente
 
     // Aggiorna UI
     updateNextFundamental();
@@ -780,51 +1016,25 @@ function selectPlayer(number, name, btnEl) {
 
     updateActionSummary();
 
-    // Campo descrittivo "parlante" della quartina corrente
-    function updateDescriptiveQuartet() {
-        const box = document.getElementById('pressed-buttons-box');
-        const el = document.getElementById('pressed-buttons-log');
-        if (!el) return;
-    
-        // Caso speciale: Err Avv richiesto come “– Err Avv”
-        if (appState.opponentErrorPressed) {
-            el.textContent = '– Err Avv';
-            if (box) box.style.display = 'block';
-            return;
-        }
-    
-        const player = appState.selectedPlayer;
-        const fund = appState.calculatedFundamental || predictNextFundamental();
-        const evalVal = appState.selectedEvaluation;
-    
-        if (player && fund) {
-            const names = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
-            const nn = String(player.number || '').padStart(2, '0');
-            const evalText = (evalVal ? `Val${evalVal}` : 'Val?');
-            el.textContent = `${nn} ${names[fund] || fund} ${evalText}`;
-            if (box) box.style.display = 'block';
-        } else {
-            el.textContent = '';
-            if (box) box.style.display = 'none';
-        }
-    }
+    // Aggiorna il campo descrittivo dinamico
+    updateDescriptiveQuartet();
     
     showScoutingStep('step-action');
 }
 
 // Funzione per aggiornare i testi dei pulsanti di valutazione in base al fondamentale
 function updateEvaluationButtonTexts() {
-    const fundamental = appState.calculatedFundamental || predictNextFundamental();
-    const evalButton5 = document.querySelector('.eval-btn[data-eval="5"]');
-    
-    if (evalButton5) {
-        // Per Difesa (d) e Ricezione (r): "5 - Perfetto"
-        // Per Attacco (a), Muro (m) e Battuta/Servizio (b): "5 - Punto"
-        if (fundamental === 'd' || fundamental === 'r') {
-            evalButton5.textContent = '5 - Perfetto';
-        } else {
-            evalButton5.textContent = '5 - Punto';
-        }
+    // Mappatura fissa con simboli
+    const mapping = {
+        1: '=',
+        2: '-',
+        3: '/',
+        4: '+',
+        5: '#'
+    };
+    for (let i = 1; i <= 5; i++) {
+        const btn = document.querySelector(`.eval-btn[data-eval="${i}"]`);
+        if (btn) btn.textContent = mapping[i];
     }
 }
 
@@ -860,6 +1070,70 @@ function selectEvaluation(evaluation) {
         };
         selectedEvaluationText.textContent = `${evalNames[evaluation] || evaluation}`;
     }
+
+    // Se la valutazione decreta la fine dell'azione, avvia timer 3s e blocca ulteriori pressioni
+    maybeStartAutoCloseTimer(evaluation);
+}
+
+// Avvia timer di auto-chiusura per valutazioni terminali (esito punto)
+function maybeStartAutoCloseTimer(evaluation) {
+    try {
+        if (!appState.selectedPlayer) return; // serve il giocatore per chiudere l'azione
+        const fundamental = appState.calculatedFundamental || predictNextFundamental();
+        const resultType = determineFinalResult(fundamental, evaluation);
+        const isPoint = resultType === 'home_point' || resultType === 'away_point';
+        if (!isPoint) return;
+
+        // Imposta payload per chiusura automatica
+        appState.autoClosePending = true;
+        appState.autoClosePayload = {
+            player: appState.selectedPlayer,
+            evaluation,
+            fundamental
+        };
+
+        // Disabilita pulsanti valutazione (e giocatori per evitare conflitti)
+        document.querySelectorAll('.eval-btn').forEach(btn => btn.disabled = true);
+        document.querySelectorAll('.player-btn').forEach(btn => btn.disabled = true);
+
+        // Avvia timer 3 secondi
+        if (appState.autoCloseTimerId) clearTimeout(appState.autoCloseTimerId);
+        appState.autoCloseTimerId = setTimeout(() => {
+            performAutoCloseAfterTimeout();
+        }, 3000);
+    } catch (err) {
+        console.warn('Errore avvio auto-chiusura:', err);
+    }
+}
+
+// Esegue la chiusura azione al termine del timer e avanza al fondamentale successivo
+function performAutoCloseAfterTimeout() {
+    const payload = appState.autoClosePayload;
+    // Ripristina interazioni
+    document.querySelectorAll('.eval-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.player-btn').forEach(btn => btn.disabled = false);
+    appState.autoClosePending = false;
+    appState.autoClosePayload = null;
+    if (appState.autoCloseTimerId) {
+        clearTimeout(appState.autoCloseTimerId);
+        appState.autoCloseTimerId = null;
+    }
+
+    if (!payload) return;
+
+    // Esegui chiusura utilizzando l'API esistente
+    const prevSelectedPlayer = appState.selectedPlayer;
+    const prevSelectedEvaluation = appState.selectedEvaluation;
+    const prevCalculatedFundamental = appState.calculatedFundamental;
+
+    appState.selectedPlayer = payload.player;
+    appState.selectedEvaluation = payload.evaluation;
+    appState.calculatedFundamental = payload.fundamental;
+
+    // Usa il flusso di sottomissione guidata per coerenza UI/logiche
+    submitGuidedAction();
+
+    // Non ripristinare selezioni precedenti: dopo la chiusura si torna alla selezione giocatore
 }
 
 function submitGuidedAction() {
@@ -992,33 +1266,33 @@ function submitOpponentError() {
 }
 
 function updateGamePhase(fundamental, evaluation) {
-    const eval = parseInt(evaluation);
+    const evalValue = parseInt(evaluation);
 
     // Logica per cambiare la fase di gioco basata sul risultato dell'azione
     if (fundamental === 'b') { // Servizio
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore al servizio = punto avversario, passiamo in ricezione
             appState.currentPhase = 'ricezione';
-        } else if (eval === 5) {
+        } else if (evalValue === 5) {
             // Ace = punto nostro, rimaniamo al servizio
             appState.currentPhase = 'servizio';
         }
         // Per valutazioni 2,3,4 la fase rimane invariata fino al prossimo punto
     } else if (fundamental === 'r') { // Ricezione
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in ricezione = punto avversario, passiamo al servizio
             appState.currentPhase = 'servizio';
         }
         // Per altre valutazioni continuiamo nella stessa fase
     } else if (fundamental === 'a') { // Attacco
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in attacco = punto avversario
             if (appState.currentPhase === 'servizio') {
                 appState.currentPhase = 'ricezione';
             } else {
                 appState.currentPhase = 'servizio';
             }
-        } else if (eval === 5) {
+        } else if (evalValue === 5) {
             // Punto in attacco = nostro punto
             if (appState.currentPhase === 'ricezione') {
                 appState.currentPhase = 'servizio';
@@ -1027,7 +1301,7 @@ function updateGamePhase(fundamental, evaluation) {
             }
         }
     } else if (fundamental === 'd') { // Difesa
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in difesa = punto avversario
             appState.currentPhase = 'ricezione';
         }
@@ -1147,12 +1421,27 @@ function updateNextFundamental() {
     const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
     const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');
-    if (el) el.textContent = 'SELEZIONATO:';
+    if (el) {
+        const rotationRaw = (window.appState?.currentRotation) ? String(window.appState.currentRotation) : '';
+        const rotationNorm = rotationRaw
+            ? rotationRaw.toUpperCase().startsWith('P')
+                ? rotationRaw.toUpperCase()
+                : `P${rotationRaw}`.toUpperCase()
+            : '';
+        // Header: "P# - HAI SELEZIONATO:"
+        el.textContent = `${rotationNorm ? rotationNorm + ' - ' : ''}HAI SELEZIONATO:`;
+    }
     const cur = document.getElementById('current-fundamental');
-    if (cur) cur.textContent = namesPlain[fundamental] || 'Sconosciuto';
+    if (cur) {
+        const name = namesPlain[fundamental] || 'Sconosciuto';
+        // Mostra solo il fondamentale per esteso (maiuscolo) accanto a "Elenco player:"
+        cur.textContent = `${name.toUpperCase()}`;
+    }
     
     // Aggiorna i testi dei pulsanti di valutazione quando cambia il fondamentale
     updateEvaluationButtonTexts();
+    // Aggiorna il campo "SELEZIONATO:" con il nuovo fondamentale/rotazione
+    updateDescriptiveQuartet();
 }
 
 function startSet() {
@@ -1307,6 +1596,14 @@ function updateScoutingUI() {
     
     const scoreAwayEl = document.getElementById('score-away');
     if (scoreAwayEl) scoreAwayEl.textContent = appState.awayScore;
+
+    // Aggiorna nomi squadre nella testata punteggio (mia squadra + avversaria)
+    const myTeamName = appState?.currentMatch?.myTeam || appState?.currentMatch?.homeTeam || '';
+    const opponentName = appState?.currentMatch?.opponentTeam || appState?.currentMatch?.awayTeam || '';
+    const scoreTeamMyEl = document.getElementById('score-team-my');
+    if (scoreTeamMyEl) scoreTeamMyEl.textContent = myTeamName || '-';
+    const scoreTeamOppEl = document.getElementById('score-team-opponent');
+    if (scoreTeamOppEl) scoreTeamOppEl.textContent = opponentName || '-';
     
     const rotationEl = document.getElementById('current-rotation');
     if (rotationEl) rotationEl.textContent = appState.currentRotation;
@@ -1609,6 +1906,9 @@ function rotateTeam() {
     const currentIndex = rotationSequence.indexOf(appState.currentRotation);
     const nextIndex = (currentIndex + 1) % rotationSequence.length;
     appState.currentRotation = rotationSequence[nextIndex];
+    // Aggiorna UI coerentemente dopo la rotazione
+    updateNextFundamental();
+    updateDescriptiveQuartet();
 }
 
 // === MATCH DATA PAGE ===
@@ -1671,22 +1971,138 @@ function updateDescriptiveQuartet() {
 
     // Caso speciale: Err Avv richiesto come "– Err Avv"
     if (appState.opponentErrorPressed) {
-        el.textContent = '– Err Avv';
+        const htmlErr = `<span class="token token-eval">– Err Avv</span>`;
+        el.innerHTML = htmlErr;
         if (box) box.style.display = 'block';
         return;
     }
 
     const player = appState.selectedPlayer;
-    const fund = appState.calculatedFundamental || predictNextFundamental();
+    const fundamentalCode = appState.calculatedFundamental || predictNextFundamental();
     const evalVal = appState.selectedEvaluation;
 
-    if (player && fund) {
-        const names = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
+    // La rotazione ora è mostrata nella riga di intestazione (next-fundamental)
+
+    // Sigle richieste per il riquadro selezionato
+    const fundamentalAbbr = { b: 'SERV', r: 'RICE', a: 'ATT', d: 'DIF', m: 'MURO' };
+    const fundamentalUpper = fundamentalAbbr[fundamentalCode] || '';
+
+    const evalNames = {
+        1: 'ERRORE',
+        2: 'NEGATIVO',
+        3: 'NEUTRO',
+        4: 'POSITIVO',
+        5: 'PUNTO'
+    };
+    const evalText = evalVal ? (evalNames[evalVal] || String(evalVal)) : '';
+
+    // Layout multi‑linea: mostra la progressione dell'azione corrente
+    if (appState.multiLineLayout) {
+        const seq = Array.isArray(appState.currentSequence) ? appState.currentSequence.slice() : [];
+        // Calcola la quartina provvisoria (se disponibile) per prevenire duplicati
+        const provisionalQuartet = (player && evalVal)
+            ? `${String(player.number || '').padStart(2, '0')}${fundamentalCode}${evalVal}`
+            : null;
+
+        // Aggiungi la riga corrente (provvisoria):
+        // - se c'è un player selezionato
+        // - oppure se è stata selezionata una valutazione (mostra solo fondamentale + valutazione)
+        const lines = [];
+        if (player) {
+            const nn = String(player.number || '').padStart(2, '0');
+            const nameUpper = String(player.name || '').toUpperCase();
+            const evalToken = evalText;
+            const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
+            const pTok = (typeof escapeHtml === 'function') ? escapeHtml([nn, nameUpper].filter(Boolean).join(' ')) : [nn, nameUpper].filter(Boolean).join(' ');
+            const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
+            const evalSpan = evalToken
+                ? `<span class="token token-eval">${eTok}</span>`
+                : `<span class="token token-eval token-placeholder"></span>`;
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalSpan}</div>`);
+        } else if (evalVal) {
+            // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
+            const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
+            const evalToken = evalText;
+            const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
+            const evalSpan = evalToken
+                ? `<span class="token token-eval">${eTok}</span>`
+                : `<span class="token token-eval token-placeholder"></span>`;
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player token-placeholder"></span>${evalSpan}</div>`);
+        }
+
+        // Aggiungi le righe della sequenza (più recente in alto)
+        for (let i = seq.length - 1; i >= 0; i--) {
+            const item = seq[i];
+            const q = String(item.quartet || '');
+            const nn = q.substring(0, 2);
+            const f = q.charAt(2);
+            const e = parseInt(q.charAt(3), 10);
+            const fUpper = fundamentalAbbr[f] || '';
+            const evalNames = {
+                1: 'ERRORE',
+                2: 'NEGATIVO',
+                3: 'NEUTRO',
+                4: 'POSITIVO',
+                5: 'PUNTO'
+            };
+            const evalTextLine = evalNames[e] || '';
+            const nameUpper = String(item.playerName || '').toUpperCase();
+            const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fUpper) : fUpper;
+            const pTok = (typeof escapeHtml === 'function') ? escapeHtml([nn, nameUpper].filter(Boolean).join(' ')) : [nn, nameUpper].filter(Boolean).join(' ');
+            const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalTextLine) : evalTextLine;
+            // Evita duplicare l'ultima riga se coincide con la riga provvisoria
+            if (provisionalQuartet && i === seq.length - 1 && q === provisionalQuartet) {
+                continue;
+            }
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalTextLine ? `<span class="token token-eval">${eTok}</span>` : ''}</div>`);
+        }
+
+        el.classList.add('multiline');
+        el.innerHTML = lines.join('');
+        if (box) box.style.display = lines.length ? 'block' : 'none';
+        return;
+    }
+
+    // Layout a riga singola: tre colonne
+    if (player) {
         const nn = String(player.number || '').padStart(2, '0');
-        const evalText = (evalVal ? `Val${evalVal}` : 'Val?');
-        el.textContent = `${nn} ${names[fund] || fund} ${evalText}`;
+        const nameUpper = String(player.name || '').toUpperCase();
+        const fundamentalToken = fundamentalUpper;
+        const playerToken = [nn, nameUpper].filter(Boolean).join(' ');
+        const evalToken = evalText;
+        const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
+        const pTok = (typeof escapeHtml === 'function') ? escapeHtml(playerToken) : playerToken;
+        const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
+        const evalSpan = evalToken
+            ? `<span class="token token-eval">${eTok}</span>`
+            : `<span class="token token-eval token-placeholder"></span>`;
+        const html = `
+            <span class="token token-fundamental">${fTok}</span>
+            <span class="token token-player">${pTok}</span>
+            ${evalSpan}
+        `;
+        el.classList.remove('multiline');
+        el.innerHTML = html;
+        if (box) box.style.display = 'block';
+    } else if (evalVal) {
+        // Nessun player selezionato: mostra fondamentale previsto + placeholder giocatore + valutazione
+        const fundamentalToken = fundamentalUpper;
+        const evalToken = evalText;
+        const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
+        const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
+        const evalSpan = evalToken
+            ? `<span class="token token-eval">${eTok}</span>`
+            : `<span class="token token-eval token-placeholder"></span>`;
+        const html = `
+            <span class="token token-fundamental">${fTok}</span>
+            <span class="token token-player token-placeholder"></span>
+            ${evalSpan}
+        `;
+        el.classList.remove('multiline');
+        el.innerHTML = html;
         if (box) box.style.display = 'block';
     } else {
+        el.classList.remove('multiline');
         el.textContent = '';
         if (box) box.style.display = 'none';
     }
