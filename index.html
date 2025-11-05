@@ -619,7 +619,11 @@
             let maxItem = 0;
             items.forEach(el => { maxItem = Math.max(maxItem, el.scrollWidth); });
             let target = Math.ceil(maxItem + extra + 12);
-            const MIN = 180, MAX = 420;
+            // Riduzione spazio occupato del 60% (usa il 40% della larghezza calcolata)
+            const REDUCTION = 0.4;
+            const MIN = 110; // garantisce usabilità minima
+            const MAX = Math.round(420 * REDUCTION);
+            target = Math.round(target * REDUCTION);
             target = Math.max(MIN, Math.min(MAX, target));
             main.style.setProperty('--sidebar-width', target + 'px');
           }
@@ -670,7 +674,9 @@
             const startX = e.clientX;
             const startWidth = sidebar.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
-            const MIN = 180, MAX = 420;
+            // Limiti coerenti con la riduzione al 40%
+            const REDUCTION = 0.4;
+            const MIN = 110, MAX = Math.round(420 * REDUCTION);
             function onMove(ev){
               const dx = ev.clientX - startX;
               const next = Math.max(MIN, Math.min(MAX, Math.round(startWidth + dx)));
