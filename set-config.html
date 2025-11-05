@@ -30,7 +30,7 @@
             border-radius: 12px;
             padding: 12px; /* ridotto del 50% */
             margin-bottom: 12px; /* ridotto del 50% */
-            border: 2px solid #0d6efd; /* bordo blu evidente */
+            border: none; /* rimosso bordo blu dalla testata */
         }
 
         .header-left {
@@ -305,18 +305,47 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header coerente con welcome/matches -->
+        <style>
+            .header { background:#fff; border-radius:12px; padding:8px 12px; margin-bottom:16px; display:flex; justify-content:center; align-items:center; position:relative; }
+            .logo { display:flex; align-items:center; }
+            .logo-icon { width:384px; height:auto; display:flex; align-items:center; justify-content:center; }
+            .logo-icon img { width:100%; height:auto; object-fit:contain; display:block; }
+            .back-actions { position:absolute; top:8px; left:8px; display:flex; align-items:center; z-index:2; }
+            .account-actions { position:absolute; top:8px; right:8px; display:flex; align-items:center; z-index:2; }
+            .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
+            .icon-button { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
+            .icon-button:hover, .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+            .account-dropdown { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e9ecef; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); min-width:160px; }
+            .account-dropdown .menu-item { width:100%; padding:10px 12px; text-align:left; background:transparent; border:none; cursor:pointer; color:#333; }
+            .account-dropdown .menu-item:hover { background:#f8f9fa; }
+        </style>
         <div class="header">
-            <div class="header-left">
-                <a href="match-setup.html" class="back-btn">
-                    ← Modifica Partita
-                </a>
-                <div>
-                    <h1 class="page-title">Configurazione Set</h1>
-                    <p class="section-subtitle">Configura il set da giocare e i parametri di inizio</p>
+            <div class="logo">
+                <div class="logo-icon" aria-hidden="true">
+                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" />
+                </div>
+            </div>
+            <div class="back-actions">
+                <a href="#" id="backBtn" class="back-btn" aria-label="Indietro" title="Indietro">←</a>
+            </div>
+            <div class="account-actions">
+                <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"></circle>
+                        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <div class="account-dropdown" id="accountMenu" hidden>
+                    <div class="menu-item" id="accountEmail">Caricamento...</div>
+                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="accountLogout">Esci</button>
                 </div>
             </div>
         </div>
+
+        <!-- Script header aggiornato -->
 
         <!-- Match Info -->
         <div class="match-info">
@@ -425,11 +454,20 @@
         const phaseButtons = document.querySelectorAll('.phase-btn');
         const ourRotationSelect = document.getElementById('ourRotationSelect');
         const opponentRotationSelect = document.getElementById('opponentRotationSelect');
+        // Header elements
+        const accountBtn = document.getElementById('accountBtn');
+        const accountMenu = document.getElementById('accountMenu');
+        const accountEmail = document.getElementById('accountEmail');
+        const accountLogout = document.getElementById('accountLogout');
+        const goToMatchesBtn = document.getElementById('goToMatchesBtn');
+        const goToTeamsBtn = document.getElementById('goToTeamsBtn');
+        const backBtn = document.getElementById('backBtn');
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
             initializeSetConfig();
             setupEventListeners();
+            setupHeaderListeners();
         });
 
         function initializeSetConfig() {
@@ -447,6 +485,7 @@
                 }
                 
                 currentUser = user;
+                if (accountEmail) accountEmail.textContent = user.email;
                 loadMatchData();
             });
         }
@@ -544,6 +583,57 @@
 
             // Scout button
             scoutBtn.addEventListener('click', startScouting);
+        }
+
+        function setupHeaderListeners(){
+            // Menu account toggle
+            if (accountBtn && accountMenu){
+                accountBtn.addEventListener('click', () => {
+                    const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
+                    accountBtn.setAttribute('aria-expanded', (!expanded).toString());
+                    accountMenu.hidden = expanded;
+                });
+                document.addEventListener('click', (e) => {
+                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && e.target !== accountBtn){
+                        accountMenu.hidden = true;
+                        accountBtn.setAttribute('aria-expanded','false');
+                    }
+                });
+            }
+            // Navigazione menu account
+            if (goToMatchesBtn){
+                goToMatchesBtn.addEventListener('click', () => { window.location.href = 'matches.html'; });
+            }
+            if (goToTeamsBtn){
+                goToTeamsBtn.addEventListener('click', () => { window.location.href = 'welcome.html'; });
+            }
+            // Logout
+            if (accountLogout){
+                accountLogout.addEventListener('click', handleLogout);
+            }
+            // Back
+            if (backBtn){
+                backBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (window.history.length > 1){
+                        window.history.back();
+                    } else {
+                        window.location.href = 'match-setup.html';
+                    }
+                });
+            }
+        }
+
+        function handleLogout(){
+            try {
+                if (window.authFunctions && typeof window.authFunctions.signOut === 'function'){
+                    window.authFunctions.signOut();
+                } else {
+                    console.warn('authFunctions.signOut non disponibile');
+                }
+            } catch (e){
+                console.error('Errore durante il logout:', e);
+            }
         }
 
         function validateConfig() {

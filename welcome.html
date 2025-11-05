@@ -37,35 +37,58 @@
             background: var(--surface);
             border: 1px solid var(--accent);
             border-radius: var(--radius);
-            padding: 12px 14px;
+            padding: 8px 12px;
             margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative; /* consente posizionamento assoluto dell'icona account */
         }
 
         .logo { display: flex; align-items: center; gap: 10px; }
         .logo-icon {
-            width: 32px; height: 32px; border-radius: 50%;
+            width: 480px; /* 5x rispetto a 96px */
+            height: auto;
             display: flex; align-items: center; justify-content: center;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--accent); /* icona in blu */
+            background: transparent; /* niente background */
+            border: none; /* niente bordo */
+            overflow: visible; /* nessun ritaglio */
+            padding: 0; /* nessun padding */
         }
-        .logo-text { font-size: 16px; font-weight: 600; color: var(--text); }
+        .logo-icon img { width: 100%; height: auto; object-fit: contain; display: block; }
 
-        .user-info { display: flex; align-items: center; gap: 10px; }
-        .user-name { font-weight: 400; color: var(--muted); }
-        .btn-logout {
+        .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
+        .icon-button {
             background: #ffffff;
             color: var(--accent);
             border: 1px solid var(--border);
-            padding: 6px 10px;
-            border-radius: 999px;
-            cursor: pointer; font-weight: 600;
+            padding: 6px; /* icon-only, nessun testo */
+            border-radius: 8px;
+            cursor: pointer;
             transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
         }
-        .btn-logout:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+        .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+        .account-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 14px rgba(0,0,0,.08);
+            min-width: 140px;
+            display: none;
+        }
+        .account-dropdown.open { display: block; }
+        .account-dropdown .menu-item {
+            width: 100%;
+            padding: 10px 12px;
+            text-align: left;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .account-dropdown .menu-item:hover { background: #f8f9fa; }
 
         /* Sezione benvenuto */
         .welcome-section {
@@ -155,10 +178,7 @@
             .container { padding: 12px; }
             .header { padding: 10px 12px; border-radius: var(--radius-sm); }
             .logo { gap: 8px; }
-            .logo-icon { width: 32px; height: 32px; }
-            .logo-text { font-size: 16px; }
-            .user-name { font-size: 13px; }
-            .btn-logout { padding: 8px 12px; font-size: 14px; border-radius: var(--radius-sm); }
+            .logo-icon { width: 70vw; max-width: 480px; }
 
             .welcome-section { padding: 16px; margin-bottom: 14px; }
             .welcome-title { font-size: 20px; margin-bottom: 6px; }
@@ -197,19 +217,19 @@
         <div class="header">
             <div class="logo">
                 <div class="logo-icon" aria-hidden="true">
-                    <!-- Icona minimal monocromatica (pallone stilizzato) -->
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M3 12h18" />
-                        <path d="M12 3c4.5 2.5 4.5 15.5 0 18.0" />
-                        <path d="M5 7c5 3 9 3 14 0" />
-                    </svg>
+                    <img src="Copilot_20251105_011636.png" alt="Logo My Volley Scout" />
                 </div>
-                <div class="logo-text">My Volley Scout</div>
             </div>
-            <div class="user-info">
-                <span class="user-name" id="userName">Caricamento...</span>
-                <button class="btn-logout" id="logoutBtn">Esci</button>
+            <div class="account-actions">
+                <button class="icon-button" id="accountMenuBtn" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"></circle>
+                        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <div class="account-dropdown" id="accountMenu">
+                    <button class="menu-item" id="logoutBtn">Esci</button>
+                </div>
             </div>
         </div>
 
@@ -375,6 +395,8 @@
         // Elementi DOM
         const userName = document.getElementById('userName');
         const logoutBtn = document.getElementById('logoutBtn');
+        const accountMenuBtn = document.getElementById('accountMenuBtn');
+        const accountMenu = document.getElementById('accountMenu');
         const teamsGrid = document.getElementById('teamsGrid');
         const emptyState = document.getElementById('emptyState');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -427,13 +449,13 @@
                 }
                 
                 currentUser = user;
-                userName.textContent = user.email;
+                if (userName) userName.textContent = user.email;
                 loadTeams();
                 hideLoadingScreen();
             });
 
             // Event listeners
-            logoutBtn.addEventListener('click', handleLogout);
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             createTeamBtn.addEventListener('click', handleCreateTeam);
             importTeamBtn.addEventListener('click', handleImportTeam);
             exportAllBtn.addEventListener('click', handleExportAll);

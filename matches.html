@@ -25,20 +25,61 @@
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px 30px;
-            margin-bottom: 30px;
-            display: grid;
-            grid-template-columns: auto 1fr auto; /* sinistra | centro | destra */
-            align-items: start; /* posiziona verso l'alto */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border: 1px solid #0d6efd; /* contorno blu */
+            background: #ffffff;
+            /* bordo rimosso per richiesta utente */
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: center; /* centra il logo */
+            align-items: center;
+            position: relative; /* per posizionare icone */
         }
-
-        .header .team-info { justify-self: center; }
-        .header-left-col { justify-self: start; align-self: start; display:flex; flex-direction:column; gap:8px; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 480px; /* 5x */
+            height: auto;
+            display: flex; align-items: center; justify-content: center;
+            background: transparent;
+            border: none;
+            overflow: visible;
+            padding: 0;
+        }
+        .logo-icon img { width: 100%; height: auto; object-fit: contain; display: block; }
+        .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
+        .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
+        .icon-button {
+            background: #ffffff;
+            color: #0d6efd;
+            border: 1px solid #e9ecef;
+            padding: 6px; /* icon-only */
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+        }
+        .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+        .back-btn { background: #ffffff; color: #0d6efd; border: 1px solid #e9ecef; padding: 6px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; }
+        .back-btn:hover { background: #f8f9fa; border-color: #dbe1e6; }
+        .account-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 4px 14px rgba(0,0,0,.08);
+            min-width: 160px;
+        }
+        .account-dropdown .menu-item {
+            width: 100%;
+            padding: 10px 12px;
+            text-align: left;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #333;
+        }
+        .account-dropdown .menu-item:hover { background: #f8f9fa; }
 
         .back-btn {
             background: #f8f9fa;
@@ -308,34 +349,30 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header coerente con welcome -->
         <div class="header">
-            <div class="header-left-col">
-                <a href="welcome.html" class="back-btn" aria-label="Torna alle squadre" title="Torna alle squadre">←</a>
-                <div class="account">
-                    <button id="accountBtn" class="account-btn" aria-expanded="false" aria-controls="accountMenu" title="Account">
-                        <span class="account-avatar">👤</span>
-                    </button>
-                    <div id="accountMenu" class="account-menu" hidden>
-                        <div class="account-row">
-                            <div class="account-label">Utente</div>
-                            <div class="account-value" id="accountEmail">Caricamento...</div>
-                        </div>
-                        <button class="menu-item" id="accountLogout">Esci</button>
-                    </div>
+            <div class="logo">
+                <div class="logo-icon" aria-hidden="true">
+                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" />
                 </div>
             </div>
-            <div class="team-info">
-                <div class="team-icon">🏐</div>
-                <div class="team-details">
-                    <div id="teamTitle" style="line-height:1.2;">
-                        <div id="clubNameTop" style="font-size:18px; font-weight:600; color:#111;">Caricamento...</div>
-                        <div id="teamNameBottom" style="font-size:16px; color:#333;">Caricamento...</div>
-                    </div>
-                    <div class="team-stats" id="teamStats">Caricamento statistiche...</div>
+            <div class="back-actions">
+                <a href="#" id="backBtn" class="back-btn" aria-label="Indietro" title="Indietro">←</a>
+            </div>
+            <div class="account-actions">
+                <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"></circle>
+                        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <div class="account-dropdown" id="accountMenu" hidden>
+                    <div class="menu-item" id="accountEmail">Caricamento...</div>
+                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="accountLogout">Esci</button>
                 </div>
             </div>
-            <div></div>
         </div>
 
         <!-- Tabs -->
@@ -506,6 +543,29 @@
             if (accountLogout){
                 accountLogout.addEventListener('click', handleLogout);
             }
+            const goToTeamsBtn = document.getElementById('goToTeamsBtn');
+            if (goToTeamsBtn){
+                goToTeamsBtn.addEventListener('click', () => {
+                    window.location.href = 'welcome.html';
+                });
+            }
+            const goToMatchesBtn = document.getElementById('goToMatchesBtn');
+            if (goToMatchesBtn){
+                goToMatchesBtn.addEventListener('click', () => {
+                    window.location.href = 'matches.html';
+                });
+            }
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn){
+                backBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (window.history.length > 1){
+                        window.history.back();
+                    } else {
+                        window.location.href = 'welcome.html';
+                    }
+                });
+            }
             // Tabs
             if (tabNew) tabNew.addEventListener('click', () => switchTab('new'));
             if (tabList) tabList.addEventListener('click', () => switchTab('list'));
@@ -573,7 +633,9 @@
                 const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
                 return (teamIdMatch) || (selName && (my === selName || home === selName || away === selName));
             }).length : 0;
-            teamStats.textContent = `${playerCount} giocatori • ${matchesCount} partite`;
+            if (teamStats) {
+                teamStats.textContent = `${playerCount} giocatori • ${matchesCount} partite`;
+            }
         }
 
         async function loadMatches() {
@@ -956,5 +1018,23 @@
              return result;
          }
      </script>
+    <script>
+      // Toggle Account menu in TopAppBar
+      (function(){
+        const toggle = document.getElementById('headerMenuToggle');
+        const menu = document.getElementById('headerMenu');
+        if (!toggle || !menu) return;
+        const closeMenu = () => { menu.setAttribute('hidden',''); toggle.setAttribute('aria-expanded','false'); };
+        toggle.addEventListener('click', () => {
+          const isHidden = menu.hasAttribute('hidden');
+          if (isHidden) { menu.removeAttribute('hidden'); toggle.setAttribute('aria-expanded','true'); }
+          else { closeMenu(); }
+        });
+        document.addEventListener('click', (e) => {
+          if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+      })();
+    </script>
 </body>
 </html>

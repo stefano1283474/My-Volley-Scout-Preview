@@ -7,7 +7,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=2">
     <meta name="theme-color" content="#2563eb">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="icon" type="image/png" href="Copilot_20251105_011636.png">
     <script>
         // Registra il Service Worker per PWA
         if ('serviceWorker' in navigator) {
@@ -159,27 +159,22 @@
       </div>
     </div>
     <div id="app" style="display:none;">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <h1>My Volley Scout</h1>
-                
-                <!-- User Info Section -->
-                <div class="auth-section">
-                    <div id="userInfo" class="user-info">
-                        <span id="userEmail"></span>
-                        <button id="analysisBtn" class="btn btn-outline desktop-only nav-btn" data-page="analysis">Analisi</button>
-                        <button id="backToWelcomeBtn" class="btn btn-outline desktop-only">Cambia Squadra</button>
-                        <button id="signOutBtn" class="btn btn-outline desktop-only">Esci</button>
-                        <button id="headerMenuToggle" class="btn btn-outline mobile-only" aria-expanded="false" aria-controls="headerMenu" title="Menu">
-                          ⋮
-                        </button>
-                        <div id="headerMenu" class="header-menu" hidden>
-                          <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">Salva</button>
-                          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">Vai a Elenco Partite</button>
-                          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">Vai a Elenco Squadre</button>
-                          <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">Esci</button>
-                        </div>
+        <!-- TopAppBar -->
+        <header class="topappbar">
+            <div class="topappbar-content">
+                <div class="topappbar-left">
+                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" class="app-logo" width="32" height="32" />
+                    <div class="app-title">My Volley Scout</div>
+                </div>
+                <div class="topappbar-right">
+                    <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
+                        <span class="avatar">👤</span>
+                    </button>
+                    <div id="headerMenu" class="top-account-menu" hidden>
+                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">Salva</button>
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">Vai a Elenco Partite</button>
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">Vai a Elenco Squadre</button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">Esci</button>
                     </div>
                 </div>
             </div>
@@ -201,7 +196,7 @@
                     <div class="section-panel" id="punteggio-section">
                       <div class="score-current">
                         <span class="team-name team-my" id="score-team-my">-</span>
-                        <span class="score-values"><span id="score-home">0</span> - <span id="score-away">0</span></span>
+                        <span class="score-values"><span id="score-home">0</span><span class="score-separator">:</span><span id="score-away">0</span></span>
                         <span class="team-name team-opponent" id="score-team-opponent">-</span>
                         <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
                       </div>

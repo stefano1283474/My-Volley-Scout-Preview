@@ -247,14 +247,45 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <a href="matches.html" class="back-btn">
-                ← Torna alle partite
-            </a>
-            <h1 class="page-title">Nuova Partita</h1>
-            <p class="page-subtitle">Inserisci i dettagli della partita per iniziare lo scouting</p>
-        </div>
+        <!-- TopAppBar -->
+        <header class="topappbar">
+            <div class="topappbar-content">
+                <div class="topappbar-left">
+                    <a href="matches.html" class="back-btn" title="Torna alle partite">←</a>
+                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" class="app-logo" width="32" height="32" />
+                    <div class="app-title">My Volley Scout</div>
+                </div>
+                <div class="topappbar-right">
+                    <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
+                        <span class="avatar">👤</span>
+                    </button>
+                    <div id="headerMenu" class="top-account-menu" hidden>
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">Vai a Elenco Partite</button>
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">Vai a Elenco Squadre</button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">Esci</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <script>
+          // Toggle Account menu in TopAppBar (Match Setup)
+          (function(){
+            const toggle = document.getElementById('headerMenuToggle');
+            const menu = document.getElementById('headerMenu');
+            if (!toggle || !menu) return;
+            const closeMenu = () => { menu.setAttribute('hidden',''); toggle.setAttribute('aria-expanded','false'); };
+            toggle.addEventListener('click', () => {
+              const isHidden = menu.hasAttribute('hidden');
+              if (isHidden) { menu.removeAttribute('hidden'); toggle.setAttribute('aria-expanded','true'); }
+              else { closeMenu(); }
+            });
+            document.addEventListener('click', (e) => {
+              if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
+            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+          })();
+        </script>
 
         <!-- Form Section -->
         <div class="form-section">

@@ -35,6 +35,30 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
+/* TopAppBar: nuova barra superiore con logo a sinistra e account a destra */
+.topappbar { position: sticky; top: 0; z-index: 1000; background: #2563eb; color: #fff; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+.topappbar-content { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 1200px; margin: 0 auto; }
+.topappbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topappbar-right { position: relative; display: flex; align-items: center; gap: 8px; }
+.app-logo { width: 32px; height: 32px; border-radius: 8px; display: block; }
+.app-title { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
+.top-account-btn { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.top-account-btn:hover { background: rgba(255,255,255,0.18); }
+.top-account-btn .avatar { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.25); display: inline-flex; align-items: center; justify-content: center; }
+
+/* Dropdown menu associato al pulsante account */
+.top-account-menu { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); padding: 6px; min-width: 180px; width: max-content; }
+.top-account-menu .menu-item { width: 100%; text-align: left; padding: 6px 10px; border: none; background: transparent; cursor: pointer; font-size: 0.95rem; line-height: 1.2; display: flex; align-items: center; gap: 8px; white-space: nowrap; border-radius: 8px; color: #111; }
+.top-account-menu .menu-item:hover { background: #f2f7ff; }
+
+/* Compattezza su mobile */
+@media (max-width: 480px) {
+  .app-logo { width: 28px; height: 28px; }
+  .app-title { font-size: 0.95rem; }
+}
+
 .header h1 {
     text-align: center;
     margin-bottom: 1.35rem; /* -10% rispetto a 1.5rem */
@@ -1270,12 +1294,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* tutto su una sola riga */
     font-size: 1.1em;
     font-weight: 600;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: none; /* rimuove la linea sottile sotto le scritte del punteggio */
 }
 
 /* Stili per lo storico punteggio */
@@ -1350,6 +1374,26 @@ body {
     color: #1976d2;
     font-weight: 700;
     font-size: 1.2em;
+}
+
+/* Centra orizzontalmente i due punti tra i punteggi e distribuisce i numeri ai lati */
+.score-current .score-values {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap; /* evita a capo all'interno dei punteggi */
+}
+
+/* Evita a capo dei nomi squadra e del set; tronca se necessario */
+.score-current .team-name,
+.score-current .set-info {
+    white-space: nowrap;
+}
+.score-current .team-name {
+    max-width: 40vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Stili per la sequenza delle quartine */
