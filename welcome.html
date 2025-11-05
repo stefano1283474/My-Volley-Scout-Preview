@@ -35,7 +35,7 @@
         /* Header essenziale */
         .header {
             background: var(--surface);
-            border: 1px solid var(--accent);
+            border: none; /* rimosso bordo blu dalla testata */
             border-radius: var(--radius);
             padding: 8px 12px;
             margin-bottom: 16px;
@@ -47,7 +47,7 @@
 
         .logo { display: flex; align-items: center; gap: 10px; }
         .logo-icon {
-            width: 480px; /* 5x rispetto a 96px */
+            width: 432px; /* -10% rispetto a 480px */
             height: auto;
             display: flex; align-items: center; justify-content: center;
             background: transparent; /* niente background */
@@ -228,6 +228,9 @@
                     </svg>
                 </button>
                 <div class="account-dropdown" id="accountMenu">
+                    <div class="menu-item" id="accountEmail" style="cursor:default; color:#64748b;">Utente</div>
+                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
                     <button class="menu-item" id="logoutBtn">Esci</button>
                 </div>
             </div>
@@ -394,9 +397,12 @@
 
         // Elementi DOM
         const userName = document.getElementById('userName');
+        const accountEmail = document.getElementById('accountEmail');
         const logoutBtn = document.getElementById('logoutBtn');
         const accountMenuBtn = document.getElementById('accountMenuBtn');
         const accountMenu = document.getElementById('accountMenu');
+        const goToTeamsBtn = document.getElementById('goToTeamsBtn');
+        const goToMatchesBtn = document.getElementById('goToMatchesBtn');
         const teamsGrid = document.getElementById('teamsGrid');
         const emptyState = document.getElementById('emptyState');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -450,11 +456,41 @@
                 
                 currentUser = user;
                 if (userName) userName.textContent = user.email;
+                if (accountEmail) accountEmail.textContent = user.email;
                 loadTeams();
                 hideLoadingScreen();
             });
 
             // Event listeners
+            // Account menu toggle
+            if (accountMenuBtn && accountMenu) {
+                accountMenuBtn.setAttribute('aria-expanded', 'false');
+                accountMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = accountMenu.classList.contains('open');
+                    if (isOpen) {
+                        accountMenu.classList.remove('open');
+                        accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    } else {
+                        accountMenu.classList.add('open');
+                        accountMenuBtn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+                document.addEventListener('click', (e) => {
+                    if (accountMenu.classList.contains('open') && !accountMenu.contains(e.target) && e.target !== accountMenuBtn) {
+                        accountMenu.classList.remove('open');
+                        accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            // Navigazione menu account
+            if (goToTeamsBtn) {
+                goToTeamsBtn.addEventListener('click', () => { window.location.href = 'welcome.html'; });
+            }
+            if (goToMatchesBtn) {
+                goToMatchesBtn.addEventListener('click', () => { window.location.href = 'matches.html'; });
+            }
+            // Logout
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             createTeamBtn.addEventListener('click', handleCreateTeam);
             importTeamBtn.addEventListener('click', handleImportTeam);
