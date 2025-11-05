@@ -296,7 +296,7 @@ body {
 
 .set-sidebar { 
   position: sticky; 
-  top: var(--topbar-h, 60px); 
+  top: calc(var(--topbar-h, 60px) + 8px); 
   align-self: start; 
   background: #ffffff; 
   border: 1px solid #e5e7eb; 
@@ -338,9 +338,9 @@ body {
   /* Overlay mobile */
   .set-sidebar { 
     position: fixed; 
-    left: 0; top: var(--topbar-h, 56px); 
+    left: 0; top: calc(var(--topbar-h, 56px) + 8px); 
     width: min(80vw, var(--sidebar-width)); max-width: 85vw; 
-    height: calc(100dvh - var(--topbar-h, 56px)); 
+    height: calc(100dvh - var(--topbar-h, 56px) - 8px); 
     padding: 12px; 
     overflow-y: auto; 
     overflow-x: hidden; 
@@ -359,7 +359,7 @@ body {
   }
   .main.with-sidebar.sidebar-open::after { 
     content: ""; 
-    position: fixed; left: 0; right: 0; bottom: 0; top: var(--topbar-h, 56px); 
+    position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--topbar-h, 56px) + 8px); 
     background: rgba(0,0,0,0.25); 
     z-index: 998; /* sotto la topappbar */ 
   }
