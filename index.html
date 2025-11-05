@@ -595,10 +595,18 @@
         const main = document.querySelector('.main.with-sidebar');
         const btn = document.getElementById('toggleSetSidebar');
         const sidebar = document.querySelector('.set-sidebar');
+        const topbar = document.querySelector('.topappbar');
         const resizer = sidebar ? sidebar.querySelector('.sidebar-resizer') : null;
         if (!main || !btn || !sidebar) return;
 
         const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+        // Calcola altezza topappbar e imposta variabile CSS
+        function setTopbarHeight(){
+          const h = topbar ? Math.round(topbar.getBoundingClientRect().height) : 56;
+          document.documentElement.style.setProperty('--topbar-h', h + 'px');
+        }
+        setTopbarHeight();
 
         function measureSidebarWidth(){
           const cs = getComputedStyle(sidebar);
@@ -662,6 +670,7 @@
 
         // Aggiorna stato su resize
         window.addEventListener('resize', () => {
+          setTopbarHeight();
           const shouldOpen = !isMobile();
           setOpen(shouldOpen);
         });

@@ -296,7 +296,7 @@ body {
 
 .set-sidebar { 
   position: sticky; 
-  top: 60px; 
+  top: var(--topbar-h, 60px); 
   align-self: start; 
   background: #ffffff; 
   border: 1px solid #e5e7eb; 
@@ -338,17 +338,19 @@ body {
   /* Overlay mobile */
   .set-sidebar { 
     position: fixed; 
-    left: 0; top: 56px; 
+    left: 0; top: var(--topbar-h, 56px); 
     width: min(80vw, var(--sidebar-width)); max-width: 85vw; 
-    height: calc(100dvh - 56px); 
+    height: calc(100dvh - var(--topbar-h, 56px)); 
     padding: 12px; 
     overflow-y: auto; 
     overflow-x: hidden; 
-    z-index: 1001; 
+    z-index: 999; /* sotto la topappbar (z-index: 1000) */ 
     transform: translateX(-100%); 
     opacity: 0; 
     pointer-events: none; 
     box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    transition: transform .25s ease-out, opacity .2s ease-out; 
+    will-change: transform, opacity; 
   }
   .main.with-sidebar.sidebar-open .set-sidebar { 
     transform: translateX(0); 
@@ -357,9 +359,9 @@ body {
   }
   .main.with-sidebar.sidebar-open::after { 
     content: ""; 
-    position: fixed; inset: 0; 
+    position: fixed; left: 0; right: 0; bottom: 0; top: var(--topbar-h, 56px); 
     background: rgba(0,0,0,0.25); 
-    z-index: 1000; 
+    z-index: 998; /* sotto la topappbar */ 
   }
   .set-list { flex-direction: column; gap: 8px; }
   .set-item { white-space: nowrap; width: 100%; overflow: hidden; text-overflow: ellipsis; }
