@@ -34,23 +34,23 @@
 
         .logo {
             text-align: center;
-            margin-bottom: 8px; /* riduce ulteriormente lo spazio sotto il logo */
+            margin-bottom: 4px; /* -75% di spazio sotto il blocco logo */
         }
 
+        /* Slot logo: grande ma senza spazi superflui, con ritaglio verticale */
         .logo-icon {
-            width: 360px; /* 2x rispetto a 180px */
-            height: auto; /* usa l'altezza naturale dell'immagine per evitare spazio vuoto */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto; /* nessuno spazio extra attorno al logo */
-            padding: 0; /* esplicito: niente padding */
-            /* nessun background, nessun bordo arrotondato */
+            width: 100%;       /* occupa tutta la card, massimo 576px */
+            max-width: 576px;
+            height: 180px;     /* +25% spazio verticale per mostrare più logo */
+            overflow: hidden;  /* ritaglia l'eventuale trasparenza del PNG */
+            display: block;
+            margin: 0 auto 0;  /* nessun padding, nessun margine inferiore extra */
         }
         .logo-icon img {
             width: 100%;
-            height: auto;
-            object-fit: contain; /* mostra tutto il logo senza tagli */
+            height: 100%;
+            object-fit: cover;       /* riempie e taglia il vuoto ai bordi */
+            object-position: 50% 40%; /* sposta l'inquadratura 10% verso l'alto */
             display: block;
         }
 
@@ -58,7 +58,7 @@
             font-size: 24px;
             font-weight: 600;
             color: #1a1a1a;
-            margin-bottom: 8px;
+            margin-bottom: 4px; /* -50% per avvicinare il titolo al logo */
         }
 
         .logo-subtitle {
@@ -218,7 +218,7 @@
     <div class="auth-container">
         <div class="logo">
             <div class="logo-icon">
-                <img src="./Logo vecchio.png" alt="Logo My Volley Scout">
+                <img src="./LOGO_APP.png" alt="Logo My Volley Scout">
             </div>
             <div class="logo-text">My Volley Scout</div>
             <div class="logo-subtitle">Accedi al tuo account</div>

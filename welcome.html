@@ -35,7 +35,7 @@
         /* Header essenziale */
         .header {
             background: var(--surface);
-            border: 1px solid var(--accent);
+            border: none; /* bordo completamente rimosso */
             border-radius: var(--radius);
             padding: 8px 12px;
             margin-bottom: 16px;
@@ -47,15 +47,14 @@
 
         .logo { display: flex; align-items: center; gap: 10px; }
         .logo-icon {
-            width: 480px; /* 5x rispetto a 96px */
-            height: auto;
-            display: flex; align-items: center; justify-content: center;
-            background: transparent; /* niente background */
-            border: none; /* niente bordo */
-            overflow: visible; /* nessun ritaglio */
-            padding: 0; /* nessun padding */
+            width: 100%;       /* occupa tutta la card, massimo 576px */
+            max-width: 576px;
+            height: 180px;     /* stessa altezza del login */
+            overflow: hidden;  /* ritaglia trasparenze/spazi vuoti */
+            display: block;
+            margin: 0 auto 0;  /* nessun padding, centrato */
         }
-        .logo-icon img { width: 100%; height: auto; object-fit: contain; display: block; }
+        .logo-icon img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
 
         .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
         .icon-button {
@@ -151,7 +150,7 @@
             padding: 8px 12px; border: 1px solid var(--accent);
             transition: border-color .15s ease, transform .15s ease, background .15s ease;
             cursor: pointer; min-height: auto;
-            display: flex; align-items: center; gap: 8px; text-align: left;
+            display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
             white-space: normal; /* consenti due righe di testo */
             line-height: 1.2;
             min-width: 0; /* consenti wrapping del testo dentro la cella */
@@ -160,6 +159,12 @@
         .action-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent); margin: 0; }
         .action-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--text); }
         .action-description { display: none; }
+
+        /* Layout a due righe: icona + prima parola sopra, "Squadra" centrata sotto */
+        .action-combo { display: flex; flex-direction: column; align-items: center; row-gap: 4px; }
+        .action-top { display: flex; align-items: center; justify-content: center; column-gap: 2px; flex-wrap: nowrap; width: 100%; margin: 0 auto; text-align: center; }
+        .action-first { font-size: 14px; font-weight: 600; color: var(--text); }
+        .action-second { font-size: 14px; font-weight: 600; color: var(--text); text-align: center; width: 100%; display: flex; align-items: center; justify-content: center; }
 
         .empty-state { text-align: center; padding: 32px; color: var(--muted); }
         .empty-icon { font-size: 44px; margin-bottom: 12px; opacity: 0.6; }
@@ -197,7 +202,7 @@
 
             .actions-section { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
             .action-card { padding: 16px; min-width: 0; border-radius: var(--radius-sm); border: 1px solid var(--accent); white-space: normal; line-height: 1.25; }
-            .action-icon { width: 40px; height: 40px; margin-bottom: 8px; }
+            .action-icon { width: 24px; height: 24px; margin-bottom: 0; }
             .action-title { font-size: 15px; margin-bottom: 2px; }
             .action-description { display: none; }
 
@@ -217,7 +222,7 @@
         <div class="header">
             <div class="logo">
                 <div class="logo-icon" aria-hidden="true">
-                    <img src="Copilot_20251105_011636.png" alt="Logo My Volley Scout" />
+                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" />
                 </div>
             </div>
             <div class="account-actions">
@@ -241,37 +246,27 @@
             <!-- Quick Actions -->
             <div class="actions-section" style="margin-top: 16px;">
                 <button class="action-card" id="createTeamBtn" type="button" aria-label="Crea Squadra">
-                    <div class="action-icon" aria-hidden="true">
-                        <!-- icona plus monocromatica -->
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
-                            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-                        </svg>
+                    <div class="action-combo">
+                        <div class="action-top">
+                            <div class="action-first">Crea</div>
+                        </div>
                     </div>
-                    <div class="action-title">Crea Squadra</div>
                 </button>
 
                 <button class="action-card" id="importTeamBtn" type="button" aria-label="Importa Squadra">
-                    <div class="action-icon" aria-hidden="true">
-                        <!-- icona download monocromatica -->
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
-                            <path d="M12 5v10" stroke-linecap="round" />
-                            <path d="M8 11l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="M5 19h14" stroke-linecap="round" />
-                        </svg>
+                    <div class="action-combo">
+                        <div class="action-top">
+                            <div class="action-first">Importa</div>
+                        </div>
                     </div>
-                    <div class="action-title">Importa Squadra</div>
                 </button>
 
                 <button class="action-card" id="exportAllBtn" type="button" aria-label="Esporta Squadra">
-                    <div class="action-icon" aria-hidden="true">
-                        <!-- icona upload monocromatica -->
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.8">
-                            <path d="M12 19V9" stroke-linecap="round" />
-                            <path d="M8 13l4-4 4 4" stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="M5 5h14" stroke-linecap="round" />
-                        </svg>
+                    <div class="action-combo">
+                        <div class="action-top">
+                            <div class="action-first">Esporta</div>
+                        </div>
                     </div>
-                    <div class="action-title">Esporta Squadra</div>
                 </button>
             </div>
         </div>
@@ -455,6 +450,30 @@
             });
 
             // Event listeners
+            // Menu account: toggle apertura/chiusura e gestione click esterno
+            if (accountMenuBtn && accountMenu) {
+                accountMenuBtn.setAttribute('aria-expanded', 'false');
+                accountMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = accountMenu.classList.toggle('open');
+                    accountMenuBtn.setAttribute('aria-expanded', String(isOpen));
+                });
+                // Chiudi su click esterno
+                document.addEventListener('click', (e) => {
+                    if (accountMenu.classList.contains('open') && !accountMenu.contains(e.target) && e.target !== accountMenuBtn) {
+                        accountMenu.classList.remove('open');
+                        accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                // Chiudi su ESC
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && accountMenu.classList.contains('open')) {
+                        accountMenu.classList.remove('open');
+                        accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             createTeamBtn.addEventListener('click', handleCreateTeam);
             importTeamBtn.addEventListener('click', handleImportTeam);

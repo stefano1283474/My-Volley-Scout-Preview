@@ -1378,12 +1378,19 @@ body {
 
 /* Centra orizzontalmente i due punti tra i punteggi e distribuisce i numeri ai lati */
 .score-current .score-values {
-    display: inline-flex;
+    /* Usa una griglia 1fr auto 1fr per mettere ':' esattamente al centro */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: baseline;
-    justify-content: center;
+    justify-items: center; /* centra il separatore nella colonna centrale */
     gap: 6px;
     white-space: nowrap; /* evita a capo all'interno dei punteggi */
+    min-width: 140px;
 }
+
+/* Allinea i numeri rispetto al centro */
+.score-current #score-home { text-align: right; }
+.score-current #score-away { text-align: left; }
 
 /* Evita a capo dei nomi squadra e del set; tronca se necessario */
 .score-current .team-name,
@@ -2854,3 +2861,7 @@ body {
 #scouting-dialog.embedded .scaffold > .score-display {
   margin: 0; /* evita somma gap+margini che crea spazi diversi */
 }
+
+/* Specifico per la sezione Punteggio: riduci lo spazio superfluo sotto la scritta */
+#punteggio-section { margin: 6px 0; }
+#punteggio-section .score-current { margin-bottom: 4px; padding-bottom: 0; }
