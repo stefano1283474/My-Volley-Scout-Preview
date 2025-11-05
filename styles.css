@@ -1260,7 +1260,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 4px; /* riduce spazio sotto il titolo punteggio */
     text-align: left; /* assicura titolo a sinistra */
 }
 .score-display .score-header h4 { margin: 0; }
@@ -1290,16 +1290,16 @@ body {
 
 /* Rinomino score-info in score-current per il punteggio attuale */
 .score-current {
+    position: relative; /* per centrare assolutamente il gruppo punteggio */
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: nowrap; /* tutto su una sola riga */
+    justify-content: space-between;
+    gap: 8px;
     font-size: 1.1em;
     font-weight: 600;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: none; /* rimuove la linea sottile sotto le scritte del punteggio */
+    margin-bottom: 4px;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
 /* Stili per lo storico punteggio */
@@ -1376,7 +1376,7 @@ body {
     font-size: 1.2em;
 }
 
-/* Centra orizzontalmente i due punti tra i punteggi e distribuisce i numeri ai lati */
+/* Gruppo punteggio centrato sull’intera larghezza */
 .score-current .score-values {
     /* Usa una griglia 1fr auto 1fr per mettere ':' esattamente al centro */
     display: grid;
@@ -1397,11 +1397,16 @@ body {
 .score-current .set-info {
     white-space: nowrap;
 }
-.score-current .team-name {
-    max-width: 40vw;
+/* Ellissi e allineamento per i nomi delle squadre ai lati */
+#score-team-my, #score-team-opponent {
+    flex: 1 1 0;
+    max-width: 38%;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
+#score-team-my { text-align: left; }
+#score-team-opponent { text-align: right; }
 
 /* Stili per la sequenza delle quartine */
 .action-sequence {

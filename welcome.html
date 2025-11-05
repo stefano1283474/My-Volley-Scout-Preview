@@ -233,6 +233,9 @@
                     </svg>
                 </button>
                 <div class="account-dropdown" id="accountMenu">
+                    <div class="menu-item" id="accountEmail" style="cursor:default; color:#64748b;">Utente</div>
+                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
                     <button class="menu-item" id="logoutBtn">Esci</button>
                 </div>
             </div>
@@ -389,9 +392,12 @@
 
         // Elementi DOM
         const userName = document.getElementById('userName');
+        const accountEmail = document.getElementById('accountEmail');
         const logoutBtn = document.getElementById('logoutBtn');
         const accountMenuBtn = document.getElementById('accountMenuBtn');
         const accountMenu = document.getElementById('accountMenu');
+        const goToTeamsBtn = document.getElementById('goToTeamsBtn');
+        const goToMatchesBtn = document.getElementById('goToMatchesBtn');
         const teamsGrid = document.getElementById('teamsGrid');
         const emptyState = document.getElementById('emptyState');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -445,6 +451,7 @@
                 
                 currentUser = user;
                 if (userName) userName.textContent = user.email;
+                if (accountEmail) accountEmail.textContent = user.email;
                 loadTeams();
                 hideLoadingScreen();
             });

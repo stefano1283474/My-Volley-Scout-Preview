@@ -1697,6 +1697,13 @@ function updateMatchInfo() {
     }
 }
 
+function abbreviateWithDots(name, maxLen = 16) {
+    const n = String(name || '').trim();
+    if (!n) return '-';
+    if (n.length <= maxLen) return n;
+    return n.slice(0, Math.max(0, maxLen - 3)) + '...';
+}
+
 function updateScoutingUI() {
     // Aggiorna punteggi esistenti
     const homeScoreEl = document.querySelector('.home-score');
@@ -1719,9 +1726,9 @@ function updateScoutingUI() {
     const myClubOnly = partsMy.length >= 2 ? partsMy.slice(1).join(' - ') : myTeamName;
     const opponentName = appState?.currentMatch?.opponentTeam || appState?.currentMatch?.awayTeam || '';
     const scoreTeamMyEl = document.getElementById('score-team-my');
-    if (scoreTeamMyEl) scoreTeamMyEl.textContent = myClubOnly || '-';
+    if (scoreTeamMyEl) scoreTeamMyEl.textContent = abbreviateWithDots(myClubOnly || '-', 16);
     const scoreTeamOppEl = document.getElementById('score-team-opponent');
-    if (scoreTeamOppEl) scoreTeamOppEl.textContent = opponentName || '-';
+    if (scoreTeamOppEl) scoreTeamOppEl.textContent = abbreviateWithDots(opponentName || '-', 16);
     
     const rotationEl = document.getElementById('current-rotation');
     if (rotationEl) rotationEl.textContent = appState.currentRotation;
