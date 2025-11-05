@@ -258,7 +258,8 @@ function initializeApp() {
                 headerMenuToggle.setAttribute('aria-expanded', (!isHidden).toString());
             });
             document.addEventListener('click', (e) => {
-                if (!headerMenu.contains(e.target) && e.target !== headerMenuToggle) {
+                const onToggle = !!e.target.closest('#headerMenuToggle');
+                if (!headerMenu.contains(e.target) && !onToggle) {
                     headerMenu.setAttribute('hidden', '');
                     headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
