@@ -613,10 +613,11 @@
           const extra = (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0) + (parseFloat(cs.borderLeftWidth)||0) + (parseFloat(cs.borderRightWidth)||0);
 
           if (isMobile()) {
-            // Su mobile: apri alla larghezza del titolo "Passa a:"
+            // Su mobile: riduci del 65% la larghezza calcolata (usa 35%)
             const header = sidebar.querySelector('.set-sidebar-header');
             const base = header ? header.scrollWidth : 80;
-            let target = Math.ceil(base + extra + 12);
+            const REDUCTION = 0.35;
+            let target = Math.ceil((base + extra + 12) * REDUCTION);
             const MIN = 120; // sufficiente per mostrare solo il titolo
             const MAX = Math.round(Math.min(window.innerWidth * 0.85, 420));
             target = Math.max(MIN, Math.min(MAX, target));
@@ -627,8 +628,8 @@
             let maxItem = 0;
             items.forEach(el => { maxItem = Math.max(maxItem, el.scrollWidth); });
             let target = Math.ceil(maxItem + extra + 12);
-            // Riduzione spazio occupato del 60% (usa il 40% della larghezza calcolata)
-            const REDUCTION = 0.4;
+            // Riduzione spazio occupato del 65% (usa il 35% della larghezza calcolata)
+            const REDUCTION = 0.35;
             const MIN = 110; // garantisce usabilità minima
             const MAX = Math.round(420 * REDUCTION);
             target = Math.round(target * REDUCTION);
@@ -683,8 +684,8 @@
             const startX = e.clientX;
             const startWidth = sidebar.getBoundingClientRect().width;
             document.body.style.userSelect = 'none';
-            // Limiti coerenti con la riduzione al 40%
-            const REDUCTION = 0.4;
+            // Limiti coerenti con la riduzione al 35%
+            const REDUCTION = 0.35;
             const MIN = 110, MAX = Math.round(420 * REDUCTION);
             function onMove(ev){
               const dx = ev.clientX - startX;
