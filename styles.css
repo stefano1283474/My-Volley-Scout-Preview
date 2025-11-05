@@ -39,8 +39,11 @@ body {
 .topappbar { position: sticky; top: 0; z-index: 1000; background: #2563eb; color: #fff; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.15); }
 .topappbar-content { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 1200px; margin: 0 auto; }
 .topappbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topappbar-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+.topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
+.topappbar .topbar-title #current-set-display { color: #fff; }
 .topappbar-right { position: relative; display: flex; align-items: center; gap: 8px; }
-.app-logo { width: 32px; height: 32px; border-radius: 8px; display: block; }
+.app-logo { width: 64px; height: 64px; border-radius: 4px; display: block; object-fit: contain; }
 .app-title { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
@@ -55,7 +58,7 @@ body {
 
 /* Compattezza su mobile */
 @media (max-width: 480px) {
-  .app-logo { width: 28px; height: 28px; }
+  .app-logo { width: 56px; height: 56px; }
   .app-title { font-size: 0.95rem; }
 }
 
@@ -172,7 +175,7 @@ body {
 .section {
     background: white;
     border-radius: 12px;
-    padding: 2rem;
+    padding: 1rem; /* ridotto da 2rem a 1rem */
     margin-bottom: 2rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid #e0e0e0;
@@ -257,6 +260,130 @@ body {
 .btn-secondary:hover {
     background: #e0e0e0;
 }
+
+/* Header bottom: barra set attaccata alla topappbar */
+.topappbar-bottom { border-top: 1px solid rgba(255,255,255,0.2); background: #2196f3; }
+.set-toolbar { max-width: 1200px; margin: 0 auto; padding: 8px 12px; display: flex; gap: 8px; align-items: center; justify-content: center; }
+.set-pill { border: 1px solid #e5e7eb; background: #ffffff; color: #1f2937; border-radius: 8px; padding: 6px 10px; cursor: pointer; transition: all .2s ease; }
+.set-pill:hover { background: #f8fafc; }
+.set-pill.active { background: #2563eb; border-color: #1f56e5; color: #ffffff; font-weight: 700; box-shadow: 0 0 0 2px rgba(37,99,235,0.25); transform: translateY(-1px); }
+
+/* Override: pulsante account bianco e icona cliccabile */
+.top-account-btn { background: #ffffff !important; color: #2563eb !important; border-color: rgba(255,255,255,0.6) !important; }
+.top-account-btn .avatar { background: #e9efff !important; width: 22px !important; height: 22px !important; }
+
+/* =========================
+   Sidebar Set + Account UI
+   ========================= */
+/* Layout con sidebar set */
+.main.with-sidebar { 
+  display: grid; 
+  gap: 16px; 
+  align-items: start;
+}
+
+/* Variabile di larghezza sidebar */
+:root { --sidebar-width: 220px; }
+
+/* Stato collassato/aperto (desktop: push) */
+.main.with-sidebar { grid-template-columns: 0 1fr; }
+.main.with-sidebar.sidebar-open { grid-template-columns: var(--sidebar-width) 1fr; }
+.main.with-sidebar .set-sidebar { display: none; }
+.main.with-sidebar.sidebar-open .set-sidebar { display: block; }
+
+.topbar-toggle { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.topbar-toggle:hover { background: rgba(255,255,255,0.22); }
+
+.set-sidebar { 
+  position: sticky; 
+  top: 60px; 
+  align-self: start; 
+  background: #ffffff; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 12px; 
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06); 
+  padding: 12px; 
+  width: var(--sidebar-width); 
+  position: sticky; 
+}
+.set-sidebar { position: relative; }
+.sidebar-resizer { position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; border-right: 2px solid rgba(37,99,235,0.35); }
+.sidebar-resizer:hover { border-right-color: rgba(37,99,235,0.6); }
+.set-sidebar-header { 
+  font-weight: 600; 
+  color: #374151; 
+  margin-bottom: 8px; 
+}
+.set-list { display: flex; flex-direction: column; gap: 8px; }
+.set-item { 
+  border: 1px solid #e5e7eb; 
+  background: #f9fafb; 
+  color: #111827; 
+  border-radius: 10px; 
+  padding: 8px 10px; 
+  text-align: left; 
+  cursor: pointer; 
+  transition: all .2s ease; 
+}
+.set-item:hover { background: #f3f4f6; }
+.set-item.active { 
+  background: #e8f0ff; 
+  border-color: #93c5fd; 
+  color: #1f2937; 
+  font-weight: 600; 
+}
+
+@media (max-width: 768px) {
+  .main.with-sidebar { grid-template-columns: 1fr; }
+  /* Overlay mobile */
+  .set-sidebar { 
+    position: fixed; 
+    left: 0; top: 56px; 
+    width: min(80vw, var(--sidebar-width)); max-width: 85vw; 
+    height: calc(100dvh - 56px); 
+    padding: 12px; 
+    overflow-y: auto; 
+    overflow-x: hidden; 
+    z-index: 1001; 
+    transform: translateX(-100%); 
+    opacity: 0; 
+    pointer-events: none; 
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  }
+  .main.with-sidebar.sidebar-open .set-sidebar { 
+    transform: translateX(0); 
+    opacity: 1; 
+    pointer-events: auto; 
+  }
+  .main.with-sidebar.sidebar-open::after { 
+    content: ""; 
+    position: fixed; inset: 0; 
+    background: rgba(0,0,0,0.25); 
+    z-index: 1000; 
+  }
+  .set-list { flex-direction: column; gap: 8px; }
+  .set-item { white-space: nowrap; width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  /* Resizer visibile anche su mobile per drag del margine destro */
+  .sidebar-resizer { 
+    display: block; 
+    right: -6px; 
+    width: 12px; 
+    z-index: 1002; 
+    border-right: 2px solid rgba(37,99,235,0.35);
+  }
+}
+
+/* Account button/menu redesign (override) */
+.top-account-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12) inset; }
+.top-account-btn:hover { background: rgba(255,255,255,0.16); }
+.top-account-btn .avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.15)); display: inline-flex; align-items: center; justify-content: center; }
+
+.top-account-menu { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 22px rgba(0,0,0,0.12); padding: 8px; min-width: 220px; width: max-content; }
+.top-account-menu .menu-title { font-size: 0.85rem; color: #6b7280; padding: 6px 10px; }
+.top-account-menu .menu-divider { height: 1px; background: #e5e7eb; margin: 6px 0; }
+.top-account-menu .menu-item { width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; font-size: 0.95rem; line-height: 1.2; display: flex; align-items: center; gap: 10px; white-space: nowrap; border-radius: 10px; color: #111; }
+.top-account-menu .menu-item:hover { background: #f2f7ff; }
+.top-account-menu .menu-item .menu-item-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; color: #2563eb; }
 
 .btn-danger {
     background: linear-gradient(135deg, #f44336, #d32f2f);
@@ -914,7 +1041,7 @@ body {
 /* Pillole blu: riga singola */
 #pressed-buttons-log:not(.multiline) { 
   display: grid; 
-  grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr); 
+  grid-template-columns: minmax(0, 0.22fr) minmax(0, 0.5fr) minmax(0, 0.28fr); 
   align-items: center; 
   gap: 8px; 
 }
@@ -926,11 +1053,13 @@ body {
   color: #0d47a1;
   border-radius: 12px;
   background: #ffffff;
-  line-height: 1.3;
-  padding: 4px 8px;
+  line-height: 1.15;           /* compatta, una sola riga */
+  padding: 3px 6px;            /* compatta */
+  font-size: clamp(11px, 2.3vw, 14px); /* ridimensiona automaticamente in base alla larghezza */
   margin: 0;
-  white-space: normal;         /* consenti ritorno a capo */
-  overflow-wrap: anywhere;     /* evita overflow su parole lunghe */
+  white-space: nowrap;         /* forza riga singola */
+  overflow: visible;           /* evita abbreviazioni */
+  text-overflow: clip;         /* niente ellissi */
 }
 .selected-info .token-fundamental { font-weight: 500; }
 .selected-info .token-player { font-weight: 700; }
@@ -947,7 +1076,7 @@ body {
 }
 .multi-line-item { 
   display: grid;
-  grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr);
+  grid-template-columns: minmax(0, 0.22fr) minmax(0, 0.5fr) minmax(0, 0.28fr);
   gap: 8px; 
   align-items: stretch; 
   justify-items: stretch; /* forza ogni cella a riempire il suo spazio */
@@ -1056,7 +1185,7 @@ body {
   .main { padding: 6px; }
   .section { padding: 8px; margin-bottom: 8px; }
 #scouting-section .section-header { margin-bottom: 4px; }
-#scouting-section > .section-panel:first-child { padding: 6px 8px; margin: 8px 0; border: none; background: transparent; box-shadow: none; }
+#scouting-section > .section-panel:first-child:not(#punteggio-section) { padding: 6px 8px; margin: 8px 0; border: none; background: transparent; box-shadow: none; }
 #scouting-section .section-header { 
   justify-content: center; 
   gap: 0; 
@@ -1179,6 +1308,7 @@ body {
     justify-content: space-between;
     font-size: 1.05em;
     opacity: 1;
+    container-type: inline-size;
 }
 
 .selected-info span {
@@ -1197,7 +1327,7 @@ body {
 /* Metti le tre pill sulla stessa riga (single line) */
 .selected-info #pressed-buttons-log:not(.multiline) {
     display: grid;
-    grid-template-columns: minmax(0, 0.2fr) minmax(0, 0.4fr) minmax(0, 0.4fr);
+    grid-template-columns: minmax(0, 0.24fr) minmax(0, 0.52fr) minmax(0, 0.24fr);
     align-items: center;
     gap: 8px; /* spazio tra le pill */
     width: 100%;
@@ -1291,10 +1421,10 @@ body {
 /* Rinomino score-info in score-current per il punteggio attuale */
 .score-current {
     position: relative; /* per centrare assolutamente il gruppo punteggio */
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* più spazio ai nomi, punteggio al centro */
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    column-gap: 4px; /* recupera spazio laterale per i nomi */
     font-size: 1.1em;
     font-weight: 600;
     margin-bottom: 4px;
@@ -1382,15 +1512,22 @@ body {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: baseline;
-    justify-items: center; /* centra il separatore nella colonna centrale */
-    gap: 6px;
+    justify-items: stretch; /* gli score riempiono la cella; il separatore verrà centrato a parte */
+    gap: 0; /* spazio minimo fra ':' e i numeri */
     white-space: nowrap; /* evita a capo all'interno dei punteggi */
-    min-width: 140px;
+    min-width: 68px; /* ancora più compatto: più spazio ai nomi */
 }
 
 /* Allinea i numeri rispetto al centro */
 .score-current #score-home { text-align: right; }
 .score-current #score-away { text-align: left; }
+
+/* Riduci padding/margine del separatore e centralo nella colonna */
+.score-current .score-separator {
+    padding: 0;
+    margin: 0;
+    justify-self: center;
+}
 
 /* Evita a capo dei nomi squadra e del set; tronca se necessario */
 .score-current .team-name,
@@ -1399,8 +1536,7 @@ body {
 }
 /* Ellissi e allineamento per i nomi delle squadre ai lati */
 #score-team-my, #score-team-opponent {
-    flex: 1 1 0;
-    max-width: 38%;
+    min-width: 0; /* abilita truncation con ellissi senza overflow */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2810,7 +2946,7 @@ body {
 .phase-info .phase-label {
     font-size: 0.7em; /* 30% più piccola rispetto al font-size del parent */
 }
-#scouting-section > .section-panel:first-child {
+#scouting-section > .section-panel:first-child:not(#punteggio-section) {
     padding: 5px 12px; /* -50% padding verticale per la scritta del titolo */
     margin-top: 0;     /* rimuove lo spazio sopra il riquadro del titolo */
     border: none;      /* elimina il bordo dal pannello titolo */

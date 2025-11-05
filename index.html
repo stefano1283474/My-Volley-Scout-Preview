@@ -163,34 +163,73 @@
         <header class="topappbar">
             <div class="topappbar-content">
                 <div class="topappbar-left">
-                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" class="app-logo" width="32" height="32" />
-                    <div class="app-title">My Volley Scout</div>
+                    <button id="toggleSetSidebar" class="topbar-toggle" aria-controls="setToolbar" aria-expanded="false" title="Mostra/Nascondi Set">Set</button>
+                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+                </div>
+                <div class="topappbar-center">
+                    <div class="topbar-title">SCOUTING SET <span id="current-set-display">1</span></div>
                 </div>
                 <div class="topappbar-right">
                     <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
                         <span class="avatar">👤</span>
                     </button>
                     <div id="headerMenu" class="top-account-menu" hidden>
-                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">Salva</button>
-                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">Vai a Elenco Partite</button>
-                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">Vai a Elenco Squadre</button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">Esci</button>
+                        <div class="menu-title">Account</div>
+                        <div class="menu-divider"></div>
+                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Disk icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span>Salva</span>
+                        </button>
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- List icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Vai a Elenco Partite</span>
+                        </button>
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Users icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span>Vai a Elenco Squadre</span>
+                        </button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Logout icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Esci</span>
+                        </button>
                     </div>
                 </div>
             </div>
+            <!-- Sidebar interattiva: selezione Set -->
+            <!-- Rimosso l'inserimento sotto la topappbar; ora in sidebar -->
         </header>
 
-        <!-- Main Content -->
-        <main class="main">
+        <!-- Main Content con sidebar -->
+        <main class="main with-sidebar">
+            <aside class="set-sidebar" aria-label="Selezione set">
+              <div class="set-sidebar-header">Passa a:</div>
+              <div id="setToolbar" class="set-list" role="list">
+                <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
+                <button class="set-item" data-set="2" role="listitem">Set 2</button>
+                <button class="set-item" data-set="3" role="listitem">Set 3</button>
+                <button class="set-item" data-set="4" role="listitem">Set 4</button>
+                <button class="set-item" data-set="5" role="listitem">Set 5</button>
+                <button class="set-item" data-set="6" role="listitem">Set 6</button>
+              </div>
+              <div class="sidebar-resizer" aria-hidden="true"></div>
+            </aside>
             <div class="section" id="scouting-section">
                 
                 <!-- Sezione INIZIA SET rimossa -->
 
-                    <div class="section-panel">
-                      <div class="section-header">
-                         <h3>Scouting Azioni</h3>
-                      </div>
-                    </div>
+                    <!-- Titolo spostato nella topappbar -->
 
                     <!-- Punteggio attuale tra titolo e sezione player -->
                     <div class="section-panel" id="punteggio-section">
@@ -198,7 +237,6 @@
                         <span class="team-name team-my" id="score-team-my">-</span>
                         <span class="score-values"><span id="score-home">0</span><span class="score-separator">:</span><span id="score-away">0</span></span>
                         <span class="team-name team-opponent" id="score-team-opponent">-</span>
-                        <span class="set-info">(Set <span id="current-set-display">1</span>)</span>
                       </div>
                     </div>
                 
@@ -463,5 +501,246 @@
 
     <!-- App script -->
     <script src="app.js?v=6" defer></script>
+    <script>
+      // Sidebar: cambio set
+      (function(){
+        const list = document.getElementById('setToolbar');
+        const setDisplay = document.getElementById('current-set-display');
+        if (!list) return;
+
+        function updateActiveSetUI(targetSet){
+          const items = list.querySelectorAll('.set-item');
+          const pills = list.querySelectorAll('.set-pill');
+          (items.length ? items : pills).forEach(btn => {
+            const isActive = Number(btn.dataset.set) === Number(targetSet);
+            btn.classList.toggle('active', isActive);
+            if (isActive) { btn.setAttribute('aria-current','true'); }
+            else { btn.removeAttribute('aria-current'); }
+          });
+          if (setDisplay) setDisplay.textContent = String(targetSet);
+        }
+
+        async function changeSet(targetSet){
+          try {
+            const current = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+            if (Number(targetSet) === Number(current)) { updateActiveSetUI(targetSet); return; }
+
+            // Conferma se il set corrente ha azioni o punteggio
+            const hasData = !!(window.appState && ((window.appState.homeScore||0) + (window.appState.awayScore||0) > 0 || (Array.isArray(window.appState.actionsLog) && window.appState.actionsLog.length > 0)));
+            if (hasData) {
+              const ok = confirm(`Passare al Set ${targetSet}? Le metriche del set corrente rimarranno nello storico, ma l'interfaccia verrà reimpostata.`);
+              if (!ok) return;
+            }
+
+            // Aggiorna la sessione per far usare startSet il set desiderato
+            try {
+              const raw = localStorage.getItem('currentScoutingSession');
+              const session = raw ? JSON.parse(raw) : {};
+              session.setConfig = session.setConfig || {};
+              session.setConfig.set = Number(targetSet);
+              localStorage.setItem('currentScoutingSession', JSON.stringify(session));
+            } catch(e){ console.warn('Impossibile aggiornare sessione per set:', e); }
+
+            // Avvia/reimposta il set tramite funzione esistente
+            if (typeof window.startSet === 'function') {
+              window.startSet();
+            } else if (typeof window.loadScoutingSession === 'function') {
+              // Fallback: ricarica sessione per riaggiornare UI
+              try {
+                const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+                window.loadScoutingSession(session);
+              } catch(_){}
+            }
+
+            updateActiveSetUI(targetSet);
+
+            // Chiusura sidebar su mobile dopo la selezione del set
+            try {
+              if (window.isMobileSidebar && window.isMobileSidebar()) {
+                const mainEl = document.querySelector('.main.with-sidebar');
+                if (mainEl && mainEl.classList.contains('sidebar-open') && typeof window.setSidebarOpen === 'function') {
+                  window.setSidebarOpen(false);
+                }
+              }
+            } catch(_){}
+          } catch(err){
+            console.error('Errore cambio set:', err);
+            alert('Non è stato possibile cambiare set.');
+          }
+        }
+
+        list.addEventListener('click', (e) => {
+          const btn = e.target.closest('.set-item, .set-pill');
+          if (!btn) return;
+          const targetSet = parseInt(btn.dataset.set, 10);
+          changeSet(targetSet);
+        });
+
+        // Aggiorna stato iniziale dalla sessione/appState
+        let initial = 1;
+        try {
+          const raw = localStorage.getItem('currentScoutingSession');
+          const session = raw ? JSON.parse(raw) : {};
+          const fromSession = session?.setConfig?.set;
+          initial = (typeof fromSession === 'number' && fromSession >= 1 && fromSession <= 6) ? fromSession : initial;
+        } catch(_) {}
+        if (window.appState && window.appState.currentSet) initial = window.appState.currentSet;
+        updateActiveSetUI(initial);
+      })();
+    </script>
+    <script>
+      // Toggle sidebar dei set (sinistra): desktop aperta, mobile a scomparsa
+      (function(){
+        const main = document.querySelector('.main.with-sidebar');
+        const btn = document.getElementById('toggleSetSidebar');
+        const sidebar = document.querySelector('.set-sidebar');
+        const resizer = sidebar ? sidebar.querySelector('.sidebar-resizer') : null;
+        if (!main || !btn || !sidebar) return;
+
+        const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+        function measureSidebarWidth(){
+          const cs = getComputedStyle(sidebar);
+          const extra = (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0) + (parseFloat(cs.borderLeftWidth)||0) + (parseFloat(cs.borderRightWidth)||0);
+
+          if (isMobile()) {
+            // Su mobile: apri alla larghezza del titolo "Passa a:"
+            const header = sidebar.querySelector('.set-sidebar-header');
+            const base = header ? header.scrollWidth : 80;
+            let target = Math.ceil(base + extra + 12);
+            const MIN = 120; // sufficiente per mostrare solo il titolo
+            const MAX = Math.round(Math.min(window.innerWidth * 0.85, 420));
+            target = Math.max(MIN, Math.min(MAX, target));
+            main.style.setProperty('--sidebar-width', target + 'px');
+          } else {
+            // Desktop: larghezza basata sull'item più largo
+            const items = sidebar.querySelectorAll('.set-item');
+            let maxItem = 0;
+            items.forEach(el => { maxItem = Math.max(maxItem, el.scrollWidth); });
+            let target = Math.ceil(maxItem + extra + 12);
+            const MIN = 180, MAX = 420;
+            target = Math.max(MIN, Math.min(MAX, target));
+            main.style.setProperty('--sidebar-width', target + 'px');
+          }
+        }
+
+        function setOpen(open){
+          main.classList.toggle('sidebar-open', open);
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          if (open) measureSidebarWidth();
+        }
+
+        // Espone util per altri script (es. chiusura dopo tap su voce)
+        window.setSidebarOpen = setOpen;
+        window.isMobileSidebar = isMobile;
+
+        // Stato iniziale: aperta su desktop, chiusa su mobile
+        setOpen(!isMobile());
+
+        btn.addEventListener('click', () => {
+          setOpen(!main.classList.contains('sidebar-open'));
+        });
+
+        // Chiudi su ESC quando overlay mobile
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && isMobile() && main.classList.contains('sidebar-open')) {
+            setOpen(false);
+          }
+        });
+
+        // Chiudi cliccando fuori dalla sidebar (overlay mobile)
+        document.addEventListener('click', (e) => {
+          if (!isMobile() || !main.classList.contains('sidebar-open')) return;
+          if (sidebar.contains(e.target) || btn.contains(e.target)) return;
+          setOpen(false);
+        });
+
+        // Aggiorna stato su resize
+        window.addEventListener('resize', () => {
+          const shouldOpen = !isMobile();
+          setOpen(shouldOpen);
+        });
+
+        // Resizer: drag sul margine destro per cambiare larghezza (desktop + mobile)
+        if (resizer) {
+          resizer.addEventListener('mousedown', (e) => {
+            if (isMobile()) return;
+            e.preventDefault();
+            const startX = e.clientX;
+            const startWidth = sidebar.getBoundingClientRect().width;
+            document.body.style.userSelect = 'none';
+            const MIN = 180, MAX = 420;
+            function onMove(ev){
+              const dx = ev.clientX - startX;
+              const next = Math.max(MIN, Math.min(MAX, Math.round(startWidth + dx)));
+              main.style.setProperty('--sidebar-width', next + 'px');
+            }
+            function onUp(){
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+              document.body.style.userSelect = '';
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+
+          // Touch drag (mobile): ridimensionamento tramite trascinamento del margine destro
+          resizer.addEventListener('touchstart', (e) => {
+            if (!isMobile()) return;
+            const touch = e.touches[0];
+            const startX = touch.clientX;
+            const startWidth = sidebar.getBoundingClientRect().width;
+            const MIN = 180, MAX = Math.round(Math.min(window.innerWidth * 0.85, 420));
+            document.body.style.userSelect = 'none';
+            function onTouchMove(ev){
+              const t = ev.touches[0];
+              const dx = t.clientX - startX;
+              const next = Math.max(MIN, Math.min(MAX, Math.round(startWidth + dx)));
+              main.style.setProperty('--sidebar-width', next + 'px');
+            }
+            function onTouchEnd(){
+              document.removeEventListener('touchmove', onTouchMove);
+              document.removeEventListener('touchend', onTouchEnd);
+              document.body.style.userSelect = '';
+            }
+            document.addEventListener('touchmove', onTouchMove, { passive: true });
+            document.addEventListener('touchend', onTouchEnd, { passive: true });
+          }, { passive: true });
+        }
+
+        // Swipe gestures (mobile): apri da bordo sinistro, chiudi con swipe verso sinistra
+        (function setupSwipe(){
+          let startX = 0, startY = 0, tracking = false, intent = null; // 'open' | 'close'
+
+          function onTouchStart(e){
+            if (!isMobile()) return;
+            const t = e.touches[0];
+            startX = t.clientX; startY = t.clientY; tracking = false; intent = null;
+            const isOpen = main.classList.contains('sidebar-open');
+            const inEdge = startX < 24; // bordo sinistro
+            const inSidebar = sidebar.getBoundingClientRect();
+            const withinSidebar = isOpen && t.clientX >= inSidebar.left && t.clientX <= inSidebar.right && t.clientY >= inSidebar.top && t.clientY <= inSidebar.bottom;
+            if (!isOpen && inEdge) { tracking = true; intent = 'open'; }
+            else if (isOpen && withinSidebar) { tracking = true; intent = 'close'; }
+          }
+
+          function onTouchMove(e){
+            if (!isMobile() || !tracking) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX; const dy = t.clientY - startY;
+            // Prevalenza movimento orizzontale
+            if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+            if (intent === 'open' && dx > 40) { setOpen(true); tracking = false; }
+            if (intent === 'close' && dx < -40) { setOpen(false); tracking = false; }
+          }
+
+          function onTouchEnd(){ tracking = false; intent = null; }
+
+          document.addEventListener('touchstart', onTouchStart, { passive: true });
+          document.addEventListener('touchmove', onTouchMove, { passive: true });
+          document.addEventListener('touchend', onTouchEnd, { passive: true });
+        })();
+      })();
+    </script>
 </body>
 </html>
