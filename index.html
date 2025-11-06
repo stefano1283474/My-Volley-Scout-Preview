@@ -6,6 +6,7 @@
     <title>My Volley Scout PWA</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="animations.css?v=1">
     <meta name="theme-color" content="#2563eb">
     <link rel="icon" type="image/png" href="Copilot_20251105_011636.png">
     <script>
@@ -275,7 +276,7 @@
                        <div class="layout-switch">
                          <label class="switch-inline">
                            <input type="checkbox" id="multi-line-toggle" />
-                           <span>Riga<br>multipla</span>
+                           <span>Plus</span>
                          </label>
                        </div>
                        <div id="selected-info" class="selected-info">
@@ -290,8 +291,8 @@
                     <!-- Punteggio -->
                     <div class="score-display">
                       <div class="score-header">
-                        <h4>Storico Punteggio</h4>
-                        <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Visualizza Azioni</button>
+                        <h4>Progr. Punti</h4>
+                        <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Vis. Azioni</button>
                       </div>
                       <div id="score-history" class="score-history">
                         <div class="score-history-item initial">
@@ -321,7 +322,8 @@
         <div id="actions-dialog" class="dialog">
             <div class="dialog-content">
                 <div class="dialog-header">
-                    <h3>Azioni Scoutizzate</h3>
+                    <h3>Progr. Azioni</h3>
+                    <button class="export-btn" onclick="exportActionsToExcel()" aria-label="Esporta">Esporta</button>
                     <button class="close-btn" onclick="closeActionsDialog()" aria-label="Chiudi">×</button>
                 </div>
                 <div class="dialog-body">
@@ -342,6 +344,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="./firebase-config.js?v=4"></script>
+    <!-- SheetJS per esportazione Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <script>
         // Funzioni per gestire il dialog delle azioni scoutizzate
@@ -377,43 +381,80 @@
                 return;
             }
             
-            // Crea la lista delle azioni
+            // Crea una lista compatta: una riga per azione → "#N quartine"
             const actionsHTML = actions.map((log, index) => {
-                let resultText = '';
-                let resultClass = '';
-                
-                switch (log.result?.result) {
-                    case 'home_point':
-                        resultText = '🏐 Punto Casa';
-                        resultClass = 'home-point';
-                        break;
-                    case 'away_point':
-                        resultText = '🏐 Punto Ospiti';
-                        resultClass = 'away-point';
-                        break;
-                    default:
-                        resultText = '↔️ In corso';
-                        resultClass = 'in-progress';
-                }
-                
-                const actionDisplay = log.action || '';
-                const timestamp = log.timestamp || `Azione ${index + 1}`;
-                const score = log.score || '';
-                
-                return `
-                    <div class="action-item">
-                        <div class="action-header">
-                            <span class="action-number">#${index + 1}</span>
-                            <span class="action-timestamp">${timestamp}</span>
-                            ${score ? `<span class="action-score">${score}</span>` : ''}
-                        </div>
-                        <div class="action-quartet">${actionDisplay}</div>
-                        <div class="action-result ${resultClass}">${resultText}</div>
-                    </div>
-                `;
+                const actionDisplay = (log && log.action) ? String(log.action) : '';
+                return `<div class="action-line">#${index + 1} ${actionDisplay}</div>`;
             }).join('');
-            
+
             actionsListContainer.innerHTML = actionsHTML;
+        }
+
+        // Esporta azioni in Excel: sheet "Set X", A3 rotazione iniziale, B18.. quartine
+        async function exportActionsToExcel(){
+            try {
+                const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+                if (!actions.length) { alert('Nessuna azione da esportare.'); return; }
+
+                const setNumber = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+
+                // Recupera rotazione iniziale dalla sessione; fallback all'attuale
+                let initialRotation = '1';
+                try {
+                    const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+                    if (sessionData && sessionData.setConfig && sessionData.setConfig.ourRotation) {
+                        initialRotation = String(sessionData.setConfig.ourRotation);
+                    } else if (window.appState && window.appState.currentRotation) {
+                        initialRotation = String(window.appState.currentRotation);
+                    }
+                } catch(_) {}
+                // Normalizza (es. "P3" → "3")
+                initialRotation = initialRotation.replace(/^P/i, '');
+
+                // Crea workbook e worksheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([[]]);
+
+                // A3: rotazione iniziale
+                XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A3' });
+
+                // B18 in poi: quartine
+                const startRow = 18; // 1-indexed per Excel, zero-based per API
+                const aoa = actions.map(log => [ String(log && log.action ? log.action : '') ]);
+                XLSX.utils.sheet_add_aoa(ws, aoa, { origin: { r: startRow - 1, c: 1 } });
+
+                // Nome foglio
+                const sheetName = `Set ${setNumber}`;
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+                const fileName = `Progr_Azioni_Set${setNumber}.xlsx`;
+
+                // Preferisci File System Access API se disponibile (scelta percorso)
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'Excel Workbook',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                        await writable.write(buffer);
+                        await writable.close();
+                    } catch (err) {
+                        console.warn('File picker non disponibile o annullato:', err);
+                        // Fallback: download
+                        XLSX.writeFile(wb, fileName);
+                    }
+                } else {
+                    // Fallback: download diretto
+                    XLSX.writeFile(wb, fileName);
+                }
+            } catch (error) {
+                alert('Errore nell\'esportazione: ' + (error && error.message ? error.message : String(error)));
+            }
         }
 
         // Funzione per aggiornare i valori del game status nel dialog
@@ -607,6 +648,16 @@
           document.documentElement.style.setProperty('--topbar-h', h + 'px');
         }
         setTopbarHeight();
+        // Aggiorna l'altezza della topappbar in più momenti per garantire l'allineamento della sidebar
+        window.addEventListener('load', setTopbarHeight);
+        window.addEventListener('resize', setTopbarHeight);
+        window.addEventListener('orientationchange', setTopbarHeight);
+        if (topbar && 'ResizeObserver' in window) {
+          try {
+            const ro = new ResizeObserver(() => setTopbarHeight());
+            ro.observe(topbar);
+          } catch(_) {}
+        }
 
         function measureSidebarWidth(){
           const cs = getComputedStyle(sidebar);
@@ -669,11 +720,12 @@
           setOpen(false);
         });
 
-        // Aggiorna stato su resize
+        // Aggiorna stato su resize: ricalcola anche larghezza e apertura
         window.addEventListener('resize', () => {
           setTopbarHeight();
           const shouldOpen = !isMobile();
           setOpen(shouldOpen);
+          if (shouldOpen) measureSidebarWidth();
         });
 
         // Resizer: drag sul margine destro per cambiare larghezza (desktop + mobile)

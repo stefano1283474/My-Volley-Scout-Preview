@@ -288,8 +288,20 @@ body {
 /* Stato collassato/aperto (desktop: push) */
 .main.with-sidebar { grid-template-columns: 0 1fr; }
 .main.with-sidebar.sidebar-open { grid-template-columns: var(--sidebar-width) 1fr; }
-.main.with-sidebar .set-sidebar { display: none; }
-.main.with-sidebar.sidebar-open .set-sidebar { display: block; }
+.main.with-sidebar .set-sidebar { 
+  visibility: hidden; 
+  opacity: 0; 
+  transform: translateX(-12px); 
+  pointer-events: none; 
+  transition: transform .22s ease-out, opacity .2s ease-out, visibility 0s linear .22s; 
+}
+.main.with-sidebar.sidebar-open .set-sidebar { 
+  visibility: visible; 
+  opacity: 1; 
+  transform: translateX(0); 
+  pointer-events: auto; 
+  transition: transform .22s ease-out, opacity .2s ease-out, visibility 0s; 
+}
 
 .topbar-toggle { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .topbar-toggle:hover { background: rgba(255,255,255,0.22); }
@@ -333,14 +345,29 @@ body {
   font-weight: 600; 
 }
 
+/* Animazione di ingresso degli elementi nella sidebar */
+@keyframes sidebarItemIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.main.with-sidebar.sidebar-open .set-item { animation: sidebarItemIn .18s ease-out both; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(1) { animation-delay: .04s; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(2) { animation-delay: .08s; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(3) { animation-delay: .12s; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(4) { animation-delay: .16s; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(5) { animation-delay: .20s; }
+.main.with-sidebar.sidebar-open .set-item:nth-child(6) { animation-delay: .24s; }
+
 @media (max-width: 768px) {
   .main.with-sidebar { grid-template-columns: 1fr; }
+  /* Importante: su mobile, anche quando la sidebar è aperta non deve spingere il contenuto */
+  .main.with-sidebar.sidebar-open { grid-template-columns: 1fr; }
   /* Overlay mobile */
   .set-sidebar { 
     position: fixed; 
-    left: 0; top: calc(var(--topbar-h, 56px) + 8px); 
+    left: 0; top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h, 56px) + 8px); 
     width: min(80vw, var(--sidebar-width)); max-width: 85vw; 
-    height: calc(100dvh - var(--topbar-h, 56px) - 8px); 
+    height: calc(100dvh - var(--topbar-h, 56px) - 8px - env(safe-area-inset-top, 0px)); 
     padding: 12px; 
     overflow-y: auto; 
     overflow-x: hidden; 
@@ -359,9 +386,12 @@ body {
   }
   .main.with-sidebar.sidebar-open::after { 
     content: ""; 
-    position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--topbar-h, 56px) + 8px); 
-    background: rgba(0,0,0,0.25); 
+    position: fixed; left: 0; right: 0; bottom: 0; top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h, 56px) + 8px); 
+    background: rgba(0,0,0,0.18); 
+    -webkit-backdrop-filter: blur(4px); 
+    backdrop-filter: blur(4px); 
     z-index: 998; /* sotto la topappbar */ 
+    transition: opacity .2s ease; 
   }
   .set-list { flex-direction: column; gap: 8px; }
   .set-item { white-space: nowrap; width: 100%; overflow: hidden; text-overflow: ellipsis; }
@@ -1424,9 +1454,9 @@ body {
 .score-current {
     position: relative; /* per centrare assolutamente il gruppo punteggio */
     display: grid;
-    grid-template-columns: 1fr auto 1fr; /* più spazio ai nomi, punteggio al centro */
+    grid-template-columns: 2fr auto 2fr; /* ancora più spazio ai nomi, una sola riga */
     align-items: center;
-    column-gap: 4px; /* recupera spazio laterale per i nomi */
+    column-gap: 2px; /* spazio minimo tra colonne */
     font-size: 1.1em;
     font-weight: 600;
     margin-bottom: 4px;
@@ -1517,8 +1547,11 @@ body {
     justify-items: stretch; /* gli score riempiono la cella; il separatore verrà centrato a parte */
     gap: 0; /* spazio minimo fra ':' e i numeri */
     white-space: nowrap; /* evita a capo all'interno dei punteggi */
-    min-width: 68px; /* ancora più compatto: più spazio ai nomi */
+    min-width: 40px; /* blocco punteggio ancora più compatto */
 }
+/* Rendi il punteggio leggermente più piccolo per dare spazio ai nomi */
+.score-current #score-home, .score-current #score-away { font-size: 1.05em; }
+.score-current .score-separator { font-size: 1.1em; }
 
 /* Allinea i numeri rispetto al centro */
 .score-current #score-home { text-align: right; }
@@ -1534,15 +1567,18 @@ body {
 /* Evita a capo dei nomi squadra e del set; tronca se necessario */
 .score-current .team-name,
 .score-current .set-info {
-    white-space: nowrap;
+    white-space: nowrap; /* mai andare a capo */
 }
 /* Ellissi e allineamento per i nomi delle squadre ai lati */
 #score-team-my, #score-team-opponent {
-    min-width: 0; /* abilita truncation con ellissi senza overflow */
+    min-width: 0; /* usa tutto lo spazio disponibile in colonna */
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-overflow: ellipsis; /* se lo spazio non basta, tronca con … */
+    white-space: nowrap; /* mai andare a capo */
 }
+
+/* Riduci padding laterale solo nel pannello punteggio per guadagnare spazio */
+#punteggio-section.section-panel { padding: 6px 8px; }
 #score-team-my { text-align: left; }
 #score-team-opponent { text-align: right; }
 
@@ -2670,7 +2706,8 @@ body {
     border-radius: 8px;
     max-width: 600px;
     width: 90%;
-    max-height: 80vh;
+    height: 92vh; /* forza maggiore altezza per mostrare più righe */
+    max-height: 92vh;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -2711,9 +2748,24 @@ body {
     color: #333;
 }
 
+/* Bottone Esporta nel dialog header */
+.export-btn {
+    background-color: #1976d2;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.export-btn:hover {
+    background-color: #1565c0;
+}
+
 .dialog-body {
     padding: 20px;
-    max-height: calc(80vh - 80px);
+    height: calc(92vh - 80px); /* allinea alla nuova altezza del dialog */
     overflow-y: auto;
 }
 
@@ -2732,8 +2784,12 @@ body {
 }
 
 .actions-list-container {
-    max-height: 400px;
+    /* lascia che l'altezza del body determini quante righe sono visibili */
+    max-height: none;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .action-item {
@@ -2747,6 +2803,17 @@ body {
 
 .action-item:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Nuovo stile compatto: una riga per azione */
+.action-line {
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 700;
+    color: #333;
 }
 
 .action-header {

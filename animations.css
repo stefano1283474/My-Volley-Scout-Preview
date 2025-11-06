@@ -1,0 +1,117 @@
+/* Shared animation tokens and defaults */
+:root {
+  --motion-duration: 0.25s;
+  --motion-duration-fast: 0.18s;
+  --motion-ease: cubic-bezier(.22,.61,.36,1);
+  --shadow-rest: 0 2px 10px rgba(0,0,0,.06);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,.10);
+}
+
+/* Page load: gentle fade and slide in */
+body:not(.no-page-animation) {
+  animation: pageIn var(--motion-duration) var(--motion-ease) both;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Generic buttons and button-like elements */
+button,
+.btn,
+.icon-button,
+.back-btn,
+.menu-item,
+a.btn,
+a.back-btn {
+  transition:
+    background var(--motion-duration-fast) var(--motion-ease),
+    color var(--motion-duration-fast) var(--motion-ease),
+    border-color var(--motion-duration-fast) var(--motion-ease),
+    transform var(--motion-duration-fast) var(--motion-ease),
+    box-shadow var(--motion-duration-fast) var(--motion-ease);
+  will-change: transform, opacity;
+}
+
+button:hover,
+.btn:hover,
+.icon-button:hover,
+.back-btn:hover,
+.menu-item:hover,
+a.btn:hover,
+a.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+button:active,
+.btn:active,
+.icon-button:active,
+.back-btn:active,
+.menu-item:active,
+a.btn:active,
+a.back-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-rest);
+}
+
+button:focus-visible,
+.btn:focus-visible,
+.icon-button:focus-visible,
+.back-btn:focus-visible,
+.menu-item:focus-visible,
+a.btn:focus-visible,
+a.back-btn:focus-visible {
+  outline: 3px solid rgba(13,110,253,.35);
+  outline-offset: 2px;
+}
+
+/* Cards and sections gentle hover elevation */
+.card,
+.list-item,
+.panel,
+.section,
+.config-section,
+.match-info,
+.header {
+  transition: box-shadow var(--motion-duration-fast) var(--motion-ease),
+              transform var(--motion-duration-fast) var(--motion-ease);
+}
+
+.card:hover,
+.list-item:hover,
+.panel:hover,
+.section:hover,
+.config-section:hover,
+.match-info:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * { 
+    animation-duration: 0.001ms !important; 
+    animation-iteration-count: 1 !important; 
+    transition-duration: 0.001ms !important; 
+  }
+
+  body,
+  button,
+  .btn,
+  .icon-button,
+  .back-btn,
+  .menu-item,
+  a.btn,
+  a.back-btn,
+  .card,
+  .list-item,
+  .panel,
+  .section,
+  .config-section,
+  .match-info {
+    transform: none !important;
+    box-shadow: var(--shadow-rest) !important;
+  }
+}
