@@ -377,8 +377,8 @@
                 </button>
                 <div class="account-dropdown" id="accountMenu" hidden>
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
-                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
-                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="accountLogout">Esci</button>
                 </div>
             </div>
@@ -555,13 +555,17 @@
             }
             const goToTeamsBtn = document.getElementById('goToTeamsBtn');
             if (goToTeamsBtn){
-                goToTeamsBtn.addEventListener('click', () => {
+                goToTeamsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     window.location.href = 'welcome.html';
                 });
             }
             const goToMatchesBtn = document.getElementById('goToMatchesBtn');
             if (goToMatchesBtn){
-                goToMatchesBtn.addEventListener('click', () => {
+                goToMatchesBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     window.location.href = 'matches.html';
                 });
             }

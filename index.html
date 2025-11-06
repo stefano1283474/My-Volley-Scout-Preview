@@ -178,28 +178,28 @@
                     <div id="headerMenu" class="top-account-menu" hidden>
                         <div class="menu-title">Account</div>
                         <div class="menu-divider"></div>
-                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva">
+                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Disk icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
                           </span>
                           <span>Salva</span>
                         </button>
-                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite">
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- List icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Vai a Elenco Partite</span>
                         </button>
-                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre">
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Users icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
                           </span>
                           <span>Vai a Elenco Squadre</span>
                         </button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci">
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Logout icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -332,6 +332,51 @@
                     </div>
                     <div id="actions-list-dialog" class="actions-list-container">
                         <p class="no-actions-message">Nessuna azione scoutizzata ancora.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialog per configurare dati iniziali (solo Set 1) -->
+        <div id="set-meta-dialog" class="dialog" style="display:none;">
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3 id="set-meta-title">Configura Set 1</h3>
+                    <button class="close-btn" onclick="closeSetMetaDialog()" aria-label="Chiudi">×</button>
+                </div>
+                <div class="dialog-body">
+                    <div class="dialog-form">
+                        <label for="set-rotation-select"><strong>Rotazione Nostra</strong></label>
+                        <select id="set-rotation-select">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+
+                        <label for="set-phase-select" style="margin-top:12px"><strong>Fase di Inizio</strong></label>
+                        <select id="set-phase-select">
+                            <option value="servizio">SERVIZIO</option>
+                            <option value="ricezione">RICEZIONE</option>
+                        </select>
+
+                        <label for="set-opponent-rotation-select" style="margin-top:12px"><strong>Rotazione Avversari</strong> <span style="opacity:.7">(opzionale)</span></label>
+                        <select id="set-opponent-rotation-select">
+                            <option value="">Non specificata</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+
+                        <div class="dialog-actions" style="margin-top:16px">
+                            <button class="primary-btn" onclick="saveSetMetaAndContinue()">Salva</button>
+                            <button class="secondary-btn" onclick="closeSetMetaDialog()">Annulla</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -562,19 +607,125 @@
           if (setDisplay) setDisplay.textContent = String(targetSet);
         }
 
+        // Stato interno per dialog
+        let pendingSetSelection = null;
+
+        function openSetMetaDialog(targetSet){
+          pendingSetSelection = Number(targetSet);
+          const dlg = document.getElementById('set-meta-dialog');
+          const title = document.getElementById('set-meta-title');
+          if (title) title.textContent = `Configura Set ${pendingSetSelection}`;
+          // Prefill con eventuali valori già memorizzati
+          try {
+            const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+            const meta = session?.setMeta?.[pendingSetSelection] || null;
+            const cfg = session?.setConfig || {};
+            const rotSel = document.getElementById('set-rotation-select');
+            const phaseSel = document.getElementById('set-phase-select');
+            const oppSel = document.getElementById('set-opponent-rotation-select');
+            const rotVal = (meta?.ourRotation || cfg?.ourRotation || 'P1');
+            const numericRot = String(rotVal).startsWith('P') ? String(rotVal).slice(1) : String(rotVal);
+            if (rotSel) rotSel.value = numericRot || '1';
+            if (phaseSel) phaseSel.value = (meta?.phase || cfg?.phase || 'servizio');
+            if (oppSel) oppSel.value = (meta?.opponentRotation || cfg?.opponentRotation || '');
+          } catch(_){}
+          if (dlg) dlg.style.display = 'flex';
+        }
+
+        function closeSetMetaDialog(){
+          const dlg = document.getElementById('set-meta-dialog');
+          if (dlg) dlg.style.display = 'none';
+        }
+        window.closeSetMetaDialog = closeSetMetaDialog;
+
+        function saveSetMetaAndContinue(){
+          const rotSel = document.getElementById('set-rotation-select');
+          const phaseSel = document.getElementById('set-phase-select');
+          const oppSel = document.getElementById('set-opponent-rotation-select');
+          const rotationNumeric = rotSel ? rotSel.value : '1';
+          const rotation = `P${rotationNumeric}`;
+          const phase = phaseSel ? phaseSel.value : 'servizio';
+          const opponentRotation = oppSel ? (oppSel.value || null) : null;
+          const targetSet = pendingSetSelection || 1;
+          try {
+            const raw = localStorage.getItem('currentScoutingSession');
+            const session = raw ? JSON.parse(raw) : {};
+            session.setConfig = session.setConfig || {};
+            // Se stiamo configurando il Set 1, aggiorna anche la configurazione globale
+            if (Number(targetSet) === 1) {
+              session.setConfig.ourRotation = rotation;
+              session.setConfig.phase = phase;
+              session.setConfig.opponentRotation = opponentRotation;
+            }
+            // Memorizza meta specifica del set selezionato
+            session.setMeta = session.setMeta || {};
+            session.setMeta[targetSet] = {
+              ourRotation: rotation,
+              phase: phase,
+              opponentRotation: opponentRotation
+            };
+            // Set selezionato
+            session.setConfig.set = Number(targetSet);
+            localStorage.setItem('currentScoutingSession', JSON.stringify(session));
+          } catch(e){ console.warn('Salvataggio set meta fallito:', e); }
+          closeSetMetaDialog();
+          // Procedi con avvio set
+          if (typeof window.startSet === 'function') {
+            window.startSet();
+          } else if (typeof window.loadScoutingSession === 'function') {
+            try {
+              const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+              window.loadScoutingSession(session);
+            } catch(_){}
+          }
+          updateActiveSetUI(targetSet);
+        }
+        window.saveSetMetaAndContinue = saveSetMetaAndContinue;
+
         async function changeSet(targetSet){
           try {
             const current = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
             if (Number(targetSet) === Number(current)) { updateActiveSetUI(targetSet); return; }
 
+            // Verifica configurazione globale (Set 1) prima del cambio
+            try {
+              const raw = localStorage.getItem('currentScoutingSession');
+              const session = raw ? JSON.parse(raw) : {};
+              const cfg = session?.setConfig || {};
+              const hasGlobalConfig = !!(cfg?.ourRotation && cfg?.phase);
+              if (!hasGlobalConfig) {
+                openSetMetaDialog(targetSet);
+                return; // attende salvataggio e continua da dialog
+              }
+            } catch(_){}
+
             // Conferma se il set corrente ha azioni o punteggio
             const hasData = !!(window.appState && ((window.appState.homeScore||0) + (window.appState.awayScore||0) > 0 || (Array.isArray(window.appState.actionsLog) && window.appState.actionsLog.length > 0)));
-            if (hasData) {
+            if (false) {
               const ok = confirm(`Passare al Set ${targetSet}? Le metriche del set corrente rimarranno nello storico, ma l'interfaccia verrà reimpostata.`);
               if (!ok) return;
             }
 
-            // Aggiorna la sessione per far usare startSet il set desiderato
+            // Verifica rotazione e fase per il set target
+            let hasMeta = false;
+            try {
+              const raw = localStorage.getItem('currentScoutingSession');
+              const session = raw ? JSON.parse(raw) : {};
+              const meta = session?.setMeta?.[targetSet];
+              if (Number(targetSet) === 1) {
+                const cfg = session?.setConfig || {};
+                hasMeta = !!((cfg?.ourRotation && cfg?.phase) || (meta?.ourRotation && meta?.phase));
+              } else {
+                hasMeta = !!(meta?.ourRotation && meta?.phase);
+              }
+            } catch(_){}
+
+            if (!hasMeta) {
+              openSetMetaDialog(targetSet);
+              return; // attende salvataggio e continua da dialog
+            }
+
+            // Aggiorna la sessione con il set desiderato (lasciando meta esistente)
             try {
               const raw = localStorage.getItem('currentScoutingSession');
               const session = raw ? JSON.parse(raw) : {};

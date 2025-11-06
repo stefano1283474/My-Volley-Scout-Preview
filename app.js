@@ -107,8 +107,11 @@ window.loadScoutingSession = function(sessionData) {
         // Imposta set corrente dalla setConfig della sessione
         if (md.setConfig) {
             appState.currentSet = parseInt(md.setConfig.set || 1);
-            appState.currentRotation = md.setConfig.ourRotation || 'P1';
-            appState.currentPhase = md.setConfig.phase || 'servizio';
+            // Preferisci meta per set se disponibile
+            const sm = (md.setMeta && md.setMeta[appState.currentSet]) ? md.setMeta[appState.currentSet] : null;
+            const __rotCfg = md.setConfig.ourRotation;
+            appState.currentRotation = (sm && sm.ourRotation) ? sm.ourRotation : ((__rotCfg && String(__rotCfg).startsWith('P')) ? __rotCfg : (__rotCfg ? `P${__rotCfg}` : 'P1'));
+            appState.currentPhase = (sm && sm.phase) ? sm.phase : (md.setConfig.phase || 'servizio');
         }
 
         // Reidrata punteggio, storico e azioni se presenti (ripresa sessione)
@@ -274,10 +277,12 @@ function initializeApp() {
             });
         }
         if (goToMatchesBtnMobile) {
-            goToMatchesBtnMobile.addEventListener('click', async () => {
+            goToMatchesBtnMobile.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 try {
-                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
-                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    // Salvataggio non bloccante (se fallisce, ignora)
+                    try { saveCurrentMatch(); } catch(_){}
                     window.location.href = 'matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -286,10 +291,12 @@ function initializeApp() {
             });
         }
         if (goToTeamsBtnMobile) {
-            goToTeamsBtnMobile.addEventListener('click', async () => {
+            goToTeamsBtnMobile.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 try {
-                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
-                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    // Salvataggio non bloccante (se fallisce, ignora)
+                    try { saveCurrentMatch(); } catch(_){}
                     window.location.href = 'welcome.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -298,10 +305,12 @@ function initializeApp() {
             });
         }
         if (signOutBtnMobile && typeof window.authFunctions !== 'undefined') {
-            signOutBtnMobile.addEventListener('click', async () => {
+            signOutBtnMobile.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 try {
-                    const shouldSave = confirm('Vuoi salvare prima di uscire?');
-                    if (shouldSave) { try { await saveCurrentMatch(); } catch(_){} }
+                    // Salvataggio non bloccante (se fallisce, ignora)
+                    try { await saveCurrentMatch(); } catch(_){}
                     await window.authFunctions.signOut();
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1578,8 +1587,11 @@ function startSet() {
         const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
         if (sessionData.setConfig) {
             setNumber = sessionData.setConfig.set || 1;
-            rotation = sessionData.setConfig.ourRotation || 'P1';
-            phase = sessionData.setConfig.phase || 'servizio';
+            // Preferisci meta per set se presente
+            const sm = sessionData.setMeta && sessionData.setMeta[setNumber];
+            const __rotCfg2 = sessionData.setConfig.ourRotation;
+            rotation = (sm && sm.ourRotation) ? sm.ourRotation : ((__rotCfg2 && String(__rotCfg2).startsWith('P')) ? __rotCfg2 : (__rotCfg2 ? `P${__rotCfg2}` : 'P1'));
+            phase = (sm && sm.phase) ? sm.phase : (sessionData.setConfig.phase || 'servizio');
         } else {
             // Valori di default se non c'è sessione
             setNumber = 1;

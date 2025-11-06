@@ -1579,8 +1579,8 @@ body {
 
 /* Riduci padding laterale solo nel pannello punteggio per guadagnare spazio */
 #punteggio-section.section-panel { padding: 6px 8px; }
-#score-team-my { text-align: left; }
-#score-team-opponent { text-align: right; }
+#score-team-my { text-align: center; }
+#score-team-opponent { text-align: center; }
 
 /* Stili per la sequenza delle quartine */
 .action-sequence {
@@ -2746,6 +2746,106 @@ body {
 .close-btn:hover {
     background-color: #e0e0e0;
     color: #333;
+}
+
+/* Dialog Configura Set: aspetto coerente con il resto dell'app */
+#set-meta-dialog .dialog-content {
+  width: min(480px, 95vw);
+  max-width: 95vw;
+  height: auto;
+  max-height: 85vh;
+  border-radius: 12px;
+}
+
+#set-meta-dialog .dialog-header {
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  color: #fff;
+  border-bottom: none;
+}
+#set-meta-dialog .dialog-header h3 {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+#set-meta-dialog .close-btn {
+  color: #fff;
+}
+#set-meta-dialog .close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+#set-meta-dialog .dialog-body {
+  padding: 16px 20px;
+}
+
+#set-meta-dialog label {
+  display: block;
+  margin-top: 10px;
+  color: #333;
+  font-weight: 700;
+}
+
+#set-meta-dialog select {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #cfd8dc;
+  background-color: #fff;
+}
+#set-meta-dialog select:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+}
+
+#set-meta-dialog .dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Mobile: dialog a piena larghezza/altezza con padding coerente */
+@media (max-width: 480px) {
+  #set-meta-dialog .dialog-content {
+    width: 100vw;
+    max-width: 100vw;
+    height: auto;
+    max-height: 96vh;
+    border-radius: 0;
+    padding: 0.75rem;
+    box-sizing: border-box;
+  }
+  #set-meta-dialog .dialog-body { padding: 0.75rem; }
+}
+
+/* Pulsanti azioni: pari dimensioni, forma e colore */
+#set-meta-dialog .dialog-actions .primary-btn,
+#set-meta-dialog .dialog-actions .secondary-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 24px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+#set-meta-dialog .dialog-actions .secondary-btn {
+  background-color: #1976d2; /* stesso blu del primary */
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+#set-meta-dialog .dialog-actions .secondary-btn:hover {
+  background-color: #1565c0;
+}
+#set-meta-dialog .dialog-actions .secondary-btn:active {
+  background-color: #0d47a1;
+  transform: translateY(1px);
 }
 
 /* Bottone Esporta nel dialog header */

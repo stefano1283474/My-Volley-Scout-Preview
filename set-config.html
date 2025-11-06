@@ -134,7 +134,7 @@
 
         .config-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: 1fr; /* ogni riquadro su una riga */
             gap: 12px; /* ridotto del 50% */
             margin-bottom: 12px; /* ridotto del 50% */
         }
@@ -286,7 +286,7 @@
             }
 
             .config-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr; /* anche su mobile: impila verticalmente */
             }
 
             .set-selector {
@@ -339,8 +339,8 @@
                 </button>
                 <div class="account-dropdown" id="accountMenu" hidden>
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
-                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="accountLogout">Esci</button>
                 </div>
             </div>
@@ -365,18 +365,6 @@
             <div class="error-message" id="errorMessage"></div>
 
             <div class="config-grid">
-                <!-- Set Selection -->
-                <div class="config-card">
-                    <div class="config-card-title">Selezione Set</div>
-                    <select id="setSelect" class="form-select">
-                        <option value="1">Set 1</option>
-                        <option value="2">Set 2</option>
-                        <option value="3">Set 3</option>
-                        <option value="4">Set 4</option>
-                        <option value="5">Set 5</option>
-                        <option value="6">Set 6</option>
-                    </select>
-                </div>
 
                 <!-- Phase Selection -->
                 <div class="config-card">
@@ -403,7 +391,6 @@
                 <!-- Opponent Rotation (Optional) -->
                 <div class="config-card">
                     <div class="config-card-title">Rotazione Avversari</div>
-                    <div class="optional-label">Opzionale - Se conosciuta</div>
                     <select id="opponentRotationSelect" class="form-select">
                         <option value="">Non specificata</option>
                         <option value="1">1</option>
@@ -441,7 +428,7 @@
         let currentUser = null;
         let matchData = null;
         let setConfig = {
-            set: null,
+            set: 1, // default fisso: Set 1
             phase: null,
             ourRotation: null,
             opponentRotation: null
@@ -451,7 +438,7 @@
         const matchSummary = document.getElementById('matchSummary');
         const errorMessage = document.getElementById('errorMessage');
         const scoutBtn = document.getElementById('scoutBtn');
-        const setSelect = document.getElementById('setSelect');
+        // Nessun selettore set: è sempre Set 1
         const phaseButtons = document.querySelectorAll('.phase-btn');
         const ourRotationSelect = document.getElementById('ourRotationSelect');
         const opponentRotationSelect = document.getElementById('opponentRotationSelect');
@@ -546,15 +533,8 @@
         }
 
         function setupEventListeners() {
-            // Set selection (select)
-            if (setSelect) {
-                setSelect.addEventListener('change', function(){
-                    setConfig.set = this.value;
-                    validateConfig();
-                });
-                // default iniziale
-                setConfig.set = setSelect.value;
-            }
+            // Set fisso
+            setConfig.set = 1;
 
             // Phase selection
             phaseButtons.forEach(btn => {
@@ -603,10 +583,10 @@
             }
             // Navigazione menu account
             if (goToMatchesBtn){
-                goToMatchesBtn.addEventListener('click', () => { window.location.href = 'matches.html'; });
+                goToMatchesBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = 'matches.html'; });
             }
             if (goToTeamsBtn){
-                goToTeamsBtn.addEventListener('click', () => { window.location.href = 'welcome.html'; });
+                goToTeamsBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = 'welcome.html'; });
             }
             // Logout
             if (accountLogout){
@@ -638,7 +618,7 @@
         }
 
         function validateConfig() {
-            const isValid = setConfig.set && setConfig.phase && setConfig.ourRotation;
+            const isValid = setConfig.phase && setConfig.ourRotation;
             scoutBtn.disabled = !isValid;
             
             if (isValid) {
@@ -650,7 +630,7 @@
         }
 
         function startScouting() {
-            if (!setConfig.set || !setConfig.phase || !setConfig.ourRotation) {
+            if (!setConfig.phase || !setConfig.ourRotation) {
                 showError('Completa tutti i campi obbligatori prima di iniziare.');
                 return;
             }
@@ -658,7 +638,7 @@
             // Salva la configurazione del set
             const fullConfig = {
                 ...matchData,
-                setConfig: setConfig,
+                setConfig: { ...setConfig, set: 1 },
                 startTime: new Date().toISOString()
             };
 

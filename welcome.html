@@ -235,8 +235,8 @@
                 </button>
                 <div class="account-dropdown" id="accountMenu">
                     <div class="menu-item" id="accountEmail" style="cursor:default; color:#64748b;">Utente</div>
-                    <button class="menu-item" id="goToTeamsBtn">Vai a Elenco Squadre</button>
-                    <button class="menu-item" id="goToMatchesBtn">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
+                    <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="logoutBtn">Esci</button>
                 </div>
             </div>
@@ -483,6 +483,27 @@
             }
 
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+            // Navigazione voci account: Elenco Partite / Elenco Squadre
+            if (goToMatchesBtn) {
+                goToMatchesBtn.addEventListener('click', () => {
+                    try {
+                        window.location.href = 'matches.html';
+                    } finally {
+                        if (accountMenu) accountMenu.classList.remove('open');
+                        if (accountMenuBtn) accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+            if (goToTeamsBtn) {
+                goToTeamsBtn.addEventListener('click', () => {
+                    try {
+                        window.location.href = 'welcome.html';
+                    } finally {
+                        if (accountMenu) accountMenu.classList.remove('open');
+                        if (accountMenuBtn) accountMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
             createTeamBtn.addEventListener('click', handleCreateTeam);
             importTeamBtn.addEventListener('click', handleImportTeam);
             exportAllBtn.addEventListener('click', handleExportAll);
