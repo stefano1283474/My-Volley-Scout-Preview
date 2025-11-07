@@ -1103,6 +1103,12 @@ function selectEvaluation(evaluation) {
     // Inizia nuova selezione valutazione: riattiva pillole
     appState.justClosedAction = false;
     appState.selectedEvaluation = evaluation;
+    // Persisti una preview del prossimo fondamentale determinato dalla valutazione
+    try {
+        appState.nextFundamentalPreview = predictNextFundamental();
+    } catch (_) {
+        appState.nextFundamentalPreview = null;
+    }
     
     // Evidenzia il pulsante selezionato
     const evalButtons = document.querySelectorAll('.eval-btn');
@@ -1262,6 +1268,8 @@ function submitGuidedAction() {
             }
             // Segna chiusura azione e svuota le pillole
             appState.justClosedAction = true;
+            // Reset della preview del prossimo fondamentale dopo la chiusura
+            appState.nextFundamentalPreview = null;
             updateDescriptiveQuartet();
         } catch (error) {
             alert(`Errore nell'azione: ${error.message}`);
@@ -1396,6 +1404,14 @@ function updateGamePhase(fundamental, evaluation) {
         if (evalValue === 1) {
             // Errore in difesa = punto avversario
             appState.currentPhase = 'ricezione';
+        }
+    } else if (fundamental === 'm') { // Muro
+        // m1 = punto avversario → prossima ripresa in ricezione
+        // m5 = punto nostro → prossima ripresa in servizio
+        if (evalValue === 1) {
+            appState.currentPhase = 'ricezione';
+        } else if (evalValue === 5) {
+            appState.currentPhase = 'servizio';
         }
     }
 
@@ -1542,7 +1558,7 @@ function predictNextFundamental() {
 }
 
 function updateNextFundamental() {
-    const fundamental = predictNextFundamental();
+    const fundamental = (appState.nextFundamentalPreview || predictNextFundamental());
     const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
     const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');

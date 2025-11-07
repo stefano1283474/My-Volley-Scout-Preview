@@ -19,6 +19,12 @@
             color: #333;
         }
 
+        /* Uniforma il font su tutta la pagina usando lo stesso del bottone
+           "Nuova partita" (Segoe UI e fallback di sistema) */
+        button, input, select, textarea {
+            font-family: inherit;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -312,10 +318,14 @@
             color: #666;
         }
 
+        /* Icona stato vuoto: usa il logo pallone */
         .empty-icon {
-            font-size: 48px;
+            width: 64px;
+            height: 64px;
             margin-bottom: 15px;
-            opacity: 0.5;
+            opacity: 0.6;
+            display: inline-block;
+            object-fit: contain;
         }
 
         /* Tabs */
@@ -448,7 +458,7 @@
 
             <!-- Empty State -->
             <div class="empty-state" id="emptyMatches" style="display: none;">
-                <div class="empty-icon">🏐</div>
+                <img class="empty-icon" src="./LOGO_PALLONE.png" alt="Pallone" />
                 <p>Nessuna partita trovata</p>
                 <p>Inizia creando la tua prima partita!</p>
             </div>
@@ -544,7 +554,8 @@
                     accountMenu.hidden = expanded;
                 });
                 document.addEventListener('click', (e) => {
-                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && e.target !== accountBtn){
+                    // Chiudi il menu solo se il click è fuori dal menu e fuori dal bottone (anche suoi figli)
+                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
                         accountMenu.hidden = true;
                         accountBtn.setAttribute('aria-expanded', 'false');
                     }
