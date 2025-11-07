@@ -894,7 +894,12 @@ function updatePlayersGrid() {
     }
     row4[3] = { __type: 'opponent-error' };
     
+    // Ordina le righe e sostituisci il primo slot vuoto con il tasto MURO
     const ordered = [row1, row2, row3, row4].flat();
+    const firstEmptyIndex = ordered.findIndex(p => p === null);
+    if (firstEmptyIndex !== -1) {
+        ordered[firstEmptyIndex] = { __type: 'muro-override' };
+    }
     container.innerHTML = ordered.map(p => {
         if (!p) return renderEmpty();
         if (p.__type === 'opponent-error') {
@@ -905,6 +910,18 @@ function updatePlayersGrid() {
                     </div>
                     <div class="player-line2">
                         <span class="player-name">Err Avv</span>
+                    </div>
+                </button>
+            `;
+        }
+        if (p.__type === 'muro-override') {
+            return `
+                <button class="player-btn muro-override-btn" type="button" title="MURO (override)">
+                    <div class="player-line1">
+                        <span class="player-number">&nbsp;</span>
+                    </div>
+                    <div class="player-line2">
+                        <span class="player-name">MURO</span>
                     </div>
                 </button>
             `;
@@ -927,6 +944,13 @@ function updatePlayersGrid() {
     container.querySelectorAll('.opponent-error-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             submitOpponentError();
+        });
+    });
+
+    // Listener per pulsante MURO nella griglia
+    container.querySelectorAll('.muro-override-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            activateMuroOverride();
         });
     });
 }
@@ -1001,8 +1025,8 @@ function selectPlayer(number, name, btnEl) {
     playerButtons.forEach(b => b.classList.remove('selected'));
     if (btnEl) btnEl.classList.add('selected');
 
-    // Persisti il fondamentale calcolato per coerenza tra descrittivo e quartina
-    appState.calculatedFundamental = predictNextFundamental();
+    // Mantieni l'override (es. MURO) se presente; altrimenti calcola il fondamentale
+    appState.calculatedFundamental = appState.overrideFundamental || predictNextFundamental();
 
     // Aggiorna i testi dei pulsanti di valutazione quando viene selezionato un giocatore
     updateEvaluationButtonTexts();
@@ -1142,7 +1166,7 @@ function selectEvaluation(evaluation) {
 
     // Aggiorna live fase e fondamentale previsto in base alla valutazione corrente
     try {
-        const currentFundamental = appState.calculatedFundamental || predictNextFundamental();
+        const currentFundamental = appState.calculatedFundamental || appState.overrideFundamental || predictNextFundamental();
         // Aggiorna la fase di gioco in modo reattivo (senza chiusura dell'azione)
         updateGamePhase(currentFundamental, evaluation);
         // Aggiorna subito il banner e l'etichetta "Elenco player per" con il fondamentale previsto successivo
@@ -1290,7 +1314,10 @@ function submitGuidedAction() {
     // Reset selezione
     appState.selectedPlayer = null;
     appState.selectedEvaluation = null;
-    
+    // L'override (es. MURO) vale solo per la quartina appena chiusa
+    appState.overrideFundamental = null;
+    appState.calculatedFundamental = null;
+
     if (isPoint) checkSetEnd();
 }
 
@@ -1513,6 +1540,12 @@ function predictNextFundamental() {
                 return 'r'; // punto avversario → prossimo è ricezione
             }
             // Azione che continua: regole transitorie
+            if (f === 'm') {
+                // MURO: dopo valutazioni 2/3/4 si passa a DIFESA; 1 → RICEZIONE; 5 → SERVIZIO
+                if (e === 1) return 'r';
+                if (e === 5) return 'b';
+                if (e === 2 || e === 3 || e === 4) return 'd';
+            }
             if (f === 'r') {
                 if (e === 2) return 'd';
                 if (e === 3 || e === 4 || e === 5) return 'a';
@@ -1540,8 +1573,17 @@ function predictNextFundamental() {
             return 'b';
         }
         
-        const lastFund = act.charAt(2);
-        const lastEval = parseInt(act.charAt(3));
+        // Estrai il quartetto finale dall'azione (es: "02b3 09m1" → usa "09m1")
+        const parts = act.trim().split(/\s+/);
+        const lastQuartet = parts.length ? parts[parts.length - 1] : '';
+        const lastFund = lastQuartet.charAt(2);
+        const lastEval = parseInt(lastQuartet.charAt(3), 10);
+        // Combinazione specifica richiesta: Muro + 1 → Ricezione
+        if (lastFund === 'm') {
+            if (lastEval === 1) return 'r';
+            if (lastEval === 5) return 'b';
+            if (lastEval === 2 || lastEval === 3 || lastEval === 4) return 'd';
+        }
         if (lastFund === 'd') {
             if (lastEval === 2) return 'd';
             else if (lastEval >= 3 && lastEval <= 5) return 'a';
@@ -1558,7 +1600,11 @@ function predictNextFundamental() {
 }
 
 function updateNextFundamental() {
-    const fundamental = (appState.nextFundamentalPreview || predictNextFundamental());
+    // Se l'azione è appena stata chiusa (es. allo scadere del timer),
+    // ignora override/preview e mostra direttamente il fondamentale previsto successivo
+    const fundamental = appState.justClosedAction
+        ? predictNextFundamental()
+        : (appState.nextFundamentalPreview || appState.overrideFundamental || appState.calculatedFundamental || predictNextFundamental());
     const namesWithCode = { b: 'Servizio (b)', r: 'Ricezione (r)', a: 'Attacco (a)', d: 'Difesa (d)', m: 'Muro (m)' };
     const namesPlain = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', d: 'Difesa', m: 'Muro' };
     const el = document.getElementById('next-fundamental');
@@ -2144,7 +2190,8 @@ function updateDescriptiveQuartet() {
     }
 
     const player = appState.selectedPlayer;
-    const fundamentalCode = appState.calculatedFundamental || predictNextFundamental();
+    // Se presente, usa l'override (MURO) come fondamentale corrente
+    const fundamentalCode = appState.calculatedFundamental || appState.overrideFundamental || predictNextFundamental();
     const evalVal = appState.selectedEvaluation;
 
     // La rotazione ora è mostrata nella riga di intestazione (next-fundamental)
@@ -2268,8 +2315,29 @@ function updateDescriptiveQuartet() {
         el.innerHTML = html;
         if (box) box.style.display = 'block';
     } else {
+        // Nessun player e nessuna valutazione: mostra solo la pillola del fondamentale
+        const fundamentalToken = fundamentalUpper;
+        const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
+        const html = `
+            <span class="token token-fundamental">${fTok}</span>
+        `;
         el.classList.remove('multiline');
-        el.textContent = '';
-        if (box) box.style.display = 'none';
+        el.innerHTML = html;
+        if (box) box.style.display = 'block';
     }
+}
+
+// Attiva l'override MURO per la singola azione corrente
+function activateMuroOverride() {
+    try {
+        appState.overrideFundamental = 'm';
+        appState.calculatedFundamental = 'm';
+        // Puliamo eventuale preview precedente per evitare che sovrascriva il banner
+        appState.nextFundamentalPreview = null;
+        // Aggiorna banner e descrizione corrente
+        updateNextFundamental();
+        updateDescriptiveQuartet();
+        // Porta alla selezione del giocatore (ordine: MURO → Player → Valutazione)
+        showScoutingStep('step-player');
+    } catch (_) {}
 }

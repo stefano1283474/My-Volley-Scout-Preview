@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <title>Redirect Login</title>
+    <script>
+      if (!/\/auth-login\.html$/.test(window.location.pathname)) {
+        window.location.replace('/auth-login.html');
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      Se non vieni reindirizzato, apri <a href="/auth-login.html">/auth-login.html</a>.
+    </noscript>
+  </body>
+ </html>

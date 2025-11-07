@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <title>Redirect Welcome</title>
+    <script>
+      if (!/\/welcome\.html$/.test(window.location.pathname)) {
+        window.location.replace('/welcome.html');
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      Se non vieni reindirizzato, apri <a href="/welcome.html">/welcome.html</a>.
+    </noscript>
+  </body>
+ </html>

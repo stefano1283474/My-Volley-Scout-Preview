@@ -4,18 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>My Volley Scout PWA</title>
-    <script>
-        // Redirect di default alla pagina di benvenuto quando si accede alla root
-        // Non reindirizza se viene richiesta esplicitamente index.html
-        (function() {
-            try {
-                var path = window.location.pathname || '/';
-                if (path === '/' || path === '') {
-                    window.location.replace('welcome.html');
-                }
-            } catch(e) { /* noop */ }
-        })();
-    </script>
+    <!-- Avvio standard: carica index e lascia che la logica di autenticazione reindirizzi verso login o welcome -->
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=2">
     <link rel="stylesheet" href="animations.css?v=1">
