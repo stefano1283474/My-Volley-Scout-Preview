@@ -1097,6 +1097,14 @@ body {
 .selected-info .token-player { font-weight: 700; }
 .selected-info .token-eval { font-weight: 700; }
 
+/* Colora lo sfondo delle pillole di valutazione come i bottoni di valutazione */
+.selected-info .token-eval.eval-1 { background-color: #d32f2f; color: #fff; }
+.selected-info .token-eval.eval-2 { background-color: #f57c00; color: #fff; }
+.selected-info .token-eval.eval-3 { background-color: #fbc02d; color: #212121; }
+.selected-info .token-eval.eval-4 { background-color: #66bb6a; color: #fff; }
+.selected-info .token-eval.eval-5 { background-color: #2e7d32; color: #fff; }
+.selected-info .token-eval.eval-6 { background-color: #9e9e9e; color: #212121; }
+
 /* Variante multi‑linea: impilamento verticale con riga più recente in alto */
 #pressed-buttons-log.multiline { 
   display: flex;
@@ -2625,6 +2633,56 @@ body {
   align-items: center;
   width: 100%;
   text-align: center;
+}
+
+/* Pulsante MURO: testo centrato e sfondo a muro di mattoni rossi */
+.players-grid .muro-override-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  color: #000;
+  text-shadow: none;
+  border-color: #8b0000;
+  background-color: #b22222;
+  background-image: url('muro.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Forza lo sfondo del MURO con specificità maggiore */
+.players-grid button.muro-override-btn {
+  background: url('muro.jpg') center/cover no-repeat !important;
+  color: #000 !important;
+  border-color: #8b0000;
+  text-shadow: none;
+  min-height: 52px;
+}
+.players-grid .muro-override-btn .player-line2 .player-name {
+  font-weight: 800;
+  font-size: 0.9rem; /* -10% */
+}
+
+/* Pulsante Err Avv: due righe "Errore" e "Avvers." */
+.players-grid .opponent-error-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.players-grid .opponent-error-btn .player-line1,
+.players-grid .opponent-error-btn .player-line2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.05;
+}
+.players-grid .opponent-error-btn .player-line1 .player-name,
+.players-grid .opponent-error-btn .player-line2 .player-name {
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
 /* Mobile: use auto-fit instead of fixed 4 columns to adapt */

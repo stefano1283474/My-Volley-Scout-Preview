@@ -906,10 +906,10 @@ function updatePlayersGrid() {
             return `
                 <button class="player-btn opponent-error-btn" type="button" title="Errore Avversario">
                     <div class="player-line1">
-                        <span class="player-number">&nbsp;</span>
+                        <span class="player-name">Errore</span>
                     </div>
                     <div class="player-line2">
-                        <span class="player-name">Err Avv</span>
+                        <span class="player-name">Avvers.</span>
                     </div>
                 </button>
             `;
@@ -917,12 +917,8 @@ function updatePlayersGrid() {
         if (p.__type === 'muro-override') {
             return `
                 <button class="player-btn muro-override-btn" type="button" title="MURO (override)">
-                    <div class="player-line1">
-                        <span class="player-number">&nbsp;</span>
-                    </div>
-                    <div class="player-line2">
-                        <span class="player-name">MURO</span>
-                    </div>
+                    <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
+                    <div class="player-line2"><span class="player-name">MURO</span></div>
                 </button>
             `;
         }
@@ -953,6 +949,16 @@ function updatePlayersGrid() {
             activateMuroOverride();
         });
     });
+
+    // Testo fisso su due righe per Err Avv: riga1 "Errore", riga2 "Avvers."
+    try {
+        container.querySelectorAll('.opponent-error-btn').forEach(btn => {
+            const l1 = btn.querySelector('.player-line1 .player-name');
+            const l2 = btn.querySelector('.player-line2 .player-name');
+            if (l1) l1.textContent = 'Errore';
+            if (l2) l2.textContent = 'Avvers.';
+        });
+    } catch(_) {}
 }
 
 function selectPlayer(number, name, btnEl) {
@@ -2183,7 +2189,7 @@ function updateDescriptiveQuartet() {
 
     // Caso speciale: Err Avv richiesto come "– Err Avv"
     if (appState.opponentErrorPressed) {
-        const htmlErr = `<span class="token token-eval">– Err Avv</span>`;
+        const htmlErr = `<span class="token token-eval eval-6">– Err Avv</span>`;
         el.innerHTML = htmlErr;
         if (box) box.style.display = 'block';
         return;
@@ -2229,7 +2235,7 @@ function updateDescriptiveQuartet() {
             const pTok = (typeof escapeHtml === 'function') ? escapeHtml([nn, nameUpper].filter(Boolean).join(' ')) : [nn, nameUpper].filter(Boolean).join(' ');
             const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
             const evalSpan = evalToken
-                ? `<span class="token token-eval">${eTok}</span>`
+                ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
                 : `<span class="token token-eval token-placeholder"></span>`;
             lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalSpan}</div>`);
         } else if (evalVal) {
@@ -2238,7 +2244,7 @@ function updateDescriptiveQuartet() {
             const evalToken = evalText;
             const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
             const evalSpan = evalToken
-                ? `<span class="token token-eval">${eTok}</span>`
+                ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
                 : `<span class="token token-eval token-placeholder"></span>`;
             lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player token-placeholder"></span>${evalSpan}</div>`);
         }
@@ -2267,7 +2273,7 @@ function updateDescriptiveQuartet() {
             if (provisionalQuartet && i === seq.length - 1 && q === provisionalQuartet) {
                 continue;
             }
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalTextLine ? `<span class="token token-eval">${eTok}</span>` : ''}</div>`);
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
         }
 
         el.classList.add('multiline');
@@ -2287,7 +2293,7 @@ function updateDescriptiveQuartet() {
         const pTok = (typeof escapeHtml === 'function') ? escapeHtml(playerToken) : playerToken;
         const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
         const evalSpan = evalToken
-            ? `<span class="token token-eval">${eTok}</span>`
+            ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
             : `<span class="token token-eval token-placeholder"></span>`;
         const html = `
             <span class="token token-fundamental">${fTok}</span>
@@ -2304,7 +2310,7 @@ function updateDescriptiveQuartet() {
         const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
         const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
         const evalSpan = evalToken
-            ? `<span class="token token-eval">${eTok}</span>`
+            ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
             : `<span class="token token-eval token-placeholder"></span>`;
         const html = `
             <span class="token token-fundamental">${fTok}</span>
