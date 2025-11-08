@@ -1328,6 +1328,20 @@ function submitGuidedAction() {
 }
 
 function submitOpponentError() {
+    // Se non c'è ancora una quartina registrata e NON c'è selezione,
+    // consenti comunque l'errore avversario: verrà registrato come "avv".
+    // Se invece c'è già selezione (giocatore+valutazione), chiudi quella quartina
+    // prima di aggiungere l'"avv" come esito immediato.
+    if (!appState.currentSequence || appState.currentSequence.length === 0) {
+        if (appState.selectedPlayer && appState.selectedEvaluation) {
+            const fundamental = appState.calculatedFundamental || predictNextFundamental();
+            const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${fundamental}${appState.selectedEvaluation}`;
+            appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
+            updateActionSummary();
+        }
+        // Nessun vincolo: se non c'è selezione, prosegui comunque
+    }
+
     // Se è attivo il countdown di auto-chiusura (es. dopo "5 - Punto"),
     // prima chiudi immediatamente l'azione pendente (usando il payload salvato),
     // poi registra "Errore Avversario" come azione successiva.
@@ -1341,8 +1355,10 @@ function submitOpponentError() {
         // Chiudi immediatamente l'azione pendente
         try { performAutoCloseAfterTimeout(); } catch (_) {}
     }
-
-    const actionString = 'avv';
+    // Costruisci la stringa d'azione: se esiste una sequenza corrente,
+    // aggiungi "avv" come quartina speciale nella stessa azione; altrimenti usa solo "avv".
+    const baseString = appState.currentSequence.map(s => s.quartet).join(' ');
+    const actionString = baseString ? `${baseString} avv` : 'avv';
     // Imposta flag per mostrare il descrittivo "– Err Avv"
     appState.opponentErrorPressed = true;
     updateDescriptiveQuartet();
@@ -1350,31 +1366,29 @@ function submitOpponentError() {
     // Aggiorna le informazioni della valutazione nella sezione fondamentale
     const selectedEvaluationText = document.getElementById('selected-evaluation-text');
     if (selectedEvaluationText) {
-        selectedEvaluationText.textContent = 'Err Avv';
+        selectedEvaluationText.textContent = 'Errore avversario';
     }
 
     try {
         const result = parseAction(actionString);
-        
+
         // Aggiungi informazioni per l'errore avversario
         result.playerName = 'Avversario';
         result.actionType = 'Errore';
-        
+
         processActionResult(result);
-        
+
         appState.actionsLog.push({
             action: actionString,
             result: result,
             score: `${appState.homeScore}-${appState.awayScore}`,
             guided: true
         });
-        
-        updateScoutingUI();
-        updateActionsLog();
-        checkSetEnd();
-        updateNextFundamental();
-        showScoutingStep('step-player');
+
+        // L'azione è conclusa: svuota la sequenza corrente e aggiorna il riepilogo
+        appState.currentSequence = [];
         updateActionSummary();
+
         // Pulisci descrittivo e flag
         appState.selectedPlayer = null;
         appState.selectedEvaluation = null;
@@ -1382,6 +1396,8 @@ function submitOpponentError() {
         appState.opponentErrorPressed = false;
         // Segna chiusura azione ed azzera pillole
         appState.justClosedAction = true;
+        // Reset della preview del prossimo fondamentale dopo la chiusura
+        appState.nextFundamentalPreview = null;
         updateDescriptiveQuartet();
 
         // Reset delle informazioni nella sezione fondamentale
@@ -1389,6 +1405,13 @@ function submitOpponentError() {
         const selectedEvaluationTextReset = document.getElementById('selected-evaluation-text');
         if (selectedPlayerText) selectedPlayerText.textContent = '-';
         if (selectedEvaluationTextReset) selectedEvaluationTextReset.textContent = '-';
+
+        // Aggiorna UI e stato match
+        updateScoutingUI();
+        updateActionsLog();
+        updateNextFundamental();
+        showScoutingStep('step-player');
+        checkSetEnd();
 
     } catch (error) {
         alert(`Errore: ${error.message}`);
@@ -2187,9 +2210,9 @@ function updateDescriptiveQuartet() {
         return;
     }
 
-    // Caso speciale: Err Avv richiesto come "– Err Avv"
+    // Caso speciale: Err Avv richiesto come pillola dedicata
     if (appState.opponentErrorPressed) {
-        const htmlErr = `<span class="token token-eval eval-6">– Err Avv</span>`;
+        const htmlErr = `<span class="token token-eval eval-6">Errore avversario</span>`;
         el.innerHTML = htmlErr;
         if (box) box.style.display = 'block';
         return;
