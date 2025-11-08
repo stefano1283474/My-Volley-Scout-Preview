@@ -188,12 +188,20 @@
                           </span>
                           <span>Vai a Elenco Squadre</span>
                         </button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci" type="button">
+                        <!-- Nuova voce: Esci (torna a Welcome.html) -->
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Back/Home icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Esci</span>
+                        </button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Logout icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
-                          <span>Esci</span>
+                          <span>Logout</span>
                         </button>
                     </div>
                 </div>
@@ -312,8 +320,6 @@
             <div class="dialog-content">
                 <div class="dialog-header">
                     <h3>Progr. Azioni</h3>
-                    <button class="export-btn" onclick="exportActionsToExcel()" aria-label="Esporta">Esporta</button>
-                    <button class="export-btn" onclick="importActionsFromExcel()" aria-label="Importa">Importa</button>
                     <button class="close-btn" onclick="closeActionsDialog()" aria-label="Chiudi">×</button>
                 </div>
                 <div class="dialog-body">
@@ -323,6 +329,10 @@
                     <div id="actions-list-dialog" class="actions-list-container">
                         <p class="no-actions-message">Nessuna azione scoutizzata ancora.</p>
                     </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="export-btn" onclick="exportActionsToExcel()" aria-label="Esporta">Esporta</button>
+                    <button class="export-btn" onclick="importActionsFromExcel()" aria-label="Importa">Importa</button>
                 </div>
             </div>
         </div>
@@ -909,6 +919,8 @@
           } catch(_){}
           if (dlg) dlg.style.display = 'flex';
         }
+        // Rendi disponibile globalmente per poterlo richiamare da app.js
+        window.openSetMetaDialog = openSetMetaDialog;
 
         function closeSetMetaDialog(){
           const dlg = document.getElementById('set-meta-dialog');
@@ -1003,13 +1015,27 @@
               return; // attende salvataggio e continua da dialog
             }
 
-            // Prima: memorizza le azioni del set corrente nella sessione (actionsBySet)
+            // Prima: memorizza i dati del set corrente nella sessione
             try {
               const raw = localStorage.getItem('currentScoutingSession');
               const session = raw ? JSON.parse(raw) : {};
+              // Azioni
               session.actionsBySet = session.actionsBySet || {};
               const currentActions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
               session.actionsBySet[current] = currentActions;
+              // Storico punteggio
+              session.scoreHistoryBySet = session.scoreHistoryBySet || {};
+              const currentScoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
+              session.scoreHistoryBySet[current] = currentScoreHistory;
+              // Stato sintetico del set (punteggio, fase, rotazione)
+              session.setStateBySet = session.setStateBySet || {};
+              session.setStateBySet[current] = {
+                homeScore: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+                awayScore: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0,
+                currentPhase: (window.appState && window.appState.currentPhase) ? window.appState.currentPhase : 'servizio',
+                currentRotation: (window.appState && window.appState.currentRotation) ? window.appState.currentRotation : 'P1',
+                setStarted: !!(window.appState && window.appState.setStarted)
+              };
               localStorage.setItem('currentScoutingSession', JSON.stringify(session));
             } catch(e){ console.warn('Memorizzazione actionsBySet fallita:', e); }
 
@@ -1035,6 +1061,12 @@
 
             updateActiveSetUI(targetSet);
 
+            // Aggiorna URL hash per supportare deep-link e navigazione
+            try {
+              const newHash = `#/set/${Number(targetSet)}`;
+              if (location.hash !== newHash) location.hash = newHash;
+            } catch(_) {}
+
             // Chiusura sidebar su mobile dopo la selezione del set
             try {
               if (window.isMobileSidebar && window.isMobileSidebar()) {
@@ -1055,18 +1087,44 @@
           if (!btn) return;
           const targetSet = parseInt(btn.dataset.set, 10);
           changeSet(targetSet);
+          // L'aggiornamento dell'hash è gestito dentro changeSet
         });
 
-        // Aggiorna stato iniziale dalla sessione/appState
+        // Router: leggi set da hash #/set/<n>
+        function getSetFromHash(){
+          const m = String(location.hash||'').match(/#\/set\/(\d+)/);
+          if (m && m[1]) {
+            const n = parseInt(m[1], 10);
+            if (n >= 1 && n <= 6) return n;
+          }
+          return null;
+        }
+
+        // Gestisci cambio hash (back/forward) sincronizzando lo stato
+        window.addEventListener('hashchange', () => {
+          const setFromHash = getSetFromHash();
+          if (setFromHash) changeSet(setFromHash);
+        });
+
+        // Aggiorna stato iniziale dalla URL, sessione o appState
         let initial = 1;
+        const fromUrl = getSetFromHash();
+        if (fromUrl) initial = fromUrl;
         try {
           const raw = localStorage.getItem('currentScoutingSession');
           const session = raw ? JSON.parse(raw) : {};
           const fromSession = session?.setConfig?.set;
-          initial = (typeof fromSession === 'number' && fromSession >= 1 && fromSession <= 6) ? fromSession : initial;
+          if (!fromUrl) {
+            initial = (typeof fromSession === 'number' && fromSession >= 1 && fromSession <= 6) ? fromSession : initial;
+          }
         } catch(_) {}
         if (window.appState && window.appState.currentSet) initial = window.appState.currentSet;
         updateActiveSetUI(initial);
+        // Sincronizza URL all'iniziale se non già presente
+        try {
+          const desired = `#/set/${Number(initial)}`;
+          if (location.hash !== desired) location.hash = desired;
+        } catch(_) {}
       })();
     </script>
     <script>

@@ -1097,6 +1097,20 @@ body {
 .selected-info .token-player { font-weight: 700; }
 .selected-info .token-eval { font-weight: 700; }
 
+/* Evidenza grafica in modalità sostituzione giocatore */
+/* Evidenza SOLO sulla pillola del player corrente */
+.selected-info.replace-mode #pressed-buttons-log .token-player.replace-target {
+  border-color: #ff9800; /* arancione vivo */
+  box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 0 10px rgba(255,152,0,0.45);
+  animation: replacePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes replacePulse {
+  0%   { box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 0 6px rgba(255,152,0,0.35); }
+  50%  { box-shadow: 0 0 0 3px rgba(255,152,0,0.55), 0 0 14px rgba(255,152,0,0.6); }
+  100% { box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 0 6px rgba(255,152,0,0.35); }
+}
+
 /* Colora lo sfondo delle pillole di valutazione come i bottoni di valutazione */
 .selected-info .token-eval.eval-1 { background-color: #d32f2f; color: #fff; }
 .selected-info .token-eval.eval-2 { background-color: #f57c00; color: #fff; }
@@ -1577,6 +1591,10 @@ body {
 .score-current .set-info {
     white-space: nowrap; /* mai andare a capo */
 }
+/* Forza i nomi delle squadre in maiuscolo nella testata punteggio */
+.score-current .team-name {
+    text-transform: uppercase;
+}
 /* Ellissi e allineamento per i nomi delle squadre ai lati */
 #score-team-my, #score-team-opponent {
     min-width: 0; /* usa tutto lo spazio disponibile in colonna */
@@ -1670,6 +1688,27 @@ body {
     min-height: 60px;
     font-size: 1.05em;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Evidenza timer in corso: glow rosso più ampio, senza cambiare il background */
+.eval-btn.timer-pending {
+    /* alone rosso più esteso */
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.50), 0 0 18px rgba(211, 47, 47, 0.45);
+    /* durata parametrica per sincronizzare il respiro con i secondi */
+    animation: timerPulseRed var(--pulse-duration, 1s) ease-in-out infinite;
+}
+
+/* Pulsazione rossa ampia: intensità e raggio variano nel tempo */
+@keyframes timerPulseRed {
+    0% {
+        box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.40), 0 0 10px rgba(211, 47, 47, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(211, 47, 47, 0.65), 0 0 24px rgba(211, 47, 47, 0.60);
+    }
+    100% {
+        box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.50), 0 0 18px rgba(211, 47, 47, 0.45);
+    }
 }
 
 .eval-btn:hover {
@@ -2652,6 +2691,19 @@ body {
   background-repeat: no-repeat;
 }
 
+/* Pulsante ANNULLA durante sostituzione: evidenza grafica chiara */
+.players-grid .cancel-replace-btn {
+  border-color: #ff9800;
+  background: #fffbea;
+  color: #e65100;
+  box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 2px 12px rgba(255,152,0,0.35);
+  animation: replacePulse 1.2s ease-in-out infinite;
+  grid-column: span 2;
+}
+.players-grid .cancel-replace-btn .player-line2 .player-name {
+  font-weight: 800;
+}
+
 /* Forza lo sfondo del MURO con specificità maggiore */
 .players-grid button.muro-override-btn {
   background: url('muro.jpg') center/cover no-repeat !important;
@@ -2768,6 +2820,8 @@ body {
     max-height: 92vh;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
 }
 
 .dialog-header {
@@ -2923,8 +2977,18 @@ body {
 
 .dialog-body {
     padding: 20px;
-    height: calc(92vh - 80px); /* allinea alla nuova altezza del dialog */
+    flex: 1 1 auto; /* riempie lo spazio disponibile tra header e footer */
     overflow-y: auto;
+}
+
+.dialog-footer {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 12px 20px;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
 }
 
 .actions-summary {

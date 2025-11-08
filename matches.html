@@ -338,6 +338,12 @@
             background: #0d6efd; /* blu pieno */
             color:#ffffff; border:1px solid #0d6efd;
         }
+
+        /* Titolo con didascalia a destra sulla stessa riga */
+        .section-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+        .section-title-row .section-title { margin-bottom: 0; }
+        .section-hint { color: #555; font-size: 0.95rem; }
+        .section-hint.inline { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
         .tab-panel { margin-top: 0; }
 
         /* Layout: solo "Nuova partita" scrolla verticalmente */
@@ -450,7 +456,10 @@
         
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:none;">
-            <h2 class="section-title">Elenco Partite</h2>
+            <div class="section-title-row">
+                <h2 class="section-title">Elenco Partite</h2>
+                <span class="section-hint inline" aria-live="polite">Seleziona una partita per iniziare lo scout</span>
+            </div>
             
             <div class="matches-list" id="matchesList">
                 <!-- Matches will be loaded here -->

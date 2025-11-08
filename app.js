@@ -20,7 +20,9 @@ const appState = {
     autoCloseTimerId: null,
     autoClosePayload: null,
     // Flag per pulire le pillole dopo chiusura azione
-    justClosedAction: false
+    justClosedAction: false,
+    // Modalità sostituzione giocatore dalla pillola "Hai Selezionato"
+    replacePlayerMode: false
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -120,7 +122,11 @@ window.loadScoutingSession = function(sessionData) {
                 appState.homeScore = md.score.home;
                 appState.awayScore = md.score.away;
             }
-            if (Array.isArray(md.scoreHistory) && md.scoreHistory.length > 0) {
+            // Preferisci storico punteggio per set se presente
+            const cs = appState.currentSet;
+            if (md.scoreHistoryBySet && Array.isArray(md.scoreHistoryBySet[cs])) {
+                appState.scoreHistory = md.scoreHistoryBySet[cs] || [];
+            } else if (Array.isArray(md.scoreHistory) && md.scoreHistory.length > 0) {
                 appState.scoreHistory = md.scoreHistory;
             }
             // Preferisci azioni per set se disponibili
@@ -129,6 +135,22 @@ window.loadScoutingSession = function(sessionData) {
             } else if (Array.isArray(md.actions) && md.actions.length > 0) {
                 appState.actionsLog = md.actions;
             }
+            // Punteggio da stato sintetico del set o dall'ultimo elemento dello storico
+            try {
+                const setState = md.setStateBySet && md.setStateBySet[cs];
+                if (setState) {
+                    if (typeof setState.homeScore === 'number') appState.homeScore = setState.homeScore;
+                    if (typeof setState.awayScore === 'number') appState.awayScore = setState.awayScore;
+                    if (setState.currentPhase) appState.currentPhase = setState.currentPhase;
+                    if (setState.currentRotation) appState.currentRotation = setState.currentRotation;
+                } else if (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0) {
+                    const last = appState.scoreHistory[appState.scoreHistory.length - 1];
+                    if (last && typeof last.homeScore === 'number' && typeof last.awayScore === 'number') {
+                        appState.homeScore = last.homeScore;
+                        appState.awayScore = last.awayScore;
+                    }
+                }
+            } catch(_) {}
             // Contrassegna come set avviato quando si riprende
             if (md.status === 'in_progress' || (appState.actionsLog && appState.actionsLog.length)) {
                 appState.setStarted = true;
@@ -256,6 +278,7 @@ function initializeApp() {
         const headerMenu = document.getElementById('headerMenu');
         const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
         const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+        const exitToWelcomeBtnMobile = document.getElementById('exitToWelcomeBtnMobile');
         const exportSetsBtnMobile = document.getElementById('exportSetsBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
         if (headerMenuToggle && headerMenu) {
@@ -300,6 +323,21 @@ function initializeApp() {
                 e.stopPropagation();
                 try {
                     // Salvataggio non bloccante (se fallisce, ignora)
+                    try { saveCurrentMatch(); } catch(_){}
+                    window.location.href = 'welcome.html';
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+        // Nuova voce: Esci (torna a Welcome.html)
+        if (exitToWelcomeBtnMobile) {
+            exitToWelcomeBtnMobile.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Salvataggio non bloccante del match corrente
                     try { saveCurrentMatch(); } catch(_){}
                     window.location.href = 'welcome.html';
                 } finally {
@@ -409,11 +447,24 @@ async function saveCurrentMatch() {
         // Aggiorna actionsBySet con le azioni del set corrente
         try {
             const currentSetNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+            // Azioni per set
             sessionData.actionsBySet = sessionData.actionsBySet || {};
             sessionData.actionsBySet[currentSetNum] = actions;
+            // Storico punteggio per set
+            sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
+            sessionData.scoreHistoryBySet[currentSetNum] = scoreHistory;
+            // Stato sintetico del set (punteggio, fase, rotazione)
+            sessionData.setStateBySet = sessionData.setStateBySet || {};
+            sessionData.setStateBySet[currentSetNum] = {
+                homeScore: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+                awayScore: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0,
+                currentPhase: (window.appState && window.appState.currentPhase) ? window.appState.currentPhase : 'servizio',
+                currentRotation: (window.appState && window.appState.currentRotation) ? window.appState.currentRotation : 'P1',
+                setStarted: !!(window.appState && window.appState.setStarted)
+            };
             // Persisti subito la sessione aggiornata
             localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
-        } catch (e) { console.warn('Aggiornamento actionsBySet fallito:', e); }
+        } catch (e) { console.warn('Aggiornamento dati per set fallito:', e); }
 
         const payload = {
             id: sessionData.id || ('match_' + Date.now()),
@@ -436,6 +487,8 @@ async function saveCurrentMatch() {
             scoreHistory,
             actions,
             actionsBySet: sessionData.actionsBySet || {},
+            scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+            setStateBySet: sessionData.setStateBySet || {},
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -940,19 +993,21 @@ function updatePlayersGrid() {
     while (row2.length < 4) row2.push(null);
     const row3 = byRole.Centrale.slice(0,4);
     while (row3.length < 4) row3.push(null);
-    // Quarta riga: 3 Opposti + tasto Err Avv al posto del quarto "O"
+    // Quarta riga: 3 Opposti + pulsante MURO al posto del quarto "O"
     const row4 = new Array(4);
     const opps = byRole.Opposto.slice(0,3);
     for (let i = 0; i < 3; i++) {
         row4[i] = opps[i] || null;
     }
-    row4[3] = { __type: 'opponent-error' };
+    row4[3] = { __type: 'muro-override' };
     
-    // Ordina le righe e sostituisci il primo slot vuoto con il tasto MURO
+    // Ordina le righe; in modalità sostituzione nascondi "Errore Avvers." e usa ANNULLA su due slot
     const ordered = [row1, row2, row3, row4].flat();
-    const firstEmptyIndex = ordered.findIndex(p => p === null);
-    if (firstEmptyIndex !== -1) {
-        ordered[firstEmptyIndex] = { __type: 'muro-override' };
+    if (!appState.replacePlayerMode) {
+        const firstEmptyIndex = ordered.findIndex(p => p === null);
+        if (firstEmptyIndex !== -1) {
+            ordered[firstEmptyIndex] = { __type: 'opponent-error' };
+        }
     }
     container.innerHTML = ordered.map(p => {
         if (!p) return renderEmpty();
@@ -969,19 +1024,31 @@ function updatePlayersGrid() {
             `;
         }
         if (p.__type === 'muro-override') {
-            return `
-                <button class="player-btn muro-override-btn" type="button" title="MURO (override)">
-                    <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
-                    <div class="player-line2"><span class="player-name">MURO</span></div>
-                </button>
-            `;
+            if (appState.replacePlayerMode) {
+                return `
+                    <button class="player-btn cancel-replace-btn" type="button" title="ANNULLA (sostituzione)">
+                        <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
+                        <div class="player-line2"><span class="player-name">ANNULLA</span></div>
+                    </button>
+                `;
+            } else {
+                return `
+                    <button class="player-btn muro-override-btn" type="button" title="MURO (override)">
+                        <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
+                        <div class="player-line2"><span class="player-name">MURO</span></div>
+                    </button>
+                `;
+            }
         }
         return renderBtn(p);
     }).join('');
     
     // Aggiungi event listeners
     container.querySelectorAll('.player-btn').forEach(btn => {
+        // Escludi tasti speciali (Err Avv, MURO, ANNULLA) dal selettore giocatore
         if (btn.classList.contains('opponent-error-btn')) return; // gestito separatamente
+        if (btn.classList.contains('muro-override-btn')) return;  // override MURO
+        if (btn.classList.contains('cancel-replace-btn')) return; // annulla sostituzione
         btn.addEventListener('click', (e) => {
             const number = e.currentTarget.dataset.number;
             const name = e.currentTarget.dataset.name;
@@ -1004,6 +1071,13 @@ function updatePlayersGrid() {
         });
     });
 
+    // Listener per pulsante ANNULLA in modalità sostituzione
+    container.querySelectorAll('.cancel-replace-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            cancelReplacePlayerMode();
+        });
+    });
+
     // Testo fisso su due righe per Err Avv: riga1 "Errore", riga2 "Avvers."
     try {
         container.querySelectorAll('.opponent-error-btn').forEach(btn => {
@@ -1016,6 +1090,54 @@ function updatePlayersGrid() {
 }
 
 function selectPlayer(number, name, btnEl) {
+    // Se siamo in modalità sostituzione, aggiorna solo il giocatore corrente
+    // senza chiudere l'azione e senza alterare la valutazione selezionata
+    if (appState.replacePlayerMode) {
+        const target = appState.replaceTarget || { kind: 'current', index: null };
+        if (target.kind === 'sequence' && Number.isInteger(target.index) && appState.currentSequence[target.index]) {
+            // Sostituisci il player nella riga della sequenza selezionata
+            const item = appState.currentSequence[target.index];
+            const q = String(item.quartet || '');
+            const f = q.charAt(2);
+            const e = q.charAt(3);
+            const nn = String(number).padStart(2, '0');
+            item.quartet = `${nn}${f}${e}`;
+            item.playerName = name;
+
+            appState.replacePlayerMode = false;
+            appState.replaceTarget = null;
+            appState.justClosedAction = false;
+
+            updateActionSummary();
+            updateDescriptiveQuartet();
+            updatePlayersGrid();
+            showScoutingStep('step-action');
+            return;
+        } else {
+            // Sostituzione della riga corrente (player selezionato)
+            appState.selectedPlayer = { number, name };
+            appState.replacePlayerMode = false;
+            appState.replaceTarget = null;
+            appState.justClosedAction = false;
+
+            // Evidenzia visivamente il nuovo giocatore
+            const playerButtons = document.querySelectorAll('.player-btn');
+            playerButtons.forEach(b => b.classList.remove('selected'));
+            if (btnEl) btnEl.classList.add('selected');
+
+            // Mantieni (o ricalcola) il fondamentale corrente
+            appState.calculatedFundamental = appState.overrideFundamental || predictNextFundamental();
+
+            // Aggiorna UI minima
+            updateEvaluationButtonTexts();
+            updateNextFundamental();
+            updateDescriptiveQuartet();
+            updatePlayersGrid(); // ripristina MURO al posto di ANNULLA
+
+            showScoutingStep('step-action');
+            return;
+        }
+    }
     // Se durante il countdown di auto-chiusura viene premuto un player,
     // interrompi il timer e torna al flusso normale (chiusura su click player)
     if (appState.autoClosePending) {
@@ -1027,6 +1149,13 @@ function selectPlayer(number, name, btnEl) {
         } catch (_) {}
         appState.autoClosePending = false;
         appState.autoClosePayload = null;
+        // Stoppa anche l'animazione di countdown sui bottoni valutazione
+        try {
+            document.querySelectorAll('.eval-btn').forEach(btn => {
+                btn.classList.remove('timer-pending');
+                btn.style.removeProperty('--pulse-duration');
+            });
+        } catch(_) {}
     }
 
     // Se esiste già una selezione (player + valutazione), chiudi l'azione precedente
@@ -1169,6 +1298,11 @@ function selectEvaluation(evaluation) {
                 // Non più terminale: annulla la chiusura automatica
                 appState.autoClosePending = false;
                 appState.autoClosePayload = null;
+                // Rimuovi evidenza timer dai pulsanti
+                document.querySelectorAll('.eval-btn').forEach(btn => {
+                    btn.classList.remove('timer-pending');
+                    btn.style.removeProperty('--pulse-duration');
+                });
             } else {
                 // Terminale: riavvia con il nuovo evaluation
                 appState.autoClosePending = true;
@@ -1180,6 +1314,16 @@ function selectEvaluation(evaluation) {
                 appState.autoCloseTimerId = setTimeout(() => {
                     performAutoCloseAfterTimeout();
                 }, 3000);
+                // Aggiorna evidenza timer sul pulsante corrispondente
+                document.querySelectorAll('.eval-btn').forEach(btn => {
+                    btn.classList.remove('timer-pending');
+                    btn.style.removeProperty('--pulse-duration');
+                });
+                const pendingBtn = document.querySelector(`.eval-btn[data-eval="${evaluation}"]`);
+                if (pendingBtn) {
+                    pendingBtn.classList.add('timer-pending');
+                    pendingBtn.style.setProperty('--pulse-duration', '1s');
+                }
             }
         }
     } catch (_) {}
@@ -1261,6 +1405,18 @@ function maybeStartAutoCloseTimer(evaluation) {
         appState.autoCloseTimerId = setTimeout(() => {
             performAutoCloseAfterTimeout();
         }, 3000);
+
+        // Evidenzia il pulsante selezionato come "timer in corso"
+        document.querySelectorAll('.eval-btn').forEach(btn => {
+            btn.classList.remove('timer-pending');
+            btn.style.removeProperty('--pulse-duration');
+        });
+        const pendingBtn = document.querySelector(`.eval-btn[data-eval="${evaluation}"]`);
+        if (pendingBtn) {
+            pendingBtn.classList.add('timer-pending');
+            // 1 pulsazione per secondo, sincronizzata al countdown 3s
+            pendingBtn.style.setProperty('--pulse-duration', '1s');
+        }
     } catch (err) {
         console.warn('Errore avvio auto-chiusura:', err);
     }
@@ -1270,8 +1426,15 @@ function maybeStartAutoCloseTimer(evaluation) {
 function performAutoCloseAfterTimeout() {
     const payload = appState.autoClosePayload;
     // Ripristina interazioni
-    document.querySelectorAll('.eval-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.eval-btn').forEach(btn => {
+        btn.disabled = false;
+        // Rimuovi evidenza timer e durata specifica
+        btn.classList.remove('timer-pending');
+        btn.style.removeProperty('--pulse-duration');
+    });
     document.querySelectorAll('.player-btn').forEach(btn => btn.disabled = false);
+    // Rimuovi evidenza timer
+    document.querySelectorAll('.eval-btn').forEach(btn => btn.classList.remove('timer-pending'));
     appState.autoClosePending = false;
     appState.autoClosePayload = null;
     if (appState.autoCloseTimerId) {
@@ -1733,38 +1896,90 @@ function startSet() {
     } else {
         // Versione semplificata - usa i dati dalla sessione salvata
         const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
-        if (sessionData.setConfig) {
-            setNumber = sessionData.setConfig.set || 1;
-            // Preferisci meta per set se presente
-            const sm = sessionData.setMeta && sessionData.setMeta[setNumber];
-            const __rotCfg2 = sessionData.setConfig.ourRotation;
-            rotation = (sm && sm.ourRotation) ? sm.ourRotation : ((__rotCfg2 && String(__rotCfg2).startsWith('P')) ? __rotCfg2 : (__rotCfg2 ? `P${__rotCfg2}` : 'P1'));
-            phase = (sm && sm.phase) ? sm.phase : (sessionData.setConfig.phase || 'servizio');
-        } else {
-            // Valori di default se non c'è sessione
-            setNumber = 1;
-            rotation = 'P1';
-            phase = 'servizio';
+        const cfg = sessionData.setConfig || {};
+        // Preferisci il numero di set presente nello stato se disponibile
+        // altrimenti usa quello configurato in sessione o 1
+        setNumber = (typeof appState.currentSet === 'number' && appState.currentSet > 0)
+            ? appState.currentSet
+            : (cfg.set || 1);
+        // Preferisci meta per set se presente
+        const sm = sessionData.setMeta && sessionData.setMeta[setNumber];
+        const __rotCfg2 = cfg.ourRotation;
+        const hasMetaForSet = !!(sm && sm.ourRotation && sm.phase);
+        const hasGlobalCfgValid = !!(__rotCfg2 && cfg.phase);
+
+        // Se non abbiamo configurazione valida, apri il dialog di setup set e interrompi
+        if (!hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1)) {
+            if (typeof window.openSetMetaDialog === 'function') {
+                try { window.openSetMetaDialog(setNumber); } catch(_) {}
+            }
+            // Aggiorna il display set corrente se presente, ma non proseguire
+            return;
         }
+
+        rotation = hasMetaForSet
+            ? sm.ourRotation
+            : ((__rotCfg2 && String(__rotCfg2).startsWith('P')) ? __rotCfg2 : (__rotCfg2 ? `P${__rotCfg2}` : 'P1'));
+        phase = hasMetaForSet ? sm.phase : (cfg.phase || 'servizio');
+        // Opponent rotation opzionale (usata nel testo descrittivo iniziale)
+        var opponentRotation = hasMetaForSet
+            ? (sm.opponentRotation || null)
+            : (cfg.opponentRotation || null);
     }
     
     appState.currentSet = setNumber;
     appState.currentRotation = rotation;
     appState.currentPhase = phase;
-    appState.homeScore = 0;
-    appState.awayScore = 0;
-    appState.actionsLog = [];
-    appState.setStarted = true;
+    // Reidrata dati del set se esistono in sessione
+    let restored = false;
+    try {
+        const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+        const shBySet = sessionData.scoreHistoryBySet || {};
+        const abSet = sessionData.actionsBySet || {};
+        const stBySet = sessionData.setStateBySet || {};
+        if (Array.isArray(shBySet[setNumber]) || Array.isArray(abSet[setNumber]) || stBySet[setNumber]) {
+            appState.actionsLog = abSet[setNumber] || [];
+            appState.scoreHistory = shBySet[setNumber] || [];
+            const st = stBySet[setNumber] || {};
+            if (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0) {
+                const last = appState.scoreHistory[appState.scoreHistory.length - 1];
+                appState.homeScore = (typeof st.homeScore === 'number') ? st.homeScore : (last?.homeScore ?? 0);
+                appState.awayScore = (typeof st.awayScore === 'number') ? st.awayScore : (last?.awayScore ?? 0);
+            } else {
+                appState.homeScore = (typeof st.homeScore === 'number') ? st.homeScore : 0;
+                appState.awayScore = (typeof st.awayScore === 'number') ? st.awayScore : 0;
+            }
+            if (st.currentPhase) appState.currentPhase = st.currentPhase;
+            if (st.currentRotation) appState.currentRotation = st.currentRotation;
+            appState.setStarted = true;
+            restored = true;
+        }
+    } catch(_) {}
+
+    if (!restored) {
+        appState.homeScore = 0;
+        appState.awayScore = 0;
+        appState.actionsLog = [];
+        appState.setStarted = true;
+        // Inizializza lo storico punteggio con l'entry iniziale
+        const phaseLabel = (phase === 'ricezione') ? 'Ricezione' : 'Servizio';
+        const oppRotLabel = (typeof opponentRotation === 'string' && opponentRotation)
+            ? (String(opponentRotation).startsWith('P') ? opponentRotation : `P${opponentRotation}`)
+            : null;
+        const descr = oppRotLabel
+            ? `Set ${setNumber} - ${phaseLabel} ${rotation} Vs ${oppRotLabel}`
+            : `Set ${setNumber} - ${phaseLabel} ${rotation}`;
+        appState.scoreHistory = [{
+            homeScore: 0,
+            awayScore: 0,
+            description: descr,
+            type: 'initial'
+        }];
+    }
     appState.selectedPlayer = null;
     appState.selectedEvaluation = null;
     
-    // Inizializza lo storico punteggio con l'entry iniziale
-    appState.scoreHistory = [{
-        homeScore: 0,
-        awayScore: 0,
-        description: `Set ${setNumber} - Servizio P1 Vs P2`,
-        type: 'initial'
-    }];
+    // Reset del descrittivo
     
     // Inizializza il log dei tasti premuti
     // Reset del descrittivo
@@ -1783,6 +1998,8 @@ function startSet() {
     updateNextFundamental();
     updatePlayersGrid();
     updateScoreHistoryDisplay(); // Aggiorna anche lo storico punteggio
+    // Persisti subito l'inizializzazione del nuovo set
+    scheduleAutosave(250);
     
     // Apri l'interfaccia guidata se esiste (versione completa)
     if (typeof showScoutingStep === 'function') {
@@ -2176,15 +2393,26 @@ function checkSetEnd() {
             if (appState.currentSet < 5) {
                 const nextSet = confirm(`Vuoi iniziare il Set ${appState.currentSet + 1}?`);
                 if (nextSet) {
+                    // Persisti lo stato del set appena concluso
+                    try { saveCurrentMatch(); } catch(_) {}
+
+                    // Pulisci eventuale timer/animazione pendente
+                    try {
+                        if (appState.autoClosePending && appState.autoCloseTimerId) {
+                            clearTimeout(appState.autoCloseTimerId);
+                            appState.autoClosePending = false;
+                            appState.autoCloseTimerId = null;
+                            appState.autoClosePayload = null;
+                        }
+                        document.querySelectorAll('.eval-btn.timer-pending').forEach(btn => {
+                            btn.classList.remove('timer-pending');
+                            btn.style.removeProperty('--pulse-duration');
+                        });
+                    } catch(_) {}
+
+                    // Incrementa il set e avvia tramite startSet per separare lo storico
                     appState.currentSet++;
-                    appState.homeScore = 0;
-                    appState.awayScore = 0;
-                    appState.actionsLog = [];
-                    updateScoutingUI();
-                    updateActionsLog();
-                    if (window.updateScoreHistory) {
-                        window.updateScoreHistory();
-                    }
+                    startSet();
                 }
             } else {
                 alert('🎉 Partita terminata!');
@@ -2317,7 +2545,7 @@ function updateDescriptiveQuartet() {
             const evalSpan = evalToken
                 ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
                 : `<span class="token token-eval token-placeholder"></span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalSpan}</div>`);
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player" data-row-kind="current">${pTok}</span>${evalSpan}</div>`);
         } else if (evalVal) {
             // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
             const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
@@ -2353,12 +2581,22 @@ function updateDescriptiveQuartet() {
             if (provisionalQuartet && i === seq.length - 1 && q === provisionalQuartet) {
                 continue;
             }
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player">${pTok}</span>${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
         }
 
         el.classList.add('multiline');
         el.innerHTML = lines.join('');
         if (box) box.style.display = lines.length ? 'block' : 'none';
+        // Rende cliccabili TUTTE le pillole player visibili per avviare la sostituzione
+        try {
+            const playerSpans = el.querySelectorAll('.token-player');
+            playerSpans.forEach(span => {
+                if (span.classList.contains('token-placeholder')) return;
+                span.style.cursor = 'pointer';
+                span.title = 'Cambia giocatore della quartina';
+                span.addEventListener('click', enterReplacePlayerModeFromSpan);
+            });
+        } catch(_) {}
         return;
     }
 
@@ -2377,7 +2615,7 @@ function updateDescriptiveQuartet() {
             : `<span class="token token-eval token-placeholder"></span>`;
         const html = `
             <span class="token token-fundamental">${fTok}</span>
-            <span class="token token-player">${pTok}</span>
+            <span class="token token-player" data-row-kind="current">${pTok}</span>
             ${evalSpan}
         `;
         el.classList.remove('multiline');
@@ -2411,11 +2649,87 @@ function updateDescriptiveQuartet() {
         el.innerHTML = html;
         if (box) box.style.display = 'block';
     }
+
+    // In layout a riga singola, rende cliccabile la pillola player (se presente)
+    try {
+        const playerSpans = el.querySelectorAll('.token-player');
+        playerSpans.forEach(span => {
+            if (span.classList.contains('token-placeholder')) return;
+            span.style.cursor = 'pointer';
+            span.title = 'Cambia giocatore della quartina';
+            span.addEventListener('click', enterReplacePlayerModeFromSpan);
+        });
+    } catch(_) {}
+
+    // Applica/rompe l'evidenza grafica in modalità sostituzione
+    try {
+        const selectedInfo = document.getElementById('selected-info');
+        if (selectedInfo) {
+            if (appState.replacePlayerMode) selectedInfo.classList.add('replace-mode');
+            else selectedInfo.classList.remove('replace-mode');
+        }
+    } catch(_) {}
+}
+
+// Entra in modalità sostituzione giocatore dalla pillola "Hai Selezionato"
+function enterReplacePlayerMode(){
+    return enterReplacePlayerModeFor('current', null, null);
+}
+
+function enterReplacePlayerModeFromSpan(e){
+    const span = e.currentTarget;
+    const kind = span.dataset.rowKind || span.getAttribute('data-row-kind') || 'current';
+    const indexStr = span.dataset.rowIndex || span.getAttribute('data-row-index');
+    const idx = indexStr != null ? parseInt(indexStr, 10) : null;
+    enterReplacePlayerModeFor(kind, idx, span);
+}
+
+function enterReplacePlayerModeFor(kind, idx, spanEl){
+    appState.replacePlayerMode = true;
+    appState.replaceTarget = { kind: (kind || 'current'), index: idx };
+    // Evidenza grafica: container + pillola target
+    try {
+        const selectedInfo = document.getElementById('selected-info');
+        if (selectedInfo) selectedInfo.classList.add('replace-mode');
+        selectedInfo?.querySelectorAll('.token-player.replace-target').forEach(s => s.classList.remove('replace-target'));
+        if (spanEl) spanEl.classList.add('replace-target');
+    } catch(_) {}
+    // Aggiorna la griglia per mostrare ANNULLA
+    try { updatePlayersGrid(); } catch(_) {}
+    // Focus sulla selezione del giocatore
+    try { showScoutingStep('step-player'); } catch(_) {}
+}
+
+// Esce dalla modalità sostituzione senza cambiare il giocatore
+function cancelReplacePlayerMode(){
+    appState.replacePlayerMode = false;
+    appState.replaceTarget = null;
+    // Aggiorna SOLO la griglia (ripristina MURO) senza toccare le pillole del descrittivo
+    try { updatePlayersGrid(); } catch(_) {}
+    // Rimuove la classe di evidenza
+    try {
+        const selectedInfo = document.getElementById('selected-info');
+        if (selectedInfo) selectedInfo.classList.remove('replace-mode');
+        selectedInfo?.querySelectorAll('.token-player.replace-target').forEach(s => s.classList.remove('replace-target'));
+    } catch(_) {}
 }
 
 // Attiva l'override MURO per la singola azione corrente
 function activateMuroOverride() {
     try {
+        // Se era in corso un timer di auto-chiusura, interrompilo e rimuovi l'animazione
+        if (appState.autoClosePending) {
+            if (appState.autoCloseTimerId) {
+                clearTimeout(appState.autoCloseTimerId);
+                appState.autoCloseTimerId = null;
+            }
+            appState.autoClosePending = false;
+            appState.autoClosePayload = null;
+            document.querySelectorAll('.eval-btn').forEach(btn => {
+                btn.classList.remove('timer-pending');
+                btn.style.removeProperty('--pulse-duration');
+            });
+        }
         appState.overrideFundamental = 'm';
         appState.calculatedFundamental = 'm';
         // Puliamo eventuale preview precedente per evitare che sovrascriva il banner

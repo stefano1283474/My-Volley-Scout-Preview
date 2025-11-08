@@ -263,7 +263,9 @@
                     <div id="headerMenu" class="top-account-menu" hidden>
                         <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">Vai a Elenco Partite</button>
                         <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">Vai a Elenco Squadre</button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Esci" type="button">Esci</button>
+                        <!-- Nuova voce: Esci (torna a Welcome.html) -->
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">Esci</button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">Logout</button>
                     </div>
                 </div>
             </div>
@@ -285,6 +287,16 @@
               if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
             });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+            // Handler per la nuova voce 'Esci' -> Welcome.html
+            const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+            if (exitBtn) {
+              exitBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = 'welcome.html';
+                closeMenu();
+              });
+            }
           })();
         </script>
 
