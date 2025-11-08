@@ -1097,6 +1097,16 @@ body {
 .selected-info .token-player { font-weight: 700; }
 .selected-info .token-eval { font-weight: 700; }
 
+/* Pillola ANNULLA quando si sostituisce il player nella sezione "Hai selezionato" */
+.selected-info .token-cancel {
+  border-color: #ff9800;
+  background: #fffbea;
+  color: #e65100;
+  box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 2px 12px rgba(255,152,0,0.35);
+  animation: replacePulse 1.2s ease-in-out infinite;
+  cursor: pointer;
+}
+
 /* Evidenza grafica in modalità sostituzione giocatore */
 /* Evidenza SOLO sulla pillola del player corrente */
 .selected-info.replace-mode #pressed-buttons-log .token-player.replace-target {
@@ -2698,7 +2708,6 @@ body {
   color: #e65100;
   box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 2px 12px rgba(255,152,0,0.35);
   animation: replacePulse 1.2s ease-in-out infinite;
-  grid-column: span 2;
 }
 .players-grid .cancel-replace-btn .player-line2 .player-name {
   font-weight: 800;

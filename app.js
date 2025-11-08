@@ -993,61 +993,48 @@ function updatePlayersGrid() {
     while (row2.length < 4) row2.push(null);
     const row3 = byRole.Centrale.slice(0,4);
     while (row3.length < 4) row3.push(null);
-    // Quarta riga: 3 Opposti + pulsante MURO al posto del quarto "O"
-    const row4 = new Array(4);
-    const opps = byRole.Opposto.slice(0,3);
-    for (let i = 0; i < 3; i++) {
-        row4[i] = opps[i] || null;
-    }
-    row4[3] = { __type: 'muro-override' };
-    
-    // Ordina le righe; in modalità sostituzione nascondi "Errore Avvers." e usa ANNULLA su due slot
+    // Quarta riga: Opposti (fino a 2) + 2 tasti funzione
+    const row4 = [];
+    const opps = byRole.Opposto.slice(0,2);
+    row4.push(...opps);
+    // I due tasti funzione sono sempre visibili: Errore Avvers. e MURO
+    row4.push({ __type: 'opponent-error' }, { __type: 'muro-override' });
+    while (row4.length < 4) row4.push(null);
+
+    // Rende tutte le righe (4x4 = 16 tasti)
     const ordered = [row1, row2, row3, row4].flat();
-    if (!appState.replacePlayerMode) {
-        const firstEmptyIndex = ordered.findIndex(p => p === null);
-        if (firstEmptyIndex !== -1) {
-            ordered[firstEmptyIndex] = { __type: 'opponent-error' };
-        }
-    }
     container.innerHTML = ordered.map(p => {
         if (!p) return renderEmpty();
+        if (p.__type === 'cancel-button') {
+            return `
+                <button class="player-btn cancel-replace-btn" type="button" title="ANNULLA">
+                    <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
+                    <div class="player-line2"><span class="player-name">ANNULLA</span></div>
+                </button>
+            `;
+        }
         if (p.__type === 'opponent-error') {
             return `
-                <button class="player-btn opponent-error-btn" type="button" title="Errore Avversario">
-                    <div class="player-line1">
-                        <span class="player-name">Errore</span>
-                    </div>
-                    <div class="player-line2">
-                        <span class="player-name">Avvers.</span>
-                    </div>
+                <button class="player-btn opponent-error-btn" type="button" title="Errore Avvers.">
+                    <div class="player-line1"><span class="player-name">Errore</span></div>
+                    <div class="player-line2"><span class="player-name">Avvers.</span></div>
                 </button>
             `;
         }
         if (p.__type === 'muro-override') {
-            if (appState.replacePlayerMode) {
-                return `
-                    <button class="player-btn cancel-replace-btn" type="button" title="ANNULLA (sostituzione)">
-                        <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
-                        <div class="player-line2"><span class="player-name">ANNULLA</span></div>
-                    </button>
-                `;
-            } else {
-                return `
-                    <button class="player-btn muro-override-btn" type="button" title="MURO (override)">
-                        <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
-                        <div class="player-line2"><span class="player-name">MURO</span></div>
-                    </button>
-                `;
-            }
+            return `
+                <button class="player-btn muro-override-btn" type="button" title="Muro">
+                    <div class="player-line1" aria-hidden="true" style="display:none;"><span class="player-number">&nbsp;</span></div>
+                    <div class="player-line2"><span class="player-name">MURO</span></div>
+                </button>
+            `;
         }
         return renderBtn(p);
     }).join('');
     
     // Aggiungi event listeners
     container.querySelectorAll('.player-btn').forEach(btn => {
-        // Escludi tasti speciali (Err Avv, MURO, ANNULLA) dal selettore giocatore
-        if (btn.classList.contains('opponent-error-btn')) return; // gestito separatamente
-        if (btn.classList.contains('muro-override-btn')) return;  // override MURO
+        // Escludi tasti speciali (ANNULLA) dal selettore giocatore
         if (btn.classList.contains('cancel-replace-btn')) return; // annulla sostituzione
         btn.addEventListener('click', (e) => {
             const number = e.currentTarget.dataset.number;
@@ -1057,36 +1044,20 @@ function updatePlayersGrid() {
         });
     });
 
-    // Listener per tasto Err Avv nella griglia
+    // Listener per pulsanti speciali
+    // Errore Avversario
     container.querySelectorAll('.opponent-error-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             submitOpponentError();
         });
     });
-
-    // Listener per pulsante MURO nella griglia
+    // MURO override
     container.querySelectorAll('.muro-override-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             activateMuroOverride();
         });
     });
 
-    // Listener per pulsante ANNULLA in modalità sostituzione
-    container.querySelectorAll('.cancel-replace-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            cancelReplacePlayerMode();
-        });
-    });
-
-    // Testo fisso su due righe per Err Avv: riga1 "Errore", riga2 "Avvers."
-    try {
-        container.querySelectorAll('.opponent-error-btn').forEach(btn => {
-            const l1 = btn.querySelector('.player-line1 .player-name');
-            const l2 = btn.querySelector('.player-line2 .player-name');
-            if (l1) l1.textContent = 'Errore';
-            if (l2) l2.textContent = 'Avvers.';
-        });
-    } catch(_) {}
 }
 
 function selectPlayer(number, name, btnEl) {
@@ -2545,7 +2516,10 @@ function updateDescriptiveQuartet() {
             const evalSpan = evalToken
                 ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
                 : `<span class="token token-eval token-placeholder"></span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player" data-row-kind="current">${pTok}</span>${evalSpan}</div>`);
+            const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
+                ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
+                : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span>${playerCell}${evalSpan}</div>`);
         } else if (evalVal) {
             // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
             const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
@@ -2581,7 +2555,10 @@ function updateDescriptiveQuartet() {
             if (provisionalQuartet && i === seq.length - 1 && q === provisionalQuartet) {
                 continue;
             }
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
+            const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence' && appState.replaceTarget.index === i)
+                ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
+                : `<span class="token token-player" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>`;
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span>${playerCell}${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
         }
 
         el.classList.add('multiline');
@@ -2613,9 +2590,12 @@ function updateDescriptiveQuartet() {
         const evalSpan = evalToken
             ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
             : `<span class="token token-eval token-placeholder"></span>`;
+        const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
+            ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
+            : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
         const html = `
             <span class="token token-fundamental">${fTok}</span>
-            <span class="token token-player" data-row-kind="current">${pTok}</span>
+            ${playerCell}
             ${evalSpan}
         `;
         el.classList.remove('multiline');
@@ -2694,8 +2674,8 @@ function enterReplacePlayerModeFor(kind, idx, spanEl){
         selectedInfo?.querySelectorAll('.token-player.replace-target').forEach(s => s.classList.remove('replace-target'));
         if (spanEl) spanEl.classList.add('replace-target');
     } catch(_) {}
-    // Aggiorna la griglia per mostrare ANNULLA
-    try { updatePlayersGrid(); } catch(_) {}
+    // Aggiorna il riquadro selezionato per mostrare ANNULLA al posto della pillola player
+    try { updateDescriptiveQuartet(); } catch(_) {}
     // Focus sulla selezione del giocatore
     try { showScoutingStep('step-player'); } catch(_) {}
 }
@@ -2704,8 +2684,8 @@ function enterReplacePlayerModeFor(kind, idx, spanEl){
 function cancelReplacePlayerMode(){
     appState.replacePlayerMode = false;
     appState.replaceTarget = null;
-    // Aggiorna SOLO la griglia (ripristina MURO) senza toccare le pillole del descrittivo
-    try { updatePlayersGrid(); } catch(_) {}
+    // Aggiorna la UI per ripristinare la pillola player nel riquadro selezionato
+    try { updateDescriptiveQuartet(); } catch(_) {}
     // Rimuove la classe di evidenza
     try {
         const selectedInfo = document.getElementById('selected-info');
