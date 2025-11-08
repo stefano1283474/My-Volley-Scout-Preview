@@ -77,67 +77,33 @@
         // Collega il bottone Salva dopo il caricamento della pagina
         document.addEventListener('DOMContentLoaded', function() {
             const saveBtn = document.getElementById('save-match-btn');
+            const saveStatus = document.getElementById('save-status-pill');
+
+            function setStatusPill(state, msg) {
+                if (!saveStatus) return;
+                saveStatus.style.display = 'inline-flex';
+                saveStatus.dataset.state = state;
+                saveStatus.textContent = msg || (state === 'saving' ? 'Salvataggio…' : state === 'saved' ? 'Salvato' : 'Errore');
+                if (state === 'saved') {
+                    // Auto-hide dopo qualche secondo
+                    setTimeout(() => { saveStatus.style.display = 'none'; }, 2500);
+                }
+            }
+
+            // Eventi globali di salvataggio
+            window.addEventListener('save:started', () => setStatusPill('saving', 'Salvataggio…'));
+            window.addEventListener('save:completed', (e) => {
+                const ok = !!e.detail?.ok;
+                setStatusPill(ok ? 'saved' : 'error', ok ? 'Salvato' : 'Errore');
+            });
+
             if (saveBtn && !saveBtn.dataset.bound) {
                 saveBtn.addEventListener('click', async function() {
                     try {
                         saveBtn.disabled = true;
                         saveBtn.textContent = '💾 Salvataggio…';
-
-                        const sessionRaw = localStorage.getItem('currentScoutingSession');
-                        if (!sessionRaw) { alert('Nessuna sessione di scouting attiva.'); return; }
-                        let sessionData = {};
-                        try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
-
-                        const currentTeam = window.teamsModule?.getCurrentTeam?.();
-                        const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId;
-                        const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
-                        const scoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
-
-                        const payload = {
-                            id: sessionData.id || ('match_' + Date.now()),
-                            teamId: selectedTeamId || null,
-                            myTeam: currentTeam?.name || null,
-                            opponentTeam: sessionData.opponent || sessionData.opponentTeam || 'Sconosciuta',
-                            matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
-                            eventType: sessionData.eventType || 'partita',
-                            location: sessionData.location || 'casa',
-                            venue: sessionData.venue || '',
-                            description: sessionData.description || '',
-                            setConfig: sessionData.setConfig || {},
-                            sessionStartTime: sessionData.startTime || null,
-                            scoutingEndTime: new Date().toISOString(),
-                            status: 'in_progress',
-                            score: {
-                                home: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
-                                away: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0
-                            },
-                            scoreHistory,
-                            actions,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        };
-
-                        // Salvataggio locale
-                        try {
-                            const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                            const idx = local.findIndex(m => m.id === payload.id);
-                            if (idx >= 0) local[idx] = payload; else local.unshift(payload);
-                            localStorage.setItem('volleyMatches', JSON.stringify(local));
-                        } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
-
-                        // Salvataggio su Firestore
-                        let cloudSaved = false;
-                        try {
-                            if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
-                                const user = window.authFunctions.getCurrentUser();
-                                if (user) {
-                                    const res = await window.firestoreFunctions.saveMatch(payload);
-                                    cloudSaved = !!res?.success;
-                                }
-                            }
-                        } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
-
-                        alert(cloudSaved ? 'Partita salvata su cloud e in locale!' : 'Partita salvata in locale. (Cloud non disponibile)');
+                        await window.saveCurrentMatch?.();
+                        alert('Partita salvata.');
                     } catch (error) {
                         console.error('Errore nel salvataggio partita:', error);
                         alert('Errore nel salvataggio della partita.');
@@ -148,11 +114,26 @@
                 });
                 saveBtn.dataset.bound = '1';
             }
+
+            // Scorciatoia tastiera Ctrl+S / Cmd+S
+            window.addEventListener('keydown', (e) => {
+                const isSaveShortcut = (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's';
+                if (isSaveShortcut) {
+                    e.preventDefault();
+                    if (saveBtn) {
+                        saveBtn.click();
+                    } else {
+                        try { window.saveCurrentMatch?.(); } catch(_){ /* noop */ }
+                    }
+                }
+            });
         });
     </script>
     <script src="./src/modules/teams/teams.js"></script>
 </head>
 <body>
+    <!-- Pillola stato salvataggio -->
+    <div id="save-status-pill" class="save-status-pill" style="display:none;">Salvataggio…</div>
     <div id="debug-banner" style="position:fixed;top:8px;right:8px;background:#fde68a;color:#92400e;padding:6px 10px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:10000;font-size:12px;">DEBUG: JS non ancora inizializzato</div>
     <div id="loading-screen" style="position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;">
       <div style="text-align:center;">
@@ -179,6 +160,13 @@
                     <div id="headerMenu" class="top-account-menu" hidden>
                         <div class="menu-title">Account</div>
                         <div class="menu-divider"></div>
+                        <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Set" type="button">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Export icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Esporta Set</span>
+                        </button>
                         <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Disk icon -->
@@ -325,6 +313,7 @@
                 <div class="dialog-header">
                     <h3>Progr. Azioni</h3>
                     <button class="export-btn" onclick="exportActionsToExcel()" aria-label="Esporta">Esporta</button>
+                    <button class="export-btn" onclick="importActionsFromExcel()" aria-label="Importa">Importa</button>
                     <button class="close-btn" onclick="closeActionsDialog()" aria-label="Chiudi">×</button>
                 </div>
                 <div class="dialog-body">
@@ -382,6 +371,46 @@
                 </div>
             </div>
         </div>
+
+        <!-- Dialog richiesta dati per nome file export -->
+        <dialog id="export-filename-dialog" style="border:1px solid #e9ecef;border-radius:12px;padding:0;max-width:480px;width:92%;">
+          <form method="dialog" style="margin:0;">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+              <img src="./LOGO_PALLONE.png" alt="Logo" style="width:36px;height:36px;object-fit:contain;" />
+              <h3 style="margin:0;font-size:18px;color:#0f172a;">Dati per nome file export</h3>
+              <button id="export_cancel_btn" type="button" class="close-btn" style="margin-left:auto;">×</button>
+            </div>
+            <div style="padding:14px 16px;display:grid;gap:10px;">
+              <label style="display:grid;gap:6px;">
+                <span style="font-weight:600;color:#334155;">Numero Gara (2 cifre)</span>
+                <input id="export_match_number" type="text" inputmode="numeric" pattern="[0-9]+" placeholder="es. 02" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;" />
+              </label>
+              <label style="display:grid;gap:6px;">
+                <span style="font-weight:600;color:#334155;">Nome Squadra</span>
+                <input id="export_my_team" type="text" placeholder="es. 2Div_F" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;" />
+              </label>
+              <label style="display:grid;gap:6px;">
+                <span style="font-weight:600;color:#334155;">Nome Avversario</span>
+                <input id="export_opponent_team" type="text" placeholder="es. VolleyMilano" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;" />
+              </label>
+              <label style="display:grid;gap:6px;">
+                <span style="font-weight:600;color:#334155;">Esito Gara</span>
+                <select id="export_outcome" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
+                  <option value="">Seleziona…</option>
+                  <option value="Vinto">Vinto</option>
+                  <option value="Perso">Perso</option>
+                </select>
+              </label>
+              <label style="display:grid;gap:6px;">
+                <span style="font-weight:600;color:#334155;">Risultato</span>
+                <input id="export_result" type="text" placeholder="es. 13" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;" />
+              </label>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid #f1f5f9;">
+              <button id="export_confirm_btn" type="button" class="secondary-btn" style="padding:8px 12px;">Conferma</button>
+            </div>
+          </form>
+        </dialog>
 
     </div>
 
@@ -500,6 +529,254 @@
                 }
             } catch (error) {
                 alert('Errore nell\'esportazione: ' + (error && error.message ? error.message : String(error)));
+            }
+        }
+
+        // Esporta tutti i set in un unico file Excel con 6 fogli
+        async function exportAllSetsToExcel(){
+            try {
+                // Salva la sessione corrente per aggiornare actionsBySet
+                try { await window.saveCurrentMatch?.(); } catch(_) {}
+
+                const sessionData = (() => {
+                    try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; }
+                })();
+                const actionsBySet = sessionData.actionsBySet || {};
+                const wb = XLSX.utils.book_new();
+
+                // Helpers per filename
+                const sanitize = (v) => String(v||'').trim().replace(/\s+/g, '');
+                const ensureTwoDigits = (v) => {
+                    const digits = String(v||'').replace(/\D/g,'');
+                    if (!digits) return '';
+                    return digits.padStart(2, '0').slice(-2);
+                };
+                const inferMeta = () => {
+                    // Tenta dal modulo Teams (roster corrente)
+                    const currentTeam = (() => {
+                        try { return window.teamsModule?.getCurrentTeam?.(); } catch(_) { return null; }
+                    })();
+                    // Fallback: dal localStorage usando selectedTeamId
+                    let lsTeamName = '';
+                    try {
+                        const selId = localStorage.getItem('selectedTeamId');
+                        const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                        const team = selId ? storedTeams.find(t => String(t.id) === String(selId)) : null;
+                        if (team) lsTeamName = team.teamName || team.name || '';
+                    } catch(_) {}
+                    // Fallback aggiuntivo: da appState corrente
+                    const appTeamName = (() => {
+                        try { return window.appState?.currentMatch?.myTeam || ''; } catch(_) { return ''; }
+                    })();
+                    const myTeam = sanitize(
+                        currentTeam?.teamName || currentTeam?.name || lsTeamName || appTeamName || sessionData.myTeam || sessionData.homeTeam || ''
+                    );
+                    const opponent = sanitize(sessionData.opponentTeam || sessionData.opponent || sessionData.awayTeam || '');
+                    // Campi potenzialmente assenti nella sessione attuale
+                    const matchNumber = ensureTwoDigits(sessionData.matchNumber || sessionData.numPart || '');
+                    const outcome = sanitize(sessionData.matchOutcome || sessionData.esito || '');
+                    const finalResult = sanitize(sessionData.finalResult || sessionData.risultato || '');
+                    return { matchNumber, myTeam, opponent, outcome, finalResult };
+                };
+                async function promptExportMeta(prefill){
+                    return new Promise((resolve) => {
+                        try {
+                            const dlg = document.getElementById('export-filename-dialog');
+                            const numInput = document.getElementById('export_match_number');
+                            const myTeamInput = document.getElementById('export_my_team');
+                            const oppInput = document.getElementById('export_opponent_team');
+                            const outcomeSelect = document.getElementById('export_outcome');
+                            const resultInput = document.getElementById('export_result');
+                            const cancelBtn = document.getElementById('export_cancel_btn');
+                            const confirmBtn = document.getElementById('export_confirm_btn');
+                            if (!dlg) return resolve(null);
+
+                            // Prefill
+                            if (numInput) numInput.value = prefill.matchNumber || '';
+                            if (myTeamInput) myTeamInput.value = prefill.myTeam || '';
+                            if (oppInput) oppInput.value = prefill.opponent || '';
+                            if (outcomeSelect) outcomeSelect.value = prefill.outcome || '';
+                            if (resultInput) resultInput.value = prefill.finalResult || '';
+
+                            const close = (res) => { try { dlg.close(); } catch(_){}; resolve(res); };
+                            if (cancelBtn) cancelBtn.onclick = () => close(null);
+                            if (confirmBtn) confirmBtn.onclick = () => {
+                                const payload = {
+                                    matchNumber: ensureTwoDigits(numInput?.value || ''),
+                                    myTeam: sanitize(myTeamInput?.value || ''),
+                                    opponent: sanitize(oppInput?.value || ''),
+                                    outcome: sanitize(outcomeSelect?.value || ''),
+                                    finalResult: sanitize(resultInput?.value || '')
+                                };
+                                // Validazione minima: tutti presenti
+                                if (!payload.matchNumber || !payload.myTeam || !payload.opponent || !payload.outcome || !payload.finalResult) {
+                                    alert('Compila tutti i campi per procedere all\'export.');
+                                    return;
+                                }
+                                close(payload);
+                            };
+                            try { dlg.showModal(); } catch(_){ dlg.removeAttribute('open'); dlg.setAttribute('open',''); }
+                        } catch(_){ resolve(null); }
+                    });
+                }
+
+                // Costruisci il filename secondo la nomenclatura richiesta
+                let { matchNumber, myTeam, opponent, outcome, finalResult } = inferMeta();
+                if (!matchNumber || !myTeam || !opponent || !outcome || !finalResult) {
+                    const provided = await promptExportMeta({ matchNumber, myTeam, opponent, outcome, finalResult });
+                    if (!provided) return; // utente ha annullato
+                    matchNumber = provided.matchNumber;
+                    myTeam = provided.myTeam;
+                    opponent = provided.opponent;
+                    outcome = provided.outcome;
+                    finalResult = provided.finalResult;
+                }
+                const fileName = `${matchNumber} ${myTeam} Vs ${opponent} ${outcome} ${finalResult}.xlsx`;
+
+                for (let setNum = 1; setNum <= 6; setNum++) {
+                    const actions = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : [];
+                    let rot = 'P1';
+                    try {
+                        const metaRot = sessionData?.setMeta?.[setNum]?.ourRotation;
+                        const cfgRot = sessionData?.setConfig?.ourRotation;
+                        rot = metaRot || (setNum === 1 ? cfgRot || 'P1' : 'P1');
+                    } catch(_) {}
+                    const initialRotation = String(rot || 'P1').replace(/^P/i, '');
+
+                    const ws = XLSX.utils.aoa_to_sheet([[]]);
+                    XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A3' });
+                    const startRow = 18;
+                    const aoa = actions.map(log => [ String(log && log.action ? log.action : '') ]);
+                    if (aoa.length) {
+                        XLSX.utils.sheet_add_aoa(ws, aoa, { origin: { r: startRow - 1, c: 1 } });
+                    }
+                    XLSX.utils.book_append_sheet(wb, ws, `Set ${setNum}`);
+                }
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'Excel Workbook',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        });
+                        const writable = await handle.createWritable();
+                        const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                        await writable.write(buffer);
+                        await writable.close();
+                    } catch (err) {
+                        console.warn('File picker non disponibile o annullato:', err);
+                        XLSX.writeFile(wb, fileName);
+                    }
+                } else {
+                    XLSX.writeFile(wb, fileName);
+                }
+            } catch (error) {
+                alert('Errore nell\'esportazione set: ' + (error && error.message ? error.message : String(error)));
+            }
+        }
+        // Importa azioni da Excel: legge A3 (rotazione iniziale) e B18.. (quartine)
+        async function importActionsFromExcel(){
+            try {
+                let file = null;
+                if (window.showOpenFilePicker) {
+                    try {
+                        const [handle] = await window.showOpenFilePicker({
+                            multiple: false,
+                            types: [{
+                                description: 'Excel Workbook',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        });
+                        file = await handle.getFile();
+                    } catch (err) {
+                        if (err && err.name === 'AbortError') return; // utente ha annullato
+                        throw err;
+                    }
+                } else {
+                    // Fallback input file
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                    const picked = await new Promise(resolve => {
+                        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+                        input.click();
+                    });
+                    document.body.removeChild(input);
+                    file = picked;
+                }
+
+                if (!file) { return; }
+
+                const data = await file.arrayBuffer();
+                const wb = XLSX.read(data, { type: 'array' });
+                const sheetName = wb.SheetNames && wb.SheetNames[0];
+                const ws = sheetName ? wb.Sheets[sheetName] : null;
+                if (!ws) { alert('File Excel non valido: nessun foglio trovato.'); return; }
+
+                // Leggi rotazione iniziale da A3 (es. "1") e applica come "P1"
+                try {
+                    const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
+                    if (a3) {
+                        const rotNum = a3.replace(/^P/i, '');
+                        if (window.appState) {
+                            window.appState.currentRotation = `P${rotNum}`;
+                            try { updateNextFundamental && updateNextFundamental(); } catch(_) {}
+                        }
+                    }
+                } catch (_) {}
+
+                // Rileva intervallo foglio e raccogli B18.. contenenti le quartine
+                const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                const startRow = 18; // 1-indexed
+                const imported = [];
+                for (let r = startRow; r <= (range.e.r + 1); r++) {
+                    const addr = `B${r}`;
+                    const cell = ws[addr];
+                    if (!cell) continue;
+                    const val = String(cell.v == null ? '' : cell.v).trim();
+                    if (!val) continue;
+                    imported.push(val);
+                }
+
+                if (!imported.length) {
+                    alert('Nessuna azione trovata nel file.');
+                    return;
+                }
+
+                // Appendi azioni importate allo stato corrente, aggiornando punteggio e log
+                let count = 0;
+                for (const actionString of imported) {
+                    try {
+                        const result = parseAction(actionString);
+                        processActionResult(result);
+                        const score = window.appState ? `${window.appState.homeScore}-${window.appState.awayScore}` : '';
+                        if (window.appState && Array.isArray(window.appState.actionsLog)) {
+                            window.appState.actionsLog.push({
+                                action: actionString,
+                                result,
+                                score,
+                                guided: false,
+                                imported: true
+                            });
+                        }
+                        count++;
+                    } catch (err) {
+                        console.warn('Errore import azione:', err, actionString);
+                    }
+                }
+
+                try { updateActionsLog && updateActionsLog(); } catch(_) {}
+                try { updateScoutingUI && updateScoutingUI(); } catch(_) {}
+                try { window.saveCurrentMatch && window.saveCurrentMatch(); } catch(_) {}
+                try { populateActionsDialog && populateActionsDialog(); } catch(_) {}
+
+                alert(`Importazione completata: ${count} azioni aggiunte`);
+            } catch (error) {
+                alert('Errore nell\'importazione: ' + (error && error.message ? error.message : String(error)));
             }
         }
 
@@ -725,6 +1002,16 @@
               openSetMetaDialog(targetSet);
               return; // attende salvataggio e continua da dialog
             }
+
+            // Prima: memorizza le azioni del set corrente nella sessione (actionsBySet)
+            try {
+              const raw = localStorage.getItem('currentScoutingSession');
+              const session = raw ? JSON.parse(raw) : {};
+              session.actionsBySet = session.actionsBySet || {};
+              const currentActions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+              session.actionsBySet[current] = currentActions;
+              localStorage.setItem('currentScoutingSession', JSON.stringify(session));
+            } catch(e){ console.warn('Memorizzazione actionsBySet fallita:', e); }
 
             // Aggiorna la sessione con il set desiderato (lasciando meta esistente)
             try {

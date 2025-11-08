@@ -3233,3 +3233,20 @@ body {
 /* Specifico per la sezione Punteggio: riduci lo spazio superfluo sotto la scritta */
 #punteggio-section { margin: 6px 0; }
 #punteggio-section .score-current { margin-bottom: 4px; padding-bottom: 0; }
+/* Pillola stato salvataggio */
+.save-status-pill {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10001;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e0f2fe; /* blu chiaro */
+  color: #0c4a6e; /* blu scuro */
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}

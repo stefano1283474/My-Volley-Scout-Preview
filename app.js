@@ -123,7 +123,10 @@ window.loadScoutingSession = function(sessionData) {
             if (Array.isArray(md.scoreHistory) && md.scoreHistory.length > 0) {
                 appState.scoreHistory = md.scoreHistory;
             }
-            if (Array.isArray(md.actions) && md.actions.length > 0) {
+            // Preferisci azioni per set se disponibili
+            if (md.actionsBySet && Array.isArray(md.actionsBySet[appState.currentSet])) {
+                appState.actionsLog = md.actionsBySet[appState.currentSet] || [];
+            } else if (Array.isArray(md.actions) && md.actions.length > 0) {
                 appState.actionsLog = md.actions;
             }
             // Contrassegna come set avviato quando si riprende
@@ -253,6 +256,7 @@ function initializeApp() {
         const headerMenu = document.getElementById('headerMenu');
         const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
         const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+        const exportSetsBtnMobile = document.getElementById('exportSetsBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
@@ -298,6 +302,22 @@ function initializeApp() {
                     // Salvataggio non bloccante (se fallisce, ignora)
                     try { saveCurrentMatch(); } catch(_){}
                     window.location.href = 'welcome.html';
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+        if (exportSetsBtnMobile) {
+            exportSetsBtnMobile.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Salvataggio non bloccante del set corrente
+                    try { await saveCurrentMatch(); } catch(_){}
+                    if (typeof window.exportAllSetsToExcel === 'function') {
+                        await window.exportAllSetsToExcel();
+                    }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -356,6 +376,23 @@ function initializeApp() {
     }
 }
 
+// Gestione autosave
+let __autosaveTimerId = null;
+function scheduleAutosave(delayMs = 1500) {
+    try {
+        if (__autosaveTimerId) clearTimeout(__autosaveTimerId);
+        __autosaveTimerId = setTimeout(async () => {
+            try {
+                await saveCurrentMatch();
+            } catch (e) {
+                console.warn('Autosave fallito:', e);
+            }
+        }, delayMs);
+    } catch (e) {
+        console.warn('scheduleAutosave errore:', e);
+    }
+}
+
 // Salva la sessione corrente (locale e cloud, se disponibile)
 async function saveCurrentMatch() {
     try {
@@ -368,6 +405,15 @@ async function saveCurrentMatch() {
         const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId;
         const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
         const scoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
+
+        // Aggiorna actionsBySet con le azioni del set corrente
+        try {
+            const currentSetNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+            sessionData.actionsBySet = sessionData.actionsBySet || {};
+            sessionData.actionsBySet[currentSetNum] = actions;
+            // Persisti subito la sessione aggiornata
+            localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+        } catch (e) { console.warn('Aggiornamento actionsBySet fallito:', e); }
 
         const payload = {
             id: sessionData.id || ('match_' + Date.now()),
@@ -389,9 +435,13 @@ async function saveCurrentMatch() {
             },
             scoreHistory,
             actions,
+            actionsBySet: sessionData.actionsBySet || {},
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+
+        // Notifica inizio salvataggio
+        try { window.dispatchEvent(new CustomEvent('save:started')); } catch(_) {}
 
         // Salvataggio locale
         try {
@@ -410,8 +460,12 @@ async function saveCurrentMatch() {
                 }
             }
         } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
+
+        // Notifica completamento salvataggio
+        try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: true } })); } catch(_) {}
     } catch (error) {
         console.warn('saveCurrentMatch errore:', error);
+        try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: false, error } })); } catch(_) {}
     }
 }
 
@@ -1522,6 +1576,9 @@ function updateActionsLog() {
     // Aggiorna badge conteggio
     const countBadge = document.getElementById('actions-log-count');
     if (countBadge) countBadge.textContent = String(appState.actionsLog.length);
+
+    // Pianifica autosave dopo aggiornamento log
+    try { scheduleAutosave(1500); } catch(_) {}
 }
 
 // Utility aggiunte: display fase e predizione/aggiornamento fondamentale

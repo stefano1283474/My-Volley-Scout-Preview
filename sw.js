@@ -1,12 +1,12 @@
 // Service Worker per My Volley Scout PWA
--const CACHE_NAME = 'my-volley-scout-v3';
-+const CACHE_NAME = 'my-volley-scout-v4';
- const urlsToCache = [
-   // Precache solo asset statici necessari e sicuri
-   '/manifest.json',
-   '/icon-192x192.png',
-   '/icon-512x512.png'
- ];
+const CACHE_NAME = 'my-volley-scout-v4';
+const urlsToCache = [
+  // Precache solo asset statici necessari e sicuri
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/index.html' // per fallback offline su navigazioni
+];
 
  // Installazione Service Worker
  self.addEventListener('install', (event) => {
