@@ -6,6 +6,8 @@ const appState = {
     currentSet: 1,
     currentRotation: 'P1',
     currentPhase: 'servizio',
+    // Fase di inizio del rally corrente: usata per calcolare il primo cambio rotazione correttamente
+    rallyStartPhase: 'servizio',
     homeScore: 0,
     awayScore: 0,
     actionsLog: [],
@@ -26,6 +28,18 @@ const appState = {
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+
+// Normalizza una rotazione in formato coerente "P1".."P6"
+function normalizeRotation(rot) {
+  if (!rot) return 'P1';
+  const s = String(rot).trim().toUpperCase();
+  // Rimuove eventuale spazio tra P e numero, e aggiunge prefisso se assente
+  const withPrefix = s.startsWith('P') ? s.replace(/^P\s*/,'P') : `P${s}`;
+  // Estrae solo il numero 1..6
+  const num = withPrefix.replace(/^P\s*/,'').replace(/[^1-6]/g,'');
+  const valid = num && ['1','2','3','4','5','6'].includes(num) ? num : '1';
+  return `P${valid}`;
+}
 
 // Esporta stato su window per compatibilità tra script
 window.appState = appState;
@@ -1183,6 +1197,10 @@ function selectPlayer(number, name, btnEl) {
     appState.selectedPlayer = { number, name };
     // Nuova selezione: non siamo più in stato appena chiuso
     appState.justClosedAction = false;
+    // Memorizza la fase d'inizio rally alla prima selezione della sequenza
+    if (appState.currentSequence.length === 0) {
+        appState.rallyStartPhase = appState.currentPhase;
+    }
 
     // Evidenzia visualmente il giocatore selezionato, sovrascrivendo selezioni precedenti
     const playerButtons = document.querySelectorAll('.player-btn');
@@ -1473,7 +1491,8 @@ function submitGuidedAction() {
                 action: actionString,
                 result: result,
                 score: `${appState.homeScore}-${appState.awayScore}`,
-                guided: true
+                guided: true,
+                rotation: normalizeRotation(appState.currentRotation)
             });
             
             appState.currentSequence = [];
@@ -1568,14 +1587,15 @@ function submitOpponentError() {
         result.playerName = 'Avversario';
         result.actionType = 'Errore';
 
-        processActionResult(result);
+                processActionResult(result);
 
-        appState.actionsLog.push({
-            action: actionString,
-            result: result,
-            score: `${appState.homeScore}-${appState.awayScore}`,
-            guided: true
-        });
+                appState.actionsLog.push({
+                    action: actionString,
+                    result: result,
+                    score: `${appState.homeScore}-${appState.awayScore}`,
+                    guided: true,
+                    rotation: normalizeRotation(appState.currentRotation)
+                });
 
         // L'azione è conclusa: svuota la sequenza corrente e aggiorna il riepilogo
         appState.currentSequence = [];
@@ -1670,25 +1690,33 @@ function updateGamePhase(fundamental, evaluation) {
 function updateActionsLog() {
     const container = document.getElementById('actions-list');
     if (!container) return;
-    
-    let displayLogs = appState.actionsLog.slice(-9).reverse();
-    
+
+    const total = appState.actionsLog.length;
+    const baseIndexStart = Math.max(total - 9, 0);
+    let lastLogs = appState.actionsLog.slice(-9);
+    let displayLogs = lastLogs.map((log, idx) => ({ log, rowNumber: baseIndexStart + idx + 1 })).reverse();
+
     if (appState.currentSequence.length > 0) {
         const currentString = appState.currentSequence.map(s => s.quartet).join(' ');
         displayLogs.unshift({
-            timestamp: 'Corrente',
-            action: currentString,
-            result: {result: 'continue'},
-            guided: true
+            log: {
+                timestamp: 'Corrente',
+                action: currentString,
+                result: {result: 'continue'},
+                guided: true,
+                rotation: normalizeRotation(appState.currentRotation)
+            },
+            rowNumber: 'Corr.'
         });
     }
-    
+
     if (displayLogs.length === 0) {
         container.innerHTML = '<p style="color: #666;">Nessuna azione registrata</p>';
         return;
     }
-    
-    container.innerHTML = displayLogs.map(log => {
+
+    container.innerHTML = displayLogs.map(entry => {
+        const log = entry.log;
         let resultText = '';
         switch (log.result.result) {
             case 'home_point':
@@ -1700,13 +1728,15 @@ function updateActionsLog() {
             default:
                 resultText = '↔️ In corso';
         }
-        
+
         const actionDisplay = log.action;
-        
+        const rotText = log.rotation ? ` ${log.rotation}` : '';
+        const rowLabel = typeof entry.rowNumber === 'number' ? `${entry.rowNumber})` : `${entry.rowNumber})`;
+
         return `
             <div class="action-entry ${log.guided ? 'guided-action' : ''}">
-                <strong>${log.timestamp}</strong>: ${actionDisplay}
-                <div class="action-result">${resultText}</div>
+                <strong>${rowLabel}${rotText}</strong> ${actionDisplay}
+                <div class="action-result">${resultText} <span style="color:#666; margin-left:8px;">${log.timestamp || ''}</span></div>
             </div>
         `;
     }).join('');
@@ -1905,8 +1935,10 @@ function startSet() {
     }
     
     appState.currentSet = setNumber;
-    appState.currentRotation = rotation;
+    appState.currentRotation = normalizeRotation(rotation);
     appState.currentPhase = phase;
+    // Imposta la fase di inizio del rally per il primo cambio rotazione
+    appState.rallyStartPhase = appState.currentPhase;
     // Reidrata dati del set se esistono in sessione
     let restored = false;
     try {
@@ -1927,7 +1959,9 @@ function startSet() {
                 appState.awayScore = (typeof st.awayScore === 'number') ? st.awayScore : 0;
             }
             if (st.currentPhase) appState.currentPhase = st.currentPhase;
-            if (st.currentRotation) appState.currentRotation = st.currentRotation;
+            if (st.currentRotation) appState.currentRotation = normalizeRotation(st.currentRotation);
+            // Prepara la fase di inizio del prossimo rally dopo ripristino
+            appState.rallyStartPhase = appState.currentPhase;
             appState.setStarted = true;
             restored = true;
         }
@@ -2086,7 +2120,7 @@ function updateScoutingUI() {
     if (scoreTeamOppEl) scoreTeamOppEl.textContent = abbreviateWithDots(opponentName || '-', 16);
     
     const rotationEl = document.getElementById('current-rotation');
-    if (rotationEl) rotationEl.textContent = appState.currentRotation;
+    if (rotationEl) rotationEl.textContent = normalizeRotation(appState.currentRotation);
     
     const phaseEl = document.getElementById('current-phase');
     if (phaseEl) phaseEl.textContent = appState.currentPhase;
@@ -2161,7 +2195,8 @@ function submitAction() {
         appState.actionsLog.push({
             action: actionString,
             result: result,
-            timestamp: new Date().toLocaleTimeString('it-IT')
+            timestamp: new Date().toLocaleTimeString('it-IT'),
+            rotation: normalizeRotation(appState.currentRotation)
         });
         
         // Aggiorna UI
@@ -2240,29 +2275,31 @@ function determineFinalResult(fundamental, evaluation) {
 }
 
 function processActionResult(result) {
+    // Usa la fase di INIZIO RALLY per determinare rotazione al primo cambio
+    const startedInReception = (appState.rallyStartPhase === 'ricezione');
     if (result.result === 'home_point') {
         appState.homeScore++;
         
         // Aggiungi al storico punteggio
         addToScoreHistory('home', result.playerName, result.actionType);
         
-        if (appState.currentPhase === 'ricezione') {
-            appState.currentPhase = 'servizio';
-            rotateTeam();
-        }
+        // Il punto nostro porta sempre a SERVIZIO
+        // La rotazione avanza SOLO se il rally era iniziato in RICEZIONE
+        appState.currentPhase = 'servizio';
+        if (startedInReception) rotateTeam();
     } else if (result.result === 'away_point') {
         appState.awayScore++;
         
         // Aggiungi al storico punteggio
         addToScoreHistory('away', result.playerName, result.actionType);
         
-        if (appState.currentPhase === 'servizio') {
-            appState.currentPhase = 'ricezione';
-        } else {
-            appState.currentPhase = 'ricezione';
-        }
+        // Punto avversario → si va in RICEZIONE, senza cambiare rotazione
+        appState.currentPhase = 'ricezione';
     }
     
+    // Imposta la fase di inizio del prossimo rally
+    appState.rallyStartPhase = appState.currentPhase;
+
     // Aggiorna la visualizzazione dello storico
     updateScoreHistoryDisplay();
 }
@@ -2399,7 +2436,13 @@ function checkSetEnd() {
 }
 
 function rotateTeam() {
-    const currentIndex = rotationSequence.indexOf(appState.currentRotation);
+    // Usa rotazione normalizzata per garantire l'indice corretto
+    const current = normalizeRotation(appState.currentRotation);
+    let currentIndex = rotationSequence.indexOf(current);
+    if (currentIndex === -1) {
+        // Se non trovata, fallback sicuro a P1
+        currentIndex = 0;
+    }
     const nextIndex = (currentIndex + 1) % rotationSequence.length;
     appState.currentRotation = rotationSequence[nextIndex];
     // Aggiorna UI coerentemente dopo la rotazione
