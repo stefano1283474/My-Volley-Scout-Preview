@@ -827,7 +827,7 @@
                         // Utente non autenticato: redirect immediato al login
                         // Pulisce eventuale hash (es. #/set/1) per evitare URL come /auth-login#/set/1
                         try { window.location.hash = ''; } catch(_){}
-    window.location.href = 'http://127.0.0.1:3002/auth-login.html';
+    window.location.href = '/auth-login.html';
                         return;
                     }
                     // Utente autenticato: verifica una sessione di scouting attiva

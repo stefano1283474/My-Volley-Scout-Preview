@@ -552,7 +552,7 @@
             // Controlla autenticazione
             window.authFunctions.onAuthStateChanged((user) => {
                 if (!user) {
-    window.location.href = 'http://127.0.0.1:3002/auth-login.html';
+    window.location.href = '/auth-login.html';
                     return;
                 }
                 
@@ -1178,7 +1178,7 @@
              try {
                  await window.authFunctions.signOut();
                  localStorage.removeItem('selectedTeamId');
-    window.location.href = 'http://127.0.0.1:3002/auth-login.html';
+    window.location.href = '/auth-login.html';
              } catch (error) {
                  console.error('Errore durante il logout:', error);
                  alert('Errore durante il logout');
