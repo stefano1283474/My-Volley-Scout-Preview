@@ -1971,6 +1971,8 @@ function startSet() {
         appState.homeScore = 0;
         appState.awayScore = 0;
         appState.actionsLog = [];
+        // Azzera la progressione/sequenza dell'azione corrente
+        appState.currentSequence = [];
         appState.setStarted = true;
         // Inizializza lo storico punteggio con l'entry iniziale
         const phaseLabel = (phase === 'ricezione') ? 'Ricezione' : 'Servizio';
@@ -1991,7 +1993,7 @@ function startSet() {
     appState.selectedEvaluation = null;
     
     // Reset del descrittivo
-    
+
     // Inizializza il log dei tasti premuti
     // Reset del descrittivo
     updateDescriptiveQuartet();
@@ -2625,6 +2627,35 @@ function updateDescriptiveQuartet() {
         } catch(_) {}
         return;
     }
+
+    // Stato iniziale set: nessuna azione e nessuna selezione
+    try {
+        const isInitial = !!(
+            appState.setStarted && (!Array.isArray(appState.actionsLog) || appState.actionsLog.length === 0) &&
+            (!Array.isArray(appState.currentSequence) || appState.currentSequence.length === 0) &&
+            Array.isArray(appState.scoreHistory) && appState.scoreHistory.length === 1 && appState.scoreHistory[0]?.type === 'initial' &&
+            !player && !evalVal
+        );
+        if (isInitial) {
+            const setNum = (typeof appState.currentSet === 'number') ? appState.currentSet : 1;
+            const rotRaw = String(appState.currentRotation || 'P1');
+            const rotNorm = rotRaw.startsWith('P') ? rotRaw : `P${rotRaw}`;
+            const html = `
+                <span class="token token-fundamental">SET ${setNum} - ${rotNorm}</span>
+                <span class="token token-player token-placeholder"></span>
+                <span class="token token-eval token-placeholder"></span>
+            `;
+            el.classList.remove('multiline');
+            el.innerHTML = html;
+            if (box) box.style.display = 'block';
+            // In stato iniziale niente modalità sostituzione
+            try {
+                const selectedInfo = document.getElementById('selected-info');
+                if (selectedInfo) selectedInfo.classList.remove('replace-mode');
+            } catch(_) {}
+            return;
+        }
+    } catch(_) {}
 
     // Layout a riga singola: tre colonne
     if (player) {
