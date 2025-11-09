@@ -618,7 +618,7 @@
             // Seleziona e memorizza la squadra, poi apri la pagina dedicata del roster
             window.teamsModule.selectTeam(teamId);
             localStorage.setItem('selectedTeamId', teamId);
-            window.location.href = 'roster.html';
+window.location.href = '/roster.html';
         }
 
         function deleteTeam(teamId) {
@@ -662,7 +662,7 @@
                         const newTeamId = result.team.id;
                         window.teamsModule.selectTeam(newTeamId);
                         localStorage.setItem('selectedTeamId', newTeamId);
-                        window.location.href = 'roster.html';
+window.location.href = '/roster.html';
                     } else {
                         alert('Errore nella creazione: ' + result.error);
                     }

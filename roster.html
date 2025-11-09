@@ -31,7 +31,7 @@
   <main class="main">
     <section class="section">
       <div class="section-header">
-        <h3>Roster — dati squadra</h3>
+        <h3>Roster</h3>
         <div class="section-actions">
           <button class="btn btn-primary" id="confirmRosterBtn">Salva ed esci</button>
         </div>
@@ -155,12 +155,28 @@
       const row = document.createElement('div');
       row.className = 'player-row';
       row.innerHTML = `
-        <div><input type="text" class="input" inputmode="numeric" pattern="[0-9]*" placeholder="#" value="${player.number || ''}" /></div>
-        <div><input type="text" class="input" placeholder="Nome" value="${player.name || ''}" /></div>
-        <div><input type="text" class="input" placeholder="Cognome" value="${player.surname || ''}" /></div>
-        <div><input type="text" class="input" placeholder="Ruolo" value="${player.role || ''}" /></div>
-        <div><input type="text" class="input" placeholder="Soprannome" value="${player.nickname || ''}" /></div>
-        <div><button type="button" class="btn btn-danger" aria-label="Rimuovi" onclick="this.closest('.player-row').remove();">✕</button></div>`;
+        <div><input type="text" class="input num-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="#" value="${(player.number || '').toString().slice(0,2)}" /></div>
+        <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${(player.name || '').toString().slice(0,12)}" /></div>
+        <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${(player.surname || '').toString().slice(0,12)}" /></div>
+        <div>
+          <select class="input role-select">
+            <option value="">—</option>
+            <option value="P">P</option>
+            <option value="S">S</option>
+            <option value="O">O</option>
+            <option value="C">C</option>
+            <option value="L">L</option>
+          </select>
+        </div>
+        <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${(player.nickname || '').toString().slice(0,12)}" /></div>
+        <div><button type="button" class="btn delete-btn" aria-label="Rimuovi" onclick="this.closest('.player-row').remove();">✕</button></div>`;
+      // Pre-seleziona ruolo se presente
+      const roleSel = row.querySelector('.role-select');
+      if (roleSel){
+        const val = (player.role || '').toString().trim().toUpperCase();
+        const initial = val ? val[0] : '';
+        roleSel.value = ['P','S','O','C','L'].includes(val) ? val : (['P','S','O','C','L'].includes(initial) ? initial : '');
+      }
       rosterGrid.appendChild(row);
     }
 
@@ -177,7 +193,11 @@
         if (!selectedTeam) return;
         const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
         const players = rows.map(r => {
-          const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+          const number = (r.querySelector('.num-input')?.value || '').trim();
+          const name = (r.querySelector('.name-input')?.value || '').trim();
+          const surname = (r.querySelector('.surname-input')?.value || '').trim();
+          const role = (r.querySelector('.role-select')?.value || '').trim();
+          const nickname = (r.querySelector('.nick-input')?.value || '').trim();
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
         const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
@@ -201,7 +221,11 @@
       try {
         const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
         const players = rows.map(r => {
-          const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+          const number = (r.querySelector('.num-input')?.value || '').trim();
+          const name = (r.querySelector('.name-input')?.value || '').trim();
+          const surname = (r.querySelector('.surname-input')?.value || '').trim();
+          const role = (r.querySelector('.role-select')?.value || '').trim();
+          const nickname = (r.querySelector('.nick-input')?.value || '').trim();
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
         const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');

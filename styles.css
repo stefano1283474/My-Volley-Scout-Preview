@@ -3397,3 +3397,21 @@ body {
   color: #0c4a6e; /* blu scuro */
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
+
+/* -------------------------------
+   Roster: campi e bottone rimozione
+   ------------------------------- */
+.player-row input.num-input { width: 2.6ch; text-align: center; }
+.player-row input.name-input { width: 12ch !important; }
+.player-row input.surname-input { width: 12ch !important; }
+.player-row input.nick-input { width: 12ch !important; }
+.player-row select.role-select { width: 4ch; text-align: center; }
+
+.player-row .delete-btn {
+  width: 28px; height: 28px; min-width: 28px;
+  border-radius: 999px; border: 1px solid var(--border);
+  background: #ffffff; color: #e53935; display: inline-flex;
+  align-items: center; justify-content: center; font-weight: 600;
+  padding: 0; line-height: 1; box-shadow: 0 1px 1px rgba(0,0,0,0.06);
+}
+.player-row .delete-btn:hover { background: #fff0f0; border-color: #f2b8b5; }
