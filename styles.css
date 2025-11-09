@@ -578,17 +578,23 @@ body {
 /* Griglia Roster */
 .roster-grid {
   display: grid;
-  gap: 0.5rem;
-  width: 100%;
+  gap: 0.1rem;
+  width: max-content;           /* la tabella si stringe ai suoi contenuti */
+  max-width: 100%;              /* non supera il contenitore/viewport */
+  box-sizing: border-box;       /* padding e bordi inclusi nel calcolo */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 /* Desktop/Tablet: header e righe su 6 colonne, una sola riga */
 .player-row,
 .player-row.player-header {
   display: grid;
-  grid-template-columns: 56px minmax(0,1fr) minmax(0,1fr) minmax(120px,1fr) minmax(0,1fr) 36px;
+  /* Colonne compatte: N (contenuto), 3 campi da 12ch, ruolo 4ch, azioni contenuto */
+  grid-template-columns: max-content 12ch 12ch 12ch 4ch max-content;
   align-items: center;
-  column-gap: 0.5rem;
+  column-gap: 0;
 }
 
 /* ===== Scouting: Configurazione Set - layout richiesto ===== */
@@ -814,29 +820,27 @@ body {
 /* (Le seguenti regole originali vengono gestite solo su mobile) */
 
 /* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+.player-row .btn-danger { width: 100%; min-width: 0; padding: 0.25rem; }
 
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+/* Mobile stretto: 6 colonne su UNA sola riga per header e righe */
 @media (max-width: 480px) {
   .player-row,
   .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
+    grid-template-areas: "num name surname nick role delete";
+    /* Mantieni larghezze compatte anche su mobile */
+    grid-template-columns: max-content 12ch 12ch 12ch 4ch max-content;
+    row-gap: 0.1rem;
+    column-gap: 0;
   }
-  /* Re-applica mapping delle aree solo su mobile */
+  /* Re-applica mapping delle aree solo su mobile (una riga) */
   .player-row > :nth-child(1) { grid-area: num !important; }
   .player-row > :nth-child(2) { grid-area: name !important; }
   .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(4) { grid-area: nick !important; }
+  .player-row > :nth-child(5) { grid-area: role !important; }
   .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
 
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
+.player-row .btn-danger { width: 100%; min-width: 0; }
 }
 
 /* Evita overflow dei campi */
@@ -844,6 +848,7 @@ body {
 .player-row select {
   width: 100%;
   min-width: 0;
+  padding: 0.3rem;
 }
 
 /* Utility: disporre i figli div su due righe */
@@ -851,7 +856,7 @@ body {
   display: grid;
   grid-auto-flow: column; /* riempi le colonne, crea quante colonne servono */
   grid-template-rows: repeat(2, auto); /* esattamente due righe */
-  gap: 0.5rem;
+  gap: 0.2rem;
   align-items: start;
 }
 .two-rows > div {
@@ -1866,29 +1871,25 @@ body {
 /* (Le seguenti regole originali vengono gestite solo su mobile) */
 
 /* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+.player-row .btn-danger { width: 100%; min-width: 0; padding: 0.25rem; }
 
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+/* Mobile stretto: 6 colonne su UNA sola riga per header e righe */
 @media (max-width: 480px) {
   .player-row,
   .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
+    grid-template-areas: "num name surname nick role delete";
+    row-gap: 0.1rem;
+    column-gap: 0;
   }
-  /* Re-applica mapping delle aree solo su mobile */
+  /* Re-applica mapping delle aree solo su mobile (una riga) */
   .player-row > :nth-child(1) { grid-area: num !important; }
   .player-row > :nth-child(2) { grid-area: name !important; }
   .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(4) { grid-area: nick !important; }
+  .player-row > :nth-child(5) { grid-area: role !important; }
   .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
 
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
+.player-row .btn-danger { width: 100%; min-width: 0; }
 }
 
 /* Evita overflow dei campi */
@@ -1896,6 +1897,7 @@ body {
 .player-row select {
   width: 100%;
   min-width: 0;
+  padding: 0.3rem;
 }
 
 /* Utility: disporre i figli div su due righe */
@@ -2137,29 +2139,25 @@ body {
 /* (Le seguenti regole originali vengono gestite solo su mobile) */
 
 /* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+.player-row .btn-danger { width: 100%; min-width: 0; padding: 0.25rem; }
 
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+/* Mobile stretto: 6 colonne su UNA sola riga per header e righe */
 @media (max-width: 480px) {
   .player-row,
   .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
+    grid-template-areas: "num name surname nick role delete";
+    row-gap: 0.1rem;
+    column-gap: 0;
   }
-  /* Re-applica mapping delle aree solo su mobile */
+  /* Re-applica mapping delle aree solo su mobile (una riga) */
   .player-row > :nth-child(1) { grid-area: num !important; }
   .player-row > :nth-child(2) { grid-area: name !important; }
   .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(4) { grid-area: nick !important; }
+  .player-row > :nth-child(5) { grid-area: role !important; }
   .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
 
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
+.player-row .btn-danger { width: 100%; min-width: 0; }
 }
 
 /* Evita overflow dei campi */
@@ -2167,6 +2165,7 @@ body {
 .player-row select {
   width: 100%;
   min-width: 0;
+  padding: 0.3rem;
 }
 
 /* Utility: disporre i figli div su due righe */
@@ -2411,29 +2410,25 @@ body {
 /* (Le seguenti regole originali vengono gestite solo su mobile) */
 
 /* Pulsante elimina compatto */
-.player-row .btn-danger { width: 36px; min-width: 36px; padding: 0.25rem; }
+.player-row .btn-danger { width: 100%; min-width: 0; padding: 0.25rem; }
 
-/* Mobile stretto: 3 colonne x 2 righe per header e righe, coerenti tra loro */
+/* Mobile stretto: UNA sola riga per header e righe, 6 colonne */
 @media (max-width: 480px) {
   .player-row,
   .player-row.player-header {
-    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "num name surname"
-      "role nick delete";
-    row-gap: 0.4rem;
-    column-gap: 0.4rem;
+    grid-template-areas: "num name surname nick role delete";
+    row-gap: 0.1rem;
+    column-gap: 0;
   }
-  /* Re-applica mapping delle aree solo su mobile */
+  /* Re-applica mapping delle aree solo su mobile (una riga) */
   .player-row > :nth-child(1) { grid-area: num !important; }
   .player-row > :nth-child(2) { grid-area: name !important; }
   .player-row > :nth-child(3) { grid-area: surname !important; }
-  .player-row > :nth-child(4) { grid-area: role !important; }
-  .player-row > :nth-child(5) { grid-area: nick !important; }
+  .player-row > :nth-child(4) { grid-area: nick !important; }
+  .player-row > :nth-child(5) { grid-area: role !important; }
   .player-row > :nth-child(6) { grid-area: delete !important; justify-self: end; }
 
-  .player-row .btn-danger { width: 28px; min-width: 28px; }
+.player-row .btn-danger { width: 100%; min-width: 0; }
 }
 
 /* Evita overflow dei campi */
@@ -2441,6 +2436,7 @@ body {
 .player-row select {
   width: 100%;
   min-width: 0;
+  padding: 0.3rem;
 }
 
 /* Utility: disporre i figli div su due righe */
@@ -3402,9 +3398,9 @@ body {
    Roster: campi e bottone rimozione
    ------------------------------- */
 .player-row input.num-input { width: 2.6ch; text-align: center; }
-.player-row input.name-input { width: 12ch !important; }
-.player-row input.surname-input { width: 12ch !important; }
-.player-row input.nick-input { width: 12ch !important; }
+.player-row input.name-input { width: 12ch; min-width: 0; }
+.player-row input.surname-input { width: 12ch; min-width: 0; }
+.player-row input.nick-input { width: 12ch; min-width: 0; }
 .player-row select.role-select { width: 4ch; text-align: center; }
 
 .player-row .delete-btn {
@@ -3415,3 +3411,16 @@ body {
   padding: 0; line-height: 1; box-shadow: 0 1px 1px rgba(0,0,0,0.06);
 }
 .player-row .delete-btn:hover { background: #fff0f0; border-color: #f2b8b5; }
+/* Bottone freccia semplice in alto a sinistra */
+.back-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.35);
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.back-btn svg { display: block; }

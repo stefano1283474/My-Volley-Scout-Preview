@@ -708,7 +708,7 @@ function generateRosterFormIn(containerId) {
                 <option value=''>Ruolo</option>
                 ${roles.map(r => `<option value='${r}'>${r}</option>`).join('')}
             </select>
-            <input type='text' class='input' placeholder='Nickname' data-field='nickname' data-index='${i}' />
+            <input type='text' class='input' placeholder='Nickname' maxlength='6' data-field='nickname' data-index='${i}' />
             <button type='button' class='btn btn-secondary clear-row-btn' title='Pulisci riga' aria-label='Pulisci riga' data-index='${i}'>×</button>
         </div>`);
     }

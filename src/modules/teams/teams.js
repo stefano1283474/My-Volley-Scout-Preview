@@ -415,7 +415,7 @@ class TeamsModule {
                 name: row.nome || '',
                 surname: row.cognome || '',
                 role: row.ruolo || '',
-                nickname: row.soprannome || ''
+                nickname: (row.soprannome || '').toString().slice(0,6)
             };
             
             // Aggiungi solo se ha almeno un campo compilato

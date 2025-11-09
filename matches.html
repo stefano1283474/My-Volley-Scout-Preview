@@ -1215,7 +1215,7 @@
                  <td style=\"padding:8px; border-bottom:1px solid #eee;\"><input type=\"text\" class=\"input\" value=\"${player.name || ''}\" /></td>
                  <td style=\"padding:8px; border-bottom:1px solid #eee;\"><input type=\"text\" class=\"input\" value=\"${player.surname || ''}\" /></td>
                  <td style=\"padding:8px; border-bottom:1px solid #eee;\"><input type=\"text\" class=\"input\" value=\"${player.role || ''}\" /></td>
-                 <td style=\"padding:8px; border-bottom:1px solid #eee;\"><input type=\"text\" class=\"input\" value=\"${player.nickname || ''}\" /></td>
+                 <td style=\"padding:8px; border-bottom:1px solid #eee;\"><input type=\"text\" class=\"input\" maxlength=\"6\" value=\"${(player.nickname || '').toString().slice(0,6)}\" /></td>
                  <td style=\"padding:8px; border-bottom:1px solid #eee; text-align:right;\">
                      <button type=\"button\" class=\"btn btn-danger btn-sm\" onclick=\"this.closest('tr').remove();\">Rimuovi</button>
                  </td>
@@ -1229,7 +1229,7 @@
                  const rows = Array.from(rosterTableBody.querySelectorAll('tr'));
                  const players = rows.map(r => {
                      const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
-                     return { number, name, surname, role, nickname };
+                     return { number, name, surname, role, nickname: (nickname||'').slice(0,6) };
                  }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
                  const updatedTeam = {
                      id: selectedTeam.id,
@@ -1299,7 +1299,7 @@
                              name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
                              surname: idx.cognome !== -1 ? (cols[idx.cognome] || '').trim() : '',
                              role: idx.ruolo !== -1 ? (cols[idx.ruolo] || '').trim() : '',
-                             nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim() : ''
+                             nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim().slice(0,6) : ''
                          };
                          if (player.number || player.name || player.surname || player.role || player.nickname) {
                              importedPlayers.push(player);

@@ -327,12 +327,12 @@
                 <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden;">
                     <thead>
                         <tr style="background:#f8f9fa; text-align:left;">
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef; width:90px;">Numero</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Nome</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Cognome</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Ruolo</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Soprannome</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef; text-align:right; width:120px;">Azioni</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef; width:90px;">Numero</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef;">Nome</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef;">Cognome</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef;">Soprannome</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef;">Ruolo</th>
+                            <th style="padding:4px; border-bottom:1px solid #e9ecef; text-align:right; width:120px;">Azioni</th>
                         </tr>
                     </thead>
                     <tbody id="rosterTableBody"></tbody>
@@ -757,12 +757,12 @@ window.location.href = '/roster.html';
         function addRosterRow(player = {}) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" style="width:80px" value="${player.number || ''}" /></td>
-                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.name || ''}" /></td>
-                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.surname || ''}" /></td>
-                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.role || ''}" /></td>
-                <td style="padding:8px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.nickname || ''}" /></td>
-                <td style="padding:8px; border-bottom:1px solid #eee; text-align:right;">
+                <td style="padding:4px; border-bottom:1px solid #eee;"><input type="text" class="input" style="width:80px" value="${player.number || ''}" /></td>
+                <td style="padding:4px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.name || ''}" /></td>
+                <td style="padding:4px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.surname || ''}" /></td>
+                <td style="padding:4px; border-bottom:1px solid #eee;"><input type="text" class="input" maxlength="6" value="${(player.nickname || '').toString().slice(0,6)}" /></td>
+                <td style="padding:4px; border-bottom:1px solid #eee;"><input type="text" class="input" value="${player.role || ''}" /></td>
+                <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">
                     <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">Rimuovi</button>
                 </td>
             `;
@@ -780,8 +780,8 @@ window.location.href = '/roster.html';
                 if (!selectedTeam) return;
                 const rows = Array.from(rosterTableBody.querySelectorAll('tr'));
                 const players = rows.map(r => {
-                    const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
-                    return { number, name, surname, role, nickname };
+                    const [number, name, surname, nickname, role] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+                    return { number, name, surname, role, nickname: (nickname||'').slice(0,6) };
                 }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
                 const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
                 const newClubName = (rosterClubNameInput && rosterClubNameInput.value.trim()) || '';
@@ -805,8 +805,8 @@ window.location.href = '/roster.html';
                 // Legge i dati correnti dalla tabella (inclusi eventuali cambi non salvati)
                 const rows = Array.from(rosterTableBody.querySelectorAll('tr'));
                 const players = rows.map(r => {
-                    const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
-                    return { number, name, surname, role, nickname };
+                    const [number, name, surname, nickname, role] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+                    return { number, name, surname, role, nickname: (nickname||'').slice(0,6) };
                 }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
                 const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
                 const clubNameExp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
@@ -874,7 +874,7 @@ window.location.href = '/roster.html';
                             name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
                             surname: idx.cognome !== -1 ? (cols[idx.cognome] || '').trim() : '',
                             role: idx.ruolo !== -1 ? (cols[idx.ruolo] || '').trim() : '',
-                            nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim() : ''
+                            nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim().slice(0,6) : ''
                         };
                         if (player.number || player.name || player.surname || player.role || player.nickname) {
                             importedPlayers.push(player);

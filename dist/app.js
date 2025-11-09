@@ -361,7 +361,7 @@ function generateRosterFormIn(containerId) {
                     <option value="">Seleziona...</option>
                     ${roles.map(role => `<option value="${role}">${role}</option>`).join('')}
                 </select>
-                <input type="text" placeholder="Soprannome" data-field="nickname" data-index="${i}">
+<input type="text" placeholder="Soprannome" maxlength="6" data-field="nickname" data-index="${i}">
                 <button type="button" class="btn btn-danger" onclick="clearPlayerIn(${i}, '${containerId}')" style="padding: 0.3rem;">×</button>
             </div>
         `;
@@ -1374,33 +1374,33 @@ function submitOpponentError() {
 }
 
 function updateGamePhase(fundamental, evaluation) {
-    const eval = parseInt(evaluation);
+    const evalValue = parseInt(evaluation);
 
     // Logica per cambiare la fase di gioco basata sul risultato dell'azione
     if (fundamental === 'b') { // Servizio
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore al servizio = punto avversario, passiamo in ricezione
             appState.currentPhase = 'ricezione';
-        } else if (eval === 5) {
+        } else if (evalValue === 5) {
             // Ace = punto nostro, rimaniamo al servizio
             appState.currentPhase = 'servizio';
         }
         // Per valutazioni 2,3,4 la fase rimane invariata fino al prossimo punto
     } else if (fundamental === 'r') { // Ricezione
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in ricezione = punto avversario, passiamo al servizio
             appState.currentPhase = 'servizio';
         }
         // Per altre valutazioni continuiamo nella stessa fase
     } else if (fundamental === 'a') { // Attacco
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in attacco = punto avversario
             if (appState.currentPhase === 'servizio') {
                 appState.currentPhase = 'ricezione';
             } else {
                 appState.currentPhase = 'servizio';
             }
-        } else if (eval === 5) {
+        } else if (evalValue === 5) {
             // Punto in attacco = nostro punto
             if (appState.currentPhase === 'ricezione') {
                 appState.currentPhase = 'servizio';
@@ -1409,7 +1409,7 @@ function updateGamePhase(fundamental, evaluation) {
             }
         }
     } else if (fundamental === 'd') { // Difesa
-        if (eval === 1) {
+        if (evalValue === 1) {
             // Errore in difesa = punto avversario
             appState.currentPhase = 'ricezione';
         }

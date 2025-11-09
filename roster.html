@@ -12,7 +12,11 @@
   <header class="topappbar" style="--topbar-h:81px;">
     <div class="topappbar-content">
       <div class="topappbar-left">
-        <a href="welcome.html" class="btn btn-secondary" aria-label="Indietro">←</a>
+        <a href="welcome.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+            <path d="M15.5 19a1 1 0 0 1-.71-.29l-6-6a1 1 0 0 1 0-1.42l6-6a1 1 0 0 1 1.42 1.42L10.92 12l5.29 5.29A1 1 0 0 1 15.5 19z"/>
+          </svg>
+        </a>
       </div>
       <div class="topappbar-center">
         <img src="LOGO_APP.png" alt="My Volley Scout" class="app-logo" />
@@ -54,11 +58,11 @@
     <section class="section">
       <div class="roster-grid" id="rosterGrid">
         <div class="player-row player-header">
-          <div>Numero</div>
+            <div>N</div>
           <div>Nome</div>
           <div>Cognome</div>
-          <div>Ruolo</div>
           <div>Soprannome</div>
+          <div>Ruolo</div>
           <div style="text-align:right">Azioni</div>
         </div>
       </div>
@@ -158,6 +162,7 @@
         <div><input type="text" class="input num-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="#" value="${(player.number || '').toString().slice(0,2)}" /></div>
         <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${(player.name || '').toString().slice(0,12)}" /></div>
         <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${(player.surname || '').toString().slice(0,12)}" /></div>
+        <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${(player.nickname || '').toString().slice(0,12)}" /></div>
         <div>
           <select class="input role-select">
             <option value="">—</option>
@@ -168,7 +173,6 @@
             <option value="L">L</option>
           </select>
         </div>
-        <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${(player.nickname || '').toString().slice(0,12)}" /></div>
         <div><button type="button" class="btn delete-btn" aria-label="Rimuovi" onclick="this.closest('.player-row').remove();">✕</button></div>`;
       // Pre-seleziona ruolo se presente
       const roleSel = row.querySelector('.role-select');
@@ -197,7 +201,7 @@
           const name = (r.querySelector('.name-input')?.value || '').trim();
           const surname = (r.querySelector('.surname-input')?.value || '').trim();
           const role = (r.querySelector('.role-select')?.value || '').trim();
-          const nickname = (r.querySelector('.nick-input')?.value || '').trim();
+          const nickname = (r.querySelector('.nick-input')?.value || '').trim().slice(0,12);
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
         const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
@@ -225,7 +229,7 @@
           const name = (r.querySelector('.name-input')?.value || '').trim();
           const surname = (r.querySelector('.surname-input')?.value || '').trim();
           const role = (r.querySelector('.role-select')?.value || '').trim();
-          const nickname = (r.querySelector('.nick-input')?.value || '').trim();
+          const nickname = (r.querySelector('.nick-input')?.value || '').trim().slice(0,12);
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
         const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
@@ -291,7 +295,7 @@
               name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
               surname: idx.cognome !== -1 ? (cols[idx.cognome] || '').trim() : '',
               role: idx.ruolo !== -1 ? (cols[idx.ruolo] || '').trim() : '',
-              nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim() : ''
+              nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim().slice(0,12) : ''
             };
             if (player.number || player.name || player.surname || player.role || player.nickname){
               importedPlayers.push(player);
