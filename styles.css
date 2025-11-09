@@ -36,14 +36,17 @@ body {
 }
 
 /* TopAppBar: nuova barra superiore con logo a sinistra e account a destra */
-.topappbar { position: sticky; top: 0; z-index: 1000; background: #2563eb; color: #fff; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.15); }
-.topappbar-content { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 1200px; margin: 0 auto; }
+.topappbar { position: sticky; top: 0; z-index: 1000; background: #2563eb; color: #fff; padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,0.15); box-sizing: border-box; height: 81px; }
+.topappbar-content { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: none; margin: 0; height: 100%; }
+.topappbar .topbar-title { position: static; left: auto; transform: none; width: auto; }
 .topappbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.topappbar-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+.topappbar-center { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; }
 .topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
 .topappbar .topbar-title #current-set-display { color: #fff; }
-.topappbar-right { position: relative; display: flex; align-items: center; gap: 8px; }
+.topappbar-right { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .app-logo { width: 64px; height: 64px; border-radius: 4px; display: block; object-fit: contain; }
+/* In top app bar, logo should fill the bar's height */
+.topappbar .app-logo { height: 100%; width: auto; }
 .app-title { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
@@ -303,8 +306,12 @@ body {
   transition: transform .22s ease-out, opacity .2s ease-out, visibility 0s; 
 }
 
-.topbar-toggle { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.topbar-toggle { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 8px; border-radius: 12px; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
 .topbar-toggle:hover { background: rgba(255,255,255,0.22); }
+/* Dimensioni icona hamburger coerenti con avatar */
+.topbar-toggle svg { width: 22px; height: 22px; }
+/* Etichetta sotto l’icona */
+.topbar-toggle span:last-child { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.02em; }
 
 .set-sidebar { 
   position: sticky; 
@@ -1582,7 +1589,7 @@ body {
     justify-items: stretch; /* gli score riempiono la cella; il separatore verrà centrato a parte */
     gap: 0; /* spazio minimo fra ':' e i numeri */
     white-space: nowrap; /* evita a capo all'interno dei punteggi */
-    min-width: 40px; /* blocco punteggio ancora più compatto */
+    min-width: 28px; /* ridotto ~30% per compattare "0:0" */
 }
 /* Rendi il punteggio leggermente più piccolo per dare spazio ai nomi */
 .score-current #score-home, .score-current #score-away { font-size: 1.05em; }
@@ -1617,7 +1624,7 @@ body {
 }
 
 /* Riduci padding laterale solo nel pannello punteggio per guadagnare spazio */
-#punteggio-section.section-panel { padding: 6px 8px; }
+#punteggio-section.section-panel { padding: 4px 6px; }
 #score-team-my { text-align: center; }
 #score-team-opponent { text-align: center; }
 
@@ -2817,6 +2824,7 @@ body {
 
 /* Stile per il fondamentale - più in evidenza */
 #current-fundamental { font-size: 1.5rem; font-weight: 800; color: #1976d2; }
+.players-title { text-align: center; }
 /* Stili per il dialog delle azioni scoutizzate */
 .dialog {
     display: none;

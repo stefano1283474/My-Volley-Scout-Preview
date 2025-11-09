@@ -966,10 +966,10 @@ function updatePlayersGrid() {
         return `
             <button class="player-btn ${rc}" data-role="${p.role}" data-number="${num}" data-name="${nm}">
                 <div class="player-line1">
-                    <span class="player-number">${num}</span>
+                    <span class="player-name">${nm}</span>
                 </div>
                 <div class="player-line2">
-                    <span class="player-name">${nm}</span>
+                    <span class="player-number">${num}</span>
                 </div>
             </button>
         `;
@@ -993,12 +993,16 @@ function updatePlayersGrid() {
     while (row2.length < 4) row2.push(null);
     const row3 = byRole.Centrale.slice(0,4);
     while (row3.length < 4) row3.push(null);
-    // Quarta riga: Opposti (fino a 2) + 2 tasti funzione
+    // Quarta riga: Ordine specifico richiesto
+    // Col1: Errore Avvers. | Col2: secondo Opposto (se presente) | Col3: primo Opposto | Col4: MURO
     const row4 = [];
     const opps = byRole.Opposto.slice(0,2);
-    row4.push(...opps);
-    // I due tasti funzione sono sempre visibili: Errore Avvers. e MURO
-    row4.push({ __type: 'opponent-error' }, { __type: 'muro-override' });
+    const firstOpp = opps[0] || null;
+    const secondOpp = opps[1] || null;
+    row4.push({ __type: 'opponent-error' });
+    row4.push(secondOpp);
+    row4.push(firstOpp);
+    row4.push({ __type: 'muro-override' });
     while (row4.length < 4) row4.push(null);
 
     // Rende tutte le righe (4x4 = 16 tasti)
@@ -1835,8 +1839,8 @@ function updateNextFundamental() {
                 ? rotationRaw.toUpperCase()
                 : `P${rotationRaw}`.toUpperCase()
             : '';
-        // Header: "P# - HAI SELEZIONATO:"
-        el.textContent = `${rotationNorm ? rotationNorm + ' - ' : ''}HAI SELEZIONATO:`;
+        // Header dinamico: "AZIONE IN P#:" (oppure "AZIONE:")
+        el.textContent = rotationNorm ? `AZIONE IN ${rotationNorm}:` : 'AZIONE:';
     }
     const cur = document.getElementById('current-fundamental');
     if (cur) {
