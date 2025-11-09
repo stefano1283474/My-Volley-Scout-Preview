@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Volley Scout - Gestione Roster</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="animations.css?v=1" />
+</head>
+<body>
+  <!-- Top App Bar coerente con le altre pagine -->
+  <header class="topappbar" style="--topbar-h:81px;">
+    <div class="topappbar-content">
+      <div class="topappbar-left">
+        <a href="welcome.html" class="btn btn-secondary" aria-label="Indietro">←</a>
+      </div>
+      <div class="topappbar-center">
+        <img src="LOGO_APP.png" alt="My Volley Scout" class="app-logo" />
+      </div>
+      <div class="topappbar-right">
+        <button id="accountBtn" class="top-account-btn" title="Account" aria-label="Account">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z"/>
+          </svg>
+          <span>Account</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="section">
+      <div class="section-header">
+        <h3>Roster — dati squadra</h3>
+        <div class="section-actions">
+          <button class="btn btn-primary" id="confirmRosterBtn">Salva ed esci</button>
+        </div>
+      </div>
+
+      <div id="teamInfo" class="form two-rows" style="margin: 8px 0 12px 0;">
+        <div class="form-group">
+          <label for="rosterClubNameInput">Nome Società</label>
+          <input id="rosterClubNameInput" type="text" placeholder="Es. Bollate Team Volley" />
+        </div>
+        <div class="form-group">
+          <label for="rosterTeamNameInput">Nome Squadra</label>
+          <input id="rosterTeamNameInput" type="text" placeholder="Es. 2Div F" />
+        </div>
+      </div>
+      <!-- Azioni extra rimosse per UX semplificata su mobile -->
+      <input type="file" id="rosterImportFile" accept=".csv" style="display:none;" />
+    </section>
+
+    <section class="section">
+      <div class="roster-grid" id="rosterGrid">
+        <div class="player-row player-header">
+          <div>Numero</div>
+          <div>Nome</div>
+          <div>Cognome</div>
+          <div>Ruolo</div>
+          <div>Soprannome</div>
+          <div style="text-align:right">Azioni</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <!-- App Scripts -->
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./src/modules/teams/teams.js"></script>
+
+  <script>
+    let currentUser = null;
+    let selectedTeam = null;
+
+    const userEmail = document.getElementById('userEmail');
+    const accountBtn = document.getElementById('accountBtn');
+    const rosterTeamNameInput = document.getElementById('rosterTeamNameInput');
+    const rosterClubNameInput = document.getElementById('rosterClubNameInput');
+    const rosterGrid = document.getElementById('rosterGrid');
+    const importRosterBtn = document.getElementById('importRosterBtn');
+    const rosterImportFile = document.getElementById('rosterImportFile');
+    const exportRosterBtn = document.getElementById('exportRosterBtn');
+    const clearRosterBtn = document.getElementById('clearRosterBtn');
+    const deleteRosterBtn = document.getElementById('deleteRosterBtn');
+    const confirmRosterBtn = document.getElementById('confirmRosterBtn');
+
+    document.addEventListener('DOMContentLoaded', initializeRosterPage);
+
+    function initializeRosterPage(){
+      if (typeof window.authFunctions === 'undefined' || typeof window.teamsModule === 'undefined'){
+        setTimeout(initializeRosterPage, 200);
+        return;
+      }
+
+      window.authFunctions.onAuthStateChanged((user) => {
+        if (!user){ window.location.href = 'auth-login.html'; return; }
+        currentUser = user;
+        const teamId = localStorage.getItem('selectedTeamId');
+        if (teamId){
+          try { window.teamsModule.selectTeam(teamId); } catch(_){ }
+          const team = (window.teamsModule.getTeamById ? window.teamsModule.getTeamById(teamId) : null) || null;
+          selectedTeam = team;
+        }
+        if (!selectedTeam){
+          alert('Nessuna squadra selezionata. Torno alle squadre.');
+          window.location.href = 'welcome.html';
+          return;
+        }
+        renderRosterEditor();
+      });
+
+      // Bind UI actions
+      if (accountBtn) accountBtn.addEventListener('click', () => { window.location.href = 'auth.html'; });
+      if (importRosterBtn) importRosterBtn.addEventListener('click', () => rosterImportFile && rosterImportFile.click());
+      if (rosterImportFile) rosterImportFile.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) importRosterCSV(f);
+        e.target.value = '';
+      });
+      if (exportRosterBtn) exportRosterBtn.addEventListener('click', exportSelectedTeamCSV);
+      if (clearRosterBtn) clearRosterBtn.addEventListener('click', clearRosterFields);
+      if (deleteRosterBtn) deleteRosterBtn.addEventListener('click', deleteCurrentRoster);
+      if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmRosterAndProceed);
+    }
+
+    function renderRosterEditor(){
+      if (!selectedTeam) return;
+      const teamName = selectedTeam.teamName || String(selectedTeam.name || '').split(' - ')[0] || '';
+      const parts = String(selectedTeam.name || '').split(' - ');
+      const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
+      rosterTeamNameInput.value = teamName;
+      rosterClubNameInput.value = inferredClub;
+
+      // Pulisci righe giocatori mantenendo l'header
+      const header = rosterGrid.querySelector('.player-header');
+      rosterGrid.innerHTML = '';
+      if (header) rosterGrid.appendChild(header);
+      const players = Array.isArray(selectedTeam.players) ? selectedTeam.players : [];
+      if (!players.length) { for (let i = 0; i < 7; i++) addRosterRow(); }
+      else { players.forEach(p => addRosterRow(p)); }
+      // Aggiungi sempre una riga vuota aggiuntiva in basso per inserire un nuovo giocatore
+      addRosterRow();
+    }
+
+    function addRosterRow(player = {}){
+      const row = document.createElement('div');
+      row.className = 'player-row';
+      row.innerHTML = `
+        <div><input type="text" class="input" inputmode="numeric" pattern="[0-9]*" placeholder="#" value="${player.number || ''}" /></div>
+        <div><input type="text" class="input" placeholder="Nome" value="${player.name || ''}" /></div>
+        <div><input type="text" class="input" placeholder="Cognome" value="${player.surname || ''}" /></div>
+        <div><input type="text" class="input" placeholder="Ruolo" value="${player.role || ''}" /></div>
+        <div><input type="text" class="input" placeholder="Soprannome" value="${player.nickname || ''}" /></div>
+        <div><button type="button" class="btn btn-danger" aria-label="Rimuovi" onclick="this.closest('.player-row').remove();">✕</button></div>`;
+      rosterGrid.appendChild(row);
+    }
+
+    function clearRosterFields(){
+      if (!confirm('Sicuro di voler pulire tutti i campi del roster?')) return;
+      const header = rosterGrid.querySelector('.player-header');
+      rosterGrid.innerHTML = '';
+      if (header) rosterGrid.appendChild(header);
+      for (let i = 0; i < 7; i++) addRosterRow();
+    }
+
+    async function confirmRosterAndProceed(){
+      try {
+        if (!selectedTeam) return;
+        const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
+        const players = rows.map(r => {
+          const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+          return { number, name, surname, role, nickname };
+        }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
+        const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
+        const newClubName = (rosterClubNameInput && rosterClubNameInput.value.trim()) || '';
+        const currentName = newTeamName + (newClubName ? ` - ${newClubName}` : '');
+        const updatedTeam = { id: selectedTeam.id, name: currentName, teamName: newTeamName, clubName: newClubName, players };
+        const result = await window.teamsModule.saveTeam(updatedTeam);
+        if (!result.success) throw new Error(result.error || 'Salvataggio fallito');
+        selectedTeam = result.team;
+        localStorage.setItem('selectedTeamId', selectedTeam.id);
+        alert('Roster salvato. Prosegui ai dati della gara.');
+        window.location.href = 'matches.html';
+      } catch (e) {
+        console.error(e);
+        alert('Errore nel salvataggio del roster: ' + e.message);
+      }
+    }
+
+    function exportSelectedTeamCSV(){
+      if (!selectedTeam) return alert('Nessuna squadra selezionata');
+      try {
+        const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
+        const players = rows.map(r => {
+          const [number, name, surname, role, nickname] = Array.from(r.querySelectorAll('input')).map(i => i.value.trim());
+          return { number, name, surname, role, nickname };
+        }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
+        const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
+        const clubNameExp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
+        const currentName = teamNameExp + (clubNameExp ? ` - ${clubNameExp}` : '');
+        const header = ['Squadra','Numero','Nome','Cognome','Ruolo','Soprannome'];
+        const lines = [header.join(',')];
+        players.forEach(p => {
+          const vals = [currentName || '', p.number || '', p.name || '', p.surname || '', p.role || '', p.nickname || ''];
+          lines.push(vals.map(v => {
+            const s = String(v).replace(/"/g, '""');
+            return /[",\n]/.test(s) ? '"' + s + '"' : s;
+          }).join(','));
+        });
+        const csv = lines.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const safeName = (currentName || 'roster').replace(/[^a-z0-9_-]+/gi, '-');
+        a.download = `${safeName}_roster_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error(e);
+        alert('Impossibile esportare il roster.');
+      }
+    }
+
+    function importRosterCSV(file){
+      if (!selectedTeam){ alert('Seleziona prima una squadra.'); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = reader.result;
+          const lines = text.split(/\r?\n/).filter(l => l.trim());
+          if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
+          const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+          const idx = {
+            squadra: headers.indexOf('squadra'),
+            numero: headers.indexOf('numero'),
+            nome: headers.indexOf('nome'),
+            cognome: headers.indexOf('cognome'),
+            ruolo: headers.indexOf('ruolo'),
+            soprannome: headers.indexOf('soprannome')
+          };
+          if (idx.numero === -1 || idx.nome === -1 || idx.cognome === -1 || idx.ruolo === -1){
+            throw new Error('Intestazioni richieste mancanti. Richieste: Numero, Nome, Cognome, Ruolo. Opzionale: Squadra, Soprannome');
+          }
+          const teamNameImp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
+          const clubNameImp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
+          const currentName = teamNameImp + (clubNameImp ? ` - ${clubNameImp}` : '');
+          const importedPlayers = [];
+          for (let i = 1; i < lines.length; i++){
+            const cols = splitCSVLine(lines[i]);
+            if (!cols.length) continue;
+            const rowTeam = idx.squadra !== -1 ? (cols[idx.squadra] || '').trim() : '';
+            if (idx.squadra !== -1 && rowTeam && rowTeam !== currentName){
+              continue;
+            }
+            const player = {
+              number: idx.numero !== -1 ? (cols[idx.numero] || '').trim() : '',
+              name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
+              surname: idx.cognome !== -1 ? (cols[idx.cognome] || '').trim() : '',
+              role: idx.ruolo !== -1 ? (cols[idx.ruolo] || '').trim() : '',
+              nickname: idx.soprannome !== -1 ? (cols[idx.soprannome] || '').trim() : ''
+            };
+            if (player.number || player.name || player.surname || player.role || player.nickname){
+              importedPlayers.push(player);
+            }
+          }
+          if (!importedPlayers.length){
+            alert('Nessun giocatore importato. Verifica che la colonna "Squadra" coincida con il nome della squadra selezionata o che il file contenga i campi richiesti.');
+            return;
+          }
+          const header = rosterGrid.querySelector('.player-header');
+          rosterGrid.innerHTML = '';
+          if (header) rosterGrid.appendChild(header);
+          importedPlayers.forEach(p => addRosterRow(p));
+          alert(`Import completato: ${importedPlayers.length} giocatori caricati. Premi "Conferma e procedi" per salvare.`);
+        } catch(err){
+          console.error(err);
+          alert('Errore nell\'importazione CSV: ' + err.message);
+        }
+      };
+      reader.onerror = () => alert('Impossibile leggere il file CSV selezionato.');
+      reader.readAsText(file);
+    }
+
+    async function deleteCurrentRoster(){
+      if (!selectedTeam) return;
+      const ok = confirm(`Eliminare definitivamente il roster della squadra "${selectedTeam.name}"?\nVerrà rimosso sia in locale che dal cloud (se connesso).`);
+      if (!ok) return;
+      try {
+        if (window.firestoreService && window.authFunctions){
+          try { if (window.firestoreService.deleteRostersByName){ await window.firestoreService.deleteRostersByName(selectedTeam.name); } } catch(e){ console.warn('Eliminazione roster su Firestore non riuscita o non disponibile:', e); }
+          try { if (window.firestoreService.deleteLocalRostersByName){ window.firestoreService.deleteLocalRostersByName(selectedTeam.name); } } catch(e){}
+        }
+        const result = await window.teamsModule.saveTeam({ id: selectedTeam.id, name: selectedTeam.name, players: [] });
+        if (!result.success) throw new Error(result.error || 'Impossibile aggiornare la squadra localmente');
+        selectedTeam = result.team;
+        renderRosterEditor();
+        alert('Roster eliminato con successo.');
+      } catch(err){
+        console.error(err);
+        alert('Errore durante l\'eliminazione del roster: ' + err.message);
+      }
+    }
+
+    function splitCSVLine(line){
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++){
+        const ch = line[i];
+        if (ch === '"'){
+          if (inQuotes && i + 1 < line.length && line[i+1] === '"'){ current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (ch === ',' && !inQuotes){ result.push(current); current = ''; }
+        else { current += ch; }
+      }
+      result.push(current);
+      return result;
+    }
+  </script>
+</body>
+</html>
