@@ -216,6 +216,10 @@
     </style>
 </head>
 <body>
+    <script>
+      // Rimuove qualsiasi hash dalla URL (es. #/set/1) per evitare confusioni di routing
+      try { if (location.hash) { history.replaceState(null, '', location.pathname); } } catch(_){}
+    </script>
     <div class="auth-container">
         <div class="logo">
             <div class="logo-icon">

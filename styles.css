@@ -43,16 +43,16 @@ body {
 .topappbar-center { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; }
 .topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
 .topappbar .topbar-title #current-set-display { color: #fff; }
-.topappbar-right { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.topappbar-right { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .app-logo { width: 64px; height: 64px; border-radius: 4px; display: block; object-fit: contain; }
 /* In top app bar, logo should fill the bar's height */
 .topappbar .app-logo { height: 100%; width: auto; }
 .app-title { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
-.top-account-btn { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-.top-account-btn:hover { background: rgba(255,255,255,0.18); }
-.top-account-btn .avatar { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.25); display: inline-flex; align-items: center; justify-content: center; }
+.top-account-btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 8px; border-radius: 12px; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.top-account-btn:hover { background: rgba(255,255,255,0.22); }
+.top-account-btn svg { width: 22px; height: 22px; }
 
 /* Dropdown menu associato al pulsante account */
 .top-account-menu { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); padding: 6px; min-width: 180px; width: max-content; }
@@ -271,9 +271,7 @@ body {
 .set-pill:hover { background: #f8fafc; }
 .set-pill.active { background: #2563eb; border-color: #1f56e5; color: #ffffff; font-weight: 700; box-shadow: 0 0 0 2px rgba(37,99,235,0.25); transform: translateY(-1px); }
 
-/* Override: pulsante account bianco e icona cliccabile */
-.top-account-btn { background: #ffffff !important; color: #2563eb !important; border-color: rgba(255,255,255,0.6) !important; }
-.top-account-btn .avatar { background: #e9efff !important; width: 22px !important; height: 22px !important; }
+/* Rimosso vecchio override vuoto del pulsante account (allineato all'hamburger nello stile più sotto) */
 
 /* =========================
    Sidebar Set + Account UI
@@ -413,9 +411,9 @@ body {
 }
 
 /* Account button/menu redesign (override) */
-.top-account-btn { background: rgba(255,255,255,0.10); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12) inset; }
-.top-account-btn:hover { background: rgba(255,255,255,0.16); }
-.top-account-btn .avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.15)); display: inline-flex; align-items: center; justify-content: center; }
+.top-account-btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 8px; border-radius: 12px; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.top-account-btn:hover { background: rgba(255,255,255,0.22); }
+.top-account-btn svg { width: 22px; height: 22px; }
 
 .top-account-menu { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 22px rgba(0,0,0,0.12); padding: 8px; min-width: 220px; width: max-content; }
 .top-account-menu .menu-title { font-size: 0.85rem; color: #6b7280; padding: 6px 10px; }
