@@ -1019,9 +1019,9 @@ function updatePlayersGrid() {
         }
         if (p.__type === 'opponent-error') {
             return `
-                <button class="player-btn opponent-error-btn" type="button" title="Errore Avvers.">
-                    <div class="player-line1"><span class="player-name">Errore</span></div>
-                    <div class="player-line2"><span class="player-name">Avvers.</span></div>
+                <button class="player-btn opponent-error-btn" type="button" title="Errore Avversari">
+                    <div class="player-line1"><span class="player-name">ERRORE</span></div>
+                    <div class="player-line2"><span class="player-name">AVVERS.</span></div>
                 </button>
             `;
         }
@@ -1839,8 +1839,10 @@ function updateNextFundamental() {
                 ? rotationRaw.toUpperCase()
                 : `P${rotationRaw}`.toUpperCase()
             : '';
-        // Header dinamico: "AZIONE IN P#:" (oppure "AZIONE:")
-        el.textContent = rotationNorm ? `AZIONE IN ${rotationNorm}:` : 'AZIONE:';
+        // Header dinamico: "SET X AZIONE IN P#:" (oppure "SET X AZIONE:")
+        const setNum = (window.appState?.currentSet) ? window.appState.currentSet : 1;
+        const prefix = `SET ${setNum} `;
+        el.textContent = rotationNorm ? `${prefix}AZIONE IN ${rotationNorm}:` : `${prefix}AZIONE:`;
     }
     const cur = document.getElementById('current-fundamental');
     if (cur) {

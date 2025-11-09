@@ -311,7 +311,8 @@
             .header { background:#fff; border-radius:12px; padding:4px 6px; margin-bottom:16px; display:flex; justify-content:flex-start; align-items:center; position:relative; }
             .logo { display:flex; align-items:center; gap:8px; }
             .logo-icon { width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
-            .logo-icon img { width:64px; height:64px; object-fit:contain; display:block; }
+            /* Uniforma il logo con la topbar dell'app: altezza piena, larghezza auto */
+            .logo-icon img { height:64px; width:auto; object-fit:contain; display:block; }
             .back-actions { position:absolute; top:8px; left:8px; display:flex; align-items:center; z-index:2; }
             .account-actions { position:absolute; top:8px; right:8px; display:flex; align-items:center; z-index:2; }
             .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
@@ -324,7 +325,7 @@
         <div class="header">
             <div class="logo">
                 <div class="logo-icon" aria-hidden="true">
-                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" />
                 </div>
             </div>
             <div class="back-actions">

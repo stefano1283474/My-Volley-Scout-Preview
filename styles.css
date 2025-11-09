@@ -36,18 +36,18 @@ body {
 }
 
 /* TopAppBar: nuova barra superiore con logo a sinistra e account a destra */
-.topappbar { position: sticky; top: 0; z-index: 1000; background: #2563eb; color: #fff; padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,0.15); box-sizing: border-box; height: 81px; }
+.topappbar { position: sticky; top: 0; z-index: 1000; background: #ffffff; color: #111; padding: 0 12px; border-bottom: 1px solid rgba(0,0,0,0.08); box-sizing: border-box; height: 81px; }
 .topappbar-content { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: none; margin: 0; height: 100%; }
 .topappbar .topbar-title { position: static; left: auto; transform: none; width: auto; }
 .topappbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .topappbar-center { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; }
-.topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
-.topappbar .topbar-title #current-set-display { color: #fff; }
+.topbar-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; color: #111; }
+.topappbar .topbar-title #current-set-display { color: #111; }
 .topappbar-right { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .app-logo { width: 64px; height: 64px; border-radius: 4px; display: block; object-fit: contain; }
 /* In top app bar, logo should fill the bar's height */
 .topappbar .app-logo { height: 100%; width: auto; }
-.app-title { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-title { font-size: 1rem; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
 .top-account-btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 8px; border-radius: 12px; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -421,6 +421,23 @@ body {
 .top-account-menu .menu-item { width: 100%; text-align: left; padding: 8px 10px; border: none; background: transparent; cursor: pointer; font-size: 0.95rem; line-height: 1.2; display: flex; align-items: center; gap: 10px; white-space: nowrap; border-radius: 10px; color: #111; }
 .top-account-menu .menu-item:hover { background: #f2f7ff; }
 .top-account-menu .menu-item .menu-item-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; color: #2563eb; }
+
+/* Override visibilità icone su TopAppBar bianca */
+.topappbar .topbar-toggle,
+.topappbar .top-account-btn {
+  background: #f8fafc;
+  color: #2563eb;
+  border: 1px solid #e5e7eb;
+}
+.topappbar .topbar-toggle:hover,
+.topappbar .top-account-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+.topappbar .topbar-toggle svg,
+.topappbar .top-account-btn svg {
+  color: currentColor;
+}
 
 .btn-danger {
     background: linear-gradient(135deg, #f44336, #d32f2f);
@@ -2754,12 +2771,26 @@ body {
 }
 .players-grid .opponent-error-btn .player-line1 .player-name,
 .players-grid .opponent-error-btn .player-line2 .player-name {
-  font-weight: 600;
-  font-size: 0.8rem;
+  font-weight: 700;
   color: #000; /* testo nero pieno */
   -webkit-text-stroke: 0; /* nessun bordo */
   text-shadow: none; /* nessun contorno */
   text-transform: uppercase; /* tutto maiuscolo */
+  white-space: nowrap; /* ogni riga resta singola */
+  overflow: visible;
+  text-overflow: clip;
+  letter-spacing: 0;
+  /* Dimensione responsiva per far entrare due righe nel bottone */
+  font-size: clamp(0.55rem, 2.0vw, 0.95rem);
+}
+
+/* Specific override inside scouting dialog: beat the ellipsis rule */
+#scouting-dialog .opponent-error-btn .player-line1 .player-name,
+#scouting-dialog .opponent-error-btn .player-line2 .player-name {
+  white-space: nowrap !important; /* singola riga per ciascuna linea nel dialog */
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: clamp(0.55rem, 2.0vw, 0.95rem) !important;
 }
 
 /* Mobile: use auto-fit instead of fixed 4 columns to adapt */
