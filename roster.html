@@ -106,7 +106,7 @@
       }
 
       window.authFunctions.onAuthStateChanged((user) => {
-        if (!user){ window.location.href = 'auth-login.html'; return; }
+    if (!user){ window.location.href = 'http://127.0.0.1:3002/auth-login.html'; return; }
         currentUser = user;
         const teamId = localStorage.getItem('selectedTeamId');
         if (teamId){
@@ -123,7 +123,7 @@
       });
 
       // Bind UI actions
-      if (accountBtn) accountBtn.addEventListener('click', () => { window.location.href = 'auth.html'; });
+    if (accountBtn) accountBtn.addEventListener('click', () => { window.location.href = 'http://127.0.0.1:3002/auth-login.html'; });
       if (importRosterBtn) importRosterBtn.addEventListener('click', () => rosterImportFile && rosterImportFile.click());
       if (rosterImportFile) rosterImportFile.addEventListener('change', (e) => {
         const f = e.target.files && e.target.files[0];
