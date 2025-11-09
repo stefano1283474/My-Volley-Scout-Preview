@@ -683,18 +683,21 @@ body {
   padding: 10px;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
-  background: #fff;
+  background-image: url('/Maglia_Azzurro_RedAccents_NEW.PNG');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 .player-btn .player-line1 { display: flex; align-items: center; gap: 6px; line-height: 1; font-weight: 700; }
 .player-btn .player-line1 .player-number { font-size: 1rem; font-weight: 800; }
 .player-btn .player-line1 .player-role { font-size: 0.9rem; font-weight: 700; opacity: 0.95; }
 .player-btn .player-line2 { line-height: 1.1; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* Colori per ruolo: sfondo bianco, bordo colorato (palette coerente) */
-#scouting-dialog .player-btn.role-pal { border-color: #1976d2; background: #fff; }
-#scouting-dialog .player-btn.role-opp { border-color: #7b1fa2; background: #fff; }
-#scouting-dialog .player-btn.role-sch { border-color: #ef6c00; background: #fff; }
-#scouting-dialog .player-btn.role-ctr { border-color: #388e3c; background: #fff; }
-#scouting-dialog .player-btn.role-lib { border-color: #fbc02d; background: #fff; }
+#scouting-dialog .player-btn.role-pal { border-color: #1976d2; }
+#scouting-dialog .player-btn.role-opp { border-color: #7b1fa2; }
+#scouting-dialog .player-btn.role-sch { border-color: #ef6c00; }
+#scouting-dialog .player-btn.role-ctr { border-color: #388e3c; }
+#scouting-dialog .player-btn.role-lib { border-color: #fbc02d; }
 
 /* Segnaposto vuoto: non selezionabile, aspetto neutro */
 #scouting-dialog .player-btn.empty {
@@ -708,8 +711,8 @@ body {
 
 /* Tasto Err Avv nella griglia giocatori */
 #scouting-dialog .opponent-error-btn {
-  border: 2px solid #9e9e9e;
-  background: #fff;
+  border: 2px solid #e0e0e0; /* stesso bordo dei player */
+  background: url('/muro.jpg') center/cover no-repeat;
 }
 
 /* Valutazioni: layout touch + gradiente 1→5 dal rosso al verde */
@@ -2671,7 +2674,7 @@ body {
   padding: 10px;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
-  background: #fff;
+  background: url('/Maglia_Azzurro_RedAccents_NEW.PNG') center/cover no-repeat;
 }
 
 /* Allinea su due righe centrate: numero (riga 1) e soprannome (riga 2) */
@@ -2691,11 +2694,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
-  color: #000;
-  text-shadow: none;
-  border-color: #8b0000;
-  background-color: #b22222;
-  background-image: url('muro.jpg');
+  background-image: url('/muro.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -2705,7 +2704,7 @@ body {
 .players-grid .cancel-replace-btn {
   border-color: #ff9800;
   background: #fffbea;
-  color: #e65100;
+  color: #000;
   box-shadow: 0 0 0 2px rgba(255,152,0,0.35), 0 2px 12px rgba(255,152,0,0.35);
   animation: replacePulse 1.2s ease-in-out infinite;
 }
@@ -2715,16 +2714,22 @@ body {
 
 /* Forza lo sfondo del MURO con specificità maggiore */
 .players-grid button.muro-override-btn {
-  background: url('muro.jpg') center/cover no-repeat !important;
-  color: #000 !important;
-  border-color: #8b0000;
-  text-shadow: none;
+  background: url('/muro.jpg') center/cover no-repeat !important;
   min-height: 52px;
 }
 .players-grid .muro-override-btn .player-line2 .player-name {
-  font-weight: 800;
-  font-size: 0.9rem; /* -10% */
+  font-weight: 600;
+  font-size: 0.8rem;
 }
+/* Testo MURO: bianco con bordo/contorno nero per leggibilità sullo sfondo */
+.players-grid .muro-override-btn .player-line1 .player-name,
+.players-grid .muro-override-btn .player-line2 .player-name {
+  color: #000; /* testo nero pieno */
+  -webkit-text-stroke: 0; /* nessun bordo */
+  text-shadow: none; /* nessun contorno */
+}
+/* Rimuove overlay e mantiene aspetto coerente con altri tasti */
+.players-grid .muro-override-btn::after { content: none; }
 
 /* Pulsante Err Avv: due righe "Errore" e "Avvers." */
 .players-grid .opponent-error-btn {
@@ -2732,6 +2737,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  background: url('/muro.jpg') center/cover no-repeat;
+  border-color: #e0e0e0; /* come gli altri */
 }
 .players-grid .opponent-error-btn .player-line1,
 .players-grid .opponent-error-btn .player-line2 {
@@ -2742,8 +2749,12 @@ body {
 }
 .players-grid .opponent-error-btn .player-line1 .player-name,
 .players-grid .opponent-error-btn .player-line2 .player-name {
-  font-weight: 700;
-  font-size: 0.85rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #000; /* testo nero pieno */
+  -webkit-text-stroke: 0; /* nessun bordo */
+  text-shadow: none; /* nessun contorno */
+  text-transform: uppercase; /* tutto maiuscolo */
 }
 
 /* Mobile: use auto-fit instead of fixed 4 columns to adapt */
@@ -3037,6 +3048,32 @@ body {
 }
 
 /* Nuovo stile compatto: una riga per azione */
+/* --- Blur di sfondo per i tasti MURO ed Errore Avvers. --- */
+.muro-override-btn,
+.opponent-error-btn {
+  position: relative;
+  overflow: hidden;
+  /* Usiamo il pseudo-elemento per lo sfondo blur, quindi azzeriamo il background diretto */
+  background: none;
+}
+
+.muro-override-btn::before,
+.opponent-error-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('/muro.jpg');
+  background-size: cover;
+  background-position: center;
+  /* Rimuove qualsiasi effetto blur o trasformazione */
+  filter: none;
+  transform: none;
+  z-index: -1; /* resta sotto al contenuto del bottone */
+  pointer-events: none;
+}
 .action-line {
     padding: 6px 10px;
     border: 1px solid #e0e0e0;
