@@ -578,7 +578,7 @@ body {
 /* Griglia Roster */
 .roster-grid {
   display: grid;
-  gap: 0.1rem;
+  gap: 0; /* nessuno spazio tra colonne/righe interne alle righe */
   width: max-content;           /* la tabella si stringe ai suoi contenuti */
   max-width: 100%;              /* non supera il contenitore/viewport */
   box-sizing: border-box;       /* padding e bordi inclusi nel calcolo */
@@ -594,7 +594,7 @@ body {
   /* Colonne compatte: N (contenuto), 3 campi da 12ch, ruolo 4ch, azioni contenuto */
   grid-template-columns: max-content 12ch 12ch 12ch 4ch max-content;
   align-items: center;
-  column-gap: 0;
+  gap: 0; /* elimina qualsiasi spazio tra i campi */
 }
 
 /* ===== Scouting: Configurazione Set - layout richiesto ===== */
@@ -848,7 +848,7 @@ body {
 .player-row select {
   width: 100%;
   min-width: 0;
-  padding: 0.3rem;
+  padding: 0.25rem; /* leggermente più compatto */
 }
 
 /* Utility: disporre i figli div su due righe */
@@ -3402,6 +3402,29 @@ body {
 .player-row input.surname-input { width: 12ch; min-width: 0; }
 .player-row input.nick-input { width: 12ch; min-width: 0; }
 .player-row select.role-select { width: 4ch; text-align: center; }
+
+/* Ruolo: mostra solo la lettera quando selezionato, caret solo se vuoto */
+.role-cell { position: relative; }
+.player-row select.role-select {
+  appearance: none; /* nasconde la freccia nativa */
+  -webkit-appearance: none;
+  text-align: center;
+  text-align-last: center;
+  padding-right: 1.2em; /* spazio per l'eventuale caret custom */
+}
+.role-cell[data-empty="1"]::after {
+  content: "▾"; /* caret semplice */
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280; /* grigio medio */
+  pointer-events: none;
+}
+
+/* Evita spazio vuoto dopo il tasto Azioni (ultima colonna) */
+.player-row > :nth-child(6) { justify-self: start !important; }
+.actions-header { text-align: left; }
 
 .player-row .delete-btn {
   width: 28px; height: 28px; min-width: 28px;

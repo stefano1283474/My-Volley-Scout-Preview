@@ -58,12 +58,12 @@
     <section class="section">
       <div class="roster-grid" id="rosterGrid">
         <div class="player-row player-header">
-            <div>N</div>
+          <div>N</div>
           <div>Nome</div>
           <div>Cognome</div>
           <div>Soprannome</div>
           <div>Ruolo</div>
-          <div style="text-align:right">Azioni</div>
+          <div class="actions-header">Azioni</div>
         </div>
       </div>
     </section>
@@ -163,7 +163,7 @@
         <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${(player.name || '').toString().slice(0,12)}" /></div>
         <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${(player.surname || '').toString().slice(0,12)}" /></div>
         <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${(player.nickname || '').toString().slice(0,12)}" /></div>
-        <div>
+        <div class="role-cell" data-empty="1">
           <select class="input role-select">
             <option value="">—</option>
             <option value="P">P</option>
@@ -176,10 +176,15 @@
         <div><button type="button" class="btn delete-btn" aria-label="Rimuovi" onclick="this.closest('.player-row').remove();">✕</button></div>`;
       // Pre-seleziona ruolo se presente
       const roleSel = row.querySelector('.role-select');
+      const roleCell = row.querySelector('.role-cell');
       if (roleSel){
         const val = (player.role || '').toString().trim().toUpperCase();
         const initial = val ? val[0] : '';
         roleSel.value = ['P','S','O','C','L'].includes(val) ? val : (['P','S','O','C','L'].includes(initial) ? initial : '');
+        if (roleCell) roleCell.dataset.empty = roleSel.value ? '0' : '1';
+        roleSel.addEventListener('change', () => {
+          if (roleCell) roleCell.dataset.empty = roleSel.value ? '0' : '1';
+        });
       }
       rosterGrid.appendChild(row);
     }

@@ -376,31 +376,32 @@
                     </div>
                 </div>
 
-                <!-- Our Team Rotation -->
-                <div class="config-card">
-                    <div class="config-card-title">Rotazione Nostra</div>
-                    <select id="ourRotationSelect" class="form-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
-                </div>
+                <!-- Rotazioni affiancate -->
+                <div class="match-row">
+                    <div class="config-card">
+                        <div class="config-card-title">Rotazione Nostra</div>
+                        <select id="ourRotationSelect" class="form-select">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
 
-                <!-- Opponent Rotation (Optional) -->
-                <div class="config-card">
-                    <div class="config-card-title">Rotazione Avversari</div>
-                    <select id="opponentRotationSelect" class="form-select">
-                        <option value="">Non specificata</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                    </select>
+                    <div class="config-card">
+                        <div class="config-card-title">Rotazione Avversari</div>
+                        <select id="opponentRotationSelect" class="form-select">
+                            <option value="">Non specificata</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -499,14 +500,13 @@
         function displayMatchSummary() {
             if (!matchData) return;
 
-            const locationIcon = matchData.location === 'casa' ? '🏠' : '✈️';
-            const eventTypeMap = {
-                'campionato': '🏆 Campionato',
-                'coppa': '🏆 Coppa',
-                'playoff': '🏆 Playoff',
-                'amichevole': '🤝 Amichevole',
-                'torneo': '🏆 Torneo',
-                'altro': '📋 Altro'
+            const eventTypeLabelMap = {
+                'campionato': 'Campionato',
+                'coppa': 'Coppa',
+                'playoff': 'Playoff',
+                'amichevole': 'Amichevole',
+                'torneo': 'Torneo',
+                'altro': 'Altro'
             };
 
             matchSummary.innerHTML = `
@@ -523,11 +523,11 @@
                 <div class="match-row">
                     <div class="match-detail">
                         <div class="match-detail-label">Tipo</div>
-                        <div class="match-detail-value">${eventTypeMap[matchData.eventType] || matchData.eventType}</div>
+                        <div class="match-detail-value">${eventTypeLabelMap[matchData.eventType] || matchData.eventType}</div>
                     </div>
                     <div class="match-detail">
                         <div class="match-detail-label">Luogo</div>
-                        <div class="match-detail-value">${locationIcon} ${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
+                        <div class="match-detail-value">${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
                     </div>
                 </div>
             `;
@@ -650,13 +650,17 @@
         }
 
         function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('it-IT', {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            // Aspettandoci formato ISO yyyy-mm-dd, senza timezone
+            const parts = String(dateString || '').split('-');
+            if (parts.length === 3) {
+                const [yyyy, mm, dd] = parts;
+                return `${dd.padStart(2,'0')}/${mm.padStart(2,'0')}/${yyyy}`;
+            }
+            const d = new Date(dateString);
+            const day = String(d.getDate()).padStart(2,'0');
+            const month = String(d.getMonth()+1).padStart(2,'0');
+            const year = String(d.getFullYear());
+            return `${day}/${month}/${year}`;
         }
 
         function showError(message) {
