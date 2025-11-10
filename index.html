@@ -168,12 +168,19 @@
                     <div id="headerMenu" class="top-account-menu" hidden>
                         <div class="menu-title">Account</div>
                         <div class="menu-divider"></div>
-                        <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Set" type="button">
+                        <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Export icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
-                          <span>Esporta Set</span>
+                          <span>Esporta Partita (Xls)</span>
+                        </button>
+                        <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <!-- Import icon -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Importa Partita (Xls)</span>
                         </button>
                         <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
@@ -211,6 +218,8 @@
                           </span>
                           <span>Logout</span>
                         </button>
+                        <div class="menu-divider"></div>
+                        <div class="menu-title" style="text-align:right;">MyVolleyScout Vers. 3.11</div>
                     </div>
                 </div>
             </div>
@@ -453,6 +462,13 @@
         function closeActionsDialog() {
             const dialog = document.getElementById('actions-dialog');
             if (dialog) {
+                // Se l'ultima riga è stata editata e salvata, ricalcola stato al momento della chiusura
+                try {
+                    if (window.__actionsDialogLastRowEdited) {
+                        window.recomputeFromActionsLog?.();
+                        window.__actionsDialogLastRowEdited = false;
+                    }
+                } catch(_) {}
                 dialog.style.display = 'none';
             }
         }
@@ -474,13 +490,66 @@
                 return;
             }
             
-            // Crea una lista compatta: una riga per azione → "#N quartine"
+            // Crea lista editabile: una riga per azione → "#N" + input quartine + pulsanti
             const actionsHTML = actions.map((log, index) => {
                 const actionDisplay = (log && log.action) ? String(log.action) : '';
-                return `<div class="action-line">#${index + 1} ${actionDisplay}</div>`;
+                const rotText = log && log.rotation ? ` <span class="rotation-pill">${log.rotation}</span>` : '';
+                return `
+                    <div class="action-line" data-index="${index}" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <span class="action-number" style="min-width:40px;opacity:.8;">#${index + 1}</span>
+                        <input class="action-input" data-index="${index}" type="text" value="${actionDisplay.replace(/"/g,'&quot;')}" 
+                               style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:8px;" 
+                               placeholder="es. 07r3 10a5" 
+                               onkeydown="if(event.key==='Enter'){saveEditedAction(${index});}" />
+                        ${rotText}
+                        <button class="secondary-btn action-save" onclick="saveEditedAction(${index})" title="Salva">Salva</button>
+                        <button class="secondary-btn action-reset" onclick="resetEditedAction(${index})" title="Ripristina">↺</button>
+                    </div>`;
             }).join('');
 
             actionsListContainer.innerHTML = actionsHTML;
+        }
+
+        // Salva modifica della riga nel dialog azioni
+        function saveEditedAction(index){
+            try {
+                const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : null;
+                if (!actions || !actions[index]) return;
+                const input = document.querySelector(`.action-input[data-index="${index}"]`);
+                if (!input) return;
+                const newVal = String(input.value || '').trim();
+                if (newVal === '') { alert('La riga non può essere vuota'); return; }
+                // Validazione blanda: quartine separate da spazio (opzionale)
+                const tokens = newVal.split(/\s+/).filter(Boolean);
+                const looksLikeQuartets = tokens.every(t => /^(\d{2}[abrdm]\d|avv)$/i.test(t));
+                if (!looksLikeQuartets) {
+                    if (!confirm('Formato non riconosciuto come quartine. Vuoi salvare comunque?')) return;
+                }
+                // Aggiorna l'azione nel log
+                actions[index].action = newVal;
+                // Se è l'ultima riga, marca per ricalcolo alla chiusura del dialog
+                if (index === actions.length - 1) {
+                    window.__actionsDialogLastRowEdited = true;
+                    // Esegui subito il ricalcolo per aggiornare l'interfaccia anche senza chiudere
+                    try { window.recomputeFromActionsLog?.(); } catch(_) {}
+                }
+                // UI: aggiorna log nella pagina principale e ricalcola il prossimo fondamentale basandosi sull’ultima quartina
+                try { window.updateActionsLog?.(); } catch(_) {}
+                try { window.updateNextFundamental?.(); } catch(_) {}
+                try { window.updateDescriptiveQuartet?.(); } catch(_) {}
+                try { window.scheduleAutosave?.(800); } catch(_) {}
+                // Rinfresca il dialog per mostrare il valore aggiornato
+                populateActionsDialog();
+            } catch (err) {
+                alert('Errore salvataggio riga: ' + (err && err.message ? err.message : String(err)));
+            }
+        }
+
+        // Ripristina il contenuto originale della riga (dallo stato corrente)
+        function resetEditedAction(index){
+            const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+            const input = document.querySelector(`.action-input[data-index="${index}"]`);
+            if (input && actions[index]) input.value = String(actions[index].action || '');
         }
 
         // Esporta azioni in Excel: sheet "Set X", A3 rotazione iniziale, B18.. quartine
@@ -520,7 +589,12 @@
                 const sheetName = `Set ${setNumber}`;
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-                const fileName = `Progr_Azioni_Set${setNumber}.xlsx`;
+                // Filename: Tipo gara + Nome avversario + "Set" + numero set
+                const sessionData = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
+                const matchType = (window.appState?.currentMatch?.matchType || sessionData.matchType || 'Gara').toString().trim();
+                const opponent = (window.appState?.currentMatch?.opponentTeam || window.appState?.currentMatch?.awayTeam || sessionData.opponentTeam || sessionData.opponent || 'Avversario').toString().trim();
+                const sanitizeName = (s) => s.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+                const fileName = `${sanitizeName(matchType)} ${sanitizeName(opponent)} Set ${setNumber}.xlsx`;
 
                 // Preferisci File System Access API se disponibile (scelta percorso)
                 if (window.showSaveFilePicker) {
@@ -638,18 +712,11 @@
                     });
                 }
 
-                // Costruisci il filename secondo la nomenclatura richiesta
-                let { matchNumber, myTeam, opponent, outcome, finalResult } = inferMeta();
-                if (!matchNumber || !myTeam || !opponent || !outcome || !finalResult) {
-                    const provided = await promptExportMeta({ matchNumber, myTeam, opponent, outcome, finalResult });
-                    if (!provided) return; // utente ha annullato
-                    matchNumber = provided.matchNumber;
-                    myTeam = provided.myTeam;
-                    opponent = provided.opponent;
-                    outcome = provided.outcome;
-                    finalResult = provided.finalResult;
-                }
-                const fileName = `${matchNumber} ${myTeam} Vs ${opponent} ${outcome} ${finalResult}.xlsx`;
+                // Filename richiesto: Tipo gara + Nome avversario + "All Set"
+                const matchType = (window.appState?.currentMatch?.matchType || sessionData.matchType || 'Gara').toString().trim();
+                const opponent = (window.appState?.currentMatch?.opponentTeam || window.appState?.currentMatch?.awayTeam || sessionData.opponentTeam || sessionData.opponent || 'Avversario').toString().trim();
+                const sanitizeName = (s) => s.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+                const fileName = `${sanitizeName(matchType)} ${sanitizeName(opponent)} All Set.xlsx`;
 
                 for (let setNum = 1; setNum <= 6; setNum++) {
                     const actions = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : [];
@@ -694,6 +761,230 @@
                 alert('Errore nell\'esportazione set: ' + (error && error.message ? error.message : String(error)));
             }
         }
+        
+        // Importa una partita completa da Excel: 6 fogli "Set N" con A3 rotazione, fase iniziale e B18.. quartine
+        async function importMatchFromExcel(){
+            try {
+                // Chiede file
+                let file = null;
+                if (window.showOpenFilePicker) {
+                    try {
+                        const [handle] = await window.showOpenFilePicker({
+                            multiple: false,
+                            types: [{
+                                description: 'Excel Workbook',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        });
+                        file = await handle.getFile();
+                    } catch (err) {
+                        if (err && err.name === 'AbortError') return; // annullato
+                        throw err;
+                    }
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                    const picked = await new Promise(resolve => {
+                        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+                        input.click();
+                    });
+                    document.body.removeChild(input);
+                    file = picked;
+                }
+
+                if (!file) return;
+
+                const data = await file.arrayBuffer();
+                const wb = XLSX.read(data, { type: 'array' });
+
+                // Carica sessione esistente
+                const sessionData = (() => {
+                    try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; }
+                })();
+                sessionData.actionsBySet = sessionData.actionsBySet || {};
+                sessionData.setMeta = sessionData.setMeta || {};
+                sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
+                sessionData.setStateBySet = sessionData.setStateBySet || {};
+
+                let totalActions = 0;
+                let importedSets = 0;
+
+                // Helper: rileva fase iniziale cercando valori "SERVIZIO"/"RICEZIONE" nelle prime righe/colonne
+                function detectInitialPhase(ws){
+                    try {
+                        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 30, c: 10 } };
+                        const maxRow = Math.min(range.e.r + 1, 20); // limita alle prime ~20 righe
+                        const maxCol = Math.min(range.e.c + 1, 6);   // limita alle prime ~6 colonne
+                        let found = null;
+                        for (let r = 1; r <= maxRow; r++) {
+                            for (let c = 1; c <= maxCol; c++) {
+                                const addr = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
+                                const cell = ws[addr];
+                                if (!cell || cell.v == null) continue;
+                                const val = String(cell.v).trim().toUpperCase();
+                                if (val === 'SERVIZIO' || val === 'RICEZIONE') { found = val.toLowerCase(); break; }
+                            }
+                            if (found) break;
+                        }
+                        return found || 'servizio';
+                    } catch(_) { return 'servizio'; }
+                }
+
+                for (let setNum = 1; setNum <= 6; setNum++) {
+                    const sheetName = `Set ${setNum}`;
+                    const ws = wb.Sheets[sheetName];
+                    if (!ws) continue; // foglio mancante: salta
+
+                    // Rotazione iniziale (A3 -> es. "1"; memorizza come "P1")
+                    let initialRotation = 'P1';
+                    try {
+                        const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
+                        if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
+                    } catch(_) {}
+
+                    // Fase iniziale ("SERVIZIO"/"RICEZIONE") cercata nelle prime celle
+                    const initialPhase = detectInitialPhase(ws);
+
+                    // Azioni da colonna B, riga 18 in poi
+                    const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                    const startRow = 18; // 1-indexed
+                    const quartets = [];
+                    for (let r = startRow; r <= (range.e.r + 1); r++) {
+                        const cell = ws[`B${r}`];
+                        if (!cell) continue;
+                        const val = String(cell.v == null ? '' : cell.v).trim();
+                        if (!val) continue;
+                        quartets.push(val);
+                    }
+
+                    // Aggiorna struttura sessione
+                    sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
+                    sessionData.setMeta[setNum] = sessionData.setMeta[setNum] || {};
+                    sessionData.setMeta[setNum].ourRotation = initialRotation;
+                    sessionData.setMeta[setNum].phase = initialPhase;
+
+                    totalActions += quartets.length;
+                    importedSets++;
+                }
+
+                // Dopo aver popolato meta e azioni, ricalcola stato/punteggi per ogni set importato
+                try {
+                    const originalSet = window.appState?.currentSet || 1;
+                    if (window.appState) window.appState.suppressSetPrompts = true;
+                    function isSetFinished(state, setNum){
+                        if (!state) return false;
+                        const isSetFive = setNum === 5;
+                        const minScore = isSetFive ? 15 : 25;
+                        const h = Number(state.homeScore||0), a = Number(state.awayScore||0);
+                        return ((h >= minScore || a >= minScore) && Math.abs(h - a) >= 2);
+                    }
+                    let targetSet = 1;
+                    let lastWithActions = 1;
+                    for (let setNum = 1; setNum <= 6; setNum++) {
+                        const logs = Array.isArray(sessionData.actionsBySet?.[setNum]) ? sessionData.actionsBySet[setNum].map(x => x.action) : null;
+                        if (!logs || !logs.length) continue;
+                        // Prepara appState per ricalcolo di questo set
+                        if (window.appState) {
+                            window.appState.currentSet = setNum;
+                            window.appState.homeScore = 0;
+                            window.appState.awayScore = 0;
+                            window.appState.actionsLog = logs.map(a => ({ action: a }));
+                            window.appState.scoreHistory = [];
+                            window.appState.currentSequence = [];
+                            window.appState.justClosedAction = false;
+                            window.appState.currentRotation = sessionData.setMeta?.[setNum]?.ourRotation || 'P1';
+                            window.appState.currentPhase = sessionData.setMeta?.[setNum]?.phase || 'servizio';
+                            try { window.recomputeFromActionsLog?.(); } catch(_) {}
+                            // Copia risultati calcolati nella sessione
+                            sessionData.actionsBySet[setNum] = Array.isArray(window.appState.actionsLog) ? window.appState.actionsLog : sessionData.actionsBySet[setNum];
+                            sessionData.scoreHistoryBySet[setNum] = Array.isArray(window.appState.scoreHistory) ? window.appState.scoreHistory : [];
+                            sessionData.setStateBySet[setNum] = {
+                                homeScore: window.appState.homeScore || 0,
+                                awayScore: window.appState.awayScore || 0,
+                                currentPhase: window.appState.currentPhase || (sessionData.setMeta?.[setNum]?.phase || 'servizio'),
+                                currentRotation: window.appState.currentRotation || (sessionData.setMeta?.[setNum]?.ourRotation || 'P1'),
+                                setStarted: !!window.appState.setStarted
+                            };
+                            lastWithActions = setNum;
+                            // Se il set è concluso, punta al successivo; altrimenti questo è quello da mostrare
+                            if (isSetFinished(sessionData.setStateBySet[setNum], setNum)) {
+                                targetSet = setNum + 1;
+                            } else {
+                                targetSet = setNum;
+                                // primo non concluso: interrompi
+                                break;
+                            }
+                        }
+                    }
+                    // Se tutti i set con azioni sono conclusi, riposizionati sull'ultimo con azioni
+                    if (targetSet > 6) targetSet = lastWithActions || originalSet || 1;
+                    // Posiziona la UI sul set target e reidrata
+                    if (window.appState) {
+                        window.appState.currentSet = targetSet;
+                        try { window.recomputeFromActionsLog?.(); } catch(_) {}
+                        // Riattiva i prompt per utilizzo normale dopo import
+                        window.appState.suppressSetPrompts = false;
+                        // Allinea router/hash al set posizionato
+                        try {
+                            const newHash = `#/set/${Number(targetSet)}`;
+                            if (location.hash !== newHash) location.hash = newHash;
+                        } catch(_) {}
+                        // Memorizza il set corrente nella sessione
+                        try {
+                            const raw = localStorage.getItem('currentScoutingSession');
+                            const sess = raw ? JSON.parse(raw) : {};
+                            sess.setConfig = sess.setConfig || {};
+                            sess.setConfig.set = Number(targetSet);
+                            localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+                        } catch(_) {}
+                    }
+                } catch(_) {}
+
+                // Persisti sessione aggiornata
+                localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+
+                // Se siamo nella pagina scouting, ricarica set corrente con nuovi dati
+                try {
+                    if (window.appState) {
+                        const cs = window.appState.currentSet || 1;
+                        const logs = Array.isArray(sessionData.actionsBySet?.[cs]) ? sessionData.actionsBySet[cs].map(x => x.action) : [];
+                        window.appState.homeScore = 0;
+                        window.appState.awayScore = 0;
+                        window.appState.actionsLog = [];
+                        window.appState.scoreHistory = [];
+                        window.appState.currentSequence = [];
+                        window.appState.justClosedAction = false;
+                        // imposta rotazione e fase da meta
+                        const rot = sessionData.setMeta?.[cs]?.ourRotation || 'P1';
+                        const ph = sessionData.setMeta?.[cs]?.phase || 'servizio';
+                        window.appState.currentRotation = rot;
+                        window.appState.currentPhase = ph;
+                        for (const actionString of logs) {
+                            const result = parseAction(actionString);
+                            processActionResult(result);
+                            const score = `${window.appState.homeScore}-${window.appState.awayScore}`;
+                            window.appState.actionsLog.push({ action: actionString, result, score, guided: false, imported: true });
+                        }
+                        updateActionsLog?.();
+                        updateScoutingUI?.();
+                        updateScoreHistoryDisplay?.();
+                        updateNextFundamental?.();
+                    }
+                } catch(_) {}
+
+                alert(`Import partita completato: ${totalActions} azioni su ${importedSets} set.`);
+            } catch (error) {
+                alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
+            }
+        }
+
+        // Esponi funzioni in window
+        window.exportAllSetsToExcel = exportAllSetsToExcel;
+        window.importActionsFromExcel = importActionsFromExcel;
+        window.importMatchFromExcel = importMatchFromExcel;
         // Importa azioni da Excel: legge A3 (rotazione iniziale) e B18.. (quartine)
         async function importActionsFromExcel(){
             try {
@@ -765,7 +1056,17 @@
                     return;
                 }
 
-                // Appendi azioni importate allo stato corrente, aggiornando punteggio e log
+                // Sostituisci completamente il log del set corrente e ricostruisci il punteggio
+                const setNumber = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+                if (window.appState) {
+                    window.appState.homeScore = 0;
+                    window.appState.awayScore = 0;
+                    window.appState.actionsLog = [];
+                    window.appState.scoreHistory = [];
+                    window.appState.currentSequence = [];
+                    window.appState.justClosedAction = false;
+                }
+
                 let count = 0;
                 for (const actionString of imported) {
                     try {
@@ -789,10 +1090,11 @@
 
                 try { updateActionsLog && updateActionsLog(); } catch(_) {}
                 try { updateScoutingUI && updateScoutingUI(); } catch(_) {}
+                try { updateScoreHistoryDisplay && updateScoreHistoryDisplay(); } catch(_) {}
                 try { window.saveCurrentMatch && window.saveCurrentMatch(); } catch(_) {}
                 try { populateActionsDialog && populateActionsDialog(); } catch(_) {}
 
-                alert(`Importazione completata: ${count} azioni aggiunte`);
+                alert(`Importazione completata: ${count} azioni sostituite nel set ${setNumber}`);
             } catch (error) {
                 alert('Errore nell\'importazione: ' + (error && error.message ? error.message : String(error)));
             }

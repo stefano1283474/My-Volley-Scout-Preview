@@ -24,7 +24,9 @@ const appState = {
     // Flag per pulire le pillole dopo chiusura azione
     justClosedAction: false,
     // Modalità sostituzione giocatore dalla pillola "Hai Selezionato"
-    replacePlayerMode: false
+    replacePlayerMode: false,
+    // Sopprime i prompt di fine set/inizio set durante operazioni automatiche (es. import)
+    suppressSetPrompts: false
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -294,6 +296,7 @@ function initializeApp() {
         const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
         const exitToWelcomeBtnMobile = document.getElementById('exitToWelcomeBtnMobile');
         const exportSetsBtnMobile = document.getElementById('exportSetsBtnMobile');
+        const importMatchBtnMobile = document.getElementById('importMatchBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
@@ -369,6 +372,22 @@ function initializeApp() {
                     try { await saveCurrentMatch(); } catch(_){}
                     if (typeof window.exportAllSetsToExcel === 'function') {
                         await window.exportAllSetsToExcel();
+                    }
+                } finally {
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+        if (importMatchBtnMobile) {
+            importMatchBtnMobile.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Salva la sessione corrente prima di importare
+                    try { await saveCurrentMatch(); } catch(_){}
+                    if (typeof window.importMatchFromExcel === 'function') {
+                        await window.importMatchFromExcel();
                     }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -884,6 +903,197 @@ function closeDialog(dialogId) {
     if (!anyOpen) document.body.style.overflow = '';
 }
 
+// Ricalcolo completo di punteggio, fase e rotazione partendo dalle azioni loggate
+function recomputeFromActionsLog() {
+    try {
+        // Esegui comunque il ricalcolo: se ci sono azioni o metadati di set, ricostruisci lo stato.
+        const actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+        const setNumber = (typeof appState.currentSet === 'number' && appState.currentSet > 0) ? appState.currentSet : 1;
+        // Se il flag non è impostato, attivalo quando ci sono azioni (copre riprese di sessione e cancellazioni)
+        if (!appState.setStarted && actions.length > 0) {
+            appState.setStarted = true;
+        }
+
+        // Recupera meta iniziali del set (rotazione/fase) da sessione se disponibili
+        let rotation = appState.currentRotation;
+        let phase = appState.currentPhase;
+        let opponentRotation = null;
+        try {
+            const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+            const cfg = sessionData.setConfig || {};
+            const sm = sessionData.setMeta && sessionData.setMeta[setNumber];
+            if (sm && sm.ourRotation) rotation = String(sm.ourRotation).startsWith('P') ? sm.ourRotation : `P${sm.ourRotation}`;
+            else if (cfg.ourRotation) rotation = String(cfg.ourRotation).startsWith('P') ? cfg.ourRotation : `P${cfg.ourRotation}`;
+            if (sm && sm.phase) phase = sm.phase; else if (cfg.phase) phase = cfg.phase;
+            if (sm && sm.opponentRotation) opponentRotation = sm.opponentRotation;
+        } catch(_) {}
+
+        // Reset stato base del set
+        appState.homeScore = 0;
+        appState.awayScore = 0;
+        appState.currentRotation = normalizeRotation(rotation);
+        appState.currentPhase = phase;
+        appState.rallyStartPhase = appState.currentPhase;
+
+        // Inizializza storico punteggio
+        const phaseLabel = (phase === 'ricezione') ? 'Ricezione' : 'Servizio';
+        const oppRotLabel = (typeof opponentRotation === 'string' && opponentRotation)
+            ? (String(opponentRotation).startsWith('P') ? opponentRotation : `P${opponentRotation}`)
+            : null;
+        const descr = oppRotLabel
+            ? `Set ${setNumber} - ${phaseLabel} ${appState.currentRotation} Vs ${oppRotLabel}`
+            : `Set ${setNumber} - ${phaseLabel} ${appState.currentRotation}`;
+        appState.scoreHistory = [{ homeScore: 0, awayScore: 0, description: descr, type: 'initial' }];
+
+        // Rigioca tutte le azioni per ricalcolare completamente stato e rotazione
+        for (let i = 0; i < actions.length; i++) {
+            const log = actions[i];
+            const rotationBefore = normalizeRotation(appState.currentRotation);
+            try {
+                const actionStr = String(log.action || '');
+                const parsed = parseAction(actionStr);
+
+                // Prova a ricostruire nome giocatore e tipo azione
+                const fromLogName = log && log.result && typeof log.result.playerName === 'string' ? log.result.playerName : null;
+                const fromLogType = log && log.result && typeof log.result.actionType === 'string' ? log.result.actionType : null;
+
+                function playerNameFromNumber(num){
+                    try {
+                        const roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+                        const found = roster.find(p => String(p.number).padStart(2,'0') === String(num).padStart(2,'0'));
+                        if (!found) return `Giocatore ${num}`;
+                        const name = found.nickname || `${found.name || ''} ${found.surname || ''}`.trim();
+                        return name || `Giocatore ${num}`;
+                    } catch(_) {
+                        return `Giocatore ${num}`;
+                    }
+                }
+
+                let computedName = 'Azione editata';
+                let computedType = (parsed.result === 'home_point' || parsed.result === 'away_point') ? 'Punto' : 'Azione';
+
+                // Se il log originale porta già meta, usali
+                if (fromLogName) computedName = fromLogName;
+                if (fromLogType) computedType = fromLogType;
+                // Altrimenti inferisci dal contenuto della stringa di azione
+                if (!fromLogName || !fromLogType){
+                    const hasAvv = actionStr.split(' ').some(t => t === 'avv');
+                    const last = (parsed.actions && parsed.actions.length > 0) ? parsed.actions[parsed.actions.length - 1] : null;
+                    if (parsed.result === 'home_point'){
+                        if (hasAvv){
+                            computedName = 'Avversario';
+                            computedType = 'Errore';
+                        } else if (last){
+                            computedName = playerNameFromNumber(last.player);
+                            computedType = 'Punto';
+                        }
+                    } else if (parsed.result === 'away_point'){
+                        if (last){
+                            computedName = playerNameFromNumber(last.player);
+                            computedType = 'Errore';
+                        }
+                    }
+                }
+
+                const result = {
+                    actions: parsed.actions,
+                    result: parsed.result,
+                    playerName: computedName,
+                    actionType: computedType
+                };
+                // Salva rotazione di riferimento per la riga
+                log.rotation = rotationBefore;
+                processActionResult(result);
+            } catch (e) {
+                console.warn('Errore di parsing nel ricalcolo azione', i + 1, e);
+            }
+        }
+
+        // Aggiorna UI coerente
+        updateMatchInfo();
+        updateScoutingUI();
+        updateActionsLog();
+        updateCurrentPhaseDisplay();
+        updateNextFundamental();
+        updateScoreHistoryDisplay();
+        checkSetEnd();
+        scheduleAutosave(600);
+    } catch (err) {
+        console.error('Errore nel ricalcolo da actionsLog:', err);
+    }
+}
+
+// Esponi la funzione per uso da altri script
+window.recomputeFromActionsLog = recomputeFromActionsLog;
+
+// Re-inizializza il set corrente: pulizia stato, UI e persistenza
+function resetCurrentSet() {
+    const setNum = (typeof appState.currentSet === 'number' && appState.currentSet > 0) ? appState.currentSet : 1;
+
+    // 1) Stato base
+    appState.homeScore = 0;
+    appState.awayScore = 0;
+    appState.currentPhase = '';
+    appState.currentRotation = '';
+    appState.rallyStartPhase = '';
+    appState.actionsLog = [];
+    appState.currentSequence = [];
+    appState.selectedPlayer = null;
+    appState.selectedEvaluation = null;
+    appState.overrideFundamental = null;
+    appState.calculatedFundamental = null;
+    appState.nextFundamentalPreview = null;
+    appState.justClosedAction = false;
+    appState.setStarted = false;
+
+    // 2) Inizializza storico punteggio (visualizzazione di inizio set)
+    appState.scoreHistory = [{
+        homeScore: 0,
+        awayScore: 0,
+        description: `Set ${setNum} - Inizio set`,
+        type: 'initial'
+    }];
+
+    // 3) Persistenza per-set: svuota dati del set corrente
+    try {
+        const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+        // Assicurati delle strutture
+        sessionData.actionsBySet = sessionData.actionsBySet || {};
+        sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
+        sessionData.setStateBySet = sessionData.setStateBySet || {};
+        // Aggiorna con stato vuoto
+        sessionData.actionsBySet[setNum] = [];
+        sessionData.scoreHistoryBySet[setNum] = appState.scoreHistory;
+        sessionData.setStateBySet[setNum] = {
+            homeScore: 0,
+            awayScore: 0,
+            currentPhase: '',
+            currentRotation: ''
+        };
+        localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+    } catch(e) {
+        console.warn('Persistenza reset set non riuscita:', e);
+    }
+
+    // 4) Aggiorna UI
+    updateMatchInfo();
+    updateScoutingUI();
+    updateActionsLog();
+    updateCurrentPhaseDisplay();
+    updateNextFundamental();
+    updateScoreHistoryDisplay();
+
+    // 5) Avvia verifica set configurazione (apri dialog meta set, se disponibile)
+    try {
+        if (typeof window.openSetMetaDialog === 'function') {
+            window.openSetMetaDialog(setNum);
+        }
+    } catch(_) {}
+}
+
+// Esponi utility di reset
+window.resetCurrentSet = resetCurrentSet;
+
 function initializeGuidedScouting() {
     // Event listeners per interfaccia guidata
     const backBtn = document.getElementById('back-to-player');
@@ -907,6 +1117,18 @@ function initializeGuidedScouting() {
             updateDescriptiveQuartet();
         });
     });
+
+    // Long-press su "SERVIZIO" per resettare il set corrente
+    const curFund = document.getElementById('current-fundamental');
+    if (curFund) {
+        try {
+            addLongPressListener(curFund, 2000, () => {
+                const ok = confirm('Resettare set?');
+                if (!ok) return;
+                try { resetCurrentSet(); } catch (e) { console.warn('Reset set fallito:', e); }
+            });
+        } catch(_) {}
+    }
     
     // Non aprire automaticamente il dialog; verrà aperto quando l'utente entra nella pagina Scouting
 }
@@ -1172,7 +1394,8 @@ function selectPlayer(number, name, btnEl) {
                     action: actionString,
                     result: result,
                     score: `${appState.homeScore}-${appState.awayScore}`,
-                    guided: true
+                    guided: true,
+                    rotation: normalizeRotation(appState.currentRotation)
                 });
 
                 appState.currentSequence = [];
@@ -2332,7 +2555,7 @@ function updateScoreHistoryDisplay() {
     // Creiamo una copia dell'array e la invertiamo per non modificare l'originale
     const reversedHistory = [...appState.scoreHistory].reverse();
     
-    reversedHistory.forEach(item => {
+    reversedHistory.forEach((item, idx) => {
         const historyElement = document.createElement('div');
         
         if (item.type === 'initial') {
@@ -2371,13 +2594,55 @@ function updateScoreHistoryDisplay() {
 
             historyElement.appendChild(scoreText);
             historyElement.appendChild(description);
+            
+            // Long-press sulla riga più recente (idx === 0) per eliminare l'ultima azione
+            if (idx === 0) {
+                addLongPressListener(historyElement, 1000, () => {
+                    try {
+                        if (!Array.isArray(appState.actionsLog) || appState.actionsLog.length === 0) return;
+                        const ok = confirm('Eliminare questa riga?');
+                        if (!ok) return;
+                        // Rimuove l'ultima azione scoutizzata e ricalcola tutto
+                        appState.actionsLog.pop();
+                        recomputeFromActionsLog();
+                        scheduleAutosave(600);
+                    } catch (e) {
+                        console.warn('Eliminazione ultima riga fallita:', e);
+                    }
+                });
+            }
         }
         
         historyContainer.appendChild(historyElement);
     });
 }
 
+// Utilità: listener per long-press
+function addLongPressListener(el, holdMs, onTrigger) {
+    let timerId = null;
+    const start = () => {
+        if (timerId) clearTimeout(timerId);
+        timerId = setTimeout(() => {
+            timerId = null;
+            try { onTrigger(); } catch(_) {}
+        }, holdMs || 1000);
+        // Effetto visivo leggero
+        el.style.opacity = '0.85';
+    };
+    const cancel = () => {
+        if (timerId) { clearTimeout(timerId); timerId = null; }
+        el.style.opacity = '';
+    };
+    el.addEventListener('mousedown', start);
+    el.addEventListener('touchstart', start, { passive: true });
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => el.addEventListener(evt, cancel));
+}
+
 function checkSetEnd() {
+    // Evita prompt durante import/ricostruzioni automatiche
+    if (appState.suppressSetPrompts) {
+        return;
+    }
     const homeScore = appState.homeScore;
     const awayScore = appState.awayScore;
     
