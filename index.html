@@ -806,6 +806,20 @@
             if (/liber/.test(low)) return 'L';
             return s.charAt(0).toUpperCase();
         }
+        // Per l'import: mappa iniziale (o testo libero) al nome ruolo atteso in UI
+        function initialToRoleName(initial){
+            const ch = String(initial||'').trim().toUpperCase();
+            if (ch === 'P') return 'Palleggiatore';
+            if (ch === 'S') return 'Schiacciatore';
+            if (ch === 'C') return 'Centrale';
+            if (ch === 'O') return 'Opposto';
+            if (ch === 'L') return 'Libero';
+            return '';
+        }
+        function normalizeRoleImport(raw){
+            const init = roleToInitial(raw);
+            return initialToRoleName(init);
+        }
         function roleWeight(initial){
             const w = { P:1, S:2, C:3, O:4, L:5 };
             return w[initial] || 99;
@@ -912,6 +926,12 @@
             XLSX.utils.sheet_add_aoa(ws, [[meta.eventType]], { origin: 'D22' });
             XLSX.utils.sheet_add_aoa(ws, [[meta.locationLabel]], { origin: 'D23' });
             XLSX.utils.sheet_add_aoa(ws, [[meta.notes]], { origin: 'D24' });
+            // Pulizia esplicita: le celle D17..D19 non devono contenere dati
+            try {
+                delete ws['D17'];
+                delete ws['D18'];
+                delete ws['D19'];
+            } catch(_) {}
             return ws;
         }
 
@@ -1153,7 +1173,7 @@
                     const surname = c && c.v != null ? String(c.v).trim() : '';
                     const name = d && d.v != null ? String(d.v).trim() : '';
                     const nick = e && e.v != null ? String(e.v).trim() : '';
-                    const role = roleToInitial(f && f.v != null ? String(f.v).trim() : '');
+                    const role = normalizeRoleImport(f && f.v != null ? String(f.v).trim() : '');
                     if (!number && !surname && !name && !nick && !role) continue;
                     res.roster.push({ number, surname, name, nickname: nick, role });
                 }
@@ -1245,24 +1265,16 @@
                 let totalActions = 0;
                 let importedSets = 0;
 
-                // Helper: rileva fase iniziale cercando valori "SERVIZIO"/"RICEZIONE" nelle prime righe/colonne
-                function detectInitialPhase(ws){
+                // Helper: deduce fase iniziale dal terzo carattere della prima quartina (B18)
+                function deduceInitialPhaseFromB18(ws){
                     try {
-                        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 30, c: 10 } };
-                        const maxRow = Math.min(range.e.r + 1, 20); // limita alle prime ~20 righe
-                        const maxCol = Math.min(range.e.c + 1, 6);   // limita alle prime ~6 colonne
-                        let found = null;
-                        for (let r = 1; r <= maxRow; r++) {
-                            for (let c = 1; c <= maxCol; c++) {
-                                const addr = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
-                                const cell = ws[addr];
-                                if (!cell || cell.v == null) continue;
-                                const val = String(cell.v).trim().toUpperCase();
-                                if (val === 'SERVIZIO' || val === 'RICEZIONE') { found = val.toLowerCase(); break; }
-                            }
-                            if (found) break;
-                        }
-                        return found || 'servizio';
+                        const b18 = ws['B18'];
+                        const val = String(b18 && b18.v != null ? b18.v : '').trim();
+                        if (!val || val.length < 3) return 'servizio';
+                        const ch = String(val.charAt(2)).toLowerCase();
+                        if (ch === 'b') return 'servizio';
+                        if (ch === 'r') return 'ricezione';
+                        return 'servizio';
                     } catch(_) { return 'servizio'; }
                 }
 
@@ -1278,8 +1290,8 @@
                         if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
                     } catch(_) {}
 
-                    // Fase iniziale ("SERVIZIO"/"RICEZIONE") cercata nelle prime celle
-                    const initialPhase = detectInitialPhase(ws);
+                    // Fase iniziale dedotta dal terzo carattere della prima quartina in B18
+                    const initialPhase = deduceInitialPhaseFromB18(ws);
 
                     // Azioni da colonna B, riga 18 in poi
                     const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
@@ -1373,6 +1385,16 @@
                             sess.setConfig.set = Number(targetSet);
                             localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
                         } catch(_) {}
+                    }
+                } catch(_) {}
+
+                // Imposta configurazione globale del set (usa meta del Set 1)
+                try {
+                    const meta1 = sessionData.setMeta?.[1];
+                    if (meta1 && meta1.ourRotation && meta1.phase) {
+                        sessionData.setConfig = sessionData.setConfig || {};
+                        sessionData.setConfig.ourRotation = meta1.ourRotation;
+                        sessionData.setConfig.phase = meta1.phase;
                     }
                 } catch(_) {}
 

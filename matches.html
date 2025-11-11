@@ -969,11 +969,22 @@
                         const roster = [];
                         for (let r = 3; r <= (range.e.r + 1); r++) {
                             const b = ws[`B${r}`], c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
-                            const num = b && b.v != null ? String(b.v).trim() : '';
+                            let num = b && b.v != null ? String(b.v).trim() : '';
+                            if (num.startsWith("'")) num = num.slice(1);
+                            num = num.replace(/\D/g,'').padStart(2,'0').slice(-2);
                             const sur = c && c.v != null ? String(c.v).trim() : '';
                             const nam = d && d.v != null ? String(d.v).trim() : '';
                             const nick = e && e.v != null ? String(e.v).trim() : '';
-                            const role = f && f.v != null ? String(f.v).trim() : '';
+                            const role = (function(raw){
+                                const s = String(raw||'').trim();
+                                const up = s.toUpperCase();
+                                if (up === 'P' || /palleggiator|alzator/i.test(s)) return 'Palleggiatore';
+                                if (up === 'S' || /schiacciator|banda|posto\s*4/i.test(s)) return 'Schiacciatore';
+                                if (up === 'C' || /central/i.test(s)) return 'Centrale';
+                                if (up === 'O' || /oppost/i.test(s)) return 'Opposto';
+                                if (up === 'L' || /liber/i.test(s)) return 'Libero';
+                                return '';
+                            })(f && f.v != null ? String(f.v).trim() : '');
                             if (!num && !sur && !nam && !nick && !role) continue;
                             roster.push({ number: num, surname: sur, name: nam, nickname: nick, role });
                         }
@@ -983,23 +994,15 @@
                     } catch(_) {}
                 })();
 
-                function detectInitialPhase(ws){
+                function deduceInitialPhaseFromB18(ws){
                     try {
-                        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 30, c: 10 } };
-                        const maxRow = Math.min(range.e.r + 1, 20);
-                        const maxCol = Math.min(range.e.c + 1, 6);
-                        let found = null;
-                        for (let r = 1; r <= maxRow; r++) {
-                            for (let c = 1; c <= maxCol; c++) {
-                                const addr = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
-                                const cell = ws[addr];
-                                if (!cell || cell.v == null) continue;
-                                const val = String(cell.v).trim().toUpperCase();
-                                if (val === 'SERVIZIO' || val === 'RICEZIONE') { found = val.toLowerCase(); break; }
-                            }
-                            if (found) break;
-                        }
-                        return found || 'servizio';
+                        const b18 = ws['B18'];
+                        const val = String(b18 && b18.v != null ? b18.v : '').trim();
+                        if (!val || val.length < 3) return 'servizio';
+                        const ch = String(val.charAt(2)).toLowerCase();
+                        if (ch === 'b') return 'servizio';
+                        if (ch === 'r') return 'ricezione';
+                        return 'servizio';
                     } catch(_) { return 'servizio'; }
                 }
 
@@ -1012,7 +1015,7 @@
                         const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
                         if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
                     } catch(_) {}
-                    const initialPhase = detectInitialPhase(ws);
+                    const initialPhase = deduceInitialPhaseFromB18(ws);
                     const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
                     const startRow = 18;
                     const quartets = [];
@@ -1026,6 +1029,17 @@
                     sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
                     sessionData.setMeta[setNum] = { ourRotation: initialRotation, phase: initialPhase };
                 }
+
+                // Imposta configurazione globale del set (usa meta del Set 1)
+                try {
+                    const meta1 = sessionData.setMeta?.[1];
+                    if (meta1 && meta1.ourRotation && meta1.phase) {
+                        sessionData.setConfig = sessionData.setConfig || {};
+                        sessionData.setConfig.ourRotation = meta1.ourRotation;
+                        sessionData.setConfig.phase = meta1.phase;
+                        sessionData.setConfig.set = 1;
+                    }
+                } catch(_) {}
 
                 try {
                     const teamId = localStorage.getItem('selectedTeamId');

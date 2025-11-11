@@ -434,12 +434,13 @@ function renderReportRiepilogoAll() {
     };
     const currentMatch = appState.currentMatch || getBestLocalMatch();
     let actionsBySet = (currentMatch && currentMatch.actionsBySet) ? currentMatch.actionsBySet : {};
+    let sessionDataCache = null;
     // Se l'oggetto per-set è vuoto, prova a recuperare dalla sessione corrente o dal match locale migliore
     if (!actionsBySet || Object.keys(actionsBySet).length === 0) {
         try {
-            const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
-            if (sessionData && sessionData.actionsBySet && Object.keys(sessionData.actionsBySet).length > 0) {
-                actionsBySet = sessionData.actionsBySet;
+            sessionDataCache = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+            if (sessionDataCache && sessionDataCache.actionsBySet && Object.keys(sessionDataCache.actionsBySet).length > 0) {
+                actionsBySet = sessionDataCache.actionsBySet;
             }
         } catch(_) {}
         if (!actionsBySet || Object.keys(actionsBySet).length === 0) {
@@ -448,8 +449,35 @@ function renderReportRiepilogoAll() {
         }
     }
     // Flat list su tutti i set (1..n), ordinando i set numericamente
-    const allLogs = Object.keys(actionsBySet || {}).sort((a,b)=>Number(a)-Number(b)).flatMap(k => Array.isArray(actionsBySet[k]) ? actionsBySet[k] : []);
-    const roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+    let allLogs = Object.keys(actionsBySet || {}).sort((a,b)=>Number(a)-Number(b)).flatMap(k => Array.isArray(actionsBySet[k]) ? actionsBySet[k] : []);
+    // Fallback ulteriori: se non ci sono logs per-set, usa 'actions' del match/sessione o quelli in appState
+    if (!allLogs || allLogs.length === 0) {
+        const fromMatchActions = (currentMatch && Array.isArray(currentMatch.actions)) ? currentMatch.actions : [];
+        if (fromMatchActions.length > 0) {
+            allLogs = fromMatchActions;
+        } else {
+            try {
+                const sessionData = sessionDataCache || JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+                if (sessionData && Array.isArray(sessionData.actions) && sessionData.actions.length > 0) {
+                    allLogs = sessionData.actions;
+                }
+            } catch(_) {}
+            if (!allLogs || allLogs.length === 0) {
+                allLogs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+            }
+        }
+    }
+    let roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+    if (!roster || roster.length === 0) {
+        try {
+            const selectedTeamId = appState?.myTeam?.id || appState?.selectedTeamId || null;
+            const teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+            const team = teams.find(t => String(t.id) === String(selectedTeamId));
+            if (team && Array.isArray(team.roster)) {
+                roster = team.roster;
+            }
+        } catch(_) {}
+    }
 
     // Per ogni fondamentale, costruisci tabella in base al filtro set selezionato
     const selectedMap = appState.allSetFilterByFundamental || {};
@@ -474,7 +502,8 @@ function renderReportRiepilogoAll() {
         const elId = ids[fund];
         const el = elId ? document.getElementById(elId) : null;
         if (el) {
-            el.innerHTML = `${filterHtml}${tableHtml}`;
+            // Mantieni i pulsanti filtro fissi (sticky) e limita lo scroll orizzontale alla tabella
+            el.innerHTML = `${filterHtml}<div class="table-scroll">${tableHtml}</div>`;
         } else {
             console.warn('Missing container for', fund);
         }
@@ -527,7 +556,10 @@ function aggregateByPlayerAndFundamental(logs) {
     for (const entry of logs) {
         const actionString = (entry && typeof entry.action === 'string') ? entry.action : (typeof entry === 'string' ? entry : null);
         if (!actionString) continue;
-        const parsed = parseAction(actionString);
+        let parsed;
+        try {
+            parsed = parseAction(actionString);
+        } catch(_) { continue; }
         // Conta TUTTE le azioni del rally, non solo l'ultima
         const acts = Array.isArray(parsed?.actions) ? parsed.actions : [];
         for (const act of acts) {
@@ -610,7 +642,7 @@ function buildPerPlayerTablesHTML(agg, roster) {
               <td>${computeEfficienzaFund(fund, c)}</td>
             </tr>`;
         });
-        const footer = `<tr style="font-weight:600;background:#f1f5f9;">
+        const footer = `<tr class="total-row" style="font-weight:600;background:#f1f5f9;">
             <td colspan="2">TOTALE</td>
             <td>${teamTotalCounts[1]}</td><td>${teamTotalCounts[2]}</td><td>${teamTotalCounts[3]}</td><td>${teamTotalCounts[4]}</td><td>${teamTotalCounts[5]}</td>
             <td>${teamTotal}</td>
@@ -731,7 +763,7 @@ function buildPerPlayerTablesAll(agg, roster) {
                 <td>${computeEfficienzaFund(fund, c)}</td>
             </tr>`;
         });
-        const footer = `<tr style="font-weight:600;background:#f1f5f9;">
+        const footer = `<tr class="total-row" style="font-weight:600;background:#f1f5f9;">
             <td colspan="2">TOTALE</td>
             <td>${teamCounts[5]}</td><td>${teamCounts[4]}</td><td>${teamCounts[3]}</td><td>${teamCounts[2]}</td><td>${teamCounts[1]}</td>
             <td>${teamTotal}</td>
@@ -864,6 +896,7 @@ function initializeApp() {
         const exportSetsBtnMobile = document.getElementById('exportSetsBtnMobile');
         const importMatchBtnMobile = document.getElementById('importMatchBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+        const saveMatchBtn = document.getElementById('save-match-btn');
         if (headerMenuToggle && headerMenu) {
             headerMenuToggle.addEventListener('click', () => {
                 const isHidden = headerMenu.hasAttribute('hidden');
@@ -883,6 +916,28 @@ function initializeApp() {
                     headerMenu.setAttribute('hidden', '');
                     headerMenuToggle.setAttribute('aria-expanded', 'false');
                     headerMenuToggle.focus();
+                }
+            });
+        }
+        // Salva partita (menu voce "Salva") — binding globale
+        if (saveMatchBtn) {
+            saveMatchBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    saveMatchBtn.disabled = true;
+                    const originalText = saveMatchBtn.textContent;
+                    try { saveMatchBtn.textContent = '💾 Salvataggio…'; } catch(_){}
+                    await saveCurrentMatch();
+                    alert('Partita salvata.');
+                    try { saveMatchBtn.textContent = originalText || '💾 Salva'; } catch(_){}
+                } catch (error) {
+                    console.error('Errore nel salvataggio partita:', error);
+                    alert('Errore nel salvataggio della partita.');
+                } finally {
+                    saveMatchBtn.disabled = false;
+                    if (headerMenu) headerMenu.setAttribute('hidden', '');
+                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
             });
         }
@@ -938,6 +993,8 @@ function initializeApp() {
                     try { await saveCurrentMatch(); } catch(_){}
                     if (typeof window.exportAllSetsToExcel === 'function') {
                         await window.exportAllSetsToExcel();
+                    } else {
+                        alert('Funzione di esportazione non disponibile su questa pagina. Apri la pagina principale per esportare.');
                     }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -954,6 +1011,8 @@ function initializeApp() {
                     try { await saveCurrentMatch(); } catch(_){}
                     if (typeof window.importMatchFromExcel === 'function') {
                         await window.importMatchFromExcel();
+                    } else {
+                        alert('Funzione di importazione non disponibile su questa pagina. Apri la pagina principale per importare.');
                     }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -961,14 +1020,18 @@ function initializeApp() {
                 }
             });
         }
-        if (signOutBtnMobile && typeof window.authFunctions !== 'undefined') {
+        if (signOutBtnMobile) {
             signOutBtnMobile.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
                     // Salvataggio non bloccante (se fallisce, ignora)
                     try { await saveCurrentMatch(); } catch(_){}
-                    await window.authFunctions.signOut();
+                    if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
+                        await window.authFunctions.signOut();
+                    } else {
+                        alert('Logout non disponibile in questa pagina. Torna alla pagina principale per uscire.');
+                    }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -3254,6 +3317,20 @@ function __getSetDataSnapshot(setNum){
             actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
             home = Number(appState.homeScore||0);
             away = Number(appState.awayScore||0);
+            // Fallback: se il set corrente non ha dati in appState (es. pagina report), usa i dati della sessione
+            if ((!actions || actions.length === 0) && (!home && !away)) {
+                actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
+                const st = stBySet[setNum] || {};
+                if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                    home = Number(st.homeScore||0);
+                    away = Number(st.awayScore||0);
+                } else {
+                    const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+                    const last = arr.length ? arr[arr.length - 1] : null;
+                    home = Number(last?.homeScore||0);
+                    away = Number(last?.awayScore||0);
+                }
+            }
         } else {
             actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
             const st = stBySet[setNum] || {};

@@ -10,13 +10,32 @@
       /* Pagina dedicata: sfondo bianco pieno */
       body { background-color: #ffffff !important; }
       /* Modalità compatta per massimizzare l'area delle tabelle */
-      .main { padding: 2px !important; overflow-x: visible !important; }
+      .main { padding: 2px !important; overflow-y: auto !important; }
       .section { padding: 2px !important; margin: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
       .panel { padding: 2px !important; border: 0 !important; border-radius: 0 !important; }
       .section-header { margin: 4px 0 !important; }
       .panel-title { margin-bottom: 4px !important; }
-      /* Riduci margini interni dei placeholder (contenitori tabelle) */
-      .placeholder-area { padding: 2px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; }
+      /* Evita che gli elementi grid si espandano a max-content impedendo lo scroll */
+      .report-row, .panel, .placeholder-area { min-width: 0 !important; }
+      /* Riduci margini interni dei placeholder (contenitori tabelle)
+         Abilita scroll bidirezionale: verticale per scorrere le righe,
+         orizzontale per raggiungere le colonne di destra. */
+      .placeholder-area {
+        padding: 2px !important;
+        overflow-x: visible !important; /* lo scroll orizzontale è nel wrapper .table-scroll */
+        overflow-y: visible !important; /* la pagina esegue lo scroll verticale */
+        width: 100% !important;
+        max-width: 100% !important;
+        /* rimosso max-height: si scorre verticalmente l'intera pagina */
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        overscroll-behavior: contain;
+      }
+      /* Barra filtri set: sempre visibile (sticky sotto la topbar) */
+      .set-filter { position: sticky; top: var(--sticky-filter-top, 56px); z-index: 5; background: #ffffff; padding: 4px 0; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+      .set-filter .filter-btn { margin-right: 6px; }
+      /* Wrapper che gestisce lo scroll orizzontale della tabella */
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       /* Tabelle scrollabili orizzontalmente con prime due colonne sticky */
       .simple-table { border-collapse: separate; border-spacing: 0; min-width: 840px; width: max-content; table-layout: auto; display: inline-table; }
       .simple-table th, .simple-table td { white-space: nowrap; }
@@ -24,6 +43,9 @@
       .simple-table td:first-child { position: sticky; left: 0; z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
       .simple-table th:nth-child(2),
       .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 56px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
+      /* Allineamento centrato dei valori nella riga TOTALE */
+      .simple-table tr.total-row td { text-align: center; }
+      .simple-table tr.total-row td[colspan="2"] { text-align: left; }
     </style>
   </head>
   <body class="page-report">
@@ -103,7 +125,7 @@
       <aside class="set-sidebar" aria-label="Selezione set">
         <div class="set-sidebar-header">Passa a:</div>
         <div id="setToolbar" class="set-list" role="list">
-          <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
+          <button class="set-item" data-set="1" role="listitem">Set 1</button>
           <button class="set-item" data-set="2" role="listitem">Set 2</button>
           <button class="set-item" data-set="3" role="listitem">Set 3</button>
           <button class="set-item" data-set="4" role="listitem">Set 4</button>
@@ -114,7 +136,7 @@
         <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
         <div class="set-list" role="list">
           <button class="set-item nav-btn" data-page="report" role="listitem" title="Vai a Report">Report</button>
-          <button class="set-item" role="listitem" title="Vai a Riepilogo All" onclick="location.href='report-riepilogo-all.html'">Riepilogo</button>
+          <button id="sidebar-riepilogo-btn" class="set-item" role="listitem" title="Vai a Riepilogo All" onclick="location.href='report-riepilogo-all.html'">Riepilogo</button>
         </div>
       </aside>
       <div class="section" id="report-riepilogo-all" style="display:block;">
@@ -179,15 +201,63 @@
             });
           } catch(_) {}
         }
+        // Calcolo offset per la barra filtri sticky sotto la topbar
+        function setStickyFilterTop(){
+          try {
+            const header = document.querySelector('.topappbar');
+            const h = header ? Math.round(header.getBoundingClientRect().height) : 56;
+            document.documentElement.style.setProperty('--sticky-filter-top', (h + 4) + 'px');
+          } catch(_) {}
+        }
         // esegui subito e su resize
         computeStickyOffsets();
+        setStickyFilterTop();
         window.addEventListener('resize', computeStickyOffsets);
+        window.addEventListener('resize', setStickyFilterTop);
         // riesegui quando si cambia il filtro set per un fondamentale
         document.addEventListener('click', (e) => {
           if (e.target && e.target.matches('[data-set-filter]')) {
-            setTimeout(computeStickyOffsets, 50);
+            setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50);
           }
         });
+
+        // Sidebar: click su set o voci di report
+        try {
+          const list = document.getElementById('setToolbar');
+          if (list) {
+            list.addEventListener('click', (ev) => {
+              const btn = ev.target.closest('.set-item, .set-pill');
+              if (!btn) return;
+              // Navigazione a index.html per usare la logica completa di cambio set
+              if (btn.classList.contains('nav-btn') && btn.getAttribute('data-page') === 'report') {
+                location.href = 'index.html';
+                return;
+              }
+              const setNum = parseInt(btn.dataset.set, 10);
+              if (Number.isInteger(setNum) && setNum >= 1 && setNum <= 6) {
+                // Deep-link: index.html leggerà #/set/<n> e selezionerà il set
+                location.href = `index.html#/set/${setNum}`;
+              }
+            });
+          }
+        } catch(_) {}
+
+        // Imposta la voce attiva corretta nella sidebar: su questa pagina è "Riepilogo"
+        try {
+          const setList = document.getElementById('setToolbar');
+          if (setList) {
+            setList.querySelectorAll('.set-item').forEach(btn => {
+              if (btn.dataset.set) { btn.classList.remove('active'); btn.removeAttribute('aria-current'); }
+            });
+          }
+          const riepilogoBtn = document.getElementById('sidebar-riepilogo-btn');
+          if (riepilogoBtn) {
+            riepilogoBtn.classList.add('active');
+            riepilogoBtn.setAttribute('aria-current','true');
+          }
+          // Applica colori di stato (completato/parziale) ai bottoni set
+          try { if (window.updateSetSidebarColors) window.updateSetSidebarColors(); } catch(_) {}
+        } catch(_) {}
       });
     </script>
     <!-- Toggle sidebar dei set (sinistra): desktop aperta, mobile a scomparsa -->
