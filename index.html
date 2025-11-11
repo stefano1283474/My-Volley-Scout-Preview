@@ -147,7 +147,7 @@
         <header class="topappbar">
             <div class="topappbar-content">
                 <div class="topappbar-left">
-                    <button id="toggleSetSidebar" class="topbar-toggle" aria-controls="setToolbar" aria-expanded="false" title="Mostra/Nascondi Set">
+                    <button id="toggleSetSidebar" class="topbar-toggle" aria-controls="setToolbar" aria-expanded="false" title="Mostra/Nascondi Set" type="button">
                       <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
                         <!-- Hamburger icon -->
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -240,6 +240,11 @@
                 <button class="set-item" data-set="6" role="listitem">Set 6</button>
               </div>
               <div class="sidebar-resizer" aria-hidden="true"></div>
+              <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
+              <div class="set-list" role="list">
+                <button class="set-item nav-btn" data-page="report" role="listitem" title="Vai a Report">Report</button>
+                <button class="set-item nav-btn" data-page="report-riepilogo-all" role="listitem" title="Vai a Riepilogo All">Riepilogo</button>
+              </div>
             </aside>
             <div class="section" id="scouting-section">
                 
@@ -323,12 +328,235 @@
             <div class="section" id="analysis-section" style="display:none;">
                 <div class="section-header">
                     <h3>Analisi dello Scout</h3>
-                    <button class="secondary-btn nav-btn" data-page="scouting">← Torna allo Scouting</button>
                 </div>
                 <div class="analysis-content">
                     <p>Qui verranno visualizzate le analisi dello scouting (report, statistiche, andamento).</p>
                     <!-- Contenuti futuri: tabelle, grafici, filtri -->
                 </div>
+            </div>
+
+            <!-- Sezione Report: Sommario -->
+            <div class="section" id="report-section" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Sommario</h3>
+              </div>
+              <div class="report-summary">
+                <p style="color:#475569;margin-bottom:10px;">Seleziona un report. Al momento sono presenti placeholder grafici e strutture di pagina.</p>
+                <div class="report-grid">
+                  <button class="report-card nav-btn" data-page="report-riepilogo">
+                    <div class="card-title">Riepilogo</div>
+                    <div class="card-desc">Sintesi set, punteggi, KPI principali</div>
+                  </button>
+                  <button class="report-card nav-btn" data-page="report-gioco">
+                    <div class="card-title">Gioco</div>
+                    <div class="card-desc">Distribuzione azioni e fasi</div>
+                  </button>
+                  <button class="report-card nav-btn" data-page="report-attacco">
+                    <div class="card-title">Attacco</div>
+                    <div class="card-desc">Efficienze e punti in attacco</div>
+                  </button>
+                  <button class="report-card nav-btn" data-page="report-giri-rice">
+                    <div class="card-title">Giri di Ricezione</div>
+                    <div class="card-desc">Andamento ricezioni per rotazione</div>
+                  </button>
+                  <button class="report-card nav-btn" data-page="report-riepilogo-set">
+                    <div class="card-title">Riepilogo per Set</div>
+                    <div class="card-desc">Dettagli e KPI per ciascun set</div>
+                  </button>
+                  <button class="report-card nav-btn" data-page="report-riepilogo-all">
+                    <div class="card-title">Riepilogo All</div>
+                    <div class="card-desc">Sintesi complessiva della gara</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Riepilogo -->
+            <div class="section" id="report-riepilogo" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Riepilogo</h3>
+              </div>
+              <div class="report-content">
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">KPI Generali</div>
+                    <div class="placeholder-chart" id="riepilogo-kpi">Placeholder KPI</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Andamento Punteggio</div>
+                    <div class="placeholder-chart" id="riepilogo-trend">Placeholder Line Chart</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Distribuzione Valutazioni</div>
+                    <div class="placeholder-chart" id="riepilogo-distrib">Placeholder Bar Chart</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Note / Osservazioni</div>
+                    <div class="placeholder-area" id="riepilogo-notes">Area testuale (placeholder)</div>
+                  </div>
+                </div>
+                <!-- Tabelle per-player per fondamentale: UNA tabella per riga -->
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Attacco – per Giocatore</div>
+                    <div class="placeholder-area" id="riepilogo-attacco">Tabella Attacco</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Battuta – per Giocatore</div>
+                    <div class="placeholder-area" id="riepilogo-battuta">Tabella Battuta</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Muro – per Giocatore</div>
+                    <div class="placeholder-area" id="riepilogo-muro">Tabella Muro</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Ricezione – per Giocatore</div>
+                    <div class="placeholder-area" id="riepilogo-ricezione">Tabella Ricezione</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Difesa – per Giocatore</div>
+                    <div class="placeholder-area" id="riepilogo-difesa">Tabella Difesa</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Riepilogo Squadra</div>
+                    <div class="placeholder-area" id="riepilogo-squadra">Tabella Squadra</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Gioco -->
+            <div class="section" id="report-gioco" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Gioco</h3>
+              </div>
+              <div class="report-content">
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Distribuzione Fondamentali</div>
+                    <div class="placeholder-chart">Placeholder Pie Chart</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Sequenze Azione</div>
+                    <div class="placeholder-area">Timeline / elenco (placeholder)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Attacco -->
+            <div class="section" id="report-attacco" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Attacco</h3>
+              </div>
+              <div class="report-content">
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Efficienza Attacco</div>
+                    <div class="placeholder-chart">Placeholder KPI Grid</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Attacchi per Rotazione</div>
+                    <div class="placeholder-chart">Placeholder Heatmap</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Giri di Ricezione -->
+            <div class="section" id="report-giri-rice" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Giri di Ricezione</h3>
+              </div>
+              <div class="report-content">
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Ricezione per Rotazione</div>
+                    <div class="placeholder-chart">Placeholder Table</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Valutazioni Ricezione</div>
+                    <div class="placeholder-chart">Placeholder Bar Chart</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Riepilogo per Set -->
+            <div class="section" id="report-riepilogo-set" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Riepilogo per Set</h3>
+              </div>
+              <div class="report-content">
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Set 1…6 – KPI</div>
+                    <div class="placeholder-chart">Placeholder Grid</div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-title">Andamento Set</div>
+                    <div class="placeholder-chart">Placeholder Line/Area</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Report: Riepilogo All -->
+            <div class="section" id="report-riepilogo-all" style="display:none;">
+              <div class="section-header">
+                <h3>Report – Riepilogo All</h3>
+              </div>
+              <div class="report-content">
+                <!-- Cinque tabelle: una per riga (stack verticale), righe = player, colonne = valutazioni (1..5) -->
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Attacco – per Giocatore (All Set)</div>
+                    <div class="placeholder-area" id="all-attacco">Tabella Attacco</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Battuta – per Giocatore (All Set)</div>
+                    <div class="placeholder-area" id="all-battuta">Tabella Battuta</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Muro – per Giocatore (All Set)</div>
+                    <div class="placeholder-area" id="all-muro">Tabella Muro</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Ricezione – per Giocatore (All Set)</div>
+                    <div class="placeholder-area" id="all-ricezione">Tabella Ricezione</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Difesa – per Giocatore (All Set)</div>
+                    <div class="placeholder-area" id="all-difesa">Tabella Difesa</div>
+                  </div>
+                </div>
+                <div class="report-row">
+                  <div class="panel">
+                    <div class="panel-title">Note / Osservazioni</div>
+                    <div class="placeholder-area" id="all-notes">Area testuale</div>
+                  </div>
+                </div>
+              </div>
             </div>
         </main>
 

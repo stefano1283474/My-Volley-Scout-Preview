@@ -5,277 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Volley Scout - Nuova Partita</title>
     <link rel="stylesheet" href="animations.css?v=1">
+    <!-- Design system globale -->
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="stylesheet" href="src/styles/components.css">
+    <link rel="stylesheet" href="styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      /* Allinea layout di intestazione a matches.html */
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: var(--font-family); background: #ffffff; color: #333; min-height: 100vh; }
+      button, input, select, textarea { font-family: inherit; }
+      .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #fafafa;
-            min-height: 100vh;
-            color: #1a1a1a;
-            line-height: 1.6;
-        }
+      .header { background: #ffffff; border-radius: 12px; padding: 8px 12px; margin-bottom: 16px; display: flex; justify-content: center; align-items: center; position: relative; }
+      .logo { display: flex; align-items: center; gap: 10px; }
+      .logo-icon { width: 100%; max-width: 576px; height: 180px; overflow: hidden; display: block; margin: 0 auto; }
+      .logo-icon img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
 
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 24px;
-        }
+      .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
+      .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
+      .icon-button { background: #ffffff; color: #0d6efd; border: 1px solid #e9ecef; padding: 6px; border-radius: 8px; cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
+      .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
 
-        .header {
-            margin-bottom: 40px;
-        }
+      .account-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.08); min-width: 160px; }
+      .account-dropdown .menu-item { width: 100%; padding: 10px 12px; text-align: left; background: transparent; border: none; cursor: pointer; color: #333; }
+      .account-dropdown .menu-item:hover { background: #f8f9fa; }
 
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #666;
-            text-decoration: none;
-            font-size: 14px;
-            margin-bottom: 16px;
-            transition: color 0.2s ease;
-        }
+      /* Toggle Casa/Trasferta come pulsanti che cambiano colore */
+      .radio-group { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+      .radio-option { display:flex; align-items:center; justify-content:center; padding: var(--space-3) var(--space-5); border: 1px solid var(--outline); border-radius: var(--radius-lg); background: var(--surface); color: var(--on-surface-variant); cursor: pointer; transition: all var(--transition-fast); min-width: 120px; }
+      .radio-option:hover { border-color: var(--primary-300); background: var(--primary-50); }
+      .radio-option.selected { border-color: var(--primary-600); background: var(--primary-600); color: #fff; }
 
-        .back-btn:hover {
-            color: #1a1a1a;
-        }
-
-        .page-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-        }
-
-        .page-subtitle {
-            color: #666;
-            font-size: 16px;
-        }
-
-        .form-section {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            border: 2px solid #0d6efd; /* bordo blu coerente */
-        }
-
-        .form-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #1a1a1a;
-            font-size: 14px;
-        }
-
-        .required {
-            color: #ef4444;
-        }
-
-        input[type="text"],
-        input[type="date"],
-        select,
-        textarea {
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            background: white;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 6px;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 12px 16px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            background: white;
-            flex: 1;
-            justify-content: center;
-        }
-
-        .radio-option:hover {
-            border-color: #3b82f6;
-        }
-
-        .radio-option.selected {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-
-        .radio-option input[type="radio"] {
-            margin: 0;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 32px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-primary:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #374151;
-            border: 1px solid #d1d5db;
-        }
-
-        .btn-secondary:hover {
-            background: #f9fafb;
-        }
-
-        .error-message {
-            background: #fef2f2;
-            color: #dc2626;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            display: none;
-            border: 1px solid #fecaca;
-        }
-
-        .success-message {
-            background: #f0fdf4;
-            color: #16a34a;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            display: none;
-            border: 1px solid #bbf7d0;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 16px;
-            }
-
-            .form-section {
-                padding: 24px;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .radio-group {
-                flex-direction: column;
-            }
-
-            .form-actions {
-                flex-direction: column-reverse;
-            }
-
-            .page-title {
-                font-size: 28px;
-            }
-        }
+      /* Azioni form: mantiene su una riga anche su mobile e rende i bottoni più compatti */
+      .form-actions { flex-wrap: wrap; justify-content: flex-end; }
+      .btn-compact { padding: var(--space-2) var(--space-4); font-size: var(--font-size-sm); min-height: 36px; min-width: 96px; }
+      @media (max-width: 768px) {
+        .form-actions { flex-direction: row !important; }
+        .form-actions .btn { width: auto !important; }
+      }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- TopAppBar -->
-        <header class="topappbar">
-            <div class="topappbar-content">
-                <div class="topappbar-left">
-                    <a href="matches.html" class="back-btn" title="Torna alle partite">←</a>
-                    <img src="./Copilot_20251105_011636.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
-                    <div class="app-title">My Volley Scout</div>
+        <!-- Header coerente con matches.html -->
+        <header class="header">
+            <div class="back-actions">
+                <a href="matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">←</a>
+            </div>
+            <div class="account-actions">
+                <button id="headerMenuToggle" class="icon-button" aria-expanded="false" aria-controls="headerMenu" title="Account">
+                    <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                </button>
+                <div id="headerMenu" class="account-dropdown" hidden>
+                    <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">Vai a Elenco Partite</button>
+                    <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">Vai a Elenco Squadre</button>
+                    <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">Esci</button>
+                    <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">Logout</button>
                 </div>
-                <div class="topappbar-right">
-                    <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
-                        <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
-                          <!-- User icon -->
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </span>
-                    </button>
-                    <div id="headerMenu" class="top-account-menu" hidden>
-                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">Vai a Elenco Partite</button>
-                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">Vai a Elenco Squadre</button>
-                        <!-- Nuova voce: Esci (torna a Welcome.html) -->
-                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">Esci</button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">Logout</button>
-                    </div>
+            </div>
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout"
+                         onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
                 </div>
             </div>
         </header>
 
         <script>
-          // Toggle Account menu in TopAppBar (Match Setup)
+          // Toggle Account menu (header)
           (function(){
             const toggle = document.getElementById('headerMenuToggle');
             const menu = document.getElementById('headerMenu');
@@ -303,13 +102,13 @@
           })();
         </script>
 
-        <!-- Form Section -->
-        <div class="form-section">
+        <!-- Sezione form con classi globali -->
+        <div class="match-form">
+            <h2 id="match-setup-title" class="section-title">Nuova Partita</h2>
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
 
             <form id="matchForm">
-                <div class="form-grid">
                     <!-- Avversario e Data -->
                     <div class="form-row">
                         <div class="form-group">
@@ -350,24 +149,13 @@
                             Luogo Partita <span class="required">*</span>
                         </label>
                         <div class="radio-group">
-                            <div class="radio-option" data-value="casa">
-                                <input type="radio" id="casa" name="location" value="casa" required>
-                                <label for="casa">Casa</label>
-                            </div>
-                            <div class="radio-option" data-value="trasferta">
-                                <input type="radio" id="trasferta" name="location" value="trasferta" required>
-                                <label for="trasferta">Trasferta</label>
-                            </div>
+                            <div class="radio-option" data-value="casa" role="button" tabindex="0" aria-pressed="false">Casa</div>
+                            <div class="radio-option" data-value="trasferta" role="button" tabindex="0" aria-pressed="false">Trasferta</div>
                         </div>
+                        <input type="hidden" id="locationInput" name="location" value="">
                     </div>
 
-                    <!-- Palazzetto -->
-                    <div class="form-group">
-                        <label for="venue">
-                            Palazzetto/Sede
-                        </label>
-                        <input type="text" id="venue" name="venue" placeholder="Nome del palazzetto o sede">
-                    </div>
+                    <!-- Palazzetto/Sede rimosso su richiesta utente -->
 
                     <!-- Descrizione -->
                     <div class="form-group">
@@ -376,11 +164,11 @@
                         </label>
                         <textarea id="description" name="description" placeholder="Note sulla partita (importanza, condizioni particolari, ecc.)"></textarea>
                     </div>
-                </div>
+                
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">Annulla</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Continua →</button>
+                    <button type="button" class="btn btn-secondary btn-compact" onclick="window.history.back()">Annulla</button>
+                    <button type="submit" class="btn btn-secondary btn-compact" id="submitBtn" disabled>Continua →</button>
                 </div>
             </form>
         </div>
@@ -416,6 +204,8 @@
             initializeMatchSetup();
             setupRadioButtons();
             setDefaultDate();
+            bindLiveValidation();
+            updateSubmitState();
         });
 
         function initializeMatchSetup() {
@@ -443,14 +233,24 @@
             radioOptions.forEach(option => {
                 option.addEventListener('click', function() {
                     const value = this.dataset.value;
-                    const radio = this.querySelector('input[type="radio"]');
-                    
+                    const hidden = document.getElementById('locationInput');
                     // Rimuovi selezione da tutti
-                    radioOptions.forEach(opt => opt.classList.remove('selected'));
-                    
+                    radioOptions.forEach(opt => {
+                        opt.classList.remove('selected');
+                        opt.setAttribute('aria-pressed','false');
+                    });
                     // Aggiungi selezione al corrente
                     this.classList.add('selected');
-                    radio.checked = true;
+                    this.setAttribute('aria-pressed','true');
+                    if (hidden) hidden.value = value;
+                    updateSubmitState();
+                });
+                // Selezione da tastiera (Enter/Space)
+                option.addEventListener('keydown', function(e){
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
                 });
             });
         }
@@ -459,6 +259,35 @@
             const today = new Date();
             const dateString = today.toISOString().split('T')[0];
             document.getElementById('matchDate').value = dateString;
+            updateSubmitState();
+        }
+
+        function bindLiveValidation() {
+            const opponentEl = document.getElementById('opponent');
+            const matchDateEl = document.getElementById('matchDate');
+            const eventTypeEl = document.getElementById('eventType');
+            const locationEl = document.getElementById('locationInput');
+            if (opponentEl) opponentEl.addEventListener('input', updateSubmitState);
+            if (matchDateEl) matchDateEl.addEventListener('change', updateSubmitState);
+            if (eventTypeEl) eventTypeEl.addEventListener('change', updateSubmitState);
+            if (locationEl) locationEl.addEventListener('change', updateSubmitState);
+        }
+
+        function updateSubmitState() {
+            const opponent = document.getElementById('opponent')?.value.trim();
+            const matchDate = document.getElementById('matchDate')?.value;
+            const eventType = document.getElementById('eventType')?.value;
+            const location = document.getElementById('locationInput')?.value;
+            const allValid = !!(opponent && matchDate && eventType && location);
+            if (!submitBtn) return;
+            submitBtn.disabled = !allValid;
+            if (allValid) {
+                submitBtn.classList.remove('btn-secondary');
+                submitBtn.classList.add('btn-primary');
+            } else {
+                submitBtn.classList.add('btn-secondary');
+                submitBtn.classList.remove('btn-primary');
+            }
         }
 
         function showError(message) {
@@ -492,7 +321,6 @@
                 matchDate: formData.get('matchDate'),
                 eventType: formData.get('eventType'),
                 location: formData.get('location'),
-                venue: formData.get('venue')?.trim(),
                 description: formData.get('description')?.trim(),
                 teamId: localStorage.getItem('selectedTeamId'),
                 createdAt: new Date().toISOString(),
@@ -546,7 +374,6 @@
                     matchDate: matchData.matchDate,
                     eventType: matchData.eventType,
                     location: matchData.location,
-                    venue: matchData.venue || '',
                     description: matchData.description || '',
                     status: 'planned',
                     createdAt: matchData.createdAt,

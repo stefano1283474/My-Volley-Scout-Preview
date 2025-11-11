@@ -349,6 +349,19 @@ body {
   color: #1f2937; 
   font-weight: 600; 
 }
+/* Stato set: concluso (verde) / parziale (giallo) */
+.set-item.status-completed { background: #dcfce7; border-color: #86efac; color: #064e3b; }
+.set-item.status-partial   { background: #fef9c3; border-color: #fde68a; color: #78350f; }
+/* Mantieni evidenziazione attivo senza sovrascrivere il colore di stato */
+.set-item.status-completed.active,
+.set-item.status-partial.active {
+  background: inherit;
+  border-color: inherit;
+  color: inherit;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.25);
+  transform: translateY(-1px);
+  font-weight: 700;
+}
 
 /* Animazione di ingresso degli elementi nella sidebar */
 @keyframes sidebarItemIn {
@@ -385,6 +398,7 @@ body {
     will-change: transform, opacity; 
   }
   .main.with-sidebar.sidebar-open .set-sidebar { 
+    visibility: visible; 
     transform: translateX(0); 
     opacity: 1; 
     pointer-events: auto; 
@@ -3115,6 +3129,11 @@ body {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-weight: 700;
     color: #333;
+    /* Evita sovrapposizioni su schermi piccoli */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
 .action-header {
@@ -3183,6 +3202,36 @@ body {
     padding: 20px;
 }
 
+/* Elementi della riga azione: gestisci dimensioni e wrapping */
+.action-line .action-number {
+  flex: 0 0 32px;
+}
+.action-line .action-input {
+  flex: 1 1 180px;
+  min-width: 0; /* permette all'input di restringersi senza debordare */
+}
+.action-line .rotation-pill {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 600;
+}
+.action-line .action-save,
+.action-line .action-reset {
+  flex: 0 0 auto;
+}
+
+/* Mobile: l'input va a tutta larghezza e i bottoni vanno a capo */
+@media (max-width: 480px) {
+  .action-line .action-number { flex-basis: 28px; }
+  .action-line .action-input { flex-basis: 100%; }
+  .action-line .action-save,
+  .action-line .action-reset { padding: 6px 10px; }
+}
+
 /* Stili per il pulsante nella sezione header */
 .section-header {
     display: flex;
@@ -3230,6 +3279,110 @@ body {
     flex: 0 0 auto;
     min-width: auto;
 }
+
+/* Report summary grid and cards */
+.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.report-card { display: block; text-align: left; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease; }
+.report-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.10); border-color: #dbeafe; }
+.report-card .card-title { font-weight: 600; color: #0f172a; margin-bottom: 6px; }
+.report-card .card-desc { color: #475569; font-size: .95rem; }
+
+/* Report pages layout */
+.report-content { display: grid; gap: 12px; }
+.report-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.panel { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
+
+/* === Tabelle report: righe colorate e griglia === */
+.simple-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 0.95rem;
+}
+.simple-table tr:first-child {
+  background: #f8fafc; /* header tenue */
+  color: #0f172a;
+  font-weight: 600;
+}
+.simple-table th,
+.simple-table td {
+  border: 1px solid #e5e7eb; /* griglia */
+  padding: 6px 8px;
+  text-align: center; /* centra tutti i valori per coerenza visiva */
+}
+/* Zebra striping sui body rows, compatibile anche senza <thead>/<tbody> espliciti */
+.simple-table tbody tr:nth-child(odd),
+.simple-table tr:not(:first-child):nth-child(odd) { background: #f9fafb; }
+.simple-table tbody tr:nth-child(even),
+.simple-table tr:not(:first-child):nth-child(even) { background: #ffffff; }
+.simple-table tbody tr:hover,
+.simple-table tr:not(:first-child):hover { background: #f1f5f9; }
+/* Eccezione: la colonna Cognome resta allineata a sinistra */
+.simple-table th:nth-child(2),
+.simple-table td:nth-child(2) { text-align: left; }
+
+/* Colonna Cognome: mostra massimo 8 caratteri con ellissi */
+.simple-table th:nth-child(2),
+.simple-table td:nth-child(2) {
+  max-width: 8ch;
+  width: 8ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controlli filtro set per Riepilogo All */
+.set-filter {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 8px 0 6px;
+}
+.set-filter .filter-btn {
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #69c;
+  background: #eef6ff;
+  color: #0366d6;
+  cursor: pointer;
+}
+.set-filter .filter-btn.active {
+  background: #0366d6;
+  color: #fff;
+}
+
+/* === Ottimizzazioni Mobile (smartphone) === */
+@media (max-width: 480px) {
+  /* Riduci spaziatura generale nei pannelli/report */
+  .panel { padding: 8px; }
+  .report-content { gap: 8px; }
+  .report-row { gap: 8px; }
+
+  /* Tabelle più compatte */
+  .simple-table { font-size: 0.80rem; }
+  .simple-table th,
+  .simple-table td { padding: 4px 6px; }
+
+  /* Prima colonna (numero maglia) più stretta: sovrascrive inline style */
+  .simple-table th:first-child,
+  .simple-table td:first-child { min-width: 32px !important; width: 32px !important; }
+
+  /* Barra filtri set più compatta e avvolgibile */
+  .set-filter { gap: 4px; margin: 6px 0 4px; flex-wrap: wrap; }
+  .set-filter .filter-btn { font-size: 11px; padding: 2px 6px; }
+}
+
+/* Tabelle utenti (admin): riuso dello stile base */
+.users-table { width: 100%; border-collapse: collapse; background: #fff; }
+.users-table th, .users-table td { border: 1px solid #e5e7eb; padding: 6px 8px; }
+.users-table thead tr { background: #f8fafc; font-weight: 600; }
+.users-table tbody tr:nth-child(odd) { background: #f9fafb; }
+.users-table tbody tr:hover { background: #f1f5f9; }
+.panel-title { font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+.placeholder-chart { height: 160px; border: 2px dashed #cbd5e1; border-radius: 10px; display: grid; place-items: center; color: #64748b; background: #f8fafc; overflow: auto; }
+.placeholder-area { min-height: 120px; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 8px; color: #64748b; background: #f8fafc; overflow: auto; }
 
 .secondary-btn:active {
     background-color: #1565c0;

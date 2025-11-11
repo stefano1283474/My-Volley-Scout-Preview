@@ -26,7 +26,15 @@ const appState = {
     // Modalità sostituzione giocatore dalla pillola "Hai Selezionato"
     replacePlayerMode: false,
     // Sopprime i prompt di fine set/inizio set durante operazioni automatiche (es. import)
-    suppressSetPrompts: false
+    suppressSetPrompts: false,
+    // Filtro per set per ciascuna tabella del "Riepilogo All"
+    allSetFilterByFundamental: {
+        'Attacco': ['ALL'],
+        'Servizio': ['ALL'],
+        'Muro': ['ALL'],
+        'Ricezione': ['ALL'],
+        'Difesa': ['ALL']
+    }
 };
 
 const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
@@ -88,6 +96,13 @@ window.loadScoutingSession = function(sessionData) {
             matchType,
             date
         };
+
+        // Includi dati per-set se disponibili nella sessione
+        try {
+            appState.currentMatch.actionsBySet = md.actionsBySet || {};
+            appState.currentMatch.scoreHistoryBySet = md.scoreHistoryBySet || {};
+            appState.currentMatch.setStateBySet = md.setStateBySet || {};
+        } catch(_) {}
 
         // Carica roster dal team selezionato
         let loadedRoster = [];
@@ -217,8 +232,35 @@ function switchPage(pageId) {
     // Per la struttura semplificata di index.html, mostra la sezione corretta
     const scoutingSection = document.getElementById('scouting-section');
     const analysisSection = document.getElementById('analysis-section');
-    if (scoutingSection) scoutingSection.style.display = (pageId === 'scouting') ? 'block' : 'none';
-    if (analysisSection) analysisSection.style.display = (pageId === 'analysis') ? 'block' : 'none';
+    const reportSection = document.getElementById('report-section');
+    const reportRiepilogo = document.getElementById('report-riepilogo');
+    const reportGioco = document.getElementById('report-gioco');
+    const reportAttacco = document.getElementById('report-attacco');
+    const reportGiriRice = document.getElementById('report-giri-rice');
+    const reportRiepilogoSet = document.getElementById('report-riepilogo-set');
+    const reportRiepilogoAll = document.getElementById('report-riepilogo-all');
+
+    // Nascondi tutto
+    if (scoutingSection) scoutingSection.style.display = 'none';
+    if (analysisSection) analysisSection.style.display = 'none';
+    if (reportSection) reportSection.style.display = 'none';
+    if (reportRiepilogo) reportRiepilogo.style.display = 'none';
+    if (reportGioco) reportGioco.style.display = 'none';
+    if (reportAttacco) reportAttacco.style.display = 'none';
+    if (reportGiriRice) reportGiriRice.style.display = 'none';
+    if (reportRiepilogoSet) reportRiepilogoSet.style.display = 'none';
+    if (reportRiepilogoAll) reportRiepilogoAll.style.display = 'none';
+
+    // Mostra in base alla pagina
+    if (pageId === 'scouting' && scoutingSection) scoutingSection.style.display = 'block';
+    if (pageId === 'analysis' && analysisSection) analysisSection.style.display = 'block';
+    if (pageId === 'report' && reportSection) reportSection.style.display = 'block';
+    if (pageId === 'report-riepilogo' && reportRiepilogo) reportRiepilogo.style.display = 'block';
+    if (pageId === 'report-gioco' && reportGioco) reportGioco.style.display = 'block';
+    if (pageId === 'report-attacco' && reportAttacco) reportAttacco.style.display = 'block';
+    if (pageId === 'report-giri-rice' && reportGiriRice) reportGiriRice.style.display = 'block';
+    if (pageId === 'report-riepilogo-set' && reportRiepilogoSet) reportRiepilogoSet.style.display = 'block';
+    if (pageId === 'report-riepilogo-all' && reportRiepilogoAll) reportRiepilogoAll.style.display = 'block';
 
     // Inizializza/aggiorna la pagina specifica se necessario
     try {
@@ -234,7 +276,14 @@ function switchPage(pageId) {
         } else if (pageId === 'analysis') {
             // Inizializzazioni future per la pagina Analisi
             // Placeholder: potremmo aggiornare riepiloghi, grafici, ecc.
+    } else if (pageId && pageId.startsWith('report')) {
+        // Iniezione contenuti dinamici per i report
+        if (pageId === 'report-riepilogo') {
+            try { renderReportRiepilogo(); } catch (e) { console.warn('Riepilogo render error:', e); }
+        } else if (pageId === 'report-riepilogo-all') {
+            try { renderReportRiepilogoAll(); } catch (e) { console.warn('Riepilogo All render error:', e); }
         }
+    }
     } catch (e) {
         console.warn('Aggiornamento pagina non riuscito:', e);
     }
@@ -245,11 +294,471 @@ function switchPage(pageId) {
     } catch (_) {}
 }
 
+// =========================
+// Report: Riepilogo (KPI)
+// =========================
+function renderReportRiepilogo() {
+    const kpiEl = document.getElementById('riepilogo-kpi');
+    const trendEl = document.getElementById('riepilogo-trend');
+    const distEl = document.getElementById('riepilogo-distrib');
+    const notesEl = document.getElementById('riepilogo-notes');
+    if (!kpiEl || !trendEl || !distEl || !notesEl) return;
+    // Sorgente dati: partita selezionata scoutizzata
+    const currentMatch = appState.currentMatch || getBestLocalMatch();
+    const setNum = (typeof appState.currentSet === 'number' && appState.currentSet > 0)
+      ? appState.currentSet
+      : (currentMatch?.currentSet || 1);
+    const actionsBySet = currentMatch?.actionsBySet || {};
+    const logs = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : (Array.isArray(appState.actionsLog) ? appState.actionsLog : []);
+    const fundamentalStats = { b: { attempts: 0, eval: [0,0,0,0,0] }, r: { attempts: 0, eval: [0,0,0,0,0] }, a: { attempts: 0, eval: [0,0,0,0,0] }, d: { attempts: 0, eval: [0,0,0,0,0] }, m: { attempts: 0, eval: [0,0,0,0,0] } };
+    let totalActions = 0;
+    let homePoints = 0;
+    let awayPoints = 0;
+    const evalDist = [0,0,0,0,0];
+
+    // Ricostruisci punteggio e distribuzioni
+    for (const log of logs) {
+        const actionString = (log && typeof log.action === 'string') ? log.action : (typeof log === 'string' ? log : null);
+        if (!actionString) continue;
+        totalActions++;
+        const parsed = parseAction(actionString);
+        const last = parsed.actions[parsed.actions.length - 1];
+        if (last && fundamentalStats[last.fundamental]) {
+            fundamentalStats[last.fundamental].attempts++;
+            const idx = Math.max(1, Math.min(5, last.evaluation)) - 1;
+            fundamentalStats[last.fundamental].eval[idx]++;
+            evalDist[idx]++;
+        }
+        if (parsed.result === 'home_point') homePoints++;
+        else if (parsed.result === 'away_point') awayPoints++;
+    }
+
+    // KPI Generali
+    const fmtPct = (num) => (isFinite(num) ? `${(num*100).toFixed(1)}%` : '—');
+    const eff = (f) => {
+        const s = fundamentalStats[f];
+        if (!s.attempts) return { plus: 0, minus: 0, eff: '—' };
+        const plus = s.eval[4]; // 5 = #
+        const minus = s.eval[0]; // 1 = errore
+        const e = (plus - minus) / s.attempts;
+        return { plus, minus, eff: fmtPct(e) };
+    };
+    const eB = eff('b');
+    const eA = eff('a');
+    const eM = eff('m');
+
+    kpiEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td>Punti Casa</td><td style="text-align:right;font-weight:600;">${homePoints}</td></tr>
+        <tr><td>Punti Ospiti</td><td style="text-align:right;font-weight:600;">${awayPoints}</td></tr>
+        <tr><td>Azioni Totali</td><td style="text-align:right;">${totalActions}</td></tr>
+        <tr><td>Servizio (#/1 / Eff.)</td><td style="text-align:right;">${eB.plus}/${eB.minus} · ${eB.eff}</td></tr>
+        <tr><td>Attacco (#/1 / Eff.)</td><td style="text-align:right;">${eA.plus}/${eA.minus} · ${eA.eff}</td></tr>
+        <tr><td>Muro (#/1 / Eff.)</td><td style="text-align:right;">${eM.plus}/${eM.minus} · ${eM.eff}</td></tr>
+      </table>
+    `;
+
+    // Trend punteggio (semplice lista progressiva)
+    const scoreHistoryBySet = currentMatch?.scoreHistoryBySet || {};
+    const history = Array.isArray(scoreHistoryBySet[setNum]) && scoreHistoryBySet[setNum].length > 0
+      ? scoreHistoryBySet[setNum]
+      : (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0 ? appState.scoreHistory : buildScoreHistoryFromLogs(logs));
+    trendEl.innerHTML = history.length === 0
+      ? '<div style="color:#64748b;">Nessun dato di punteggio</div>'
+      : `<div style="display:grid;gap:6px;">${history.map(h => `<div> ${h.homeScore} - ${h.awayScore} <span style="color:#94a3b8">${h.timestamp||''}</span></div>`).join('')}</div>`;
+
+    // Distribuzione valutazioni globali (1..5)
+    const symbols = ['=','-','/','+','#'];
+    distEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        ${evalDist.map((cnt, i) => `<tr><td>Valutazione ${i+1} (${symbols[i]})</td><td style="text-align:right;">${cnt}</td></tr>`).join('')}
+      </table>
+    `;
+
+    // Tabelle per-player per fondamentale (replica foglio Excel "Riepilogo")
+    try {
+        const perPlayer = aggregateByPlayerAndFundamental(logs);
+        const roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+        const tables = buildPerPlayerTablesHTML(perPlayer, roster);
+        const teamSummaryHtml = buildTeamSummaryHTML(perPlayer);
+        const ids = {
+          'Attacco': 'riepilogo-attacco',
+          'Servizio': 'riepilogo-battuta',
+          'Muro': 'riepilogo-muro',
+          'Ricezione': 'riepilogo-ricezione',
+          'Difesa': 'riepilogo-difesa'
+        };
+        Object.entries(tables).forEach(([fund, html]) => {
+          const el = document.getElementById(ids[fund]);
+          if (el) el.innerHTML = html;
+        });
+        const teamEl = document.getElementById('riepilogo-squadra');
+        if (teamEl) teamEl.innerHTML = teamSummaryHtml;
+    } catch (e) {
+        console.warn('Render tabelle per-player fallito:', e);
+    }
+
+    // Note
+    notesEl.innerHTML = `<div style="color:#64748b">Placeholder note: inserire osservazioni, chiavi di lettura del set o della gara.</div>`;
+}
+
+// =========================
+// Report: Riepilogo All (per-player su tutta la gara)
+// =========================
+function renderReportRiepilogoAll() {
+    const ids = {
+        'Attacco': 'all-attacco',
+        'Servizio': 'all-battuta',
+        'Muro': 'all-muro',
+        'Ricezione': 'all-ricezione',
+        'Difesa': 'all-difesa'
+    };
+    const currentMatch = appState.currentMatch || getBestLocalMatch();
+    let actionsBySet = (currentMatch && currentMatch.actionsBySet) ? currentMatch.actionsBySet : {};
+    // Se l'oggetto per-set è vuoto, prova a recuperare dalla sessione corrente o dal match locale migliore
+    if (!actionsBySet || Object.keys(actionsBySet).length === 0) {
+        try {
+            const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+            if (sessionData && sessionData.actionsBySet && Object.keys(sessionData.actionsBySet).length > 0) {
+                actionsBySet = sessionData.actionsBySet;
+            }
+        } catch(_) {}
+        if (!actionsBySet || Object.keys(actionsBySet).length === 0) {
+            const best = getBestLocalMatch();
+            actionsBySet = (best && best.actionsBySet) ? best.actionsBySet : {};
+        }
+    }
+    // Flat list su tutti i set (1..n), ordinando i set numericamente
+    const allLogs = Object.keys(actionsBySet || {}).sort((a,b)=>Number(a)-Number(b)).flatMap(k => Array.isArray(actionsBySet[k]) ? actionsBySet[k] : []);
+    const roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+
+    // Per ogni fondamentale, costruisci tabella in base al filtro set selezionato
+    const selectedMap = appState.allSetFilterByFundamental || {};
+    ['Attacco','Servizio','Muro','Ricezione','Difesa'].forEach(fund => {
+        let selectedSets = selectedMap[fund];
+        // Compatibilità: se fosse stringa, trasformala in array
+        if (!Array.isArray(selectedSets)) selectedSets = [selectedSets || 'ALL'];
+
+        let logsForFund;
+        if (selectedSets.includes('ALL') || selectedSets.length === 0) {
+            logsForFund = (allLogs.length ? allLogs : (Array.isArray(appState.actionsLog) ? appState.actionsLog : []));
+        } else {
+            // Somma i log dei set selezionati
+            logsForFund = selectedSets.flatMap(setId => Array.isArray(actionsBySet[setId]) ? actionsBySet[setId] : []);
+        }
+
+        const agg = aggregateByPlayerAndFundamental(logsForFund);
+        const tables = buildPerPlayerTablesAll(agg, roster);
+        const tableHtml = tables[fund];
+        const filterHtml = buildSetFilterButtons(fund, selectedSets);
+
+        const elId = ids[fund];
+        const el = elId ? document.getElementById(elId) : null;
+        if (el) {
+            el.innerHTML = `${filterHtml}${tableHtml}`;
+        } else {
+            console.warn('Missing container for', fund);
+        }
+    });
+
+    const notesEl = document.getElementById('all-notes');
+    if (notesEl) notesEl.innerHTML = '<div style="color:#64748b">Dati aggregati su tutti i set della gara.</div>';
+}
+
+// Trova una partita locale plausibile se appState.currentMatch manca
+function getBestLocalMatch() {
+    try {
+        const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+        if (!Array.isArray(local) || local.length === 0) return null;
+        // Preferisci quella in_progress, altrimenti la più recente per updatedAt
+        const inProgress = local.filter(m => m && m.status === 'in_progress');
+        if (inProgress.length > 0) {
+            return inProgress.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0))[0];
+        }
+        return local.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0))[0];
+    } catch (_) { return null; }
+}
+
+function buildScoreHistoryFromLogs(logs) {
+    let h = 0, a = 0;
+    const history = [];
+    for (const log of logs) {
+        const actionString = (log && typeof log.action === 'string') ? log.action : (typeof log === 'string' ? log : null);
+        if (!actionString) continue;
+        const parsed = parseAction(actionString);
+        if (parsed.result === 'home_point') h++;
+        else if (parsed.result === 'away_point') a++;
+        if (parsed.result === 'home_point' || parsed.result === 'away_point') {
+            history.push({ homeScore: h, awayScore: a, timestamp: '' });
+        }
+    }
+    return history;
+}
+
+// =========================
+// Aggregazione per-player per fondamentale
+// =========================
+function aggregateByPlayerAndFundamental(logs) {
+    // Supporta sia codici fondamentali (a,b,m,r,d) che nomi estesi
+    const FUND_MAP = { a: 'Attacco', b: 'Servizio', m: 'Muro', r: 'Ricezione', d: 'Difesa' };
+    const fundamentals = ['Attacco', 'Servizio', 'Muro', 'Ricezione', 'Difesa'];
+    const agg = {};
+    fundamentals.forEach(f => { agg[f] = { teamTotal: {1:0,2:0,3:0,4:0,5:0} }; });
+
+    for (const entry of logs) {
+        const actionString = (entry && typeof entry.action === 'string') ? entry.action : (typeof entry === 'string' ? entry : null);
+        if (!actionString) continue;
+        const parsed = parseAction(actionString);
+        // Conta TUTTE le azioni del rally, non solo l'ultima
+        const acts = Array.isArray(parsed?.actions) ? parsed.actions : [];
+        for (const act of acts) {
+            const rawFund = act.fundamental; // 'a','b','m','r','d'
+            const fund = FUND_MAP[rawFund] || rawFund; // mappa a nome esteso
+            if (!fundamentals.includes(fund)) continue;
+            // Normalizza numero maglia: rimuove zeri iniziali ("07" -> "7")
+            const playerNumberRaw = act.player || act.playerNumber || '';
+            const playerNumber = playerNumberRaw !== '' ? String(Number(String(playerNumberRaw).trim())) : '';
+            const playerName = act.playerName || '';
+            const playerKey = playerNumber ? String(playerNumber) : (playerName || '');
+            if (!agg[fund][playerKey]) {
+                agg[fund][playerKey] = { name: playerName || playerKey, number: playerNumber || '', counts: {1:0,2:0,3:0,4:0,5:0} };
+            }
+            const idx = Math.max(1, Math.min(5, Number(act.evaluation || 0)));
+            agg[fund][playerKey].counts[idx]++;
+            agg[fund].teamTotal[idx]++;
+        }
+    }
+    return agg;
+}
+
+function computeEfficacia(fund, counts) {
+    const tot = (counts[1]+counts[2]+counts[3]+counts[4]+counts[5]);
+    if (!tot) return '0%';
+    if (fund === 'Ricezione' || fund === 'Difesa') {
+        const val = (counts[4] + counts[5]) / tot;
+        return `${(val*100).toFixed(0)}%`;
+    }
+    // Attacco, Servizio, Muro: Efficacia = (valutazioni positive) / tot
+    // Per Attacco, la base Excel usa (# + +) / tot
+    // Manteniamo coerenza estesa: per Servizio/Muro consideriamo 5 e 4 come positivi
+    const val = (counts[5] + counts[4]) / tot;
+    return `${(val*100).toFixed(0)}%`;
+}
+
+function computeEfficienzaFund(fund, counts) {
+    const tot = (counts[1]+counts[2]+counts[3]+counts[4]+counts[5]);
+    if (!tot) return '0%';
+    if (fund === 'Ricezione' || fund === 'Difesa') {
+        const val = ((counts[4] + counts[3]) - counts[1]) / tot;
+        return `${(val*100).toFixed(0)}%`;
+    }
+    const val = (counts[5] - counts[1]) / tot;
+    return `${(val*100).toFixed(0)}%`;
+}
+
+function buildHeaderHTML() {
+    return `<tr>
+      <th style="min-width:48px;">N°</th>
+      <th style="max-width:8ch;">Cognome</th>
+      <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+      <th>Tot</th><th>%</th><th>Efficacia</th><th>Efficienza</th>
+    </tr>`;
+}
+
+function buildPerPlayerTablesHTML(agg, roster) {
+    const playerNameByNumber = {};
+    if (Array.isArray(roster)) {
+        roster.forEach(p => { if (p?.number) playerNameByNumber[String(p.number)] = p?.name || ''; });
+    }
+    const tables = {};
+    Object.keys(agg).forEach(fund => {
+        const teamTotalCounts = agg[fund].teamTotal;
+        const teamTotal = teamTotalCounts[1]+teamTotalCounts[2]+teamTotalCounts[3]+teamTotalCounts[4]+teamTotalCounts[5];
+        let rows = '';
+        Object.entries(agg[fund]).forEach(([key, data]) => {
+            if (key === 'teamTotal') return;
+            const c = data.counts;
+            const tot = c[1]+c[2]+c[3]+c[4]+c[5];
+            const share = teamTotal ? `${Math.round((tot/teamTotal)*100)}%` : '0%';
+            const name = playerNameByNumber[data.number] || data.name || key;
+            rows += `<tr>
+              <td>${data.number || ''}</td>
+              <td title="${escapeHtml(name)}">${escapeHtml(abbreviateWithDots(name, 8))}</td>
+              <td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td><td>${c[5]}</td>
+              <td>${tot}</td>
+              <td>${share}</td>
+              <td>${computeEfficacia(fund, c)}</td>
+              <td>${computeEfficienzaFund(fund, c)}</td>
+            </tr>`;
+        });
+        const footer = `<tr style="font-weight:600;background:#f1f5f9;">
+            <td colspan="2">TOTALE</td>
+            <td>${teamTotalCounts[1]}</td><td>${teamTotalCounts[2]}</td><td>${teamTotalCounts[3]}</td><td>${teamTotalCounts[4]}</td><td>${teamTotalCounts[5]}</td>
+            <td>${teamTotal}</td>
+            <td>100%</td>
+            <td>${computeEfficacia(fund, teamTotalCounts)}</td>
+            <td>${computeEfficienzaFund(fund, teamTotalCounts)}</td>
+        </tr>`;
+        const pct = (x) => teamTotal ? `${Math.round((x/teamTotal)*100)}%` : '0%';
+        const percentFooter = `<tr style="background:#f8fafc;">
+            <td colspan="2">% su Tot</td>
+            <td>${pct(teamTotalCounts[1])}</td><td>${pct(teamTotalCounts[2])}</td><td>${pct(teamTotalCounts[3])}</td><td>${pct(teamTotalCounts[4])}</td><td>${pct(teamTotalCounts[5])}</td>
+            <td>100%</td>
+            <td></td><td></td><td></td>
+        </tr>`;
+        tables[fund] = `<table class="simple-table">${buildHeaderHTML()}${rows}${footer}${percentFooter}</table>`;
+    });
+    return tables;
+}
+
+function buildTeamSummaryHTML(agg) {
+    const rows = ['Attacco','Servizio','Ricezione','Difesa','Muro'].map(fund => {
+        const counts = (agg[fund]&&agg[fund].teamTotal) ? agg[fund].teamTotal : {1:0,2:0,3:0,4:0,5:0};
+        const tot = counts[1]+counts[2]+counts[3]+counts[4]+counts[5];
+        return `<tr><td>${fund}</td><td>${tot}</td><td>${computeEfficacia(fund, counts)}</td><td>${computeEfficienzaFund(fund, counts)}</td></tr>`;
+    }).join('');
+    return `<table class="simple-table">
+        <tr><th>Squadra</th><th>Tot</th><th>Efficacia</th><th>Efficienza</th></tr>
+        ${rows}
+    </table>`;
+}
+
+// Header con simboli nel medesimo ordine del foglio Excel
+function buildHeaderSymbolsHTML() {
+    return `<tr>
+      <th style="min-width:48px;">N°</th>
+      <th style="max-width:8ch;">Cognome</th>
+      <th>#</th><th>+</th><th>\\</th><th>-</th><th>=</th>
+      <th>Tot</th><th>%</th><th>Efficacia</th><th>Efficienza</th>
+    </tr>`;
+}
+
+// Costruisce la barra di selezione set (1..5 e ALL) per una tabella
+function buildSetFilterButtons(fund, selectedSets = ['ALL']) {
+    const activeSet = new Set((Array.isArray(selectedSets) ? selectedSets : [selectedSets]).map(String));
+    const mk = (label) => {
+        const isActive = activeSet.has(String(label));
+        const cls = `filter-btn` + (isActive ? ' active' : '');
+        return `<button class="${cls}" data-set-filter="true" data-fund="${fund}" data-set="${label}">${label}</button>`;
+    };
+    return `<div class="set-filter">${mk('ALL')}${mk('1')}${mk('2')}${mk('3')}${mk('4')}${mk('5')}</div>`;
+}
+
+// Versione All: colonne simboliche e metriche, righe = player
+function buildPerPlayerTablesAll(agg, roster) {
+    const playerNameByNumber = {};
+    const rosterNumbers = [];
+    if (Array.isArray(roster)) {
+        roster.forEach(p => {
+            if (p?.number != null && p?.number !== '') {
+                const numStr = normalizeNumberStr(p.number);
+                const display = (p.nickname && String(p.nickname).trim()) || (p.surname && String(p.surname).trim()) || (p.name && String(p.name).trim()) || '';
+                playerNameByNumber[numStr] = display;
+                rosterNumbers.push(numStr);
+            }
+        });
+    }
+    const header = buildHeaderSymbolsHTML();
+    const tables = {};
+    Object.keys(agg).forEach(fund => {
+        let rows = '';
+        const teamCounts = agg[fund].teamTotal || {1:0,2:0,3:0,4:0,5:0};
+        const teamTotal = teamCounts[1]+teamCounts[2]+teamCounts[3]+teamCounts[4]+teamCounts[5];
+        // 1) Righe per TUTTO il roster (anche con zero azioni)
+        const fundAgg = agg[fund] || {};
+        const byNumber = {};
+        Object.entries(fundAgg).forEach(([key, data]) => {
+            if (key === 'teamTotal') return;
+            if (data && data.number) {
+                const n = normalizeNumberStr(data.number);
+                byNumber[n] = { ...data, number: n };
+            }
+        });
+
+        const sortedRoster = rosterNumbers.slice().sort((a,b)=>Number(a)-Number(b));
+        for (const numStr of sortedRoster) {
+            const data = byNumber[numStr] || { number: numStr, name: playerNameByNumber[numStr] || '', counts: {1:0,2:0,3:0,4:0,5:0} };
+            const c = data.counts;
+            const tot = (c[1]+c[2]+c[3]+c[4]+c[5]);
+            const share = teamTotal ? `${Math.round((tot/teamTotal)*100)}%` : '0%';
+            const name = playerNameByNumber[numStr] || data.name || '';
+            rows += `<tr>
+                <td>${formatJersey(numStr)}</td>
+                <td title="${escapeHtml(name)}">${escapeHtml(abbreviateWithDots(name, 8))}</td>
+                <td>${c[5]}</td><td>${c[4]}</td><td>${c[3]}</td><td>${c[2]}</td><td>${c[1]}</td>
+                <td>${tot}</td>
+                <td>${share}</td>
+                <td>${computeEfficacia(fund, c)}</td>
+                <td>${computeEfficienzaFund(fund, c)}</td>
+            </tr>`;
+        }
+
+        // 2) Eventuali player presenti nei log ma non nel roster (li aggiungo in coda)
+        Object.entries(fundAgg).forEach(([key, data]) => {
+            if (key === 'teamTotal') return;
+            const numStr = normalizeNumberStr(data.number || '');
+            if (numStr && rosterNumbers.includes(numStr)) return; // già inserito
+            const c = data.counts;
+            const tot = (c[1]+c[2]+c[3]+c[4]+c[5]);
+            const share = teamTotal ? `${Math.round((tot/teamTotal)*100)}%` : '0%';
+            const name = playerNameByNumber[numStr] || data.name || key;
+            rows += `<tr>
+                <td>${formatJersey(numStr)}</td>
+                <td title="${escapeHtml(name)}">${escapeHtml(abbreviateWithDots(name, 8))}</td>
+                <td>${c[5]}</td><td>${c[4]}</td><td>${c[3]}</td><td>${c[2]}</td><td>${c[1]}</td>
+                <td>${tot}</td>
+                <td>${share}</td>
+                <td>${computeEfficacia(fund, c)}</td>
+                <td>${computeEfficienzaFund(fund, c)}</td>
+            </tr>`;
+        });
+        const footer = `<tr style="font-weight:600;background:#f1f5f9;">
+            <td colspan="2">TOTALE</td>
+            <td>${teamCounts[5]}</td><td>${teamCounts[4]}</td><td>${teamCounts[3]}</td><td>${teamCounts[2]}</td><td>${teamCounts[1]}</td>
+            <td>${teamTotal}</td>
+            <td>100%</td>
+            <td>${computeEfficacia(fund, teamCounts)}</td>
+            <td>${computeEfficienzaFund(fund, teamCounts)}</td>
+        </tr>`;
+        const pct = (x) => teamTotal ? `${Math.round((x/teamTotal)*100)}%` : '0%';
+        const percentFooter = `<tr style="background:#f8fafc;">
+            <td colspan="2">% su Tot</td>
+            <td>${pct(teamCounts[5])}</td><td>${pct(teamCounts[4])}</td><td>${pct(teamCounts[3])}</td><td>${pct(teamCounts[2])}</td><td>${pct(teamCounts[1])}</td>
+            <td>100%</td>
+            <td></td><td></td><td></td>
+        </tr>`;
+        tables[fund] = `<table class="simple-table">${header}${rows}${footer}${percentFooter}</table>`;
+    });
+    return tables;
+}
+
+
 function initializeApp() {
     try {
         // Rimuovi banner di debug se presente (indica che JS è in esecuzione)
         const debugBanner = document.getElementById('debug-banner');
         if (debugBanner) debugBanner.remove();
+
+        // Fallback: assicura che la sidebar dei set sia popolata
+        (function ensureSetSidebarPopulated(){
+            try {
+                const list = document.getElementById('setToolbar');
+                if (!list) return;
+                const existing = list.querySelectorAll('.set-item, .set-pill');
+                if (existing.length === 0) {
+                    const setsCount = (window.appState && window.appState.totalSets) ? Number(window.appState.totalSets) : 6;
+                    for (let i = 1; i <= setsCount; i++) {
+                        const btn = document.createElement('button');
+                        btn.className = 'set-item' + (i === 1 ? ' active' : '');
+                        btn.dataset.set = String(i);
+                        btn.setAttribute('role','listitem');
+                        if (i === 1) btn.setAttribute('aria-current','true');
+                        btn.textContent = `Set ${i}`;
+                        list.appendChild(btn);
+                    }
+                }
+            } catch(_){ /* noop */ }
+        })();
 
         // Gestione navigazione
         const navButtons = document.querySelectorAll('.nav-btn');
@@ -257,6 +766,12 @@ function initializeApp() {
             btn.addEventListener('click', () => {
                 const page = btn.dataset.page;
                 if (page) switchPage(page);
+                // Chiudi la sidebar dopo la selezione di una voce (mobile e desktop)
+                try {
+                    if (typeof window.setSidebarOpen === 'function') {
+                        window.setSidebarOpen(false);
+                    }
+                } catch(_) {}
             });
         });
     
@@ -288,6 +803,38 @@ function initializeApp() {
         if (analysisBtn) {
             analysisBtn.addEventListener('click', () => switchPage('analysis'));
         }
+
+        // Delegazione click per i pulsanti filtro set (Riepilogo All)
+        document.addEventListener('click', (ev) => {
+            const t = ev.target;
+            if (t && t.matches && t.matches('button[data-set-filter="true"]')) {
+                const fund = t.getAttribute('data-fund');
+                const set = t.getAttribute('data-set');
+                if (fund && set) {
+                    if (!appState.allSetFilterByFundamental) appState.allSetFilterByFundamental = {};
+                    let selected = appState.allSetFilterByFundamental[fund];
+                    if (!Array.isArray(selected)) selected = [selected || 'ALL'];
+
+                    if (set === 'ALL') {
+                        selected = ['ALL'];
+                    } else {
+                        // Rimuovi ALL se presente e toggla il set specifico
+                        selected = selected.filter(s => s !== 'ALL');
+                        const idx = selected.indexOf(set);
+                        if (idx >= 0) {
+                            selected.splice(idx, 1);
+                        } else {
+                            selected.push(set);
+                        }
+                        // Se nessun set rimane selezionato, ritorna a ALL
+                        if (selected.length === 0) selected = ['ALL'];
+                    }
+
+                    appState.allSetFilterByFundamental[fund] = selected;
+                    try { renderReportRiepilogoAll(); } catch (e) { console.warn('renderReportRiepilogoAll errore:', e); }
+                }
+            }
+        });
     
         // Header mobile overflow menu
         const headerMenuToggle = document.getElementById('headerMenuToggle');
@@ -434,6 +981,9 @@ function initializeApp() {
     
         // Attiva pagina iniziale
         switchPage(appState.currentPage || 'match-data');
+
+        // Aggiorna colori dei set in sidebar all'avvio
+        try { updateSetSidebarColors(); } catch(_) {}
 
         // Mostra app e nasconde la schermata di caricamento
         const appRoot = document.getElementById('app');
@@ -699,6 +1249,20 @@ function safeGetSavedRosters() {
 
 function escapeHtml(v) {
     return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+
+// Normalizza numero maglia in forma canonica senza zeri iniziali
+function normalizeNumberStr(v) {
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    const n = Number(s);
+    return Number.isFinite(n) ? String(n) : s;
+}
+
+// Formatta il numero maglia per la visualizzazione in due cifre (01, 07, 12)
+function formatJersey(n) {
+    const s = normalizeNumberStr(n);
+    return s ? s.padStart(2, '0') : '';
 }
 
 function saveCurrentRosterFromDialog(containerId) {
@@ -2615,6 +3179,9 @@ function updateScoreHistoryDisplay() {
         
         historyContainer.appendChild(historyElement);
     });
+
+    // Aggiorna i colori dei pulsanti set in sidebar in base allo stato
+    try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch(_) {}
 }
 
 // Utilità: listener per long-press
@@ -2637,6 +3204,92 @@ function addLongPressListener(el, holdMs, onTrigger) {
     el.addEventListener('touchstart', start, { passive: true });
     ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => el.addEventListener(evt, cancel));
 }
+
+// Calcolo stato dei set e aggiornamento colori nella sidebar
+function __getSetMetaPresence(setNum){
+    try {
+        const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+        const cfg = session.setConfig || {};
+        const sm = session.setMeta && session.setMeta[setNum];
+        if (Number(setNum) === 1) {
+            const hasGlobal = !!(cfg.ourRotation && cfg.phase);
+            const hasMeta = !!(sm && sm.ourRotation && sm.phase);
+            return hasGlobal || hasMeta;
+        }
+        return !!(sm && sm.ourRotation && sm.phase);
+    } catch(_) { return false; }
+}
+
+function __getSetDataSnapshot(setNum){
+    let actions = [];
+    let home = 0, away = 0;
+    try {
+        const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+        const abSet = session.actionsBySet || {};
+        const stBySet = session.setStateBySet || {};
+        const shBySet = session.scoreHistoryBySet || {};
+        if (Number(setNum) === Number(appState.currentSet)) {
+            actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+            home = Number(appState.homeScore||0);
+            away = Number(appState.awayScore||0);
+        } else {
+            actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
+            const st = stBySet[setNum] || {};
+            if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                home = Number(st.homeScore||0);
+                away = Number(st.awayScore||0);
+            } else {
+                const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+                const last = arr.length ? arr[arr.length - 1] : null;
+                home = Number(last?.homeScore||0);
+                away = Number(last?.awayScore||0);
+            }
+        }
+    } catch(_) {}
+    return { actions, home, away };
+}
+
+function __isSetCompleted(setNum, home, away){
+    const isSetFive = Number(setNum) === 5;
+    const minScore = isSetFive ? 15 : 25;
+    if ((home >= minScore || away >= minScore) && Math.abs(home - away) >= 2) {
+        return true;
+    }
+    return false;
+}
+
+function __computeSetStatus(setNum){
+    const hasMeta = __getSetMetaPresence(setNum);
+    const snap = __getSetDataSnapshot(setNum);
+    const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
+    const completed = __isSetCompleted(setNum, snap.home, snap.away);
+    if (completed) return 'completed';
+    if (hasQuartine) return 'partial';
+    // Nessuna classe per i set non iniziati (colore di default)
+    // La definizione di "non iniziato" richiede sia meta mancanti che assenza di quartine,
+    // ma non serve una classe dedicata: lasciamo il colore corrente.
+    return 'none';
+}
+
+function updateSetSidebarColors(){
+    try {
+        const list = document.getElementById('setToolbar');
+        if (!list) return;
+        const items = list.querySelectorAll('.set-item');
+        items.forEach(btn => {
+            const n = parseInt(btn.dataset.set, 10);
+            btn.classList.remove('status-completed','status-partial');
+            const status = __computeSetStatus(n);
+            if (status === 'completed') btn.classList.add('status-completed');
+            else if (status === 'partial') btn.classList.add('status-partial');
+        });
+    } catch(e) {
+        console.warn('updateSetSidebarColors fallita:', e);
+    }
+}
+
+// Espone per altri script
+window.updateSetSidebarColors = updateSetSidebarColors;
 
 function checkSetEnd() {
     // Evita prompt durante import/ricostruzioni automatiche

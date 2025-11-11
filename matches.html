@@ -397,77 +397,35 @@
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="accountLogout">Esci</button>
+                    <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button id="tabNew" class="tab-button active">Nuova partita</button>
-            <button id="tabList" class="tab-button">Elenco Partite</button>
-        </div>
-
-        <!-- Tab: Nuova partita -->
-        <div id="newMatchSection" class="matches-section tab-panel" style="display:block;">
-            <h2 class="section-title">Nuova partita</h2>
-            <form id="inlineMatchForm" class="new-match-form" style="display:flex; flex-direction:column; gap:14px;">
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
-                    <div>
-                        <label for="opponent-team" style="display:block; margin-bottom:6px; color:#555;">Avversario</label>
-                        <input type="text" id="opponent-team" name="opponent-team" class="input" placeholder="Nome squadra avversaria" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
-                    </div>
-                    <div>
-                        <label for="home-away" style="display:block; margin-bottom:6px; color:#555;">Casa/Trasferta</label>
-                        <select id="home-away" name="home-away" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
-                            <option value="home">Casa</option>
-                            <option value="away">Trasferta</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="match-type" style="display:block; margin-bottom:6px; color:#555;">Tipo partita</label>
-                        <select id="match-type" name="match-type" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
-                            <option value="campionato">Campionato</option>
-                            <option value="coppa">Coppa</option>
-                            <option value="pgs">PGS</option>
-                            <option value="csi">CSI</option>
-                            <option value="amichevole">Amichevole</option>
-                            <option value="torneo">Torneo</option>
-                        </select>
-                    </div>
-                    <div id="tournamentNameWrapper" style="display:none;">
-                        <label for="tournament-name" style="display:block; margin-bottom:6px; color:#555;">Nome torneo</label>
-                        <input type="text" id="tournament-name" name="tournament-name" class="input" placeholder="Inserisci il nome del torneo" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;">
-                    </div>
-                    <div>
-                        <label for="match-date" style="display:block; margin-bottom:6px; color:#555;">Data</label>
-                        <div class="date-row" style="display:flex; gap:8px;">
-                          <select id="date-day" aria-label="Giorno" style="flex:1; padding:10px; border:1px solid #e9ecef; border-radius:8px;"></select>
-                          <select id="date-month" aria-label="Mese" style="flex:1.4; padding:10px; border:1px solid #e9ecef; border-radius:8px;"></select>
-                          <input type="number" id="date-year" aria-label="Anno" min="1900" max="2100" step="1" placeholder="Anno" style="flex:1; padding:10px; border:1px solid #e9ecef; border-radius:8px;" />
-                        </div>
-                        <!-- Hidden ISO field used by form submission -->
-                        <input type="hidden" id="match-date" name="match-date">
-                        <small id="match-date-preview" style="display:block; margin-top:6px; color:#6c757d;" aria-live="polite"></small>
-                    </div>
-                </div>
-                <div>
-                    <label for="match-description" style="display:block; margin-bottom:6px; color:#555;">Descrizione (opzionale)</label>
-                    <textarea id="match-description" name="match-description" rows="3" class="input" style="width:100%; padding:10px; border:1px solid #e9ecef; border-radius:8px;"></textarea>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button type="submit" class="btn btn-primary">Crea partita</button>
-                </div>
-            </form>
-        </div>
+        <!-- Toolbar Elenco (pulsanti in alto a destra) -->
 
         
         
         <!-- Tab: Elenco Partite -->
-        <div id="listSection" class="matches-section tab-panel" style="display:none;">
+        <div id="listSection" class="matches-section tab-panel" style="display:block;">
             <div class="section-title-row">
                 <h2 class="section-title">Elenco Partite</h2>
-                <span class="section-hint inline" aria-live="polite">Seleziona una partita per iniziare lo scout</span>
+                <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
+                  <button id="newMatchBtn" class="icon-button" aria-label="Nuova partita" title="Nuova partita">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <button id="importMatchBtn" class="icon-button" aria-label="Importa Partita (Xls)" title="Importa Partita (Xls)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
             </div>
+            <p class="section-hint" style="margin:8px 0 16px 0;">Seleziona una partita per iniziare lo scout</p>
             
             <div class="matches-list" id="matchesList">
                 <!-- Matches will be loaded here -->
@@ -514,6 +472,8 @@
     <script src="./src/modules/teams/teams.js"></script>
     <script src="./src/modules/matches/matches.js"></script>
     <script src="./src/modules/scouting/scouting.js"></script>
+    <!-- SheetJS per import Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <script>
         // Variabili globali
@@ -537,6 +497,8 @@
         const listSection = document.getElementById('listSection');
         const rootContainer = document.querySelector('.container');
         const inlineMatchForm = document.getElementById('inlineMatchForm');
+        const newMatchBtn = document.getElementById('newMatchBtn');
+        const importMatchBtn = document.getElementById('importMatchBtn');
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -608,10 +570,13 @@
                     }
                 });
             }
-            // Tabs
-            if (tabNew) tabNew.addEventListener('click', () => switchTab('new'));
-            if (tabList) tabList.addEventListener('click', () => switchTab('list'));
-            // Form nuova partita
+            // Azioni Elenco: nuova partita e import
+            // Apri una pagina intera per la creazione partita (no dialog)
+            if (newMatchBtn) newMatchBtn.addEventListener('click', () => {
+                window.location.href = 'match-setup.html';
+            });
+            if (importMatchBtn) importMatchBtn.addEventListener('click', importMatchFromExcelOnMatches);
+            // Form nuova partita (dialog)
             if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
             // Mostra/nascondi campo torneo
             const matchTypeSelect = document.getElementById('match-type');
@@ -642,8 +607,8 @@
             }
 
             updateTeamInfo();
-            // Imposta tab predefinita e data odierna
-            switchTab('new');
+            // Vista predefinita: Elenco partite
+            switchTab('list');
             const dateInput = document.getElementById('match-date');
             if (dateInput && !dateInput.value) {
                 dateInput.value = new Date().toISOString().slice(0,10);
@@ -724,9 +689,9 @@
             }
         }
 
-        // Stato iniziale: "Nuova partita" attiva → abilita layout full-height
+        // Stato iniziale: Elenco partite → nessun full-height
         if (rootContainer){
-            rootContainer.classList.add('full-height');
+            rootContainer.classList.remove('full-height');
         }
 
         function toggleTournamentField(){
@@ -895,7 +860,8 @@
                     const res = await window.matchesModule.createMatch(matchData);
                     if (res.success){
                         alert('Partita creata!');
-                        // passa al tab elenco e aggiorna
+                        // chiudi dialog, passa all’elenco e aggiorna
+                        closeNewMatchDialog();
                         switchTab('list');
                         loadMatches();
                         inlineMatchForm.reset();
@@ -920,6 +886,112 @@
 
         // Inizializza i controlli data custom e la preview all’avvio
         initCustomDateControls();
+
+        // — Dialog: Nuova partita —
+        function openNewMatchDialog(){
+            // Reindirizza alla pagina dedicata alla creazione della partita
+            window.location.href = 'match-setup.html';
+        }
+
+        function closeNewMatchDialog(){
+            const dlg = document.getElementById('newMatchDialog');
+            if (dlg) { try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); } }
+        }
+
+        // Importa partita da Excel dalla pagina Partite: crea sessione e apre lo scouting
+        async function importMatchFromExcelOnMatches(){
+            try {
+                let file = null;
+                if (window.showOpenFilePicker) {
+                    try {
+                        const [handle] = await window.showOpenFilePicker({
+                            multiple: false,
+                            types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }]
+                        });
+                        file = await handle.getFile();
+                    } catch (err) {
+                        if (err && err.name === 'AbortError') return; // annullato
+                        throw err;
+                    }
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                    const picked = await new Promise(resolve => {
+                        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+                        input.click();
+                    });
+                    document.body.removeChild(input);
+                    file = picked;
+                }
+
+                if (!file) return;
+
+                const data = await file.arrayBuffer();
+                const wb = XLSX.read(data, { type: 'array' });
+
+                const sessionData = {};
+                sessionData.actionsBySet = {};
+                sessionData.setMeta = {};
+                sessionData.scoreHistoryBySet = {};
+                sessionData.setStateBySet = {};
+
+                function detectInitialPhase(ws){
+                    try {
+                        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 30, c: 10 } };
+                        const maxRow = Math.min(range.e.r + 1, 20);
+                        const maxCol = Math.min(range.e.c + 1, 6);
+                        let found = null;
+                        for (let r = 1; r <= maxRow; r++) {
+                            for (let c = 1; c <= maxCol; c++) {
+                                const addr = XLSX.utils.encode_cell({ r: r-1, c: c-1 });
+                                const cell = ws[addr];
+                                if (!cell || cell.v == null) continue;
+                                const val = String(cell.v).trim().toUpperCase();
+                                if (val === 'SERVIZIO' || val === 'RICEZIONE') { found = val.toLowerCase(); break; }
+                            }
+                            if (found) break;
+                        }
+                        return found || 'servizio';
+                    } catch(_) { return 'servizio'; }
+                }
+
+                for (let setNum = 1; setNum <= 6; setNum++) {
+                    const sheetName = `Set ${setNum}`;
+                    const ws = wb.Sheets[sheetName];
+                    if (!ws) continue;
+                    let initialRotation = 'P1';
+                    try {
+                        const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
+                        if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
+                    } catch(_) {}
+                    const initialPhase = detectInitialPhase(ws);
+                    const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                    const startRow = 18;
+                    const quartets = [];
+                    for (let r = startRow; r <= (range.e.r + 1); r++) {
+                        const cell = ws[`B${r}`];
+                        if (!cell) continue;
+                        const val = String(cell.v == null ? '' : cell.v).trim();
+                        if (!val) continue;
+                        quartets.push(val);
+                    }
+                    sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
+                    sessionData.setMeta[setNum] = { ourRotation: initialRotation, phase: initialPhase };
+                }
+
+                try {
+                    const teamId = localStorage.getItem('selectedTeamId');
+                    if (teamId) sessionData.teamId = teamId;
+                } catch(_) {}
+                localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+                window.location.href = 'index.html';
+            } catch (error) {
+                alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
+            }
+        }
 
         function renderMatches() {
             const selName = selectedTeam?.name || null;
@@ -1367,7 +1439,6 @@
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
       })();
     </script>
-</body>
     <!-- Dialog Modifica Partita -->
     <dialog id="editMatchDialog" style="border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; max-width: 420px; width: 90%;">
       <form method="dialog" class="dialog-form" style="display:flex; flex-direction:column; gap:10px;">
@@ -1416,4 +1487,66 @@
         if (saveBtn) saveBtn.addEventListener('click', () => { try { if (typeof saveEditMatch === 'function') saveEditMatch(); } catch(e){ console.error(e); alert('Errore nel salvataggio modifica'); } });
       })();
     </script>
+    <!-- Dialog Nuova Partita -->
+    <dialog id="newMatchDialog" style="border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; max-width: 640px; width: 95%;">
+      <form id="inlineMatchForm" method="dialog" class="dialog-form" style="display:flex; flex-direction:column; gap:14px;">
+        <h3 style="margin:0 0 8px 0;">Nuova partita</h3>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span>Avversario</span>
+            <input type="text" id="opponent-team" name="opponent-team" class="input" placeholder="Nome squadra avversaria" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span>Casa/Trasferta</span>
+            <select id="home-away" name="home-away" class="input">
+              <option value="home">Casa</option>
+              <option value="away">Trasferta</option>
+            </select>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span>Tipo partita</span>
+            <select id="match-type" name="match-type" class="input">
+              <option value="campionato">Campionato</option>
+              <option value="coppa">Coppa</option>
+              <option value="pgs">PGS</option>
+              <option value="csi">CSI</option>
+              <option value="amichevole">Amichevole</option>
+              <option value="torneo">Torneo</option>
+            </select>
+          </label>
+          <label id="tournamentNameWrapper" style="display:none; flex-direction:column; gap:6px;">
+            <span>Nome torneo</span>
+            <input type="text" id="tournament-name" name="tournament-name" class="input" placeholder="Inserisci il nome del torneo" />
+          </label>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <span>Data</span>
+            <div class="date-row" style="display:flex; gap:8px;">
+              <select id="date-day" aria-label="Giorno" class="input" style="flex:1"></select>
+              <select id="date-month" aria-label="Mese" class="input" style="flex:1.4"></select>
+              <input type="number" id="date-year" aria-label="Anno" min="1900" max="2100" step="1" placeholder="Anno" class="input" style="flex:1" />
+            </div>
+            <input type="hidden" id="match-date" name="match-date">
+            <small id="match-date-preview" style="color:#6c757d;" aria-live="polite"></small>
+          </div>
+        </div>
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span>Descrizione (opzionale)</span>
+          <textarea id="match-description" name="match-description" rows="3" class="input"></textarea>
+        </label>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+          <button type="button" class="btn btn-secondary" id="newMatchCancelBtn">Annulla</button>
+          <button type="submit" class="btn btn-primary">Crea partita</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      // Listener pulsanti dialog Nuova Partita
+      (function(){
+        const dlg = document.getElementById('newMatchDialog');
+        const cancelBtn = document.getElementById('newMatchCancelBtn');
+        if (cancelBtn) cancelBtn.addEventListener('click', () => { if (dlg) dlg.close(); });
+      })();
+    </script>
+</body>
 </html>
