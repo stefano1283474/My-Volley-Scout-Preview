@@ -210,6 +210,14 @@ window.loadScoutingSession = function(sessionData) {
 function switchPage(pageId) {
     // Aggiorna stato
     appState.currentPage = pageId;
+    // Imposta classi di modalità pagina per gestire la visibilità via CSS
+    try {
+        const body = document.body;
+        body.classList.remove('page-scouting','page-report','page-analysis');
+        if (pageId === 'scouting') body.classList.add('page-scouting');
+        else if (pageId && pageId.startsWith('report')) body.classList.add('page-report');
+        else if (pageId === 'analysis') body.classList.add('page-analysis');
+    } catch(_) {}
 
     // Aggiorna UI - controlla se esistono elementi .page e .nav-btn
     const pages = document.querySelectorAll('.page');
@@ -230,8 +238,11 @@ function switchPage(pageId) {
     if (navBtn) navBtn.classList.add('active');
     
     // Per la struttura semplificata di index.html, mostra la sezione corretta
+    // Sezioni principali
     const scoutingSection = document.getElementById('scouting-section');
+    const scoutingDialog = document.getElementById('scouting-dialog');
     const analysisSection = document.getElementById('analysis-section');
+    const punteggioSection = document.getElementById('punteggio-section');
     const reportSection = document.getElementById('report-section');
     const reportRiepilogo = document.getElementById('report-riepilogo');
     const reportGioco = document.getElementById('report-gioco');
@@ -242,7 +253,9 @@ function switchPage(pageId) {
 
     // Nascondi tutto
     if (scoutingSection) scoutingSection.style.display = 'none';
+    if (scoutingDialog) scoutingDialog.style.display = 'none';
     if (analysisSection) analysisSection.style.display = 'none';
+    if (punteggioSection) punteggioSection.style.display = 'none';
     if (reportSection) reportSection.style.display = 'none';
     if (reportRiepilogo) reportRiepilogo.style.display = 'none';
     if (reportGioco) reportGioco.style.display = 'none';
@@ -252,7 +265,12 @@ function switchPage(pageId) {
     if (reportRiepilogoAll) reportRiepilogoAll.style.display = 'none';
 
     // Mostra in base alla pagina
-    if (pageId === 'scouting' && scoutingSection) scoutingSection.style.display = 'block';
+    // Mostra la sezione di scouting
+    if (pageId === 'scouting') {
+        if (scoutingSection) scoutingSection.style.display = 'block';
+        // Compatibilità con layout corrente: usa il dialog embedded come "pagina" scouting
+        if (!scoutingSection && scoutingDialog) scoutingDialog.style.display = 'block';
+    }
     if (pageId === 'analysis' && analysisSection) analysisSection.style.display = 'block';
     if (pageId === 'report' && reportSection) reportSection.style.display = 'block';
     if (pageId === 'report-riepilogo' && reportRiepilogo) reportRiepilogo.style.display = 'block';
@@ -271,6 +289,7 @@ function switchPage(pageId) {
             if (typeof updateScoutingUI === 'function') updateScoutingUI();
             const dlg = document.getElementById('scouting-dialog');
             if (dlg && dlg.open) dlg.close();
+            if (punteggioSection) punteggioSection.style.display = 'block';
         } else if (pageId === 'roster') {
             if (typeof renderRosterTable === 'function') renderRosterTable();
         } else if (pageId === 'analysis') {
@@ -1186,7 +1205,10 @@ function initializeRosterPage() {
             });
         }
 
-        setLoadRosterEnabled(true);
+        // Abilita il pulsante "Carica Roster" solo se la funzione esiste
+        if (typeof setLoadRosterEnabled === 'function') {
+            setLoadRosterEnabled(true);
+        }
     } catch (e) {
         console.warn('initializeRosterPage errore:', e);
     }

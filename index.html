@@ -243,10 +243,10 @@
               <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
               <div class="set-list" role="list">
                 <button class="set-item nav-btn" data-page="report" role="listitem" title="Vai a Report">Report</button>
-                <button class="set-item nav-btn" data-page="report-riepilogo-all" role="listitem" title="Vai a Riepilogo All">Riepilogo</button>
+                <button class="set-item" role="listitem" title="Vai a Riepilogo All" onclick="location.href='report-riepilogo-all.html'">Riepilogo</button>
               </div>
             </aside>
-            <div class="section" id="scouting-section">
+            
                 
                 <!-- Sezione INIZIA SET rimossa -->
 
@@ -323,7 +323,7 @@
 
                   </div>
                 </div>
-            </div>
+            
             <!-- Sezione Analisi -->
             <div class="section" id="analysis-section" style="display:none;">
                 <div class="section-header">
@@ -780,6 +780,141 @@
             if (input && actions[index]) input.value = String(actions[index].action || '');
         }
 
+        // Helper: mapping e normalizzazioni per export/import
+        function ensureTwoDigits(v){
+            const digits = String(v||'').replace(/\D/g,'');
+            if (!digits) return '';
+            return digits.padStart(2, '0').slice(-2);
+        }
+        function jerseyForExcel(v){
+            const nn = ensureTwoDigits(v);
+            return nn ? "'" + nn : '';
+        }
+        function roleToInitial(role){
+            const s = String(role||'').trim();
+            if (!s) return '';
+            const low = s.toLowerCase();
+            if (/^p$/.test(s)) return 'P';
+            if (/^s$/.test(s)) return 'S';
+            if (/^c$/.test(s)) return 'C';
+            if (/^o$/.test(s)) return 'O';
+            if (/^l$/.test(s)) return 'L';
+            if (/palleggiator|alzator/.test(low)) return 'P';
+            if (/schiacciator|banda|posto\s*4/.test(low)) return 'S';
+            if (/central/.test(low)) return 'C';
+            if (/oppost/.test(low)) return 'O';
+            if (/liber/.test(low)) return 'L';
+            return s.charAt(0).toUpperCase();
+        }
+        function roleWeight(initial){
+            const w = { P:1, S:2, C:3, O:4, L:5 };
+            return w[initial] || 99;
+        }
+
+        // Helper: recupera roster corrente per export (Number, Cognome, Nome, Soprannome, Ruolo)
+        function getRosterForExport(){
+            try {
+                // Priorità: appState.currentRoster → teamsModule.getCurrentTeam().players → localStorage volleyTeams
+                let players = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+                if (!players.length && window.teamsModule?.getCurrentTeam){
+                    const team = window.teamsModule.getCurrentTeam();
+                    if (team && Array.isArray(team.players)) players = team.players;
+                }
+                if (!players.length){
+                    try {
+                        const selId = localStorage.getItem('selectedTeamId');
+                        const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                        const team = selId ? storedTeams.find(t => String(t.id) === String(selId)) : null;
+                        if (team && Array.isArray(team.players)) players = team.players;
+                    } catch(_){}
+                }
+                const valid = players.filter(p => p && (p.number || p.surname || p.name || p.nickname || p.role));
+                // Normalizza e limita soprannome se molto lungo; ruoli a iniziale; numero a due cifre
+                const normalized = valid.map(p => ({
+                    number: ensureTwoDigits(p.number != null ? String(p.number).trim() : ''),
+                    surname: (p.surname != null ? String(p.surname).trim() : ''),
+                    name: (p.name != null ? String(p.name).trim() : ''),
+                    nickname: (p.nickname != null ? String(p.nickname).trim() : ''),
+                    role: roleToInitial(p.role != null ? String(p.role).trim() : '')
+                }));
+                // Ordina per progressione ruoli P,S,C,O,L e poi per numero
+                normalized.sort((a,b) => {
+                    const rw = roleWeight(a.role) - roleWeight(b.role);
+                    if (rw !== 0) return rw;
+                    // Confronta numeri come interi
+                    const na = Number(a.number||0), nb = Number(b.number||0);
+                    return na - nb;
+                });
+                return normalized;
+            } catch(_) { return []; }
+        }
+
+        // Helper: metadati partita per celle D20..D24
+        function getMatchMeta(){
+            const sessionData = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
+            const setupData = (() => { try { return JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); } catch(_) { return {}; } })();
+
+            const opponent = (
+                window.appState?.currentMatch?.opponentTeam ||
+                sessionData.opponentTeam || sessionData.opponent ||
+                setupData.opponent || 'Avversario'
+            );
+            const rawDate = (
+                window.appState?.currentMatch?.date ||
+                sessionData.date || setupData.matchDate || new Date().toISOString().slice(0,10)
+            );
+            let matchDate = rawDate;
+            try {
+                const d = new Date(rawDate);
+                if (!isNaN(d.getTime())) matchDate = d.toLocaleDateString('it-IT');
+            } catch(_){}
+            const eventType = (
+                window.appState?.currentMatch?.matchType ||
+                sessionData.matchType || setupData.eventType || 'partita'
+            );
+            const homeAwayOrLoc = (
+                window.appState?.currentMatch?.homeAway ||
+                sessionData.homeAway || setupData.location || ''
+            );
+            const locationLabel = (homeAwayOrLoc === 'home' || homeAwayOrLoc === 'casa') ? 'casa'
+                : (homeAwayOrLoc === 'away' || homeAwayOrLoc === 'trasferta') ? 'trasferta' : String(homeAwayOrLoc||'');
+            const notes = (
+                sessionData.description || setupData.description || window.appState?.currentMatch?.description || ''
+            );
+            return { opponent, matchDate, eventType, locationLabel, notes };
+        }
+
+        // Helper: crea worksheet "El. Gioc." con intestazioni (B2..F2), roster (B3..F) e metadati (etichette in C20..C24, valori in D20..D24)
+        function buildRosterSheet(){
+            const ws = XLSX.utils.aoa_to_sheet([[]]);
+            const roster = getRosterForExport();
+            // Intestazioni riga 2
+            XLSX.utils.sheet_add_aoa(ws, [[ 'N°', 'Cognome', 'Nome', 'Nick', 'Ruolo' ]], { origin: 'B2' });
+            if (roster.length){
+                const aoa = roster.map(p => [
+                    jerseyForExcel(p.number || ''), // apice + due cifre
+                    p.surname || '',
+                    p.name || '',
+                    p.nickname || '',
+                    p.role || ''
+                ]);
+                XLSX.utils.sheet_add_aoa(ws, aoa, { origin: 'B3' });
+            }
+            const meta = getMatchMeta();
+            // Etichette in colonna C
+            XLSX.utils.sheet_add_aoa(ws, [[ 'Avversario' ]], { origin: 'C20' });
+            XLSX.utils.sheet_add_aoa(ws, [[ 'Data Partita' ]], { origin: 'C21' });
+            XLSX.utils.sheet_add_aoa(ws, [[ 'Tipo Gara' ]], { origin: 'C22' });
+            XLSX.utils.sheet_add_aoa(ws, [[ 'Luogo' ]], { origin: 'C23' });
+            XLSX.utils.sheet_add_aoa(ws, [[ 'Note' ]], { origin: 'C24' });
+            XLSX.utils.sheet_add_aoa(ws, [[meta.opponent]], { origin: 'D20' });
+            XLSX.utils.sheet_add_aoa(ws, [[meta.matchDate]], { origin: 'D21' });
+            XLSX.utils.sheet_add_aoa(ws, [[meta.eventType]], { origin: 'D22' });
+            XLSX.utils.sheet_add_aoa(ws, [[meta.locationLabel]], { origin: 'D23' });
+            XLSX.utils.sheet_add_aoa(ws, [[meta.notes]], { origin: 'D24' });
+            return ws;
+        }
+
         // Esporta azioni in Excel: sheet "Set X", A3 rotazione iniziale, B18.. quartine
         async function exportActionsToExcel(){
             try {
@@ -801,8 +936,12 @@
                 // Normalizza (es. "P3" → "3")
                 initialRotation = initialRotation.replace(/^P/i, '');
 
-                // Crea workbook e worksheet
+                // Crea workbook, aggiungi PRIMA lo sheet El. Gioc.
                 const wb = XLSX.utils.book_new();
+                const rosterWs = buildRosterSheet();
+                XLSX.utils.book_append_sheet(wb, rosterWs, 'El. Gioc.');
+
+                // Worksheet del set
                 const ws = XLSX.utils.aoa_to_sheet([[]]);
 
                 // A3: rotazione iniziale
@@ -852,7 +991,7 @@
             }
         }
 
-        // Esporta tutti i set in un unico file Excel con 6 fogli
+        // Esporta tutti i set in un unico file Excel con 6 fogli (+ El. Gioc.)
         async function exportAllSetsToExcel(){
             try {
                 // Salva la sessione corrente per aggiornare actionsBySet
@@ -863,6 +1002,12 @@
                 })();
                 const actionsBySet = sessionData.actionsBySet || {};
                 const wb = XLSX.utils.book_new();
+
+                // Aggiungi PRIMA il foglio El. Gioc.
+                try {
+                    const rosterWs = buildRosterSheet();
+                    XLSX.utils.book_append_sheet(wb, rosterWs, 'El. Gioc.');
+                } catch(_){ /* continua comunque */ }
 
                 // Helpers per filename
                 const sanitize = (v) => String(v||'').trim().replace(/\s+/g, '');
@@ -991,6 +1136,48 @@
         }
         
         // Importa una partita completa da Excel: 6 fogli "Set N" con A3 rotazione, fase iniziale e B18.. quartine
+        // Helper: legge foglio "El. Gioc." se presente per roster e metadati
+        function readElGiocSheet(wb){
+            const res = { roster: [], meta: {} };
+            try {
+                const ws = wb.Sheets['El. Gioc.'] || null;
+                if (!ws) return res;
+                // Roster: B..F da riga 3
+                const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                for (let r = 3; r <= (range.e.r + 1); r++) {
+                    const b = ws[`B${r}`], c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
+                    let number = b && b.v != null ? String(b.v).trim() : '';
+                    // Rimuove apice iniziale e normalizza a due cifre
+                    if (number.startsWith("'")) number = number.slice(1);
+                    number = ensureTwoDigits(number);
+                    const surname = c && c.v != null ? String(c.v).trim() : '';
+                    const name = d && d.v != null ? String(d.v).trim() : '';
+                    const nick = e && e.v != null ? String(e.v).trim() : '';
+                    const role = roleToInitial(f && f.v != null ? String(f.v).trim() : '');
+                    if (!number && !surname && !name && !nick && !role) continue;
+                    res.roster.push({ number, surname, name, nickname: nick, role });
+                }
+                // Metadati: D20..D24
+                const opponent = ws['D20'] && ws['D20'].v != null ? String(ws['D20'].v).trim() : '';
+                let matchDate = ws['D21'] && ws['D21'].v != null ? String(ws['D21'].v).trim() : '';
+                // Converte data numerica Excel (seriale) in formato ISO YYYY-MM-DD, se presente
+                try {
+                    const mdCell = ws['D21'];
+                    if (mdCell && typeof mdCell.v === 'number') {
+                        const dt = XLSX.SSF.parse_date_code(mdCell.v);
+                        if (dt && dt.y && dt.m && dt.d) {
+                            matchDate = new Date(dt.y, dt.m - 1, dt.d).toISOString().slice(0,10);
+                        }
+                    }
+                } catch(_) {}
+                const eventType = ws['D22'] && ws['D22'].v != null ? String(ws['D22'].v).trim() : '';
+                const locLabel = ws['D23'] && ws['D23'].v != null ? String(ws['D23'].v).trim().toLowerCase() : '';
+                const notes = ws['D24'] && ws['D24'].v != null ? String(ws['D24'].v).trim() : '';
+                const homeAway = (locLabel === 'casa') ? 'home' : (locLabel === 'trasferta' ? 'away' : '');
+                res.meta = { opponent, matchDate, eventType, homeAway, location: locLabel, description: notes };
+            } catch(_) {}
+            return res;
+        }
         async function importMatchFromExcel(){
             try {
                 // Chiede file
@@ -1001,7 +1188,7 @@
                             multiple: false,
                             types: [{
                                 description: 'Excel Workbook',
-                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] }
                             }]
                         });
                         file = await handle.getFile();
@@ -1012,7 +1199,7 @@
                 } else {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -1036,6 +1223,24 @@
                 sessionData.setMeta = sessionData.setMeta || {};
                 sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
                 sessionData.setStateBySet = sessionData.setStateBySet || {};
+
+                // Leggi "El. Gioc." per roster e metadati
+                try {
+                    const { roster, meta } = readElGiocSheet(wb);
+                    if (Array.isArray(roster) && roster.length) {
+                        // imposta roster importato in appState per uso immediato (export e UI)
+                        if (window.appState) window.appState.currentRoster = roster;
+                        try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+                    }
+                    if (meta) {
+                        if (meta.opponent) sessionData.opponentTeam = meta.opponent;
+                        if (meta.matchDate) sessionData.matchDate = meta.matchDate;
+                        if (meta.eventType) sessionData.matchType = meta.eventType;
+                        if (meta.homeAway) sessionData.homeAway = meta.homeAway;
+                        if (meta.location && !meta.homeAway) sessionData.location = meta.location;
+                        if (meta.description) sessionData.description = meta.description;
+                    }
+                } catch(_) {}
 
                 let totalActions = 0;
                 let importedSets = 0;
@@ -1223,7 +1428,7 @@
                             multiple: false,
                             types: [{
                                 description: 'Excel Workbook',
-                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] }
                             }]
                         });
                         file = await handle.getFile();
@@ -1235,7 +1440,7 @@
                     // Fallback input file
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -1400,6 +1605,16 @@
                     
                     if (window.loadScoutingSession) {
                         window.loadScoutingSession(sessionData);
+                        // Se presente un roster importato, adottalo come roster corrente
+                        try {
+                            const rawImp = localStorage.getItem('importedRoster');
+                            if (rawImp) {
+                                const imp = JSON.parse(rawImp);
+                                if (Array.isArray(imp) && imp.length) {
+                                    if (window.appState) window.appState.currentRoster = imp;
+                                }
+                            }
+                        } catch(_) {}
                     } else {
                         console.error('Funzione loadScoutingSession non disponibile');
                     }
@@ -1415,7 +1630,7 @@
     </script>
 
     <!-- App script -->
-    <script src="app.js?v=6" defer></script>
+    <script src="app.js?v=7" defer></script>
     <script>
       // Sidebar: cambio set
       (function(){
@@ -1515,6 +1730,10 @@
         window.saveSetMetaAndContinue = saveSetMetaAndContinue;
 
         async function changeSet(targetSet){
+          // Ignora richieste non valide (es. click su pulsanti nav senza data-set)
+          if (!Number.isInteger(targetSet) || targetSet < 1 || targetSet > 6) {
+            return;
+          }
           try {
             const current = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
             if (Number(targetSet) === Number(current)) { updateActiveSetUI(targetSet); return; }
@@ -1629,7 +1848,12 @@
         list.addEventListener('click', (e) => {
           const btn = e.target.closest('.set-item, .set-pill');
           if (!btn) return;
+          // I pulsanti di navigazione (Report, Riepilogo) hanno data-page: non trattarli come cambio set
+          if (btn.classList.contains('nav-btn') && btn.hasAttribute('data-page')) {
+            return; // lascia che il listener .nav-btn gestisca la navigazione
+          }
           const targetSet = parseInt(btn.dataset.set, 10);
+          if (!Number.isInteger(targetSet)) return;
           changeSet(targetSet);
           // L'aggiornamento dell'hash è gestito dentro changeSet
         });

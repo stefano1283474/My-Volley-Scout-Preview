@@ -906,7 +906,7 @@
                     try {
                         const [handle] = await window.showOpenFilePicker({
                             multiple: false,
-                            types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }]
+                            types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] } }]
                         });
                         file = await handle.getFile();
                     } catch (err) {
@@ -916,7 +916,7 @@
                 } else {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -937,6 +937,51 @@
                 sessionData.setMeta = {};
                 sessionData.scoreHistoryBySet = {};
                 sessionData.setStateBySet = {};
+
+                // Leggi foglio "El. Gioc." se presente per impostare metadati partita
+                (function(){
+                    try {
+                        const ws = wb.Sheets['El. Gioc.'];
+                        if (!ws) return;
+                        const opponent = ws['D20'] && ws['D20'].v != null ? String(ws['D20'].v).trim() : '';
+                        let matchDate = ws['D21'] && ws['D21'].v != null ? String(ws['D21'].v).trim() : '';
+                        // Se la cella contiene un seriale Excel numerico, converti in YYYY-MM-DD
+                        try {
+                            const mdCell = ws['D21'];
+                            if (mdCell && typeof mdCell.v === 'number') {
+                                const dt = XLSX.SSF.parse_date_code(mdCell.v);
+                                if (dt && dt.y && dt.m && dt.d) {
+                                    matchDate = new Date(dt.y, dt.m - 1, dt.d).toISOString().slice(0,10);
+                                }
+                            }
+                        } catch(_) {}
+                        const eventType = ws['D22'] && ws['D22'].v != null ? String(ws['D22'].v).trim() : '';
+                        const locLabel = ws['D23'] && ws['D23'].v != null ? String(ws['D23'].v).trim().toLowerCase() : '';
+                        const notes = ws['D24'] && ws['D24'].v != null ? String(ws['D24'].v).trim() : '';
+                        const homeAway = (locLabel === 'casa') ? 'home' : (locLabel === 'trasferta' ? 'away' : '');
+                        if (opponent) sessionData.opponentTeam = opponent;
+                        if (matchDate) sessionData.matchDate = matchDate;
+                        if (eventType) sessionData.matchType = eventType;
+                        if (homeAway) sessionData.homeAway = homeAway; else if (locLabel) sessionData.location = locLabel;
+                        if (notes) sessionData.description = notes;
+                        // Roster: B..F da riga 3 → salva come importedRoster per uso nello scouting
+                        const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                        const roster = [];
+                        for (let r = 3; r <= (range.e.r + 1); r++) {
+                            const b = ws[`B${r}`], c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
+                            const num = b && b.v != null ? String(b.v).trim() : '';
+                            const sur = c && c.v != null ? String(c.v).trim() : '';
+                            const nam = d && d.v != null ? String(d.v).trim() : '';
+                            const nick = e && e.v != null ? String(e.v).trim() : '';
+                            const role = f && f.v != null ? String(f.v).trim() : '';
+                            if (!num && !sur && !nam && !nick && !role) continue;
+                            roster.push({ number: num, surname: sur, name: nam, nickname: nick, role });
+                        }
+                        if (roster.length) {
+                            try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+                        }
+                    } catch(_) {}
+                })();
 
                 function detectInitialPhase(ws){
                     try {
