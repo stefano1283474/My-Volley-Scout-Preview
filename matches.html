@@ -1154,13 +1154,12 @@
             }
             if (delBtn) {
                 delBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    const ok = confirm('Confermi l\'eliminazione di questa partita?');
-                    if (!ok) return;
                     try {
                         if (window.matchesModule?.deleteMatch) {
-                            const res = await window.matchesModule.deleteMatch(match.id);
-                            if (!res.success) alert('Errore nell\'eliminazione: ' + (res.error || 'Sconosciuto'));
+                            const res = await window.matchesModule.deleteMatch(match.id, { confirm: true });
+                            if (!res.success && !res.cancelled) alert('Errore nell\'eliminazione: ' + (res.error || 'Sconosciuto'));
                         } else {
                             alert('Modulo partite non disponibile');
                         }

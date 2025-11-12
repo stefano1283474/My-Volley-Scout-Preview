@@ -304,8 +304,15 @@ class MatchesModule {
     /**
      * Elimina una partita
      */
-    async deleteMatch(matchId) {
+    async deleteMatch(matchId, options = { confirm: true }) {
         try {
+            // Conferma eliminazione PRIMA di eseguire l'operazione
+            if (options?.confirm) {
+                const ok = typeof window !== 'undefined' ? window.confirm("Confermi l'eliminazione di questa partita?") : true;
+                if (!ok) {
+                    return { success: false, cancelled: true };
+                }
+            }
             // Rimuovi dal localStorage
             const localMatches = this.getLocalMatches();
             const filteredMatches = localMatches.filter(m => m.id !== matchId);
@@ -323,7 +330,7 @@ class MatchesModule {
             this.notifyMatchesUpdate();
             
             return { success: true };
-            
+
         } catch (error) {
             console.error('Errore nell\'eliminazione partita:', error);
             this.handleError(error);
