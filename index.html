@@ -901,7 +901,7 @@
         // Helper: crea worksheet "El. Gioc." con intestazioni (B2..F2), roster (B3..F) e metadati (etichette in C20..C24, valori in D20..D24)
         function buildRosterSheet(){
             const ws = XLSX.utils.aoa_to_sheet([[]]);
-            const roster = getRosterForExport();
+            const roster = getRosterForExport().slice(0,14);
             // Intestazioni riga 2
             XLSX.utils.sheet_add_aoa(ws, [[ 'N°', 'Cognome', 'Nome', 'Nick', 'Ruolo' ]], { origin: 'B2' });
             if (roster.length){
@@ -944,17 +944,14 @@
                 const setNumber = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
 
                 // Recupera rotazione iniziale dalla sessione; fallback all'attuale
-                let initialRotation = '1';
+                let initialRotation = '';
                 try {
                     const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
-                    if (sessionData && sessionData.setConfig && sessionData.setConfig.ourRotation) {
-                        initialRotation = String(sessionData.setConfig.ourRotation);
-                    } else if (window.appState && window.appState.currentRotation) {
-                        initialRotation = String(window.appState.currentRotation);
-                    }
+                    const meta = sessionData?.setMeta?.[setNumber] || {};
+                    const cfg = sessionData?.setConfig || {};
+                    const raw = meta?.ourRotation || (setNumber === 1 ? cfg?.ourRotation : null) || (window.appState?.currentRotation || '');
+                    initialRotation = String(raw || '').replace(/^P/i, '');
                 } catch(_) {}
-                // Normalizza (es. "P3" → "3")
-                initialRotation = initialRotation.replace(/^P/i, '');
 
                 // Crea workbook, aggiungi PRIMA lo sheet El. Gioc.
                 const wb = XLSX.utils.book_new();
@@ -965,7 +962,18 @@
                 const ws = XLSX.utils.aoa_to_sheet([[]]);
 
                 // A3: rotazione iniziale
-                XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A3' });
+                const sessionDataForSet = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession') || '{}'); } catch(_) { return {}; } })();
+                let opponentRotation = '';
+                try {
+                    const meta = sessionDataForSet?.setMeta?.[setNumber] || {};
+                    const cfg = sessionDataForSet?.setConfig || {};
+                    const raw = meta?.opponentRotation || (setNumber === 1 ? cfg?.opponentRotation : null) || '';
+                    opponentRotation = String(raw || '').replace(/^P/i, '');
+                } catch(_) {}
+                XLSX.utils.sheet_add_aoa(ws, [[opponentRotation]], { origin: 'A6' });
+                XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Avversaria' ]], { origin: 'B6' });
+                XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A7' });
+                XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Nostra Iniziale' ]], { origin: 'B7' });
 
                 // B18 in poi: quartine
                 const startRow = 18; // 1-indexed per Excel, zero-based per API
@@ -1113,16 +1121,26 @@
 
                 for (let setNum = 1; setNum <= 6; setNum++) {
                     const actions = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : [];
-                    let rot = 'P1';
+                    let initialRotation = '';
                     try {
                         const metaRot = sessionData?.setMeta?.[setNum]?.ourRotation;
                         const cfgRot = sessionData?.setConfig?.ourRotation;
-                        rot = metaRot || (setNum === 1 ? cfgRot || 'P1' : 'P1');
+                        const raw = metaRot || (setNum === 1 ? cfgRot : null) || '';
+                        initialRotation = String(raw || '').replace(/^P/i, '');
                     } catch(_) {}
-                    const initialRotation = String(rot || 'P1').replace(/^P/i, '');
 
                     const ws = XLSX.utils.aoa_to_sheet([[]]);
-                    XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A3' });
+                    let opponentRotation = '';
+                    try {
+                        const meta = sessionData?.setMeta?.[setNum] || {};
+                        const cfg = sessionData?.setConfig || {};
+                        const raw = meta?.opponentRotation || (setNum === 1 ? cfg?.opponentRotation : null) || '';
+                        opponentRotation = String(raw || '').replace(/^P/i, '');
+                    } catch(_) {}
+                    XLSX.utils.sheet_add_aoa(ws, [[opponentRotation]], { origin: 'A6' });
+                    XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Avversaria' ]], { origin: 'B6' });
+                    XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A7' });
+                    XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Nostra Iniziale' ]], { origin: 'B7' });
                     const startRow = 18;
                     const aoa = actions.map(log => [ String(log && log.action ? log.action : '') ]);
                     if (aoa.length) {
@@ -1283,11 +1301,15 @@
                     const ws = wb.Sheets[sheetName];
                     if (!ws) continue; // foglio mancante: salta
 
-                    // Rotazione iniziale (A3 -> es. "1"; memorizza come "P1")
-                    let initialRotation = 'P1';
+                    let initialRotation = '';
                     try {
-                        const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
-                        if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
+                        const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';
+                        if (a7) initialRotation = `P${String(a7).replace(/^P/i,'')}`;
+                    } catch(_) {}
+                    let opponentRotation = null;
+                    try {
+                        const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : '';
+                        if (a6) opponentRotation = `P${String(a6).replace(/^P/i,'')}`;
                     } catch(_) {}
 
                     // Fase iniziale dedotta dal terzo carattere della prima quartina in B18
@@ -1308,8 +1330,9 @@
                     // Aggiorna struttura sessione
                     sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
                     sessionData.setMeta[setNum] = sessionData.setMeta[setNum] || {};
-                    sessionData.setMeta[setNum].ourRotation = initialRotation;
+                    sessionData.setMeta[setNum].ourRotation = initialRotation || sessionData.setMeta[setNum].ourRotation || 'P1';
                     sessionData.setMeta[setNum].phase = initialPhase;
+                    if (opponentRotation) sessionData.setMeta[setNum].opponentRotation = opponentRotation;
 
                     totalActions += quartets.length;
                     importedSets++;
@@ -1395,11 +1418,38 @@
                         sessionData.setConfig = sessionData.setConfig || {};
                         sessionData.setConfig.ourRotation = meta1.ourRotation;
                         sessionData.setConfig.phase = meta1.phase;
+                        if (meta1.opponentRotation) sessionData.setConfig.opponentRotation = meta1.opponentRotation;
                     }
                 } catch(_) {}
 
                 // Persisti sessione aggiornata
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+
+                // Crea/aggiorna voce partita nell'elenco locale e reindirizza all'elenco
+                try {
+                    const teamId = localStorage.getItem('selectedTeamId') || null;
+                    const matchId = `m_${Date.now()}`;
+                    const match = {
+                        id: matchId,
+                        teamId,
+                        opponentTeam: sessionData.opponentTeam || sessionData.opponent || 'Avversario',
+                        matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+                        matchType: sessionData.matchType || sessionData.eventType || 'partita',
+                        homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
+                        description: sessionData.description || '',
+                        actionsBySet: sessionData.actionsBySet || {},
+                        setMeta: sessionData.setMeta || {},
+                        setStateBySet: sessionData.setStateBySet || {},
+                        scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                        createdAt: new Date().toISOString(),
+                        status: 'in_progress'
+                    };
+                    const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
+                    local.unshift(match);
+                    localStorage.setItem('volleyMatches', JSON.stringify(local));
+                    window.location.href = 'matches.html';
+                    return;
+                } catch(_) {}
 
                 // Se siamo nella pagina scouting, ricarica set corrente con nuovi dati
                 try {
@@ -1481,16 +1531,25 @@
                 const ws = sheetName ? wb.Sheets[sheetName] : null;
                 if (!ws) { alert('File Excel non valido: nessun foglio trovato.'); return; }
 
-                // Leggi rotazione iniziale da A3 (es. "1") e applica come "P1"
                 try {
-                    const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
-                    if (a3) {
-                        const rotNum = a3.replace(/^P/i, '');
-                        if (window.appState) {
-                            window.appState.currentRotation = `P${rotNum}`;
-                            try { updateNextFundamental && updateNextFundamental(); } catch(_) {}
-                        }
+                    const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';
+                    const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : '';
+                    const rotNum = a7 ? a7.replace(/^P/i, '') : '';
+                    const oppNum = a6 ? a6.replace(/^P/i, '') : '';
+                    const setNumber = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+                    if (rotNum && window.appState) {
+                        window.appState.currentRotation = `P${rotNum}`;
+                        try { updateNextFundamental && updateNextFundamental(); } catch(_) {}
                     }
+                    try {
+                        const raw = localStorage.getItem('currentScoutingSession');
+                        const session = raw ? JSON.parse(raw) : {};
+                        session.setMeta = session.setMeta || {};
+                        session.setMeta[setNumber] = session.setMeta[setNumber] || {};
+                        if (rotNum) session.setMeta[setNumber].ourRotation = `P${rotNum}`;
+                        if (oppNum) session.setMeta[setNumber].opponentRotation = `P${oppNum}`;
+                        localStorage.setItem('currentScoutingSession', JSON.stringify(session));
+                    } catch(_) {}
                 } catch (_) {}
 
                 // Rileva intervallo foglio e raccogli B18.. contenenti le quartine
@@ -1760,15 +1819,17 @@
             const current = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
             if (Number(targetSet) === Number(current)) { updateActiveSetUI(targetSet); return; }
 
-            // Verifica configurazione globale (Set 1) prima del cambio
+            // Verifica configurazione Set 1: apri dialog solo se mancano sia config globale sia meta del Set 1
             try {
               const raw = localStorage.getItem('currentScoutingSession');
               const session = raw ? JSON.parse(raw) : {};
               const cfg = session?.setConfig || {};
               const hasGlobalConfig = !!(cfg?.ourRotation && cfg?.phase);
-              if (!hasGlobalConfig) {
+              const meta1 = session?.setMeta?.[1] || null;
+              const hasMeta1 = !!(meta1 && meta1.ourRotation && meta1.phase);
+              if (Number(targetSet) === 1 && !(hasGlobalConfig || hasMeta1)) {
                 openSetMetaDialog(targetSet);
-                return; // attende salvataggio e continua da dialog
+                return;
               }
             } catch(_){}
 
@@ -1795,7 +1856,7 @@
 
             if (!hasMeta) {
               openSetMetaDialog(targetSet);
-              return; // attende salvataggio e continua da dialog
+              return;
             }
 
             // Prima: memorizza i dati del set corrente nella sessione
@@ -1845,6 +1906,7 @@
             }
 
             updateActiveSetUI(targetSet);
+            try { if (typeof window.updateSetSidebarColors === 'function') window.updateSetSidebarColors(); } catch(_) {}
 
             // Aggiorna URL hash per supportare deep-link e navigazione
             try {
@@ -1910,6 +1972,7 @@
         } catch(_) {}
         if (window.appState && window.appState.currentSet) initial = window.appState.currentSet;
         updateActiveSetUI(initial);
+        try { if (typeof window.updateSetSidebarColors === 'function') window.updateSetSidebarColors(); } catch(_) {}
         // Sincronizza URL all'iniziale se non già presente
         try {
           const desired = `#/set/${Number(initial)}`;

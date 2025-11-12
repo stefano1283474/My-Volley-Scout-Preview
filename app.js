@@ -134,6 +134,22 @@ window.loadScoutingSession = function(sessionData) {
                     if (team && Array.isArray(team.players)) loadedRoster = team.players;
                 } catch(_) {}
             }
+            if (!Array.isArray(loadedRoster) || !loadedRoster.length) {
+                try {
+                    let candidateName = md.myTeam || md.teamName || '';
+                    const selId = localStorage.getItem('selectedTeamId');
+                    if (selId && window.teamsModule && typeof window.teamsModule.getTeamById === 'function') {
+                        const tt = window.teamsModule.getTeamById(selId);
+                        if (tt && tt.name) candidateName = tt.name;
+                    }
+                    const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
+                    const key = String(candidateName||'').toLowerCase();
+                    const found = list.find(r => String(r.name||'').toLowerCase() === key);
+                    if (found && Array.isArray(found.players) && found.players.length) {
+                        loadedRoster = found.players;
+                    }
+                } catch(_) {}
+            }
         } catch(_) {}
         appState.currentRoster = Array.isArray(loadedRoster) ? loadedRoster : [];
 
@@ -201,6 +217,16 @@ window.loadScoutingSession = function(sessionData) {
 
         // Imposta pagina Start-Scouting attiva all’arrivo
         switchPage('scouting');
+
+        try {
+            const hasActions = Array.isArray(appState.actionsLog) && appState.actionsLog.length > 0;
+            const hasHistory = Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 1;
+            if (hasActions && !hasHistory) {
+                appState.setStarted = true;
+                recomputeFromActionsLog();
+                try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch(_) {}
+            }
+        } catch(_) {}
     } catch (e) {
         console.error('Errore loadScoutingSession:', e);
     }
@@ -854,6 +880,26 @@ function initializeApp() {
         if (analysisBtn) {
             analysisBtn.addEventListener('click', () => switchPage('analysis'));
         }
+        try {
+            const rawTeams = localStorage.getItem('volleyTeams');
+            const teams = rawTeams ? JSON.parse(rawTeams) : [];
+            let changed = false;
+            const fixed = teams.map(t => {
+                if (!Array.isArray(t.players) || t.players.length === 0) {
+                    try {
+                        const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
+                        const nameKey = String(t.name||'').toLowerCase();
+                        const found = list.find(r => String(r.name||'').toLowerCase() === nameKey);
+                        if (found && Array.isArray(found.players) && found.players.length) {
+                            changed = true;
+                            return { ...t, players: found.players };
+                        }
+                    } catch(_) {}
+                }
+                return t;
+            });
+            if (changed) localStorage.setItem('volleyTeams', JSON.stringify(fixed));
+        } catch(_) {}
 
         // Delegazione click per i pulsanti filtro set (Riepilogo All)
         document.addEventListener('click', (ev) => {
@@ -1481,6 +1527,21 @@ function initializeScoutingPage() {
                 }
                 if (Array.isArray(roster) && roster.length > 0) {
                     appState.currentRoster = roster;
+                } else {
+                    try {
+                        const selId = localStorage.getItem('selectedTeamId');
+                        let teamName = '';
+                        if (selId && window.teamsModule && typeof window.teamsModule.getTeamById === 'function') {
+                            const tm = window.teamsModule.getTeamById(selId);
+                            teamName = tm && tm.name ? tm.name : '';
+                        }
+                        const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
+                        const key = String(teamName||'').toLowerCase();
+                        const found = list.find(r => String(r.name||'').toLowerCase() === key);
+                        if (found && Array.isArray(found.players) && found.players.length) {
+                            appState.currentRoster = found.players;
+                        }
+                    } catch(_) {}
                 }
             }
         } catch (_) {}
@@ -1558,6 +1619,7 @@ function recomputeFromActionsLog() {
         // Esegui comunque il ricalcolo: se ci sono azioni o metadati di set, ricostruisci lo stato.
         const actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
         const setNumber = (typeof appState.currentSet === 'number' && appState.currentSet > 0) ? appState.currentSet : 1;
+        console.info('Ricalcolo azioni', { setNumber, count: actions.length });
         // Se il flag non è impostato, attivalo quando ci sono azioni (copre riprese di sessione e cancellazioni)
         if (!appState.setStarted && actions.length > 0) {
             appState.setStarted = true;
@@ -1665,7 +1727,6 @@ function recomputeFromActionsLog() {
         updateCurrentPhaseDisplay();
         updateNextFundamental();
         updateScoreHistoryDisplay();
-        checkSetEnd();
         scheduleAutosave(600);
     } catch (err) {
         console.error('Errore nel ricalcolo da actionsLog:', err);
@@ -2896,6 +2957,14 @@ function startSet() {
     switchPage('scouting');
     
     console.log('Set avviato con successo:', { setNumber, rotation, phase });
+
+    try {
+        const hasActions = Array.isArray(appState.actionsLog) && appState.actionsLog.length > 0;
+        const hasHistory = Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 1;
+        if (hasActions && !hasHistory) {
+            recomputeFromActionsLog();
+        }
+    } catch(_) {}
 }
 
 function updateMatchSummary() {
@@ -3089,43 +3158,40 @@ function submitAction() {
 }
 
 function parseAction(actionString) {
-    // Parsing della stringa di azione
-    const parts = actionString.split(' ');
-    const actions = [];
-    let finalResult = null;
-    
-    for (const part of parts) {
-        if (part === 'avv') {
-            finalResult = 'home_point';
+    const raw = String(actionString || '').trim();
+    const tokens = [];
+    if (!raw) return { actions: [], result: 'continue' };
+
+    if (raw.includes(' ')) {
+        raw.split(' ').forEach(t => { const s = t.trim(); if (s) tokens.push(s); });
+    } else {
+        let i = 0;
+        while (i < raw.length) {
+            const rest = raw.slice(i);
+            if (/^avv/i.test(rest)) { tokens.push('avv'); i += 3; continue; }
+            const m = rest.match(/^\d{2}[bramdBRAMD]\d/);
+            if (m) { tokens.push(m[0]); i += m[0].length; continue; }
             break;
         }
-        
-        if (part.length >= 3) {
+    }
+
+    const actions = [];
+    let finalResult = 'continue';
+    for (let idx = 0; idx < tokens.length; idx++) {
+        const part = tokens[idx];
+        if (/^avv$/i.test(part)) { finalResult = 'home_point'; continue; }
+        if (part.length >= 4) {
             const playerNumber = part.substring(0, 2);
-            const fundamental = part.charAt(2);
-            const evaluation = parseInt(part.charAt(3));
-            
-            if (isNaN(evaluation) || evaluation < 1 || evaluation > 5) {
-                throw new Error(`Valutazione non valida: ${evaluation}`);
-            }
-            
-            actions.push({
-                player: playerNumber,
-                fundamental: fundamental,
-                evaluation: evaluation
-            });
-            
-            // Determina il risultato basato sull'ultima azione
-            if (actions.length === parts.length) {
-                finalResult = determineFinalResult(fundamental, evaluation);
-            }
+            const fundamental = part.charAt(2).toLowerCase();
+            const evaluation = parseInt(part.charAt(3), 10);
+            if (isNaN(evaluation) || evaluation < 1 || evaluation > 5) throw new Error('Valutazione non valida');
+            actions.push({ player: playerNumber, fundamental, evaluation });
+            const isLastQuartet = (idx === tokens.length - 1) || (idx === tokens.length - 2 && /^avv$/i.test(tokens[tokens.length - 1]));
+            if (isLastQuartet) finalResult = determineFinalResult(fundamental, evaluation);
         }
     }
-    
-    return {
-        actions: actions,
-        result: finalResult
-    };
+
+    return { actions, result: finalResult };
 }
 
 function determineFinalResult(fundamental, evaluation) {
@@ -3308,6 +3374,7 @@ function __getSetMetaPresence(setNum){
 function __getSetDataSnapshot(setNum){
     let actions = [];
     let home = 0, away = 0;
+    let started = false;
     try {
         const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
         const abSet = session.actionsBySet || {};
@@ -3317,6 +3384,7 @@ function __getSetDataSnapshot(setNum){
             actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
             home = Number(appState.homeScore||0);
             away = Number(appState.awayScore||0);
+            started = !!appState.setStarted;
             // Fallback: se il set corrente non ha dati in appState (es. pagina report), usa i dati della sessione
             if ((!actions || actions.length === 0) && (!home && !away)) {
                 actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
@@ -3330,6 +3398,7 @@ function __getSetDataSnapshot(setNum){
                     home = Number(last?.homeScore||0);
                     away = Number(last?.awayScore||0);
                 }
+                started = !!st.setStarted;
             }
         } else {
             actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
@@ -3343,9 +3412,10 @@ function __getSetDataSnapshot(setNum){
                 home = Number(last?.homeScore||0);
                 away = Number(last?.awayScore||0);
             }
+            started = !!st.setStarted;
         }
     } catch(_) {}
-    return { actions, home, away };
+    return { actions, home, away, started };
 }
 
 function __isSetCompleted(setNum, home, away){
@@ -3363,10 +3433,7 @@ function __computeSetStatus(setNum){
     const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
     const completed = __isSetCompleted(setNum, snap.home, snap.away);
     if (completed) return 'completed';
-    if (hasQuartine) return 'partial';
-    // Nessuna classe per i set non iniziati (colore di default)
-    // La definizione di "non iniziato" richiede sia meta mancanti che assenza di quartine,
-    // ma non serve una classe dedicata: lasciamo il colore corrente.
+    if (hasQuartine || snap.started || hasMeta) return 'partial';
     return 'none';
 }
 
@@ -3376,7 +3443,9 @@ function updateSetSidebarColors(){
         if (!list) return;
         const items = list.querySelectorAll('.set-item');
         items.forEach(btn => {
-            const n = parseInt(btn.dataset.set, 10);
+            const ds = btn.dataset && btn.dataset.set;
+            const n = Number.parseInt(ds, 10);
+            if (!Number.isInteger(n)) return;
             btn.classList.remove('status-completed','status-partial');
             const status = __computeSetStatus(n);
             if (status === 'completed') btn.classList.add('status-completed');

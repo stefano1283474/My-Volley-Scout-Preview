@@ -21,6 +21,10 @@ console.log('Analytics disabilitato per migliorare le performance');
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const isLocal = (typeof location !== 'undefined') && (location.hostname === 'localhost');
+if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+  firebase.firestore.setLogLevel('error');
+}
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 // Configura il provider Google per funzionare in locale
 googleProvider.setCustomParameters({
@@ -28,10 +32,10 @@ googleProvider.setCustomParameters({
 });
 
 // Configure Firestore settings to reduce connection errors
-db.settings({
+db.settings(Object.assign({
   cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
   ignoreUndefinedProperties: true
-});
+}, isLocal ? { experimentalAutoDetectLongPolling: true } : {}));
 
 // Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true })

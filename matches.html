@@ -383,7 +383,7 @@
                 </div>
             </div>
             <div class="back-actions">
-                <a href="#" id="backBtn" class="back-btn" aria-label="Indietro" title="Indietro">←</a>
+                <a href="welcome.html" id="backBtn" class="back-btn" aria-label="Elenco Squadre" title="Elenco Squadre">←</a>
             </div>
             <div class="account-actions">
                 <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
@@ -563,11 +563,7 @@
             if (backBtn){
                 backBtn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (window.history.length > 1){
-                        window.history.back();
-                    } else {
-                        window.location.href = 'welcome.html';
-                    }
+                    window.location.href = 'welcome.html';
                 });
             }
             // Azioni Elenco: nuova partita e import
@@ -898,7 +894,7 @@
             if (dlg) { try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); } }
         }
 
-        // Importa partita da Excel dalla pagina Partite: crea sessione e apre lo scouting
+        // Importa partita da Excel dalla pagina Partite: crea voce in elenco e resta in lista
         async function importMatchFromExcelOnMatches(){
             try {
                 let file = null;
@@ -1010,10 +1006,14 @@
                     const sheetName = `Set ${setNum}`;
                     const ws = wb.Sheets[sheetName];
                     if (!ws) continue;
-                    let initialRotation = 'P1';
+                    let initialRotation = '';
                     try {
-                        const a3 = ws['A3'] && ws['A3'].v != null ? String(ws['A3'].v).trim() : '';
-                        if (a3) initialRotation = `P${String(a3).replace(/^P/i,'')}`;
+                        const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';
+                        if (a7) initialRotation = `P${String(a7).replace(/^P/i,'')}`;
+                    } catch(_) {}
+                    try {
+                        const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : '';
+                        if (a6) sessionData.setMeta[setNum] = { ...(sessionData.setMeta[setNum]||{}), opponentRotation: `P${String(a6).replace(/^P/i,'')}` };
                     } catch(_) {}
                     const initialPhase = deduceInitialPhaseFromB18(ws);
                     const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
@@ -1046,7 +1046,33 @@
                     if (teamId) sessionData.teamId = teamId;
                 } catch(_) {}
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
-                window.location.href = 'index.html';
+                try {
+                    const matchId = `m_${Date.now()}`;
+                    const match = {
+                        id: matchId,
+                        teamId: sessionData.teamId || null,
+                        opponentTeam: sessionData.opponentTeam || 'Avversario',
+                        matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+                        matchType: sessionData.matchType || 'partita',
+                        homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
+                        description: sessionData.description || '',
+                        actionsBySet: sessionData.actionsBySet || {},
+                        setMeta: sessionData.setMeta || {},
+                        setStateBySet: sessionData.setStateBySet || {},
+                        scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                        createdAt: new Date().toISOString(),
+                        status: 'in_progress'
+                    };
+                    if (window.matchesModule?.saveMatch) {
+                        const res = await window.matchesModule.saveMatch(match);
+                        if (!res.success) console.warn('Salvataggio match importato fallito:', res.error);
+                    } else {
+                        const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
+                        local.unshift(match);
+                        localStorage.setItem('volleyMatches', JSON.stringify(local));
+                    }
+                    renderMatches();
+                } catch(err){ console.warn('Errore salvataggio partita importata:', err); }
             } catch (error) {
                 alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
             }
