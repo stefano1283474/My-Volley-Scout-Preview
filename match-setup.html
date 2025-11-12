@@ -121,7 +121,12 @@
                             <label for="matchDate">
                                 Data Partita <span class="required">*</span>
                             </label>
-                            <input type="date" id="matchDate" name="matchDate" required>
+                            <div class="date-grid" aria-label="Seleziona la data della partita">
+                                <select id="matchDateDay" required aria-label="Giorno"></select>
+                                <select id="matchDateMonth" required aria-label="Mese"></select>
+                                <select id="matchDateYear" required aria-label="Anno"></select>
+                            </div>
+                            <input type="hidden" id="matchDate" name="matchDate" required>
                             <small id="matchDatePreview" style="color:#6c757d; display:block; margin-top:4px;" aria-live="polite"></small>
                         </div>
                     </div>
@@ -256,24 +261,101 @@
             });
         }
 
-        function setDefaultDate() {
+        // --- Controlli data personalizzati (gg Mese AAAA) ---
+        function pad2(n){ return String(n).padStart(2,'0'); }
+        const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+        function getDaysInMonth(year, monthIndex){ return new Date(year, monthIndex + 1, 0).getDate(); }
+
+        function populateMonthOptions(){
+            const mSel = document.getElementById('matchDateMonth');
+            if (!mSel) return;
+            mSel.innerHTML = '';
+            IT_MONTHS.forEach((name, idx) => {
+                const opt = document.createElement('option');
+                opt.value = String(idx);
+                opt.textContent = name;
+                mSel.appendChild(opt);
+            });
+        }
+        function populateYearOptions(){
+            const ySel = document.getElementById('matchDateYear');
+            if (!ySel) return;
+            ySel.innerHTML = '';
+            const current = new Date().getFullYear();
+            for(let y = current - 2; y <= current + 5; y++){
+                const opt = document.createElement('option');
+                opt.value = String(y);
+                opt.textContent = String(y);
+                ySel.appendChild(opt);
+            }
+        }
+        function populateDayOptions(year, monthIndex){
+            const dSel = document.getElementById('matchDateDay');
+            if (!dSel) return;
+            dSel.innerHTML = '';
+            const days = getDaysInMonth(year, monthIndex);
+            for(let d = 1; d <= days; d++){
+                const opt = document.createElement('option');
+                opt.value = String(d);
+                opt.textContent = pad2(d);
+                dSel.appendChild(opt);
+            }
+        }
+        function syncMatchDateHidden(){
+            const dSel = document.getElementById('matchDateDay');
+            const mSel = document.getElementById('matchDateMonth');
+            const ySel = document.getElementById('matchDateYear');
+            const hidden = document.getElementById('matchDate');
+            if (!dSel || !mSel || !ySel || !hidden) return;
+            const day = parseInt(dSel.value,10);
+            const monthIndex = parseInt(mSel.value,10);
+            const year = parseInt(ySel.value,10);
+            if (Number.isFinite(day) && Number.isFinite(monthIndex) && Number.isFinite(year)){
+                hidden.value = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
+            } else {
+                hidden.value = '';
+            }
+        }
+        function setDefaultDate(){
+            populateMonthOptions();
+            populateYearOptions();
             const today = new Date();
-            const dateString = today.toISOString().split('T')[0];
-            document.getElementById('matchDate').value = dateString;
+            const ySel = document.getElementById('matchDateYear');
+            const mSel = document.getElementById('matchDateMonth');
+            const dSel = document.getElementById('matchDateDay');
+            if (!ySel || !mSel || !dSel) return;
+            ySel.value = String(today.getFullYear());
+            mSel.value = String(today.getMonth());
+            populateDayOptions(today.getFullYear(), today.getMonth());
+            dSel.value = String(today.getDate());
+            syncMatchDateHidden();
             updateDatePreview();
-            updateSubmitState();
         }
 
         function bindLiveValidation() {
             const opponentEl = document.getElementById('opponent');
-            const matchDateEl = document.getElementById('matchDate');
+            const dSel = document.getElementById('matchDateDay');
+            const mSel = document.getElementById('matchDateMonth');
+            const ySel = document.getElementById('matchDateYear');
             const eventTypeEl = document.getElementById('eventType');
             const locationEl = document.getElementById('locationInput');
             if (opponentEl) opponentEl.addEventListener('input', updateSubmitState);
-            if (matchDateEl) {
-                matchDateEl.addEventListener('change', () => { updateDatePreview(); updateSubmitState(); });
-                matchDateEl.addEventListener('input', () => { updateDatePreview(); updateSubmitState(); });
-            }
+            [dSel, mSel, ySel].forEach(sel => {
+                if (!sel) return;
+                sel.addEventListener('change', () => {
+                    const year = parseInt(ySel.value,10);
+                    const monthIndex = parseInt(mSel.value,10);
+                    if (sel === mSel || sel === ySel){
+                        const currentDay = parseInt(dSel.value,10) || 1;
+                        populateDayOptions(year, monthIndex);
+                        const maxDay = getDaysInMonth(year, monthIndex);
+                        dSel.value = String(Math.min(currentDay, maxDay));
+                    }
+                    syncMatchDateHidden();
+                    updateDatePreview();
+                    updateSubmitState();
+                });
+            });
             if (eventTypeEl) eventTypeEl.addEventListener('change', updateSubmitState);
             if (locationEl) locationEl.addEventListener('change', updateSubmitState);
         }
