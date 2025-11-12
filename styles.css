@@ -607,8 +607,7 @@ body {
 .player-row,
 .player-row.player-header {
   display: grid;
-  /* Colonne compatte: N (contenuto), 3 campi da 12ch, ruolo 4ch, azioni contenuto */
-  grid-template-columns: max-content 12ch 12ch 12ch 4ch max-content;
+  grid-template-columns: 4ch 12ch 12ch 12ch 4ch max-content;
   align-items: center;
   gap: 0; /* elimina qualsiasi spazio tra i campi */
 }
@@ -3552,7 +3551,7 @@ body {
 /* -------------------------------
    Roster: campi e bottone rimozione
    ------------------------------- */
-.player-row input.num-input { width: 2.6ch; text-align: center; }
+.player-row input.num-input { width: 3ch; text-align: center; box-sizing: border-box; padding: 0.15rem; }
 .player-row input.name-input { width: 12ch; min-width: 0; }
 .player-row input.surname-input { width: 12ch; min-width: 0; }
 .player-row input.nick-input { width: 12ch; min-width: 0; }
