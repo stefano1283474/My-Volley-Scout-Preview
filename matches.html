@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Volley Scout - Gestione Partite</title>
+    <link rel="stylesheet" href="styles.css?v=3">
     <link rel="stylesheet" href="animations.css?v=1">
     <style>
         * {
@@ -411,6 +412,14 @@
             <div class="section-title-row">
                 <h2 class="section-title">Elenco Partite</h2>
                 <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
+                  <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M7 4h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M7 10h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M7 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M17 16l2 2 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                   <button id="newMatchBtn" class="icon-button" aria-label="Nuova partita" title="Nuova partita">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -480,6 +489,7 @@
         let currentUser = null;
         let selectedTeam = null;
         let matches = [];
+        let __sortAsc = false;
 
         // Elementi DOM
         const teamName = document.getElementById('teamName');
@@ -499,6 +509,7 @@
         const inlineMatchForm = document.getElementById('inlineMatchForm');
         const newMatchBtn = document.getElementById('newMatchBtn');
         const importMatchBtn = document.getElementById('importMatchBtn');
+        const sortByDateBtn = document.getElementById('sortByDateBtn');
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -572,6 +583,7 @@
                 window.location.href = 'match-setup.html';
             });
             if (importMatchBtn) importMatchBtn.addEventListener('click', importMatchFromExcelOnMatches);
+            if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             // Form nuova partita (dialog)
             if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
             // Mostra/nascondi campo torneo
@@ -924,9 +936,13 @@
                 }
 
                 if (!file) return;
+                try { showImportProgress('Importazione partita'); } catch(_) {}
+                try { updateImportProgress(10, 'Lettura file'); } catch(_) {}
 
                 const data = await file.arrayBuffer();
+                try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
                 const wb = XLSX.read(data, { type: 'array' });
+                try { updateImportProgress(40, 'Analisi fogli'); } catch(_) {}
 
                 const sessionData = {};
                 sessionData.actionsBySet = {};
@@ -985,7 +1001,8 @@
                             roster.push({ number: num, surname: sur, name: nam, nickname: nick, role });
                         }
                         if (roster.length) {
-                            try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+                        try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+                        try { updateImportProgress(55, 'Metadati e roster'); } catch(_) {}
                         }
                     } catch(_) {}
                 })();
@@ -1026,8 +1043,19 @@
                         if (!val) continue;
                         quartets.push(val);
                     }
+                    let homeScore = 0;
+                    let awayScore = 0;
+                    try {
+                        const c12 = ws['C12'] && ws['C12'].v != null ? ws['C12'].v : null;
+                        const e12 = ws['E12'] && ws['E12'].v != null ? ws['E12'].v : null;
+                        homeScore = Number(c12 || 0) || 0;
+                        awayScore = Number(e12 || 0) || 0;
+                    } catch(_) {}
                     sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
                     sessionData.setMeta[setNum] = { ourRotation: initialRotation, phase: initialPhase };
+                    sessionData.setSummary = sessionData.setSummary || {};
+                    sessionData.setSummary[setNum] = { home: homeScore, away: awayScore, rotation: initialRotation || 'P1', phase: initialPhase };
+                    try { updateImportProgress(55 + Math.round((setNum/6)*35), 'Set ' + setNum); } catch(_) {}
                 }
 
                 // Imposta configurazione globale del set (usa meta del Set 1)
@@ -1046,33 +1074,39 @@
                     if (teamId) sessionData.teamId = teamId;
                 } catch(_) {}
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
-                try {
+                try { updateImportProgress(92, 'Riepilogo pronto'); } catch(_) {}
+                try { updateImportProgress(100, 'Completato'); } catch(_) {}
+                try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
+
+                try { showImportSummary(sessionData).then(async () => {
+                  try {
                     const matchId = `m_${Date.now()}`;
                     const match = {
-                        id: matchId,
-                        teamId: sessionData.teamId || null,
-                        opponentTeam: sessionData.opponentTeam || 'Avversario',
-                        matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
-                        matchType: sessionData.matchType || 'partita',
-                        homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
-                        description: sessionData.description || '',
-                        actionsBySet: sessionData.actionsBySet || {},
-                        setMeta: sessionData.setMeta || {},
-                        setStateBySet: sessionData.setStateBySet || {},
-                        scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
-                        createdAt: new Date().toISOString(),
-                        status: 'in_progress'
+                      id: matchId,
+                      teamId: sessionData.teamId || null,
+                      opponentTeam: sessionData.opponentTeam || 'Avversario',
+                      matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+                      matchType: sessionData.matchType || 'partita',
+                      homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
+                      description: sessionData.description || '',
+                      actionsBySet: sessionData.actionsBySet || {},
+                      setMeta: sessionData.setMeta || {},
+                      setStateBySet: sessionData.setStateBySet || {},
+                      scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                      createdAt: new Date().toISOString(),
+                      status: 'in_progress'
                     };
                     if (window.matchesModule?.saveMatch) {
-                        const res = await window.matchesModule.saveMatch(match);
-                        if (!res.success) console.warn('Salvataggio match importato fallito:', res.error);
+                      const res = await window.matchesModule.saveMatch(match);
+                      if (!res.success) console.warn('Salvataggio match importato fallito:', res.error);
                     } else {
-                        const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
-                        local.unshift(match);
-                        localStorage.setItem('volleyMatches', JSON.stringify(local));
+                      const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
+                      local.unshift(match);
+                      localStorage.setItem('volleyMatches', JSON.stringify(local));
                     }
                     renderMatches();
-                } catch(err){ console.warn('Errore salvataggio partita importata:', err); }
+                  } catch(err){ console.warn('Errore salvataggio partita importata:', err); }
+                }); } catch(_) {}
             } catch (error) {
                 alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
             }
@@ -1094,6 +1128,28 @@
                 return;
             }
 
+            const toTs = (m) => {
+                const raw = m.date || m.matchDate || m.createdAt || '';
+                let d = null;
+                if (raw instanceof Date) d = raw;
+                else if (typeof raw === 'string') {
+                    const s = raw.trim();
+                    if (/^\d{4}-\d{2}-\d{2}/.test(s)) d = new Date(s);
+                    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+                        const [dd, mm, yyyy] = s.split('/').map(Number);
+                        d = new Date(yyyy, mm - 1, dd);
+                    } else if (!isNaN(Date.parse(s))) d = new Date(s);
+                } else if (typeof raw === 'number') d = new Date(raw);
+                else if (raw && raw.toDate) { try { d = raw.toDate(); } catch { d = null; } }
+                return (d instanceof Date && !isNaN(d)) ? d.getTime() : 0;
+            };
+
+            relevant.sort((a, b) => {
+                const ta = toTs(a);
+                const tb = toTs(b);
+                return __sortAsc ? (ta - tb) : (tb - ta);
+            });
+
             matchesList.innerHTML = '';
             emptyMatches.style.display = 'none';
 
@@ -1103,7 +1159,6 @@
             });
         }
 
-        // Formatta la data in italiano: Giorno mese anno (es. "11 novembre 2025")
         function formatItalianDateDisplay(raw) {
             let d = null;
             if (raw instanceof Date) {
@@ -1114,22 +1169,22 @@
                     // ISO string YYYY-MM-DD
                     d = new Date(s);
                 } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-                    // Formato italiano dd/mm/yyyy
                     const [day, month, year] = s.split('/').map(Number);
                     d = new Date(year, month - 1, day);
                 } else if (!isNaN(Date.parse(s))) {
-                    // Fallback: qualunque stringa parsabile
                     d = new Date(s);
                 }
             } else if (typeof raw === 'number') {
                 d = new Date(raw);
             } else if (raw && raw.toDate) {
-                // Supporto a timestamp Firestore
                 try { d = raw.toDate(); } catch { d = null; }
             }
 
             if (!(d instanceof Date) || isNaN(d)) return '';
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${dd} ${mm} ${yyyy}`;
         }
 
         function createMatchCard(match) {
@@ -1523,6 +1578,145 @@
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
       })();
     </script>
+    <div id="import-progress" class="import-progress" hidden>
+      <div class="import-progress-title">Importazione</div>
+      <div class="import-progress-bar"><div class="import-progress-fill" id="import-progress-fill"></div></div>
+      <div class="import-progress-text" id="import-progress-text"></div>
+    </div>
+    <script>
+      function showImportProgress(title){
+        var el=document.getElementById('import-progress');
+        if(!el) return;
+        el.hidden=false;
+        var t=el.querySelector('.import-progress-title');
+        if(t) t.textContent=title||'Importazione';
+        var f=document.getElementById('import-progress-fill');
+        if(f) f.style.width='0%';
+        var tx=document.getElementById('import-progress-text');
+        if(tx) tx.textContent='';
+      }
+      function updateImportProgress(p,text){
+        var f=document.getElementById('import-progress-fill');
+        if(f) f.style.width=(Math.max(0,Math.min(100,Math.round(p)))+'%');
+        var tx=document.getElementById('import-progress-text');
+        if(tx && text!=null) tx.textContent=String(text);
+      }
+      function hideImportProgress(){
+        var el=document.getElementById('import-progress');
+        if(el) el.hidden=true;
+      }
+    </script>
+    <script>
+      async function showImportSummary(sessionData){
+        return new Promise((resolve) => {
+          var dlg = document.getElementById('import-summary-dialog');
+          var list = document.getElementById('importSummaryList');
+          var ok = document.getElementById('importSummaryOk');
+          var closeBtn = document.getElementById('importSummaryClose');
+          if (!dlg || !list || !ok || !closeBtn) { resolve(); return; }
+          list.innerHTML = '';
+          var dateVal = (sessionData && (sessionData.matchDate || sessionData.date)) ? String(sessionData.matchDate || sessionData.date).slice(0,10) : '';
+          var oppVal = sessionData && (sessionData.opponentTeam || sessionData.opponent) ? String(sessionData.opponentTeam || sessionData.opponent) : '';
+          var typeVal = (sessionData && (sessionData.matchType || sessionData.eventType)) ? String(sessionData.matchType || sessionData.eventType).toLowerCase() : '';
+          var haVal = (function(){
+            var hv = sessionData && sessionData.homeAway ? String(sessionData.homeAway) : '';
+            if (!hv && sessionData && sessionData.location) {
+              var loc = String(sessionData.location).toLowerCase();
+              if (loc === 'casa') hv = 'home';
+              if (loc === 'trasferta') hv = 'away';
+            }
+            return hv;
+          })();
+          var form = document.createElement('div');
+          form.className = 'dialog-form';
+          form.innerHTML = (
+            '<label><strong>Data gara</strong></label>'+
+            '<input id="is_date" type="date" value="'+(dateVal||'')+'" />'+
+            '<label><strong>Avversario</strong></label>'+
+            '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" />'+
+            '<label><strong>Tipo partita</strong></label>'+
+            '<select id="is_type">'+
+              '<option value="">Seleziona</option>'+
+              '<option value="campionato">Campionato</option>'+
+              '<option value="coppa">Coppa</option>'+
+              '<option value="amichevole">Amichevole</option>'+
+              '<option value="torneo">Torneo</option>'+
+              '<option value="playoff">Playoff</option>'+
+              '<option value="partita">Partita</option>'+
+              '<option value="altro">Altro</option>'+
+            '</select>'+
+            '<label><strong>Casa/Trasferta</strong></label>'+
+            '<select id="is_homeAway">'+
+              '<option value="">Seleziona</option>'+
+              '<option value="home">Casa</option>'+
+              '<option value="away">Trasferta</option>'+
+            '</select>'
+          );
+          list.appendChild(form);
+          var selType = form.querySelector('#is_type');
+          var selHA = form.querySelector('#is_homeAway');
+          if (selType) selType.value = typeVal || '';
+          if (selHA) selHA.value = haVal || '';
+          for (var i=1; i<=6; i++){
+            var sum = sessionData && sessionData.setSummary ? sessionData.setSummary[i] : null;
+            var meta = sessionData && sessionData.setMeta ? sessionData.setMeta[i] : null;
+            var home = sum ? Number(sum.home||0) : (sessionData?.setStateBySet?.[i]?.homeScore||0);
+            var away = sum ? Number(sum.away||0) : (sessionData?.setStateBySet?.[i]?.awayScore||0);
+            var rot = (sum && sum.rotation) || (meta && meta.ourRotation) || 'P1';
+            var rotNum = String(rot).replace(/^P/i,'');
+            var ph = (sum && sum.phase) || (meta && meta.phase) || 'servizio';
+            var phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio';
+            var row = document.createElement('div');
+            row.className = 'match-card';
+            row.innerHTML = 'Set ' + i + ' : ' + home + ' a ' + away + ', Inizio in p' + rotNum + ' in ' + phLbl;
+            list.appendChild(row);
+          }
+          try { if (typeof openDialog === 'function') openDialog('import-summary-dialog'); } catch(_){ }
+          if (dlg) { dlg.style.display = 'flex'; }
+          function confirm(){
+            var dateInput = document.getElementById('is_date');
+            var oppInput = document.getElementById('is_opp');
+            var typeInput = document.getElementById('is_type');
+            var haInput = document.getElementById('is_homeAway');
+            var d = dateInput ? String(dateInput.value||'') : '';
+            var o = oppInput ? String(oppInput.value||'').trim() : '';
+            var t = typeInput ? String(typeInput.value||'') : '';
+            var h = haInput ? String(haInput.value||'') : '';
+            if (!d || !o || !t || !h) { alert('Inserisci data, avversario, tipo e casa/trasferta'); return; }
+            try {
+              sessionData.matchDate = d;
+              sessionData.opponentTeam = o;
+              sessionData.matchType = t;
+              sessionData.homeAway = h;
+              sessionData.location = (h === 'home') ? 'casa' : 'trasferta';
+              localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+            } catch(_){ }
+            try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ }
+            if (dlg) { dlg.style.display = 'none'; }
+            ok.removeEventListener('click', confirm);
+            closeBtn.removeEventListener('click', cancel);
+            resolve();
+          }
+          function cancel(){ try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ } if (dlg) { dlg.style.display = 'none'; } ok.removeEventListener('click', confirm); closeBtn.removeEventListener('click', cancel); resolve(); }
+          ok.addEventListener('click', confirm);
+          closeBtn.addEventListener('click', cancel);
+        });
+      }
+    </script>
+    <div id="import-summary-dialog" class="dialog">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3>Dati gara per set</h3>
+          <button class="close-btn" id="importSummaryClose" aria-label="Chiudi">×</button>
+        </div>
+        <div class="dialog-body">
+          <div id="importSummaryList" class="matches-list"></div>
+        </div>
+        <div class="dialog-footer">
+          <button class="export-btn" id="importSummaryOk" aria-label="OK">OK</button>
+        </div>
+      </div>
+    </div>
     <!-- Dialog Modifica Partita -->
     <dialog id="editMatchDialog" style="border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; max-width: 420px; width: 90%;">
       <form method="dialog" class="dialog-form" style="display:flex; flex-direction:column; gap:10px;">

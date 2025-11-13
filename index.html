@@ -628,6 +628,21 @@
             </div>
         </div>
 
+        <div id="import-summary-dialog" class="dialog">
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3>Dati gara per set</h3>
+                    <button class="close-btn" id="importSummaryClose" aria-label="Chiudi">×</button>
+                </div>
+                <div class="dialog-body">
+                    <div id="importSummaryList" class="matches-list"></div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="export-btn" id="importSummaryOk" aria-label="OK">OK</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Dialog richiesta dati per nome file export -->
         <dialog id="export-filename-dialog" style="border:1px solid #e9ecef;border-radius:12px;padding:0;max-width:480px;width:92%;">
           <form method="dialog" style="margin:0;">
@@ -1250,9 +1265,13 @@
                 }
 
                 if (!file) return;
+                try { showImportProgress('Importazione partita'); } catch(_) {}
+                try { updateImportProgress(10, 'Lettura file'); } catch(_) {}
 
                 const data = await file.arrayBuffer();
+                try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
                 const wb = XLSX.read(data, { type: 'array' });
+                try { updateImportProgress(40, 'Analisi fogli'); } catch(_) {}
 
                 // Carica sessione esistente
                 const sessionData = (() => {
@@ -1280,6 +1299,7 @@
                         if (meta.description) sessionData.description = meta.description;
                     }
                 } catch(_) {}
+                try { updateImportProgress(55, 'Metadati e roster'); } catch(_) {}
 
                 let totalActions = 0;
                 let importedSets = 0;
@@ -1328,19 +1348,32 @@
                         quartets.push(val);
                     }
 
+                    let homeScore = 0;
+                    let awayScore = 0;
+                    try {
+                        const c12 = ws['C12'] && ws['C12'].v != null ? ws['C12'].v : null;
+                        const e12 = ws['E12'] && ws['E12'].v != null ? ws['E12'].v : null;
+                        homeScore = Number(c12 || 0) || 0;
+                        awayScore = Number(e12 || 0) || 0;
+                    } catch(_) {}
+
                     // Aggiorna struttura sessione
                     sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
                     sessionData.setMeta[setNum] = sessionData.setMeta[setNum] || {};
                     sessionData.setMeta[setNum].ourRotation = initialRotation || sessionData.setMeta[setNum].ourRotation || 'P1';
                     sessionData.setMeta[setNum].phase = initialPhase;
                     if (opponentRotation) sessionData.setMeta[setNum].opponentRotation = opponentRotation;
+                    sessionData.setSummary = sessionData.setSummary || {};
+                    sessionData.setSummary[setNum] = { home: homeScore, away: awayScore, rotation: initialRotation || 'P1', phase: initialPhase };
 
                     totalActions += quartets.length;
                     importedSets++;
+                    try { updateImportProgress(55 + Math.round((setNum/6)*35), 'Set ' + setNum); } catch(_) {}
                 }
 
                 // Dopo aver popolato meta e azioni, ricalcola stato/punteggi per ogni set importato
                 try {
+                    try { updateImportProgress(92, 'Ricalcolo punteggi'); } catch(_) {}
                     const originalSet = window.appState?.currentSet || 1;
                     if (window.appState) window.appState.suppressSetPrompts = true;
                     function isSetFinished(state, setNum){
@@ -1426,6 +1459,8 @@
                 // Persisti sessione aggiornata
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
 
+                await showImportSummary(sessionData);
+
                 // Crea/aggiorna voce partita nell'elenco locale e reindirizza all'elenco
                 try {
                     const teamId = localStorage.getItem('selectedTeamId') || null;
@@ -1448,6 +1483,8 @@
                     const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
                     local.unshift(match);
                     localStorage.setItem('volleyMatches', JSON.stringify(local));
+                    try { updateImportProgress(100, 'Completato'); } catch(_) {}
+                    try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
                     window.location.href = 'matches.html';
                     return;
                 } catch(_) {}
@@ -1525,9 +1562,13 @@
                 }
 
                 if (!file) { return; }
+                try { showImportProgress('Importazione azioni'); } catch(_) {}
+                try { updateImportProgress(10, 'Lettura file'); } catch(_) {}
 
                 const data = await file.arrayBuffer();
+                try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
                 const wb = XLSX.read(data, { type: 'array' });
+                try { updateImportProgress(50, 'Analisi foglio'); } catch(_) {}
                 const sheetName = wb.SheetNames && wb.SheetNames[0];
                 const ws = sheetName ? wb.Sheets[sheetName] : null;
                 if (!ws) { alert('File Excel non valido: nessun foglio trovato.'); return; }
@@ -1610,6 +1651,8 @@
                 try { populateActionsDialog && populateActionsDialog(); } catch(_) {}
 
                 alert(`Importazione completata: ${count} azioni sostituite nel set ${setNumber}`);
+                try { updateImportProgress(100, 'Completato'); } catch(_) {}
+                try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
             } catch (error) {
                 alert('Errore nell\'importazione: ' + (error && error.message ? error.message : String(error)));
             }
@@ -2162,5 +2205,130 @@
         })();
       })();
     </script>
-</body>
+    <div id="import-progress" class="import-progress" hidden>
+      <div class="import-progress-title">Importazione</div>
+      <div class="import-progress-bar"><div class="import-progress-fill" id="import-progress-fill"></div></div>
+      <div class="import-progress-text" id="import-progress-text"></div>
+    </div>
+    <script>
+      function showImportProgress(title){
+        var el=document.getElementById('import-progress');
+        if(!el) return;
+        el.hidden=false;
+        var t=el.querySelector('.import-progress-title');
+        if(t) t.textContent=title||'Importazione';
+        var f=document.getElementById('import-progress-fill');
+        if(f) f.style.width='0%';
+        var tx=document.getElementById('import-progress-text');
+        if(tx) tx.textContent='';
+      }
+      function updateImportProgress(p,text){
+        var f=document.getElementById('import-progress-fill');
+        if(f) f.style.width=(Math.max(0,Math.min(100,Math.round(p)))+'%');
+        var tx=document.getElementById('import-progress-text');
+        if(tx && text!=null) tx.textContent=String(text);
+      }
+      function hideImportProgress(){
+        var el=document.getElementById('import-progress');
+        if(el) el.hidden=true;
+      }
+    </script>
+    <script>
+      async function showImportSummary(sessionData){
+        return new Promise((resolve) => {
+          var dlg = document.getElementById('import-summary-dialog');
+          var list = document.getElementById('importSummaryList');
+          var ok = document.getElementById('importSummaryOk');
+          var closeBtn = document.getElementById('importSummaryClose');
+          if (!dlg || !list || !ok || !closeBtn) { resolve(); return; }
+          list.innerHTML = '';
+          var dateVal = (sessionData && (sessionData.matchDate || sessionData.date)) ? String(sessionData.matchDate || sessionData.date).slice(0,10) : '';
+          var oppVal = sessionData && (sessionData.opponentTeam || sessionData.opponent) ? String(sessionData.opponentTeam || sessionData.opponent) : '';
+          var typeVal = (sessionData && (sessionData.matchType || sessionData.eventType)) ? String(sessionData.matchType || sessionData.eventType).toLowerCase() : '';
+          var haVal = (function(){
+            var hv = sessionData && sessionData.homeAway ? String(sessionData.homeAway) : '';
+            if (!hv && sessionData && sessionData.location) {
+              var loc = String(sessionData.location).toLowerCase();
+              if (loc === 'casa') hv = 'home';
+              if (loc === 'trasferta') hv = 'away';
+            }
+            return hv;
+          })();
+          var form = document.createElement('div');
+          form.className = 'dialog-form';
+          form.innerHTML = (
+            '<label><strong>Data gara</strong></label>'+
+            '<input id="is_date" type="date" value="'+(dateVal||'')+'" />'+
+            '<label><strong>Avversario</strong></label>'+
+            '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" />'+
+            '<label><strong>Tipo partita</strong></label>'+
+            '<select id="is_type">'+
+              '<option value="">Seleziona</option>'+
+              '<option value="campionato">Campionato</option>'+
+              '<option value="coppa">Coppa</option>'+
+              '<option value="amichevole">Amichevole</option>'+
+              '<option value="torneo">Torneo</option>'+
+              '<option value="playoff">Playoff</option>'+
+              '<option value="partita">Partita</option>'+
+              '<option value="altro">Altro</option>'+
+            '</select>'+
+            '<label><strong>Casa/Trasferta</strong></label>'+
+            '<select id="is_homeAway">'+
+              '<option value="">Seleziona</option>'+
+              '<option value="home">Casa</option>'+
+              '<option value="away">Trasferta</option>'+
+            '</select>'
+          );
+          list.appendChild(form);
+          var selType = form.querySelector('#is_type');
+          var selHA = form.querySelector('#is_homeAway');
+          if (selType) selType.value = typeVal || '';
+          if (selHA) selHA.value = haVal || '';
+          for (var i=1; i<=6; i++){
+            var sum = sessionData && sessionData.setSummary ? sessionData.setSummary[i] : null;
+            var meta = sessionData && sessionData.setMeta ? sessionData.setMeta[i] : null;
+            var home = sum ? Number(sum.home||0) : (sessionData?.setStateBySet?.[i]?.homeScore||0);
+            var away = sum ? Number(sum.away||0) : (sessionData?.setStateBySet?.[i]?.awayScore||0);
+            var rot = (sum && sum.rotation) || (meta && meta.ourRotation) || 'P1';
+            var rotNum = String(rot).replace(/^P/i,'');
+            var ph = (sum && sum.phase) || (meta && meta.phase) || 'servizio';
+            var phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio';
+            var row = document.createElement('div');
+            row.className = 'match-card';
+            row.innerHTML = 'Set ' + i + ' : ' + home + ' a ' + away + ', Inizio in p' + rotNum + ' in ' + phLbl;
+            list.appendChild(row);
+          }
+          try { if (typeof openDialog === 'function') openDialog('import-summary-dialog'); } catch(_){ }
+          if (dlg) { dlg.style.display = 'flex'; }
+          function confirm(){
+            var dateInput = document.getElementById('is_date');
+            var oppInput = document.getElementById('is_opp');
+            var typeInput = document.getElementById('is_type');
+            var haInput = document.getElementById('is_homeAway');
+            var d = dateInput ? String(dateInput.value||'') : '';
+            var o = oppInput ? String(oppInput.value||'').trim() : '';
+            var t = typeInput ? String(typeInput.value||'') : '';
+            var h = haInput ? String(haInput.value||'') : '';
+            if (!d || !o || !t || !h) { alert('Inserisci data, avversario, tipo e casa/trasferta'); return; }
+            try {
+              sessionData.matchDate = d;
+              sessionData.opponentTeam = o;
+              sessionData.matchType = t;
+              sessionData.homeAway = h;
+              sessionData.location = (h === 'home') ? 'casa' : 'trasferta';
+              localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+            } catch(_){ }
+            try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ }
+            if (dlg) { dlg.style.display = 'none'; }
+            ok.removeEventListener('click', confirm);
+            closeBtn.removeEventListener('click', cancel);
+            resolve();
+          }
+          function cancel(){ try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ } if (dlg) { dlg.style.display = 'none'; } ok.removeEventListener('click', confirm); closeBtn.removeEventListener('click', cancel); resolve(); }
+          ok.addEventListener('click', confirm);
+          closeBtn.addEventListener('click', cancel);
+        });
+      }
+    </script>
+  </body>
 </html>

@@ -1012,6 +1012,44 @@ body {
 .dialog-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .roster-form { margin-top: 10px; }
 
+.import-progress {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 2000;
+  width: min(520px, 92vw);
+}
+.import-progress-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+.import-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.import-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #2196F3;
+  transition: width .2s ease;
+}
+.import-progress-text {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
 /* ===== Scouting dialog: overrides consolidati (3 colonne stabili, safe-mobile) ===== */
 #scouting-dialog .dialog-content,
 #scouting-dialog .dialog-body,
@@ -2879,6 +2917,10 @@ body {
     align-items: center;
 }
 
+.dialog.is-open {
+    display: flex;
+}
+
 .dialog-content {
     background: white;
     border-radius: 8px;
@@ -3604,3 +3646,19 @@ body {
 /* Modalità pagina: nascondi UI di scouting nei report */
 body.page-report #scouting-dialog { display: none !important; }
 body.page-report #punteggio-section { display: none !important; }
+.import-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#import-summary-dialog .dialog-content { width: min(560px, 95vw); max-width: 95vw; max-height: 85vh; border-radius: 12px; }
+#import-summary-dialog .dialog-header { background: #ffffff; border-bottom: 1px solid #f1f5f9; }
+#import-summary-dialog .dialog-header h3 { color: #0f172a; font-size: 1.25rem; font-weight: 800; }
+#import-summary-dialog .dialog-body { padding: 14px 16px; display: grid; gap: 12px; }
+#import-summary-dialog .dialog-form label { display: flex; flex-direction: column; gap: 6px; color: #334155; font-weight: 600; }
+#import-summary-dialog .dialog-form input, #import-summary-dialog .dialog-form select { width: 100%; padding: 10px; font-size: 1rem; border-radius: 8px; border: 1px solid #cfd8dc; background: #fff; }
+#import-summary-dialog .dialog-form input:focus, #import-summary-dialog .dialog-form select:focus { outline: none; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(25,118,210,0.15); }
+#import-summary-dialog .matches-list { display: grid; gap: 10px; }
+#import-summary-dialog .match-card { border: 1px solid #e9ecef; border-radius: 12px; padding: 10px 12px; box-shadow: none; background: #fff; }
+#import-summary-dialog .dialog-footer { background: #f8fafc; border-top: 1px solid #f1f5f9; }
+
+@media (max-width: 480px) {
+  #import-summary-dialog .dialog-content { width: 100vw; max-width: 100vw; max-height: 96vh; border-radius: 0; }
+  #import-summary-dialog .dialog-body { padding: 12px; }
+}
