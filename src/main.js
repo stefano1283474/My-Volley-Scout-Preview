@@ -711,6 +711,8 @@ class VolleyScoutApp {
                                     <option value="">Seleziona...</option>
                                     <option value="campionato">Campionato</option>
                                     <option value="coppa">Coppa</option>
+                                    <option value="pgs">PGS</option>
+                                    <option value="csi">CSI</option>
                                     <option value="amichevole">Amichevole</option>
                                     <option value="playoff">Playoff</option>
                                 </select>

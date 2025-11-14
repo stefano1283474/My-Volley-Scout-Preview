@@ -1184,7 +1184,7 @@
             const dd = String(d.getDate()).padStart(2, '0');
             const mm = String(d.getMonth() + 1).padStart(2, '0');
             const yyyy = d.getFullYear();
-            return `${dd} ${mm} ${yyyy}`;
+            return `${dd}/${mm}/${yyyy}`;
         }
 
         function createMatchCard(match) {
@@ -1629,9 +1629,28 @@
           })();
           var form = document.createElement('div');
           form.className = 'dialog-form';
+          var dateIt = (function(){
+            try {
+              if (dateVal) {
+                var d = new Date(dateVal);
+                if (d instanceof Date && !isNaN(d)) {
+                  var dd = String(d.getDate()).padStart(2,'0');
+                  var mm = String(d.getMonth()+1).padStart(2,'0');
+                  var yyyy = d.getFullYear();
+                  return dd+'/'+mm+'/'+yyyy;
+                }
+              }
+            } catch(_) {}
+            return '';
+          })();
           form.innerHTML = (
             '<label><strong>Data gara</strong></label>'+
-            '<input id="is_date" type="date" value="'+(dateVal||'')+'" />'+
+            '<div class="date-row" style="display:flex;gap:8px;">'+
+              '<select id="is_day" aria-label="Giorno"></select>'+
+              '<select id="is_month" aria-label="Mese"></select>'+
+              '<input id="is_year" type="number" min="1900" max="2100" step="1" placeholder="Anno" />'+
+            '</div>'+
+            '<small id="is_date_preview" style="color:#6c757d;" aria-live="polite"></small>'+
             '<label><strong>Avversario</strong></label>'+
             '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" />'+
             '<label><strong>Tipo partita</strong></label>'+
@@ -1639,6 +1658,8 @@
               '<option value="">Seleziona</option>'+
               '<option value="campionato">Campionato</option>'+
               '<option value="coppa">Coppa</option>'+
+              '<option value="pgs">PGS</option>'+
+              '<option value="csi">CSI</option>'+
               '<option value="amichevole">Amichevole</option>'+
               '<option value="torneo">Torneo</option>'+
               '<option value="playoff">Playoff</option>'+
@@ -1657,6 +1678,47 @@
           var selHA = form.querySelector('#is_homeAway');
           if (selType) selType.value = typeVal || '';
           if (selHA) selHA.value = haVal || '';
+          (function(){
+            var daySel = form.querySelector('#is_day');
+            var monthSel = form.querySelector('#is_month');
+            var yearInp = form.querySelector('#is_year');
+            var prev = form.querySelector('#is_date_preview');
+            var MONTHS = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+            function pad2(n){ return String(n).padStart(2,'0'); }
+            function setInitial(){
+              var dd = '';
+              var mm = '';
+              var yyyy = '';
+              var m = String(dateVal||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+              if (m) { yyyy = m[1]; mm = m[2]; dd = m[3]; }
+              daySel.innerHTML = Array.from({length:31}, (_,i)=>'<option value="'+pad2(i+1)+'">'+pad2(i+1)+'</option>').join('');
+              monthSel.innerHTML = Array.from({length:12}, (_,i)=>'<option value="'+pad2(i+1)+'">'+(MONTHS[i].charAt(0).toUpperCase()+MONTHS[i].slice(1))+'</option>').join('');
+              if (dd) daySel.value = String(dd);
+              if (mm) monthSel.value = String(mm);
+              if (yyyy) yearInp.value = String(yyyy);
+            }
+            function iso(){
+              var dd = String(daySel.value||'');
+              var mm = String(monthSel.value||'');
+              var yyyy = String(yearInp.value||'');
+              if (!dd || !mm || !yyyy) return '';
+              return yyyy+'-'+mm+'-'+dd;
+            }
+            function update(){
+              var dd = String(daySel.value||'');
+              var mm = String(monthSel.value||'');
+              var yyyy = String(yearInp.value||'');
+              var mIdx = mm ? (Number(mm)-1) : -1;
+              var monthCap = mIdx>=0 ? (MONTHS[mIdx].charAt(0).toUpperCase()+MONTHS[mIdx].slice(1)) : '';
+              prev.textContent = (dd && mm && yyyy) ? (dd+'/'+mm+'/'+yyyy + ' — ' + Number(dd) + ' ' + monthCap + ' ' + yyyy) : '';
+            }
+            setInitial();
+            update();
+            daySel.addEventListener('change', update);
+            monthSel.addEventListener('change', update);
+            yearInp.addEventListener('input', update);
+            form._composeISO = iso;
+          })();
           for (var i=1; i<=6; i++){
             var sum = sessionData && sessionData.setSummary ? sessionData.setSummary[i] : null;
             var meta = sessionData && sessionData.setMeta ? sessionData.setMeta[i] : null;
@@ -1674,11 +1736,13 @@
           try { if (typeof openDialog === 'function') openDialog('import-summary-dialog'); } catch(_){ }
           if (dlg) { dlg.style.display = 'flex'; }
           function confirm(){
-            var dateInput = document.getElementById('is_date');
+            var daySel = document.getElementById('is_day');
+            var monthSel = document.getElementById('is_month');
+            var yearInp = document.getElementById('is_year');
             var oppInput = document.getElementById('is_opp');
             var typeInput = document.getElementById('is_type');
             var haInput = document.getElementById('is_homeAway');
-            var d = dateInput ? String(dateInput.value||'') : '';
+            var d = (function(){ try { var fn = form && form._composeISO ? form._composeISO : null; return fn ? fn() : ''; } catch(_){ return ''; } })();
             var o = oppInput ? String(oppInput.value||'').trim() : '';
             var t = typeInput ? String(typeInput.value||'') : '';
             var h = haInput ? String(haInput.value||'') : '';
