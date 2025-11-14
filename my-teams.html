@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyTeams</title>
+  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="animations.css?v=1">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#ffffff; min-height:100vh; color:#334155; }
+    .container { max-width:960px; margin:0 auto; padding:24px; }
+    .header { background:#ffffff; border-radius:16px; padding:12px 16px; margin-bottom:20px; display:flex; justify-content:center; align-items:center; position:relative; }
+    .logo { display:flex; align-items:center; }
+    .logo-icon { width:100%; max-width:520px; height:140px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:100%; object-fit:cover; object-position:50% 40%; display:block; }
+    .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; z-index:2; }
+    .icon-button { background:#ffffff; color:#2563eb; border:1px solid #e5e7eb; padding:8px; border-radius:10px; cursor:pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
+    .icon-button:hover { background:#f8fafc; border-color:#dbe1e6; transform: translateY(-1px); }
+    .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
+    .icon-button-primary:hover { background:#1e4fd4; border-color:#1e4fd4; }
+    .icon-button-circle { width:36px; height:36px; min-width:36px; min-height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:0; }
+    .account-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); min-width:200px; }
+    .account-dropdown .menu-item { width:100%; padding:12px 14px; text-align:left; background:transparent; border:none; cursor:pointer; color:#334155; }
+    .account-dropdown .menu-item:hover { background:#f1f5f9; }
+    .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 10px 0; }
+    .section-title { font-size:20px; font-weight:700; color:#0f172a; }
+    .btn { background:#0d6efd; color:#fff; border:1px solid #0d6efd; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn-primary { background:#2563eb; border-color:#2563eb; }
+    .btn-secondary { background:#f8fafc; color:#0f172a; border:1px solid #e5e7eb; }
+    .btn-danger { background:#ef4444; border-color:#ef4444; color:#fff; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; width:100%; }
+    .empty-state { color:#64748b; padding:12px 2px; }
+    .section-card { border:1px solid #2563eb; border-radius:16px; padding:16px; background:#fff; }
+    .hero-card { background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:8px; }
+    .hero-title { font-size:18px; font-weight:700; color:#0f172a; }
+    .hero-desc { color:#64748b; }
+    .card { border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:#fff; display:flex; flex-direction:column; gap:8px; }
+    .btn-icon { width:36px; height:36px; min-width:36px; min-height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; }
+    .btn-icon-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
+    .btn-icon-outline:hover { background:#f8fafc; }
+    dialog { border:none; padding:0; background: transparent; }
+    dialog[open] { position: fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:95%; max-width:560px; }
+    dialog::backdrop { background: rgba(15,23,42,0.35); }
+    .dialog-card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow: 0 10px 20px rgba(0,0,0,.08); width:100%; }
+    .dialog-title { font-size:18px; font-weight:700; margin:0 0 8px 0; color:#0f172a; }
+    .dialog-form { display:flex; flex-direction:column; gap:12px; }
+    .form-label { display:flex; flex-direction:column; gap:6px; color:#334155; }
+    .input { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; font-size:16px; background:#fff; }
+    .input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    .dialog-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .steps-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .step-item { display:flex; align-items:flex-start; gap:10px; color:#334155; }
+    .step-num { background:#e5e7eb; color:#2563eb; min-width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
+    .step-text { flex:1; }
+    @keyframes dialogIn { from { opacity:0; transform: scale(.98); } to { opacity:1; transform: scale(1); } }
+    @keyframes dialogOut { from { opacity:1; transform: scale(1); } to { opacity:0; transform: scale(.98); } }
+    @keyframes backdropIn { from { opacity:0; } to { opacity:.35; } }
+    @keyframes backdropOut { from { opacity:.35; } to { opacity:0; } }
+    dialog[open] .dialog-card { animation: dialogIn 200ms ease both; }
+    dialog::backdrop { animation: backdropIn 200ms ease both; }
+    dialog.closing .dialog-card { animation: dialogOut 180ms ease both; }
+    dialog.closing::backdrop { animation: backdropOut 180ms ease both; }
+    @media (max-width: 600px) {
+      .container { padding:16px; }
+      .logo-icon { height:120px; }
+      .section-title { font-size:18px; }
+      dialog[open] { width:95%; max-width:560px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      dialog[open] .dialog-card, dialog.closing .dialog-card, dialog::backdrop, dialog.closing::backdrop { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon" aria-hidden="true">
+          <img src="./LOGO_APP.png" alt="Logo My Volley Scout" />
+        </div>
+      </div>
+      <div class="account-actions">
+        <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+        </button>
+        <div class="account-dropdown" id="accountMenu" hidden>
+          <div class="menu-item" id="accountEmail">Caricamento...</div>
+          <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
+          <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+          <button class="menu-item" id="accountLogout">Esci</button>
+          <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="welcomeHero" style="margin:8px 0 12px 0;">
+      <div>
+        <div class="hero-title">Benvenuto in My Volley Scout</div>
+        <div class="hero-desc">Gestisci le tue squadre, crea le partite e realizza uno scout chiaro e veloce.</div>
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-title-row">
+        <h2 class="section-title">Elenco Squadre</h2>
+        <div class="list-actions" style="display:flex;align-items:center;gap:10px;">
+          <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
+          <button id="infoBtn" class="icon-button icon-button-primary icon-button-circle" aria-label="Come funziona" title="Come funziona">i</button>
+        </div>
+      </div>
+      <div id="noTeamsMessage" class="empty-state" style="display:none;">Nessuna squadra. Crea una nuova squadra.</div>
+      <div id="teamsGrid" class="grid"></div>
+    </div>
+    <dialog id="infoDialog">
+      <div class="dialog-card">
+        <div class="dialog-title">Come funziona</div>
+        <div class="steps-list" style="margin-top:8px;">
+          <div class="step-item"><div class="step-num">1</div><div class="step-text">Crea o seleziona la tua squadra</div></div>
+          <div class="step-item"><div class="step-num">2</div><div class="step-text">Crea la partita con avversario e data</div></div>
+          <div class="step-item"><div class="step-num">3</div><div class="step-text">Importa/compila il roster dei giocatori</div></div>
+          <div class="step-item"><div class="step-num">4</div><div class="step-text">Configura Set 1 e avvia lo scout</div></div>
+        </div>
+        <div class="dialog-actions" style="margin-top:12px;">
+          <button id="infoClose" class="btn btn-secondary" type="button">Chiudi</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="createTeamDialog">
+      <div class="dialog-card">
+        <div class="dialog-title">Nuova Squadra</div>
+        <form method="dialog" id="createTeamForm" class="dialog-form">
+          <label class="form-label">
+            <span>La tua società</span>
+            <input type="text" id="clubInput" class="input" placeholder="Nome società">
+          </label>
+          <label class="form-label">
+            <span>La tua squadra</span>
+            <input type="text" id="teamInput" class="input" placeholder="Nome squadra" required>
+          </label>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" id="cancelCreate">Annulla</button>
+            <button type="submit" class="btn btn-primary" id="confirmCreate">Crea</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  </div>
+
+  <!-- Firebase compat scripts per definire 'firebase' globale -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <!-- App scripts -->
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./src/modules/teams/teams.js"></script>
+  <script src="./src/modules/matches/matches.js"></script>
+
+  <script>
+    const teamsGrid = document.getElementById('teamsGrid');
+    const noTeamsMessage = document.getElementById('noTeamsMessage');
+    const createTeamBtn = document.getElementById('createTeamBtn');
+    const accountBtn = document.getElementById('accountBtn');
+    const accountMenu = document.getElementById('accountMenu');
+    const accountEmail = document.getElementById('accountEmail');
+    const accountLogout = document.getElementById('accountLogout');
+    const createTeamDialog = document.getElementById('createTeamDialog');
+    const createTeamForm = document.getElementById('createTeamForm');
+    const teamInput = document.getElementById('teamInput');
+    const clubInput = document.getElementById('clubInput');
+    const cancelCreate = document.getElementById('cancelCreate');
+    const infoBtn = document.getElementById('infoBtn');
+    const infoDialog = document.getElementById('infoDialog');
+    const infoClose = document.getElementById('infoClose');
+
+    function renderTeamsList() {
+      const list = window.teamsModule?.getTeams?.() || [];
+      if (!list.length) {
+        noTeamsMessage.style.display = 'block';
+        teamsGrid.innerHTML = '';
+        return;
+      }
+      noTeamsMessage.style.display = 'none';
+      let matchesLocal = [];
+      try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) {}
+      teamsGrid.innerHTML = list.map(t => {
+        const selId = t?.id != null ? String(t.id) : null;
+        const selName = t?.name || '';
+        const partiteCount = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
+          const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
+          const my = m.myTeam || m.teamName;
+          const home = m.homeTeam;
+          const away = m.awayTeam;
+          return teamIdMatch || (selName && (my === selName || home === selName || away === selName));
+        }).length : 0;
+        return `
+          <div class="card">
+            <div style="font-weight:700;color:#0f172a;">${t.name}</div>
+            <div style="color:#64748b;">${partiteCount} partite</div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button class="btn btn-primary" data-action="select" data-id="${t.id}">Seleziona</button>
+              <button class="btn btn-danger" data-action="delete" data-id="${t.id}">Elimina</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    
+
+    function handleGridClick(e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      if (!id || !action) return;
+      if (action === 'select') {
+        const res = window.teamsModule?.selectTeam?.(id);
+        if (res?.success) {
+          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
+          window.location.href = 'matches.html';
+        }
+      } else if (action === 'delete') {
+        window.teamsModule?.deleteTeam?.(id).then(() => renderTeamsList());
+      }
+    }
+
+    function openCreate() {
+      createTeamDialog.showModal();
+      teamInput.value = '';
+      clubInput.value = '';
+      setTimeout(() => teamInput.focus(), 0);
+    }
+
+    function closeCreate() {
+      if (!createTeamDialog.open) return;
+      createTeamDialog.classList.add('closing');
+      const card = createTeamDialog.querySelector('.dialog-card');
+      if (card) {
+        const end = () => { createTeamDialog.classList.remove('closing'); createTeamDialog.close(); card.removeEventListener('animationend', end); };
+        card.addEventListener('animationend', end);
+      } else {
+        createTeamDialog.classList.remove('closing');
+        createTeamDialog.close();
+      }
+    }
+
+    function onCreateSubmit(e) {
+      e.preventDefault();
+      const teamName = teamInput.value.trim();
+      const clubName = clubInput.value.trim();
+      if (!teamName) { teamInput.focus(); return; }
+      window.teamsModule?.saveTeam({ teamName, clubName, players: [] }).then(res => {
+        if (res?.success) {
+          try { localStorage.setItem('lastMyTeam', teamName); localStorage.setItem('lastMyClub', clubName); } catch(_){}
+          window.teamsModule?.selectTeam?.(res.team.id);
+          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
+          closeCreate();
+          window.location.href = 'matches.html';
+        } else {
+          alert(res?.error || 'Errore creazione squadra');
+        }
+      }).catch(err => alert(err?.message || 'Errore creazione squadra'));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auth stato e account menu
+      function initMyTeams() {
+        if (typeof window.authFunctions === 'undefined') { setTimeout(initMyTeams, 200); return; }
+        window.authFunctions.onAuthStateChanged((user) => {
+          if (!user) { window.location.href = '/auth-login.html'; return; }
+          if (accountEmail) accountEmail.textContent = user.email;
+          renderTeamsList();
+        });
+      }
+      initMyTeams();
+
+      if (accountBtn && accountMenu){
+        accountBtn.addEventListener('click', () => {
+          const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
+          accountBtn.setAttribute('aria-expanded', (!expanded).toString());
+          accountMenu.hidden = expanded;
+        });
+        document.addEventListener('click', (e) => {
+          if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
+            accountMenu.hidden = true;
+            accountBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+      const goToTeamsBtn = document.getElementById('goToTeamsBtn');
+      if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'my-teams.html'; }); }
+      const goToMatchesBtn = document.getElementById('goToMatchesBtn');
+      if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'matches.html'; }); }
+      if (accountLogout){ accountLogout.addEventListener('click', async ()=>{ try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); window.location.href='/auth-login.html'; } catch(e){} }); }
+
+      renderTeamsList();
+      if (infoBtn && infoDialog) { infoBtn.addEventListener('click', (e)=>{ e.preventDefault(); infoDialog.showModal(); }); }
+      if (infoClose && infoDialog) {
+        infoClose.addEventListener('click', ()=>{
+          if (!infoDialog.open) return;
+          infoDialog.classList.add('closing');
+          const card = infoDialog.querySelector('.dialog-card');
+          if (card) {
+            const end = () => { infoDialog.classList.remove('closing'); infoDialog.close(); card.removeEventListener('animationend', end); };
+            card.addEventListener('animationend', end);
+          } else {
+            infoDialog.classList.remove('closing');
+            infoDialog.close();
+          }
+        });
+      }
+      document.addEventListener('click', handleGridClick);
+      createTeamBtn.addEventListener('click', openCreate);
+      cancelCreate.addEventListener('click', closeCreate);
+      createTeamForm.addEventListener('submit', onCreateSubmit);
+      if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderTeamsList(); });
+    });
+  </script>
+</body>
+</html>

@@ -241,7 +241,7 @@
             }
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', ()=>{ try{ window.location.href = '/matches.html'; } finally{ if (accountMenu) accountMenu.classList.remove('open'); if (accountMenuBtn) accountMenuBtn.setAttribute('aria-expanded','false'); } }); }
-            if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', ()=>{ try{ window.location.href = '/welcome.html'; } finally{ if (accountMenu) accountMenu.classList.remove('open'); if (accountMenuBtn) accountMenuBtn.setAttribute('aria-expanded','false'); } }); }
+            if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', ()=>{ try{ window.location.href = '/matches.html'; } finally{ if (accountMenu) accountMenu.classList.remove('open'); if (accountMenuBtn) accountMenuBtn.setAttribute('aria-expanded','false'); } }); }
             createTeamBtn.addEventListener('click', handleCreateTeam);
             importTeamBtn.addEventListener('click', handleImportTeam);
             exportAllBtn.addEventListener('click', handleExportAll);

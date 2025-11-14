@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Volley Scout - Dati Gara</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="animations.css?v=1" />
+</head>
+<body>
+  <header class="topappbar" style="--topbar-h:81px;">
+    <div class="topappbar-content">
+      <div class="topappbar-left">
+        <a href="index.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+            <path d="M15.5 19a1 1 0 0 1-.71-.29l-6-6a1 1 0 0 1 0-1.42l6-6a1 1 0 0 1 1.42 1.42L10.92 12l5.29 5.29A1 1 0 0 1 15.5 19z"/>
+          </svg>
+        </a>
+      </div>
+      <div class="topappbar-center">
+        <img src="LOGO_APP.png" alt="My Volley Scout" class="app-logo" />
+      </div>
+      <div class="topappbar-right">
+        <button id="accountBtn" class="top-account-btn" title="Account" aria-label="Account">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z"/>
+          </svg>
+          <span>Account</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="section">
+      <div class="section-header">
+        <h3>Dati Gara</h3>
+      </div>
+      <div class="form two-rows" id="matchDataPanel">
+        <div class="form-group">
+          <label>Avversario</label>
+          <div id="md-opponent" class="readonly-field">-</div>
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <div id="md-date" class="readonly-field">-</div>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <div id="md-type" class="readonly-field">-</div>
+        </div>
+        <div class="form-group">
+          <label>Casa/Trasferta</label>
+          <div id="md-homeaway" class="readonly-field">-</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h3>Riepilogo Set</h3>
+      </div>
+      <div id="setSummaryList"></div>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+
+  <script>
+    function formatItalianDateDisplay(raw){
+      try {
+        if (!raw) return '-';
+        const d = typeof raw === 'string' ? new Date(raw) : new Date(raw);
+        if (isNaN(d)) return String(raw);
+        const dd = String(d.getDate()).padStart(2,'0');
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      } catch(_) { return String(raw); }
+    }
+
+    function loadMatchData(){
+      try {
+        const session = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
+        const selId = localStorage.getItem('selectedMatchId') || session.id || null;
+        let match = null;
+        try {
+          const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+          match = Array.isArray(list) ? list.find(m => m.id === selId) : null;
+        } catch(_) {}
+        const opponent = (match?.opponentTeam || match?.opponent) || ((match?.homeAway === 'home') ? (match?.awayTeam || match?.opponentTeam) : (match?.homeTeam || match?.opponentTeam)) || (session?.opponentTeam) || '-';
+        const rawDate = match?.date || match?.matchDate || session?.matchDate || null;
+        const type = (match?.matchType || match?.eventType || match?.type || session?.matchType || 'partita');
+        const ha = match?.homeAway || session?.homeAway || null;
+        const haLabel = ha === 'home' ? 'Casa' : (ha === 'away' ? 'Trasferta' : '-');
+
+        const oppEl = document.getElementById('md-opponent');
+        const dateEl = document.getElementById('md-date');
+        const typeEl = document.getElementById('md-type');
+        const haEl = document.getElementById('md-homeaway');
+        if (oppEl) oppEl.textContent = opponent || '-';
+        if (dateEl) dateEl.textContent = rawDate ? formatItalianDateDisplay(rawDate) : '-';
+        if (typeEl) typeEl.textContent = String(type || 'partita');
+        if (haEl) haEl.textContent = haLabel;
+
+        const listEl = document.getElementById('setSummaryList');
+        if (listEl) {
+          listEl.innerHTML = '';
+          for (let i = 1; i <= 6; i++) {
+            const sum = (match?.setSummary && match.setSummary[i]) || (session?.setSummary && session.setSummary[i]) || null;
+            const meta = (match?.setMeta && match.setMeta[i]) || (session?.setMeta && session.setMeta[i]) || null;
+            const state = (match?.setStateBySet && match.setStateBySet[i]) || (session?.setStateBySet && session.setStateBySet[i]) || null;
+            const home = sum ? Number(sum.home||0) : Number(state?.homeScore||0);
+            const away = sum ? Number(sum.away||0) : Number(state?.awayScore||0);
+            const rot = (sum && sum.rotation) || (meta && meta.ourRotation) || 'P1';
+            const rotNum = String(rot).replace(/^P/i,'');
+            const ph = (sum && sum.phase) || (meta && meta.phase) || 'servizio';
+            const phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio';
+            const row = document.createElement('div');
+            row.className = 'match-card';
+            row.textContent = `Set ${i} : ${home} a ${away}, Inizio in p${rotNum} in ${phLbl}`;
+            listEl.appendChild(row);
+          }
+        }
+      } catch (e) {
+        console.error('Errore caricamento dati gara:', e);
+        alert('Non è stato possibile caricare i dati della gara.');
+      }
+    }
+
+    function init(){
+      if (typeof window.authFunctions === 'undefined'){ setTimeout(init, 200); return; }
+      window.authFunctions.onAuthStateChanged((user) => {
+        if (!user){ window.location.href = '/auth-login.html'; return; }
+        loadMatchData();
+      });
+      const accountBtn = document.getElementById('accountBtn');
+      if (accountBtn) accountBtn.addEventListener('click', () => { window.location.href = '/auth-login.html'; });
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

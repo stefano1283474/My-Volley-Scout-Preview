@@ -491,6 +491,15 @@
 
             try {
                 matchData = JSON.parse(savedMatchData);
+                // Guardie prerequisiti: squadra selezionata, avversario valido, roster presente
+                try {
+                    const teamId = localStorage.getItem('selectedTeamId');
+                    const opp = String(matchData.opponent || '').trim();
+                    const rosterOk = Array.isArray(matchData.roster) && matchData.roster.length > 0;
+                    const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
+                    if (!teamId) { window.location.href = 'my-teams.html'; return; }
+                    if (!rosterOk || oppInvalid) { window.location.href = 'match-setup.html'; return; }
+                } catch(_) {}
                 displayMatchSummary();
             } catch (error) {
                 console.error('Errore nel parsing dei dati partita:', error);
@@ -588,7 +597,7 @@
                 goToMatchesBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = 'matches.html'; });
             }
             if (goToTeamsBtn){
-                goToTeamsBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = 'welcome.html'; });
+                goToTeamsBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = 'my-teams.html'; });
             }
             // Logout
             if (accountLogout){
@@ -636,6 +645,17 @@
                 showError('Completa tutti i campi obbligatori prima di iniziare.');
                 return;
             }
+
+            // Prerequisiti prima di iniziare lo scouting
+            try {
+                const teamId = localStorage.getItem('selectedTeamId');
+                const opp = String(matchData?.opponent || '').trim();
+                const rosterOk = Array.isArray(matchData?.roster) && matchData.roster.length > 0;
+                const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
+                if (!teamId) { showError('Seleziona una squadra prima di iniziare.'); return; }
+                if (!rosterOk) { showError('Aggiungi un roster alla partita prima di iniziare.'); return; }
+                if (oppInvalid) { showError('Inserisci un nome avversario valido (non placeholder).'); return; }
+            } catch(_) {}
 
             // Salva la configurazione del set
             const fullConfig = {

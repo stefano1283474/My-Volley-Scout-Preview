@@ -870,7 +870,7 @@ function initializeApp() {
         if (backToWelcomeBtn) {
             backToWelcomeBtn.addEventListener('click', () => {
                 localStorage.removeItem('currentScoutingSession');
-                window.location.replace('welcome.html');
+                window.location.replace('matches.html');
             });
             console.log('Event listener aggiunto al pulsante Cambia Squadra');
         }
@@ -1008,7 +1008,7 @@ function initializeApp() {
                 try {
                     // Salvataggio non bloccante (se fallisce, ignora)
                     try { saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'welcome.html';
+                    window.location.href = 'matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -1023,7 +1023,7 @@ function initializeApp() {
                 try {
                     // Salvataggio non bloccante del match corrente
                     try { saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'welcome.html';
+                    window.location.href = 'matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -3380,6 +3380,7 @@ function __getSetDataSnapshot(setNum){
         const abSet = session.actionsBySet || {};
         const stBySet = session.setStateBySet || {};
         const shBySet = session.scoreHistoryBySet || {};
+        const sumBySet = session.setSummary || {};
         if (Number(setNum) === Number(appState.currentSet)) {
             actions = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
             home = Number(appState.homeScore||0);
@@ -3397,6 +3398,11 @@ function __getSetDataSnapshot(setNum){
                     const last = arr.length ? arr[arr.length - 1] : null;
                     home = Number(last?.homeScore||0);
                     away = Number(last?.awayScore||0);
+                    if (!home && !away) {
+                        const sum = sumBySet[setNum] || {};
+                        home = Number(sum.home||0);
+                        away = Number(sum.away||0);
+                    }
                 }
                 started = !!st.setStarted;
             }
@@ -3411,6 +3417,11 @@ function __getSetDataSnapshot(setNum){
                 const last = arr.length ? arr[arr.length - 1] : null;
                 home = Number(last?.homeScore||0);
                 away = Number(last?.awayScore||0);
+                if (!home && !away) {
+                    const sum = sumBySet[setNum] || {};
+                    home = Number(sum.home||0);
+                    away = Number(sum.away||0);
+                }
             }
             started = !!st.setStarted;
         }

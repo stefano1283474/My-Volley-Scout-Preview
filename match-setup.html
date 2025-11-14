@@ -95,9 +95,25 @@
               exitBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = 'welcome.html';
+                window.location.href = 'my-teams.html';
                 closeMenu();
               });
+            }
+          })();
+        </script>
+        <script>
+          (function(){
+            const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
+            const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+            const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+            if (goToMatchesBtnMobile) {
+              goToMatchesBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='matches.html'; });
+            }
+            if (goToTeamsBtnMobile) {
+              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='my-teams.html'; });
+            }
+            if (signOutBtnMobile && window.authFunctions?.signOut) {
+              signOutBtnMobile.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); window.location.href='/auth-login.html'; } catch(_){} });
             }
           })();
         </script>
@@ -109,6 +125,18 @@
             <div class="success-message" id="successMessage"></div>
 
             <form id="matchForm">
+                    <!-- Dati squadra (utente) -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="myClub">La tua società</label>
+                            <input type="text" id="myClub" name="myClub" placeholder="Nome società" />
+                        </div>
+                        <div class="form-group">
+                            <label for="myTeamInput">La tua squadra</label>
+                            <input type="text" id="myTeamInput" name="myTeamInput" placeholder="Nome squadra" />
+                        </div>
+                    </div>
+
                     <!-- Avversario e Data -->
                     <div class="form-row">
                         <div class="form-group">
@@ -172,6 +200,28 @@
                         </label>
                         <textarea id="description" name="description" placeholder="Note sulla partita (importanza, condizioni particolari, ecc.)"></textarea>
                     </div>
+                    
+                    <!-- Roster (Elenco Giocatori) -->
+                    <div class="form-group">
+                        <label>Elenco Giocatori (Roster) <span class="required">*</span></label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                            <button type="button" class="btn btn-secondary" id="selectRosterBtn">Seleziona</button>
+                            <button type="button" class="btn btn-secondary" id="importRosterCsvBtn">Importa CSV</button>
+                            <button type="button" class="btn btn-secondary" id="exportRosterCsvBtn">Esporta CSV</button>
+                            <button type="button" class="btn btn-secondary" id="editRosterBtn">Modifica</button>
+                        </div>
+                        <div id="rosterEditor" class="roster-grid" style="display:none;">
+                            <div class="player-row player-header">
+                                <div>N</div>
+                                <div>Nome</div>
+                                <div>Cognome</div>
+                                <div>Soprannome</div>
+                                <div>Ruolo</div>
+                                <div></div>
+                            </div>
+                        </div>
+                        <input type="file" id="rosterCsvInput" accept=".csv" style="display:none;" />
+                    </div>
                 
 
                 <div class="form-actions">
@@ -195,10 +245,14 @@
     <script src="./src/modules/teams/teams.js"></script>
     <script src="./src/modules/matches/matches.js"></script>
     <script src="./src/modules/scouting/scouting.js"></script>
+    
 
     <script>
         // Variabili globali
         let currentUser = null;
+        let currentRoster = [];
+        let derivedTeamName = null;
+        let derivedClubName = null;
 
         // Elementi DOM
         const matchForm = document.getElementById('matchForm');
@@ -213,6 +267,7 @@
             setupRadioButtons();
             setDefaultDate();
             bindLiveValidation();
+            restoreMyFields();
             updateSubmitState();
         });
 
@@ -235,6 +290,33 @@
 
             // Event listeners
             matchForm.addEventListener('submit', handleFormSubmit);
+            const selectRosterBtn = document.getElementById('selectRosterBtn');
+            const importRosterCsvBtn = document.getElementById('importRosterCsvBtn');
+            const exportRosterCsvBtn = document.getElementById('exportRosterCsvBtn');
+            const editRosterBtn = document.getElementById('editRosterBtn');
+            const rosterCsvInput = document.getElementById('rosterCsvInput');
+            if (selectRosterBtn) selectRosterBtn.addEventListener('click', openRosterSelectDialog);
+            if (importRosterCsvBtn) importRosterCsvBtn.addEventListener('click', () => rosterCsvInput && rosterCsvInput.click());
+            if (exportRosterCsvBtn) exportRosterCsvBtn.addEventListener('click', exportRosterCSV);
+            if (rosterCsvInput) rosterCsvInput.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) importRosterCSV(f); e.target.value = ''; });
+            if (editRosterBtn) editRosterBtn.addEventListener('click', () => { showRosterEditor(); if (currentRoster.length === 0) { for (let i=0;i<7;i++) addRosterRow(); addRosterRow(); } else { renderRosterRows(currentRoster); addRosterRow(); } updateSubmitState(); });
+            const myTeamField = document.getElementById('myTeamInput');
+            const myClubField = document.getElementById('myClub');
+            if (myTeamField) myTeamField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyTeam', e.target.value || ''); } catch(_){} updateSubmitState(); });
+            if (myClubField) myClubField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyClub', e.target.value || ''); } catch(_){} });
+
+            const teamId = localStorage.getItem('selectedTeamId');
+            let selected = window.teamsModule?.getCurrentTeam?.();
+            if (!selected && teamId && window.teamsModule?.getTeamById) {
+                selected = window.teamsModule.getTeamById(teamId);
+            }
+            const fallbackTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
+            const fallbackClub = localStorage.getItem('lastMyClub') || '';
+            const prefillTeam = selected?.teamName || fallbackTeam;
+            const prefillClub = selected?.clubName || fallbackClub;
+            if (myTeamField && prefillTeam) { myTeamField.value = prefillTeam; myTeamField.disabled = true; }
+            if (myClubField && prefillClub) { myClubField.value = prefillClub; myClubField.disabled = true; }
+            updateSubmitState();
         }
 
         function setupRadioButtons() {
@@ -400,7 +482,9 @@
             const matchDate = document.getElementById('matchDate')?.value;
             const eventType = document.getElementById('eventType')?.value;
             const location = document.getElementById('locationInput')?.value;
-            const allValid = !!(opponent && matchDate && eventType && location);
+            const rosterList = collectRosterFromEditor();
+            const hasRoster = Array.isArray(rosterList) && rosterList.length > 0;
+            const allValid = !!(opponent && matchDate && eventType && location && hasRoster);
             if (!submitBtn) return;
             submitBtn.disabled = !allValid;
             if (allValid) {
@@ -470,8 +554,9 @@
                 return;
             }
 
-            if (!matchData.teamId) {
-                showError('Errore: nessuna squadra selezionata');
+            const rosterCheck = collectRosterFromEditor();
+            if (!Array.isArray(rosterCheck) || rosterCheck.length === 0) {
+                showError('Il Roster è obbligatorio: seleziona, importa o modifica l’elenco giocatori');
                 return;
             }
 
@@ -485,13 +570,17 @@
                 matchData.id = matchId;
                 const currentTeam = window.teamsModule?.getCurrentTeam?.();
                 const selectedTeamId = matchData.teamId;
-                const myTeamName = currentTeam?.name || null;
+                const formMyTeam = document.getElementById('myTeamInput')?.value.trim() || '';
+                const formMyClub = document.getElementById('myClub')?.value.trim() || '';
+                const myTeamName = currentTeam?.name || formMyTeam || derivedTeamName || null;
+                const roster = collectRosterFromEditor();
 
                 // Prepara payload coerente con uso generale
                 const payload = {
                     id: matchId,
                     teamId: selectedTeamId,
                     myTeam: myTeamName,
+                    myClub: formMyClub || derivedClubName || null,
                     opponentTeam: matchData.opponent,
                     matchDate: matchData.matchDate,
                     eventType: matchData.eventType,
@@ -499,7 +588,8 @@
                     description: matchData.description || '',
                     status: 'planned',
                     createdAt: matchData.createdAt,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
+                    roster: Array.isArray(roster) ? roster : []
                 };
 
                 // 1) Persistenza locale: aggiungi/aggiorna in volleyMatches
@@ -524,7 +614,7 @@
                 }
 
                 // 3) Imposta setup corrente per set-config
-                localStorage.setItem('currentMatchSetup', JSON.stringify(matchData));
+                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: Array.isArray(roster) ? roster : [] }));
 
                 showSuccess('Partita salvata! Reindirizzamento alla configurazione set...');
 
@@ -541,6 +631,179 @@
                 submitBtn.textContent = 'Continua →';
             }
         }
+
+        // --- Roster editor helpers ---
+        function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+        function normalizeRole(val){ const v = String(val||'').trim().toUpperCase(); const c = v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
+        function showRosterEditor(){ const el = document.getElementById('rosterEditor'); if (el) el.style.display = 'block'; }
+        function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; const header = el.querySelector('.player-header'); el.innerHTML=''; if (header) el.appendChild(header); (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
+        function addRosterRow(player={}){
+            const el = document.getElementById('rosterEditor'); if (!el) return;
+            const row = document.createElement('div'); row.className='player-row';
+            const num = ensureTwoDigits(player.number||'');
+            const name = (player.name||'').toString().slice(0,12);
+            const surname = (player.surname||'').toString().slice(0,12);
+            const nick = (player.nickname||'').toString().slice(0,12);
+            const role = normalizeRole(player.role||'');
+            row.innerHTML = `
+              <div><input type="text" class="input num-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="#" value="${num}" /></div>
+              <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${name}" /></div>
+              <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${surname}" /></div>
+              <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${nick}" /></div>
+              <div class="role-cell" data-empty="${role?0:1}">
+                <select class="input role-select">
+                  <option value="">—</option>
+                  <option value="P">P</option>
+                  <option value="S">S</option>
+                  <option value="O">O</option>
+                  <option value="C">C</option>
+                  <option value="L">L</option>
+                </select>
+              </div>
+              <div><button type="button" class="btn btn-secondary" onclick="this.closest('.player-row').remove()">Rimuovi</button></div>`;
+            el.appendChild(row);
+            const sel = row.querySelector('.role-select'); if (sel) sel.value = role||'';
+            const cell = row.querySelector('.role-cell'); if (sel && cell) sel.addEventListener('change', ()=>{ cell.dataset.empty = sel.value ? '0' : '1'; });
+        }
+        function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-row')); const list = rows.map(r=>({ number: (r.querySelector('.num-input')?.value||'').trim(), name:(r.querySelector('.name-input')?.value||'').trim(), surname:(r.querySelector('.surname-input')?.value||'').trim(), nickname:(r.querySelector('.nick-input')?.value||'').trim(), role:(r.querySelector('.role-select')?.value||'').trim() })).filter(p=>p && (p.number||p.name||p.surname||p.nickname||p.role)); currentRoster = list; return list; }
+
+        // --- Roster: selezione/import ---
+        function openRosterSelectDialog(){
+            try {
+                const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_) { return []; }})();
+                const matches = (()=>{ try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; }})();
+                const options = [];
+                saved.forEach(r=> options.push({ label: r.name||'Roster salvato', roster: Array.isArray(r.players)?r.players:[] }));
+                matches.forEach(m=>{ if (Array.isArray(m.roster) && m.roster.length) { const date = (m.matchDate||m.date||'').toString().slice(0,10); const opp = m.opponentTeam||m.opponent||'Avversario'; options.push({ label: `Da partita: ${date} vs ${opp}`, roster: m.roster }); } });
+                const imported = (()=>{ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ return []; }})();
+                if (imported && imported.length) options.unshift({ label: 'Ultimo roster importato', roster: imported });
+                if (options.length === 0) { alert('Non ci sono roster salvati o partite con roster. Usa Importa o Modifica.'); return; }
+                const dlg = document.createElement('div'); dlg.className='dialog-form'; dlg.style.padding='12px'; dlg.style.background='#fff'; dlg.style.border='1px solid #e9ecef'; dlg.style.borderRadius='10px'; dlg.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'; dlg.style.position='fixed'; dlg.style.top='50%'; dlg.style.left='50%'; dlg.style.transform='translate(-50%, -50%)'; dlg.style.zIndex='9999';
+                const sel = document.createElement('select'); sel.style.width='100%'; sel.style.marginBottom='8px'; options.forEach((o,idx)=>{ const opt = document.createElement('option'); opt.value=String(idx); opt.textContent=o.label; sel.appendChild(opt); }); dlg.appendChild(sel);
+                const ok = document.createElement('button'); ok.className='btn btn-primary'; ok.textContent='Usa'; ok.style.marginRight='8px';
+                const cancel = document.createElement('button'); cancel.className='btn btn-secondary'; cancel.textContent='Annulla';
+                const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px'; actions.appendChild(ok); actions.appendChild(cancel); dlg.appendChild(actions);
+                document.body.appendChild(dlg);
+                ok.addEventListener('click', ()=>{ const idx = Number(sel.value||0); const picked = options[idx]?.roster||[]; currentRoster = Array.isArray(picked)?picked:[]; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); document.body.removeChild(dlg); updateSubmitState(); });
+                cancel.addEventListener('click', ()=>{ document.body.removeChild(dlg); });
+            } catch(e){ console.error(e); alert('Errore selezione roster'); }
+        }
+        function importRosterCSV(file){
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const text = reader.result;
+                    const lines = String(text||'').split(/\r?\n/).filter(l => String(l).trim());
+                    if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
+                    const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+                    const idx = {
+                        squadra: headers.indexOf('squadra'),
+                        societa: (function(){ const i1 = headers.indexOf('societa'); const i2 = headers.indexOf('società'); return i1 !== -1 ? i1 : i2; })(),
+                        numero: headers.indexOf('numero'),
+                        nome: headers.indexOf('nome'),
+                        cognome: headers.indexOf('cognome'),
+                        soprannome: headers.indexOf('soprannome'),
+                        ruolo: headers.indexOf('ruolo')
+                    };
+                    const importedPlayers = [];
+                    for (let i = 1; i < lines.length; i++){
+                        const cols = splitCSVLine(lines[i]);
+                        if (!cols.length) continue;
+                        if (!derivedTeamName) {
+                            const tn1 = idx.squadra !== -1 ? (cols[idx.squadra] || '') : '';
+                            const cn1 = idx.societa !== -1 ? (cols[idx.societa] || '') : '';
+                            const teamNameCandidate = tn1.trim();
+                            const clubNameCandidate = cn1.trim();
+                            if (teamNameCandidate) derivedTeamName = teamNameCandidate;
+                            if (clubNameCandidate) derivedClubName = clubNameCandidate;
+                        }
+                        const player = {
+                            number: ensureTwoDigits(idx.numero !== -1 ? (cols[idx.numero] || '') : ''),
+                            name: (idx.nome !== -1 ? (cols[idx.nome] || '') : '').trim(),
+                            surname: (idx.cognome !== -1 ? (cols[idx.cognome] || '') : '').trim(),
+                            nickname: (idx.soprannome !== -1 ? (cols[idx.soprannome] || '') : '').trim(),
+                            role: normalizeRole(idx.ruolo !== -1 ? (cols[idx.ruolo] || '') : '')
+                        };
+                        if (player.number || player.name || player.surname || player.nickname || player.role) importedPlayers.push(player);
+                    }
+                    if (!importedPlayers.length) throw new Error('Nessun giocatore rilevato nel CSV.');
+                    currentRoster = importedPlayers;
+                    try { localStorage.setItem('importedRoster', JSON.stringify(importedPlayers)); } catch(_){}
+                    try { if (derivedTeamName) localStorage.setItem('derivedTeamNameForSetup', derivedTeamName); } catch(_){}
+                    try {
+                      if (derivedTeamName) {
+                        const tf = document.getElementById('myTeamInput'); if (tf) tf.value = derivedTeamName;
+                        localStorage.setItem('lastMyTeam', derivedTeamName);
+                      }
+                      if (derivedClubName) {
+                        const cf = document.getElementById('myClub'); if (cf) cf.value = derivedClubName;
+                        localStorage.setItem('lastMyClub', derivedClubName);
+                      }
+                    } catch(_){}
+                    showRosterEditor(); renderRosterRows(currentRoster); addRosterRow();
+                    updateSubmitState();
+                    alert('Roster importato da CSV.');
+                } catch(err){
+                    console.error(err);
+                    alert('Errore nell\'importazione CSV: ' + err.message);
+                }
+            };
+            reader.onerror = () => alert('Impossibile leggere il file CSV selezionato.');
+            reader.readAsText(file);
+        }
+        function splitCSVLine(line){
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < String(line||'').length; i++){
+                const ch = line[i];
+                if (ch === '"'){
+                    if (inQuotes && line[i+1] === '"'){ current += '"'; i++; }
+                    else { inQuotes = !inQuotes; }
+                } else if (ch === ',' && !inQuotes){ result.push(current); current = ''; }
+                else { current += ch; }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function exportRosterCSV(){
+            try {
+                const teamName = (document.getElementById('myTeamInput')?.value.trim()) || derivedTeamName || (window.teamsModule?.getCurrentTeam?.()?.name || '');
+                const players = collectRosterFromEditor();
+                if (!Array.isArray(players) || !players.length) { alert('Nessun giocatore nel roster da esportare'); return; }
+                const header = 'Squadra,Numero,Nome,Cognome,Ruolo,Soprannome';
+                function esc(v){ const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+                const lines = [header].concat(players.map(p => {
+                    const num = p.number ? String(parseInt(p.number,10) || '').trim() : '';
+                    return [teamName, num, p.name||'', p.surname||'', p.role||'', (p.nickname||'')].map(esc).join(',');
+                }));
+                const csvText = lines.join('\n');
+                const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+                const d = new Date(); const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = String(d.getFullYear());
+                const safeTeam = String(teamName||'roster').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_');
+                const filename = `${safeTeam}_roster_${dd}-${mm}-${yyyy}.csv`;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            } catch(e){ console.error(e); alert('Errore esportazione CSV'); }
+        }
+        function restoreMyFields(){
+            try {
+                const teamField = document.getElementById('myTeamInput');
+                const clubField = document.getElementById('myClub');
+                const savedTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
+                const savedClub = localStorage.getItem('lastMyClub') || '';
+                if (teamField && !teamField.value && savedTeam) teamField.value = savedTeam;
+                if (clubField && !clubField.value && savedClub) clubField.value = savedClub;
+            } catch(_){}
+        }
+        (function(){
+            const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+            if (goToTeamsBtnMobile){
+              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='my-teams.html'; });
+            }
+        })();
     </script>
 </body>
 </html>

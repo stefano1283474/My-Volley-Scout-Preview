@@ -12,7 +12,7 @@
   <header class="topappbar" style="--topbar-h:81px;">
     <div class="topappbar-content">
       <div class="topappbar-left">
-        <a href="welcome.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
+        <a href="matches.html" class="back-btn" aria-label="Elenco Partite" title="Elenco Partite" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
             <path d="M15.5 19a1 1 0 0 1-.71-.29l-6-6a1 1 0 0 1 0-1.42l6-6a1 1 0 0 1 1.42 1.42L10.92 12l5.29 5.29A1 1 0 0 1 15.5 19z"/>
           </svg>
@@ -83,7 +83,8 @@
 
   <script>
     let currentUser = null;
-    let selectedTeam = null;
+    let currentSession = null;
+    let currentMatchId = null;
 
     const userEmail = document.getElementById('userEmail');
     const accountBtn = document.getElementById('accountBtn');
@@ -100,23 +101,19 @@
     document.addEventListener('DOMContentLoaded', initializeRosterPage);
 
     function initializeRosterPage(){
-      if (typeof window.authFunctions === 'undefined' || typeof window.teamsModule === 'undefined'){
+      if (typeof window.authFunctions === 'undefined'){
         setTimeout(initializeRosterPage, 200);
         return;
       }
 
       window.authFunctions.onAuthStateChanged((user) => {
-    if (!user){ window.location.href = '/auth-login.html'; return; }
+        if (!user){ window.location.href = '/auth-login.html'; return; }
         currentUser = user;
-        const teamId = localStorage.getItem('selectedTeamId');
-        if (teamId){
-          try { window.teamsModule.selectTeam(teamId); } catch(_){ }
-          const team = (window.teamsModule.getTeamById ? window.teamsModule.getTeamById(teamId) : null) || null;
-          selectedTeam = team;
-        }
-        if (!selectedTeam){
-          alert('Nessuna squadra selezionata. Torno alle squadre.');
-          window.location.href = 'welcome.html';
+        try { currentSession = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { currentSession = null; }
+        currentMatchId = (currentSession && currentSession.id) ? currentSession.id : localStorage.getItem('selectedMatchId');
+        if (!currentMatchId){
+          alert('Nessuna partita selezionata. Torno a Elenco Partite.');
+          window.location.href = 'matches.html';
           return;
         }
         renderRosterEditor();
@@ -137,21 +134,17 @@
     }
 
     function renderRosterEditor(){
-      if (!selectedTeam) return;
-      const teamName = selectedTeam.teamName || String(selectedTeam.name || '').split(' - ')[0] || '';
-      const parts = String(selectedTeam.name || '').split(' - ');
-      const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
-      rosterTeamNameInput.value = teamName;
-      rosterClubNameInput.value = inferredClub;
-
-      // Pulisci righe giocatori mantenendo l'header
       const header = rosterGrid.querySelector('.player-header');
       rosterGrid.innerHTML = '';
       if (header) rosterGrid.appendChild(header);
-      const players = Array.isArray(selectedTeam.players) ? selectedTeam.players : [];
+      let players = [];
+      try {
+        const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+        const m = Array.isArray(list) ? list.find(x => x.id === currentMatchId) : null;
+        players = Array.isArray(m?.roster) ? m.roster : Array.isArray(currentSession?.roster) ? currentSession.roster : [];
+      } catch(_) {}
       if (!players.length) { for (let i = 0; i < 7; i++) addRosterRow(); }
       else { players.forEach(p => addRosterRow(p)); }
-      // Aggiungi sempre una riga vuota aggiuntiva in basso per inserire un nuovo giocatore
       addRosterRow();
     }
 
@@ -199,7 +192,6 @@
 
     async function confirmRosterAndProceed(){
       try {
-        if (!selectedTeam) return;
         const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
         const players = rows.map(r => {
           const number = (r.querySelector('.num-input')?.value || '').trim();
@@ -209,24 +201,21 @@
           const nickname = (r.querySelector('.nick-input')?.value || '').trim().slice(0,12);
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
-        const newTeamName = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
-        const newClubName = (rosterClubNameInput && rosterClubNameInput.value.trim()) || '';
-        const currentName = newTeamName + (newClubName ? ` - ${newClubName}` : '');
-        const updatedTeam = { id: selectedTeam.id, name: currentName, teamName: newTeamName, clubName: newClubName, players };
-        const result = await window.teamsModule.saveTeam(updatedTeam);
-        if (!result.success) throw new Error(result.error || 'Salvataggio fallito');
-        selectedTeam = result.team;
-        localStorage.setItem('selectedTeamId', selectedTeam.id);
-        alert('Roster salvato. Prosegui ai dati della gara.');
-        window.location.href = 'matches.html';
+        // Aggiorna match in archivio locale
+        const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+        for (let i=0; i<list.length; i++) { if (list[i].id === currentMatchId) { list[i].roster = players; } }
+        localStorage.setItem('volleyMatches', JSON.stringify(list));
+        // Aggiorna sessione corrente
+        try { const sess = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); if (sess && sess.id === currentMatchId) { sess.roster = players; localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } } catch(_) {}
+        alert('Elenco giocatori salvato sulla partita.');
+        window.location.href = 'index.html';
       } catch (e) {
         console.error(e);
-        alert('Errore nel salvataggio del roster: ' + e.message);
+        alert('Errore nel salvataggio dell\'elenco giocatori: ' + e.message);
       }
     }
 
     function exportSelectedTeamCSV(){
-      if (!selectedTeam) return alert('Nessuna squadra selezionata');
       try {
         const rows = Array.from(rosterGrid.querySelectorAll('.player-row'));
         const players = rows.map(r => {
@@ -237,8 +226,8 @@
           const nickname = (r.querySelector('.nick-input')?.value || '').trim().slice(0,12);
           return { number, name, surname, role, nickname };
         }).filter(p => p && (p.number || p.name || p.surname || p.role || p.nickname));
-        const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
-        const clubNameExp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
+        const teamNameExp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || '';
+        const clubNameExp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || '';
         const currentName = teamNameExp + (clubNameExp ? ` - ${clubNameExp}` : '');
         const header = ['Squadra','Numero','Nome','Cognome','Ruolo','Soprannome'];
         const lines = [header.join(',')];
@@ -265,7 +254,6 @@
     }
 
     function importRosterCSV(file){
-      if (!selectedTeam){ alert('Seleziona prima una squadra.'); return; }
       const reader = new FileReader();
       reader.onload = () => {
         try {
@@ -274,7 +262,6 @@
           if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
           const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
           const idx = {
-            squadra: headers.indexOf('squadra'),
             numero: headers.indexOf('numero'),
             nome: headers.indexOf('nome'),
             cognome: headers.indexOf('cognome'),
@@ -282,19 +269,12 @@
             soprannome: headers.indexOf('soprannome')
           };
           if (idx.numero === -1 || idx.nome === -1 || idx.cognome === -1 || idx.ruolo === -1){
-            throw new Error('Intestazioni richieste mancanti. Richieste: Numero, Nome, Cognome, Ruolo. Opzionale: Squadra, Soprannome');
+            throw new Error('Intestazioni richieste mancanti. Richieste: Numero, Nome, Cognome, Ruolo. Opzionale: Soprannome');
           }
-          const teamNameImp = (rosterTeamNameInput && rosterTeamNameInput.value.trim()) || (selectedTeam.teamName || '');
-          const clubNameImp = (rosterClubNameInput && rosterClubNameInput.value.trim()) || (selectedTeam.clubName || '');
-          const currentName = teamNameImp + (clubNameImp ? ` - ${clubNameImp}` : '');
           const importedPlayers = [];
           for (let i = 1; i < lines.length; i++){
             const cols = splitCSVLine(lines[i]);
             if (!cols.length) continue;
-            const rowTeam = idx.squadra !== -1 ? (cols[idx.squadra] || '').trim() : '';
-            if (idx.squadra !== -1 && rowTeam && rowTeam !== currentName){
-              continue;
-            }
             const player = {
               number: idx.numero !== -1 ? (cols[idx.numero] || '').trim() : '',
               name: idx.nome !== -1 ? (cols[idx.nome] || '').trim() : '',
@@ -307,7 +287,7 @@
             }
           }
           if (!importedPlayers.length){
-            alert('Nessun giocatore importato. Verifica che la colonna "Squadra" coincida con il nome della squadra selezionata o che il file contenga i campi richiesti.');
+            alert('Nessun giocatore importato. Verifica che il file contenga i campi richiesti.');
             return;
           }
           const header = rosterGrid.querySelector('.player-header');
@@ -325,19 +305,15 @@
     }
 
     async function deleteCurrentRoster(){
-      if (!selectedTeam) return;
-      const ok = confirm(`Eliminare definitivamente il roster della squadra "${selectedTeam.name}"?\nVerrà rimosso sia in locale che dal cloud (se connesso).`);
+      const ok = confirm('Eliminare definitivamente l\'elenco giocatori della partita?');
       if (!ok) return;
       try {
-        if (window.firestoreService && window.authFunctions){
-          try { if (window.firestoreService.deleteRostersByName){ await window.firestoreService.deleteRostersByName(selectedTeam.name); } } catch(e){ console.warn('Eliminazione roster su Firestore non riuscita o non disponibile:', e); }
-          try { if (window.firestoreService.deleteLocalRostersByName){ window.firestoreService.deleteLocalRostersByName(selectedTeam.name); } } catch(e){}
-        }
-        const result = await window.teamsModule.saveTeam({ id: selectedTeam.id, name: selectedTeam.name, players: [] });
-        if (!result.success) throw new Error(result.error || 'Impossibile aggiornare la squadra localmente');
-        selectedTeam = result.team;
+        const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+        for (let i=0; i<list.length; i++) { if (list[i].id === currentMatchId) { list[i].roster = []; } }
+        localStorage.setItem('volleyMatches', JSON.stringify(list));
+        try { const sess = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); if (sess && sess.id === currentMatchId) { sess.roster = []; localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } } catch(_) {}
         renderRosterEditor();
-        alert('Roster eliminato con successo.');
+        alert('Elenco giocatori eliminato dalla partita.');
       } catch(err){
         console.error(err);
         alert('Errore durante l\'eliminazione del roster: ' + err.message);

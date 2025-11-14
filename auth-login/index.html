@@ -350,7 +350,7 @@
             // Controlla se l'utente è già autenticato
             window.authFunctions.onAuthStateChanged((user) => {
                 if (user) {
-                    window.location.href = '/welcome.html';
+                    window.location.href = '/my-teams.html';
                 }
             });
 
@@ -375,7 +375,7 @@
                         showSuccess('Accesso effettuato con successo!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/welcome.html';
+                            window.location.href = '/my-teams.html';
                         }, 1500);
                     } else {
                         const msg = result?.error || 'Errore durante l\'autenticazione';
@@ -399,7 +399,7 @@
                         showSuccess('Accesso con Google effettuato!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/welcome.html';
+                            window.location.href = '/my-teams.html';
                         }, 1500);
                     } else {
                         const errorCode = result?.code || 'unknown';

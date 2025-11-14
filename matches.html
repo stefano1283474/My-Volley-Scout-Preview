@@ -320,6 +320,8 @@
             color: #666;
         }
 
+        .empty-actions { display:inline-flex; gap:10px; margin-top:12px; }
+
         /* Icona stato vuoto: usa il logo pallone */
         .empty-icon {
             width: 64px;
@@ -384,7 +386,7 @@
                 </div>
             </div>
             <div class="back-actions">
-                <a href="welcome.html" id="backBtn" class="back-btn" aria-label="Elenco Squadre" title="Elenco Squadre">←</a>
+                <a href="my-teams.html" id="backBtn" class="back-btn" aria-label="Elenco Squadre" title="Elenco Squadre">←</a>
             </div>
             <div class="account-actions">
                 <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
@@ -434,6 +436,7 @@
                   </button>
                 </div>
             </div>
+            <p class="section-hint" id="teamContext" style="margin:0 0 8px 0;">—</p>
             <p class="section-hint" style="margin:8px 0 16px 0;">Seleziona una partita per iniziare lo scout</p>
             
             <div class="matches-list" id="matchesList">
@@ -443,8 +446,12 @@
             <!-- Empty State -->
             <div class="empty-state" id="emptyMatches" style="display: none;">
                 <img class="empty-icon" src="./LOGO_PALLONE.png" alt="Pallone" />
-                <p>Nessuna partita trovata</p>
-                <p>Inizia creando la tua prima partita!</p>
+                <p>Nessuna partita disponibile</p>
+                <p>Crea una nuova partita oppure importa da file Excel.</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn btn-primary" onclick="window.location.href='match-setup.html'">Crea nuova partita</button>
+                  <button type="button" class="btn btn-secondary" onclick="importMatchFromExcelOnMatches()">Importa da Excel</button>
+                </div>
             </div>
         </div>
         
@@ -559,7 +566,7 @@
                 goToTeamsBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = 'welcome.html';
+                    window.location.href = 'my-teams.html';
                 });
             }
             const goToMatchesBtn = document.getElementById('goToMatchesBtn');
@@ -574,7 +581,11 @@
             if (backBtn){
                 backBtn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    window.location.href = 'welcome.html';
+                    if (window.history.length > 1){
+                        window.history.back();
+                    } else {
+                        window.location.href = 'my-teams.html';
+                    }
                 });
             }
             // Azioni Elenco: nuova partita e import
@@ -600,18 +611,14 @@
             }
 
             if (!selectedTeam) {
-                if (!teamId) {
-                    // Nessuna squadra: proponi di andare alla gestione squadre per crearne/importarne una
-                    const go = confirm('Non hai ancora creato o selezionato una squadra. Vuoi andare alla schermata "Squadre" per crearla o importarla?');
-                    if (go) {
-                        window.location.href = 'welcome.html';
-                    }
-                    return;
-                } else {
-                    // teamsModule non ancora pronto, riprova tra poco
-                    setTimeout(loadSelectedTeam, 200);
-                    return;
+                switchTab('list');
+                const dateInput = document.getElementById('match-date');
+                if (dateInput && !dateInput.value) {
+                    dateInput.value = new Date().toISOString().slice(0,10);
                 }
+                toggleTournamentField();
+                loadMatches();
+                return;
             }
 
             updateTeamInfo();
@@ -632,12 +639,14 @@
             if (!selectedTeam) return;
             const clubEl = document.getElementById('clubNameTop');
             const teamEl = document.getElementById('teamNameBottom');
+            const teamCtxEl = document.getElementById('teamContext');
             const nameCombined = selectedTeam.name || '';
             const parts = String(nameCombined).split(' - ');
             const inferredTeam = selectedTeam.teamName || (parts.length ? parts[0] : '');
             const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
             if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
             if (teamEl) teamEl.textContent = inferredTeam || '—';
+            if (teamCtxEl) teamCtxEl.textContent = inferredClub ? `Partite di: ${inferredTeam} — ${inferredClub}` : `Partite di: ${inferredTeam}`;
             const playerCount = Array.isArray(selectedTeam.players) ? selectedTeam.players.length : (selectedTeam.players || 0);
             const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
             const selName = selectedTeam?.name;
@@ -1093,6 +1102,8 @@
                       setMeta: sessionData.setMeta || {},
                       setStateBySet: sessionData.setStateBySet || {},
                       scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                      setSummary: sessionData.setSummary || {},
+                      roster: (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ return []; } })(),
                       createdAt: new Date().toISOString(),
                       status: 'in_progress'
                     };
@@ -1113,15 +1124,7 @@
         }
 
         function renderMatches() {
-            const selName = selectedTeam?.name || null;
-            const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
-            const relevant = Array.isArray(matches) ? matches.filter(m => {
-                const my = m.myTeam || m.teamName;
-                const home = m.homeTeam;
-                const away = m.awayTeam;
-                const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
-                return (teamIdMatch) || (selName && (my === selName || home === selName || away === selName));
-            }) : [];
+            const relevant = Array.isArray(matches) ? matches.slice() : [];
 
             if (relevant.length === 0) {
                 showEmptyMatches();
@@ -1345,6 +1348,25 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
+                // Se la partita è completa (tutti i set terminati), apri il Riepilogo All
+                try {
+                    const sum = match.setSummary || {};
+                    let complete = true;
+                    for (let i=1; i<=6; i++) {
+                        const s = sum[i];
+                        if (!s) { complete = false; break; }
+                        const h = Number(s.home||0), a = Number(s.away||0);
+                        const isSetFive = (i===5);
+                        const minScore = isSetFive ? 15 : 25;
+                        const ok = ((h>=minScore || a>=minScore) && Math.abs(h-a)>=2);
+                        if (!ok) { complete = false; break; }
+                    }
+                    if (complete) {
+                        localStorage.setItem('selectedMatchId', match.id);
+                        window.location.href = 'report-riepilogo-all.html';
+                        return;
+                    }
+                } catch(_) {}
                 
                 // Se la partita ha stato/progressi salvati, riprendi direttamente
                 const hasProgress = (
@@ -1354,26 +1376,60 @@
                 );
 
                 if (hasProgress) {
-                    // Assicura il roster selezionato coerente
-                    if (match.teamId) {
-                        localStorage.setItem('selectedTeamId', match.teamId);
+                    const rosterArr = Array.isArray(match.roster) ? match.roster : [];
+                    const opp = match.opponentTeam || match.opponent || '';
+                    const teamId = localStorage.getItem('selectedTeamId');
+                    const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
+                    if (!teamId || !rosterArr.length || oppInvalid) {
+                        const setup = {
+                            opponent: match.opponent || match.opponentTeam || '',
+                            matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
+                            eventType: match.eventType || match.matchType || '',
+                            location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
+                            venue: match.venue || '',
+                            description: match.description || '',
+                            teamId: match.teamId || teamId || null,
+                            createdAt: match.createdAt || new Date().toISOString(),
+                            status: match.status || 'planned',
+                            id: match.id,
+                            roster: match.roster || []
+                        };
+                        localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
+                        window.location.href = 'match-setup.html';
+                        return;
                     }
-                    // Imposta la sessione corrente e apri direttamente lo scouting
-                    localStorage.setItem('currentScoutingSession', JSON.stringify(match));
+                    const sess = {
+                        id: match.id,
+                        opponentTeam: opp,
+                        matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
+                        matchType: match.matchType || match.eventType || '',
+                        homeAway: match.homeAway || null,
+                        description: match.description || '',
+                        actionsBySet: match.actionsBySet || {},
+                        setMeta: match.setMeta || {},
+                        setStateBySet: match.setStateBySet || {},
+                        scoreHistoryBySet: match.scoreHistoryBySet || {},
+                        setSummary: match.setSummary || {},
+                        setConfig: { set: 1 },
+                        roster: rosterArr
+                    };
+                    localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+                    if (window.appState) window.appState.currentRoster = Array.isArray(sess.roster) ? sess.roster : [];
                     window.location.href = 'index.html';
                 } else {
                     // Altrimenti, mappa nei campi attesi da set-config.html
                     const setup = {
-                        opponent: match.opponent || match.opponentTeam || 'Avversario',
+                        opponent: match.opponent || match.opponentTeam || '',
                         matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
-                        eventType: match.eventType || match.matchType || 'partita',
+                        eventType: match.eventType || match.matchType || '',
                         location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
                         venue: match.venue || '',
                         description: match.description || '',
                         teamId: match.teamId || localStorage.getItem('selectedTeamId') || null,
                         createdAt: match.createdAt || new Date().toISOString(),
                         status: match.status || 'planned',
-                        id: match.id
+                        id: match.id,
+                        roster: match.roster || []
                     };
                     localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
                     window.location.href = 'set-config.html';
@@ -1767,7 +1823,7 @@
         });
       }
     </script>
-    <div id="import-summary-dialog" class="dialog">
+    <div id="import-summary-dialog" class="dialog" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999;">
       <div class="dialog-content">
         <div class="dialog-header">
           <h3>Dati gara per set</h3>
