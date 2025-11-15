@@ -104,10 +104,13 @@ window.loadScoutingSession = function(sessionData) {
             appState.currentMatch.setStateBySet = md.setStateBySet || {};
         } catch(_) {}
 
-        // Carica roster dal team selezionato
+        // Carica roster
         let loadedRoster = [];
         try {
-            if (window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') {
+            if (Array.isArray(md.roster) && md.roster.length) {
+                loadedRoster = md.roster;
+            }
+            if (!loadedRoster.length && window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') {
                 const team = window.teamsModule.getCurrentTeam();
                 if (team && Array.isArray(team.players)) loadedRoster = team.players;
             }
@@ -118,7 +121,6 @@ window.loadScoutingSession = function(sessionData) {
                     if (team && Array.isArray(team.players)) loadedRoster = team.players;
                 }
             }
-            // Fallback addizionale: leggi direttamente dal localStorage se il modulo non ha ancora caricato le squadre
             if (!loadedRoster.length) {
                 const selId = localStorage.getItem('selectedTeamId');
                 try {
@@ -1870,7 +1872,15 @@ function updatePlayersGrid() {
         .map(p => ({
             number: p.number ?? '',
             name: (p.nickname || `${p.name || ''} ${p.surname || ''}`.trim() || `Giocatore ${p.number}`),
-            role: p.role || ''
+            role: (function(r){
+                const s = String(r||'').trim().toUpperCase();
+                if (s === 'P' || s.startsWith('PAL')) return 'Palleggiatore';
+                if (s === 'O' || s.startsWith('OPP')) return 'Opposto';
+                if (s === 'S' || s.startsWith('SCH')) return 'Schiacciatore';
+                if (s === 'C' || s.startsWith('CEN')) return 'Centrale';
+                if (s === 'L' || s.startsWith('LIB')) return 'Libero';
+                return '';
+            })(p.role)
         }));
 
     const byRole = {

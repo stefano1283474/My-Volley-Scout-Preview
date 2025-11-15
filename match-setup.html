@@ -25,6 +25,9 @@
       .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
       .icon-button { background: #ffffff; color: #0d6efd; border: 1px solid #e9ecef; padding: 6px; border-radius: 8px; cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
       .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+      .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
+      .icon-button-circle { width:32px; height:32px; min-width:32px; min-height:32px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:0; }
+      .icon-button-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
 
       .account-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.08); min-width: 160px; }
       .account-dropdown .menu-item { width: 100%; padding: 10px 12px; text-align: left; background: transparent; border: none; cursor: pointer; color: #333; }
@@ -39,6 +42,36 @@
       /* Azioni form: mantiene su una riga anche su mobile e rende i bottoni più compatti */
       .form-actions { flex-wrap: wrap; justify-content: flex-end; }
       .btn-compact { padding: var(--space-2) var(--space-4); font-size: var(--font-size-sm); min-height: 36px; min-width: 96px; }
+      .section-card { border:1px solid #2563eb; border-radius:16px; padding:16px; background:#fff; margin:16px 0; }
+      .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:12px 0 10px 0; flex-wrap: nowrap; }
+      .section-title { font-size:18px; font-weight:700; color:#0f172a; }
+      .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+      .section-title-row .section-title { margin: 0; }
+      .section-title-row #submitBtn { margin: 0; min-height: 32px; padding: 6px 10px; }
+      .section-card input,
+      .section-card select,
+      .section-card textarea { border: 1px solid #0d6efd; background:#fff; }
+      .section-subtle { color:#64748b; }
+      @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      .page-slide-in { animation: pageSlideIn .24s ease-out; }
+      /* Animazione uniforme per elementi cliccabili (stile card squadra) */
+      .btn,
+      .icon-button,
+      .radio-option {
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      }
+      .btn:hover,
+      .icon-button:hover,
+      .radio-option:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      }
+      .btn:active,
+      .icon-button:active,
+      .radio-option:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+      }
       @media (max-width: 768px) {
         .form-actions { flex-direction: row !important; }
         .form-actions .btn { width: auto !important; }
@@ -47,10 +80,16 @@
 </head>
 <body>
     <div class="container">
+        <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
         <!-- Header coerente con matches.html -->
         <header class="header">
             <div class="back-actions">
-                <a href="matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">←</a>
+                <a href="matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
             </div>
             <div class="account-actions">
                 <button id="headerMenuToggle" class="icon-button" aria-expanded="false" aria-controls="headerMenu" title="Account">
@@ -120,13 +159,13 @@
 
         <!-- Sezione form con classi globali -->
         <div class="match-form">
-            <h2 id="match-setup-title" class="section-title">Nuova Partita</h2>
+            <h2 id="match-setup-title" class="section-title rounded-title" style="display:none;">Nuova Partita:</h2>
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
 
             <form id="matchForm">
                     <!-- Dati squadra (utente) -->
-                    <div class="form-row">
+                    <div class="form-row" style="display:none;">
                         <div class="form-group">
                             <label for="myClub">La tua società</label>
                             <input type="text" id="myClub" name="myClub" placeholder="Nome società" />
@@ -137,8 +176,12 @@
                         </div>
                     </div>
 
-                    <!-- Avversario e Data -->
-                    <div class="form-row">
+                    <div class="section-card">
+                        <div class="section-title-row">
+                            <h3 class="section-title rounded-title">Nuova Partita:</h3>
+                            <button type="submit" class="btn btn-secondary btn-compact" id="submitBtn" disabled>Continua →</button>
+                        </div>
+                        <div class="form-row">
                         <div class="form-group">
                             <label for="opponent">
                                 Squadra Avversaria <span class="required">*</span>
@@ -159,7 +202,6 @@
                         </div>
                     </div>
 
-                    <!-- Tipo Evento -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="eventType">
@@ -179,7 +221,6 @@
                         </div>
                     </div>
 
-                    <!-- Casa/Trasferta -->
                     <div class="form-group">
                         <label>
                             Luogo Partita <span class="required">*</span>
@@ -193,41 +234,16 @@
 
                     <!-- Palazzetto/Sede rimosso su richiesta utente -->
 
-                    <!-- Descrizione -->
                     <div class="form-group">
-                        <label for="description">
-                            Note aggiuntive
-                        </label>
-                        <textarea id="description" name="description" placeholder="Note sulla partita (importanza, condizioni particolari, ecc.)"></textarea>
+                        <label for="description">Note aggiuntive</label>
+                        <input type="text" id="description" name="description" placeholder="Note sulla partita" />
+                        </div>
                     </div>
                     
-                    <!-- Roster (Elenco Giocatori) -->
-                    <div class="form-group">
-                        <label>Elenco Giocatori (Roster) <span class="required">*</span></label>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-                            <button type="button" class="btn btn-secondary" id="selectRosterBtn">Seleziona</button>
-                            <button type="button" class="btn btn-secondary" id="importRosterCsvBtn">Importa CSV</button>
-                            <button type="button" class="btn btn-secondary" id="exportRosterCsvBtn">Esporta CSV</button>
-                            <button type="button" class="btn btn-secondary" id="editRosterBtn">Modifica</button>
-                        </div>
-                        <div id="rosterEditor" class="roster-grid" style="display:none;">
-                            <div class="player-row player-header">
-                                <div>N</div>
-                                <div>Nome</div>
-                                <div>Cognome</div>
-                                <div>Soprannome</div>
-                                <div>Ruolo</div>
-                                <div></div>
-                            </div>
-                        </div>
-                        <input type="file" id="rosterCsvInput" accept=".csv" style="display:none;" />
-                    </div>
+                    
                 
 
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary btn-compact" onclick="window.history.back()">Annulla</button>
-                    <button type="submit" class="btn btn-secondary btn-compact" id="submitBtn" disabled>Continua →</button>
-                </div>
+                
             </form>
         </div>
     </div>
@@ -290,16 +306,20 @@
 
             // Event listeners
             matchForm.addEventListener('submit', handleFormSubmit);
-            const selectRosterBtn = document.getElementById('selectRosterBtn');
-            const importRosterCsvBtn = document.getElementById('importRosterCsvBtn');
-            const exportRosterCsvBtn = document.getElementById('exportRosterCsvBtn');
-            const editRosterBtn = document.getElementById('editRosterBtn');
+            const importRosterIcon = document.getElementById('importRosterIcon');
+            const exportRosterIcon = document.getElementById('exportRosterIcon');
+            const createRosterIcon = document.getElementById('createRosterIcon');
+            const confirmRosterBtn = document.getElementById('confirmRosterBtn');
+            const cancelRosterBtn = document.getElementById('cancelRosterBtn');
             const rosterCsvInput = document.getElementById('rosterCsvInput');
-            if (selectRosterBtn) selectRosterBtn.addEventListener('click', openRosterSelectDialog);
-            if (importRosterCsvBtn) importRosterCsvBtn.addEventListener('click', () => rosterCsvInput && rosterCsvInput.click());
-            if (exportRosterCsvBtn) exportRosterCsvBtn.addEventListener('click', exportRosterCSV);
+            if (importRosterIcon) importRosterIcon.addEventListener('click', () => rosterCsvInput && rosterCsvInput.click());
+            if (exportRosterIcon) exportRosterIcon.addEventListener('click', exportRosterCSV);
             if (rosterCsvInput) rosterCsvInput.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) importRosterCSV(f); e.target.value = ''; });
-            if (editRosterBtn) editRosterBtn.addEventListener('click', () => { showRosterEditor(); if (currentRoster.length === 0) { for (let i=0;i<7;i++) addRosterRow(); addRosterRow(); } else { renderRosterRows(currentRoster); addRosterRow(); } updateSubmitState(); });
+            if (createRosterIcon) createRosterIcon.addEventListener('click', () => { showRosterEditor(); currentRoster = Array.isArray(currentRoster)?currentRoster:[]; if (!currentRoster.length) { for (let i=0;i<7;i++) addRosterRow(); addRosterRow(); } else { renderRosterRows(currentRoster); addRosterRow(); } updateSubmitState(); updateConfirmRosterState(); });
+            if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmCurrentRoster);
+            if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', cancelRosterEditing);
+            renderRosterList();
+            updateConfirmRosterState();
             const myTeamField = document.getElementById('myTeamInput');
             const myClubField = document.getElementById('myClub');
             if (myTeamField) myTeamField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyTeam', e.target.value || ''); } catch(_){} updateSubmitState(); });
@@ -482,9 +502,7 @@
             const matchDate = document.getElementById('matchDate')?.value;
             const eventType = document.getElementById('eventType')?.value;
             const location = document.getElementById('locationInput')?.value;
-            const rosterList = collectRosterFromEditor();
-            const hasRoster = Array.isArray(rosterList) && rosterList.length > 0;
-            const allValid = !!(opponent && matchDate && eventType && location && hasRoster);
+            const allValid = !!(opponent && matchDate && eventType && location);
             if (!submitBtn) return;
             submitBtn.disabled = !allValid;
             if (allValid) {
@@ -554,11 +572,7 @@
                 return;
             }
 
-            const rosterCheck = collectRosterFromEditor();
-            if (!Array.isArray(rosterCheck) || rosterCheck.length === 0) {
-                showError('Il Roster è obbligatorio: seleziona, importa o modifica l’elenco giocatori');
-                return;
-            }
+            // Il roster sarà gestito nella pagina successiva
 
             // Disabilita il pulsante durante il salvataggio
             submitBtn.disabled = true;
@@ -569,11 +583,12 @@
                 const matchId = 'match_' + Date.now();
                 matchData.id = matchId;
                 const currentTeam = window.teamsModule?.getCurrentTeam?.();
-                const selectedTeamId = matchData.teamId;
+                let selectedTeamId = matchData.teamId || localStorage.getItem('selectedTeamId') || (currentTeam?.id || currentTeam?.teamId) || null;
+                if (selectedTeamId) { try { localStorage.setItem('selectedTeamId', String(selectedTeamId)); } catch(_){} }
                 const formMyTeam = document.getElementById('myTeamInput')?.value.trim() || '';
                 const formMyClub = document.getElementById('myClub')?.value.trim() || '';
                 const myTeamName = currentTeam?.name || formMyTeam || derivedTeamName || null;
-                const roster = collectRosterFromEditor();
+                const roster = [];
 
                 // Prepara payload coerente con uso generale
                 const payload = {
@@ -613,15 +628,15 @@
                     console.warn('Salvataggio cloud non riuscito (proseguo):', e);
                 }
 
-                // 3) Imposta setup corrente per set-config
-                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: Array.isArray(roster) ? roster : [] }));
+                // 3) Imposta setup corrente per pagina di roster
+                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
 
-                showSuccess('Partita salvata! Reindirizzamento alla configurazione set...');
+                showSuccess('Partita salvata! Prosegui alla selezione del roster...');
 
-                // Reindirizza alla configurazione dei set dopo breve attesa
+                // Reindirizza alla pagina roster dopo breve attesa
                 setTimeout(() => {
-                    window.location.href = 'set-config.html';
-                }, 1200);
+                    window.location.href = 'match-roster.html';
+                }, 900);
 
             } catch (error) {
                 console.error('Errore nel salvataggio:', error);
@@ -668,25 +683,56 @@
         function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-row')); const list = rows.map(r=>({ number: (r.querySelector('.num-input')?.value||'').trim(), name:(r.querySelector('.name-input')?.value||'').trim(), surname:(r.querySelector('.surname-input')?.value||'').trim(), nickname:(r.querySelector('.nick-input')?.value||'').trim(), role:(r.querySelector('.role-select')?.value||'').trim() })).filter(p=>p && (p.number||p.name||p.surname||p.nickname||p.role)); currentRoster = list; return list; }
 
         // --- Roster: selezione/import ---
-        function openRosterSelectDialog(){
-            try {
-                const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_) { return []; }})();
-                const matches = (()=>{ try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; }})();
-                const options = [];
-                saved.forEach(r=> options.push({ label: r.name||'Roster salvato', roster: Array.isArray(r.players)?r.players:[] }));
-                matches.forEach(m=>{ if (Array.isArray(m.roster) && m.roster.length) { const date = (m.matchDate||m.date||'').toString().slice(0,10); const opp = m.opponentTeam||m.opponent||'Avversario'; options.push({ label: `Da partita: ${date} vs ${opp}`, roster: m.roster }); } });
-                const imported = (()=>{ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ return []; }})();
-                if (imported && imported.length) options.unshift({ label: 'Ultimo roster importato', roster: imported });
-                if (options.length === 0) { alert('Non ci sono roster salvati o partite con roster. Usa Importa o Modifica.'); return; }
-                const dlg = document.createElement('div'); dlg.className='dialog-form'; dlg.style.padding='12px'; dlg.style.background='#fff'; dlg.style.border='1px solid #e9ecef'; dlg.style.borderRadius='10px'; dlg.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'; dlg.style.position='fixed'; dlg.style.top='50%'; dlg.style.left='50%'; dlg.style.transform='translate(-50%, -50%)'; dlg.style.zIndex='9999';
-                const sel = document.createElement('select'); sel.style.width='100%'; sel.style.marginBottom='8px'; options.forEach((o,idx)=>{ const opt = document.createElement('option'); opt.value=String(idx); opt.textContent=o.label; sel.appendChild(opt); }); dlg.appendChild(sel);
-                const ok = document.createElement('button'); ok.className='btn btn-primary'; ok.textContent='Usa'; ok.style.marginRight='8px';
-                const cancel = document.createElement('button'); cancel.className='btn btn-secondary'; cancel.textContent='Annulla';
-                const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px'; actions.appendChild(ok); actions.appendChild(cancel); dlg.appendChild(actions);
-                document.body.appendChild(dlg);
-                ok.addEventListener('click', ()=>{ const idx = Number(sel.value||0); const picked = options[idx]?.roster||[]; currentRoster = Array.isArray(picked)?picked:[]; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); document.body.removeChild(dlg); updateSubmitState(); });
-                cancel.addEventListener('click', ()=>{ document.body.removeChild(dlg); });
-            } catch(e){ console.error(e); alert('Errore selezione roster'); }
+        function openRosterSelectDialog(){ renderRosterList(); }
+        function buildRosterOptions(){
+            let saved = []; let matches = []; let imported = [];
+            try { saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ }
+            try { matches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_){ }
+            try { imported = JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ }
+            const opts = [];
+            if (imported && imported.length) opts.push({ id:'imported', label:'Ultimo import', roster:imported, source:'imported' });
+            saved.forEach((r,idx)=>{ opts.push({ id:'saved_'+idx, label:r.name||'Roster salvato', roster:Array.isArray(r.players)?r.players:[], source:'saved' }); });
+            matches.forEach(m=>{ if (Array.isArray(m.roster) && m.roster.length){ const date = (m.matchDate||m.date||'').toString().slice(0,10); const opp = m.opponentTeam||m.opponent||'Avversario'; opts.push({ id:String(m.id||date+opp), label:`Partita: ${date} vs ${opp}`, roster:m.roster, source:'match' }); } });
+            return opts;
+        }
+        function renderRosterList(){
+            const el = document.getElementById('rosterList'); if (!el) return;
+            const opts = buildRosterOptions();
+            if (!opts.length){ el.innerHTML = ''; return; }
+            el.innerHTML = opts.map(o => {
+                const canDel = o.source === 'saved';
+                return `<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #e9ecef; border-radius:12px; padding:8px; background:#fff;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" class="roster-select" data-id="${o.id}">
+                        <div style="font-weight:600;">${o.label}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="icon-button" data-action="edit" data-id="${o.id}">✎</button>
+                        ${canDel ? `<button type="button" class="icon-button" data-action="delete" data-id="${o.id}">🗑️</button>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+            el.querySelectorAll('.roster-select').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    el.querySelectorAll('.roster-select').forEach(x => { if (x !== e.target) x.checked = false; });
+                    const id = e.target.getAttribute('data-id');
+                    const picked = buildRosterOptions().find(x => x.id === id);
+                    currentRoster = Array.isArray(picked?.roster) ? picked.roster : [];
+                    const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+                    updateSubmitState();
+                    updateConfirmRosterState();
+                });
+            });
+            el.querySelectorAll('button[data-action]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const action = btn.getAttribute('data-action');
+                    const picked = buildRosterOptions().find(x => x.id === id);
+                    if (action === 'edit'){ currentRoster = Array.isArray(picked?.roster) ? picked.roster : []; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); updateSubmitState(); updateConfirmRosterState(); }
+                    else if (action === 'delete'){ try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const idx = Number(id.replace('saved_','')); if (!isNaN(idx)) { saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); } } catch(_){ } renderRosterList(); updateConfirmRosterState(); }
+                });
+            });
+            updateConfirmRosterState();
         }
         function importRosterCSV(file){
             const reader = new FileReader();
@@ -741,7 +787,7 @@
                       }
                     } catch(_){}
                     showRosterEditor(); renderRosterRows(currentRoster); addRosterRow();
-                    updateSubmitState();
+                    updateSubmitState(); updateConfirmRosterState();
                     alert('Roster importato da CSV.');
                 } catch(err){
                     console.error(err);
@@ -804,6 +850,48 @@
               goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='my-teams.html'; });
             }
         })();
+        function confirmCurrentRoster(){
+            const list = collectRosterFromEditor();
+            if (!Array.isArray(list) || list.length === 0){ alert('Aggiungi almeno un giocatore prima di confermare'); return; }
+            const teamName = (document.getElementById('myTeamInput')?.value.trim()) || (window.teamsModule?.getCurrentTeam?.()?.name || '') || 'Roster';
+            try {
+                const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ return []; } })();
+                const key = String(teamName||'').toLowerCase();
+                const idx = saved.findIndex(r => String(r.name||'').toLowerCase() === key);
+                const entry = { name: teamName, players: list };
+                if (idx >= 0) saved[idx] = entry; else saved.push(entry);
+                localStorage.setItem('savedRosters', JSON.stringify(saved));
+                currentRoster = list;
+                const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+                renderRosterList();
+                const el = document.getElementById('rosterList');
+                if (el){
+                  const savedIdx = (idx >= 0) ? idx : (saved.length - 1);
+                  const cb = el.querySelector(`.roster-select[data-id="saved_${savedIdx}"]`);
+                  if (cb){
+                      el.querySelectorAll('.roster-select').forEach(other => { if (other !== cb) other.checked = false; });
+                      cb.checked = true;
+                  }
+                }
+                updateSubmitState();
+                alert('Roster confermato e reso selezionabile');
+            } catch(e){ console.error(e); alert('Errore nel salvataggio del roster'); }
+        }
+        function cancelRosterEditing(){
+            try {
+                const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+                updateConfirmRosterState();
+            } catch(_){}
+        }
+        function updateConfirmRosterState(){
+            const btn = document.getElementById('confirmRosterBtn'); if (!btn) return;
+            const hasSelection = !!document.querySelector('#rosterList .roster-select:checked');
+            const hasEditor = document.getElementById('rosterEditor')?.style.display === 'block';
+            const hasPlayers = Array.isArray(currentRoster) && currentRoster.length > 0;
+            const shouldHighlight = hasSelection || (hasEditor && hasPlayers);
+            if (shouldHighlight){ btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary'); }
+            else { btn.classList.add('btn-secondary'); btn.classList.remove('btn-primary'); }
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elenco Giocatori</title>
+  <link rel="icon" href="./favicon.ico" />
+  <style>
+    :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; --font-size-title: 20px; --font-size-subtitle: 15px; }
+    body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
+    .container { max-width:920px; margin:0 auto; padding:16px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .header-card { position:relative; display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:16px; }
+    .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; }
+    .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; }
+    .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; }
+    .icon-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; background:#fff; border-radius:50%; width:36px; height:36px; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .section-card { border:1px solid var(--blue); border-radius:16px; padding:16px; background:#fff; margin-top:0; }
+    .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+    .section-title { font-size: var(--font-size-title); font-weight:600; color:#0f172a; }
+    .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .roster-name { font-size: var(--font-size-subtitle); font-weight:600; color:#334155; margin:8px 0 12px 0; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); font-weight:600; }
+    .btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    .btn-secondary { background:#fff; color:#0f172a; }
+    .btn-compact { padding:8px 12px; }
+    .form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+    .cards-list { display:block; padding:8px 0; }
+    .player-card { border:1px solid var(--blue); border-radius:12px; padding:18px; background:#fff; display:grid; grid-template-columns:1fr; gap:12px; box-shadow:0 2px 6px rgba(0,0,0,0.08); margin:16px 0; }
+    .player-card + .player-card { margin-top:24px; }
+    .input { width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .icon-button-outline { border-color:#2563eb; color:#2563eb; }
+    .icon-button-plain { border:none; background:transparent; border-radius:4px; width:auto; height:auto; padding:0 6px; }
+    .roster-name-input { border:1px solid var(--blue); border-radius:10px; }
+    .roster-name-wrapper { display:flex; align-items:center; gap:6px; border:1px solid var(--blue); border-radius:10px; padding:6px 10px; background:#fff; }
+    .roster-name-field { flex:1; border:none; outline:none; background:transparent; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .icon-button-circle { border-radius:50%; width:36px; height:36px; }
+    .empty-note { color:#64748b; text-align:center; }
+    /* Animazione uniforme per elementi cliccabili (stile card squadra) */
+    .btn,
+    .icon-button,
+    .icon-button-outline,
+    .icon-button-circle {
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .btn:hover,
+    .icon-button:hover,
+    .icon-button-outline:hover,
+    .icon-button-circle:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    }
+    .btn:active,
+    .icon-button:active,
+    .icon-button-outline:active,
+    .icon-button-circle:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .page-slide-in { animation: pageSlideIn .24s ease-out; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
+    <div class="card header-card">
+      <div class="back-actions">
+        <a href="match-setup.html" class="icon-button" title="Indietro" aria-label="Indietro">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+      <div class="logo-icon" aria-hidden="true">
+        <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';">
+      </div>
+      <div class="account-actions">
+        <button type="button" class="icon-button" title="Account" aria-label="Account">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title-row">
+        <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO PLAYER:</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="importRosterIcon" title="Importa" aria-label="Importa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="exportRosterIcon" title="Esporta" aria-label="Esporta">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="createRosterIcon" title="Crea" aria-label="Crea">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <div class="roster-name-wrapper" style="flex:1;">
+          <button type="button" class="icon-button icon-button-plain" id="toggleEditorBtn" title="Mostra/Nascondi editor" aria-label="Mostra/Nascondi">▾</button>
+          <input type="text" id="rosterNameInput" class="roster-name-field" placeholder="Nome Roster" />
+        </div>
+        <button type="button" class="icon-button icon-button-outline icon-button-circle" id="saveRosterBtn" title="Salva" aria-label="Salva">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M5 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 4v6h6V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-button icon-button-outline icon-button-circle" id="deleteRosterBtn" title="Elimina roster" aria-label="Elimina roster">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="rosterList" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px; margin-bottom:8px;"></div>
+      <div id="rosterEditor" class="cards-list" style="display:none;"></div>
+      <input type="file" id="rosterCsvInput" accept=".csv" style="display:none;" />
+    </div>
+
+    
+  </div>
+
+  <script>
+    let currentRoster = [];
+
+    document.addEventListener('DOMContentLoaded', async function(){
+      try {
+        const raw = localStorage.getItem('currentMatchSetup');
+        const setup = raw ? JSON.parse(raw) : null;
+        if (!setup) { window.location.href = 'match-setup.html'; return; }
+        const rosterName = await tryLoadRosterNameFromCSV() || (setup?.myTeam || setup?.rosterName || '');
+        const rnEl = document.getElementById('rosterNameInput'); if (rnEl && rosterName) rnEl.value = rosterName;
+        const loaded = await tryLoadRosterFromCSV();
+        if (!loaded) renderRosterList();
+        bindControls();
+      } catch(_) { window.location.href = 'match-setup.html'; }
+    });
+
+    async function tryLoadRosterNameFromCSV(){
+      const urls = [
+        './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
+        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
+      ];
+      for (const u of urls){
+        try {
+          const res = await fetch(u);
+          if (!res.ok) continue;
+          const text = await res.text();
+          const lines = String(text||'').split(/\r?\n/).filter(l => l.trim());
+          if (lines.length > 1){
+            const firstData = lines.find(l => !/^\s*Squadra\s*[,;]/i.test(l)) || lines[1];
+            const cols = splitCsv(firstData);
+            const name = (cols[0]||'').trim();
+            if (name) return name;
+          }
+        } catch(_){}
+      }
+      return null;
+    }
+
+    function splitCsv(line){ const d = line.includes(';') ? ';' : ','; return line.split(d).map(s => String(s||'').trim()); }
+    function mapRole(str){ const v = String(str||'').trim().toLowerCase(); if (!v) return ''; if (v.startsWith('palleg')) return 'P'; if (v.startsWith('schiacc')) return 'S'; if (v.startsWith('oppos')) return 'O'; if (v.startsWith('centr')) return 'C'; if (v.startsWith('liber')) return 'L'; return ''; }
+    async function tryLoadRosterFromCSV(){
+      const urls = [
+        './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
+        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
+      ];
+      for (const u of urls){
+        try {
+          const res = await fetch(u);
+          if (!res.ok) continue;
+          const text = await res.text();
+          const lines = String(text||'').split(/\r?\n/).filter(l => l.trim());
+          const dataLines = lines.filter(l => !/^\s*Squadra\s*[,;]/i.test(l));
+          const players = dataLines.map(line => {
+            const cols = splitCsv(line);
+            return {
+              number: ensureTwoDigits(cols[1]||''),
+              name: toTitleCase(cols[2]||''),
+              surname: toTitleCase(cols[3]||''),
+              nickname: String(cols[5]||'').trim().toUpperCase(),
+              role: mapRole(cols[4]||'')
+            };
+          }).filter(p => p.number || p.name || p.surname || p.role);
+          if (players.length){ currentRoster = players; renderRosterList(); setEditorVisible(false); return true; }
+        } catch(_){}
+      }
+      return false;
+    }
+
+    function bindControls(){
+      const importRosterIcon = document.getElementById('importRosterIcon');
+      const exportRosterIcon = document.getElementById('exportRosterIcon');
+      const createRosterIcon = document.getElementById('createRosterIcon');
+      const confirmRosterBtn = document.getElementById('confirmRosterBtn');
+      const saveRosterBtn = document.getElementById('saveRosterBtn');
+      const rosterNameInput = document.getElementById('rosterNameInput');
+      const deleteRosterBtn = document.getElementById('deleteRosterBtn');
+      const cancelRosterBtn = document.getElementById('cancelRosterBtn');
+      const rosterCsvInput = document.getElementById('rosterCsvInput');
+      const toggleEditorBtn = document.getElementById('toggleEditorBtn');
+      const rosterListEl = document.getElementById('rosterList');
+
+      if (importRosterIcon) importRosterIcon.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
+      if (exportRosterIcon) exportRosterIcon.addEventListener('click', exportRosterJSON);
+      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); });
+      if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmRosterEditing);
+      if (saveRosterBtn) saveRosterBtn.addEventListener('click', confirmRosterEditing);
+      if (deleteRosterBtn) deleteRosterBtn.addEventListener('click', deleteRoster);
+      if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', cancelRosterEditing);
+      if (rosterCsvInput) rosterCsvInput.addEventListener('change', e => importRosterCSV(e.target.files[0]));
+      if (rosterNameInput) rosterNameInput.addEventListener('click', ()=>{ if (!isEditorVisible()) handleContinue(); });
+      if (toggleEditorBtn) toggleEditorBtn.addEventListener('click', toggleEditor);
+      if (rosterListEl) {
+        rosterListEl.addEventListener('click', (e) => {
+          const card = e.target.closest('.card');
+          if (!card) return;
+          if (e.target.closest('button[data-action]')) return;
+          const cb = card.querySelector('.roster-select');
+          if (!cb) return;
+          const id = cb.getAttribute('data-id');
+          try {
+            const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+            const idx = Number(id.replace('saved_',''));
+            const picked = (saved||[])[idx] || null;
+            const rosterArr = Array.isArray(picked?.roster) ? picked.roster : (Array.isArray(picked?.players) ? picked.players : []);
+            currentRoster = rosterArr;
+            const nameEl = document.getElementById('rosterNameInput'); if (nameEl) nameEl.value = (picked?.label || picked?.name || '');
+            setEditorVisible(false);
+            handleContinue();
+          } catch(_) {}
+        });
+      }
+      setEditorVisible(isEditorVisible());
+    }
+
+    function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+    function toTitleCase(str){ const s = String(str||'').trim().toLowerCase(); if (!s) return ''; return s.replace(/\b([a-zàèéìòù])([a-zàèéìòù]*)/gi, (m,a,b)=> a.toUpperCase()+b.toLowerCase()); }
+    function buildNumOptions(selected){ const sel = parseInt(String(selected||'').replace(/\D+/g,''),10); let out = '<option value="">—</option>'; for(let i=1;i<=99;i++){ const s = String(i); out += `<option value="${s}" ${i===sel? 'selected':''}>${s}</option>`; } return out; }
+    function normalizeRole(val){ const v = String(val||'').trim().toUpperCase(); const c = v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
+    function isEditorVisible(){ const el = document.getElementById('rosterEditor'); return !!(el && el.style.display !== 'none'); }
+    function setEditorVisible(v){ const el = document.getElementById('rosterEditor'); if (!el) return; el.style.display = v ? 'block' : 'none'; const sb = document.getElementById('saveRosterBtn'); if (sb) sb.style.display = v ? 'inline-flex' : 'none'; const ni = document.getElementById('rosterNameInput'); if (ni){ ni.readOnly = !v; ni.style.cursor = !v ? 'pointer' : 'text'; } updateToggleIcon(); }
+    function toggleEditor(){ setEditorVisible(!isEditorVisible()); }
+    function updateToggleIcon(){ const btn = document.getElementById('toggleEditorBtn'); const el = document.getElementById('rosterEditor'); if (!btn) return; const vis = el && el.style.display !== 'none'; btn.textContent = vis ? '▾' : '▸'; }
+    function showRosterEditor(){ setEditorVisible(true); }
+    function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; el.innerHTML=''; (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
+    function addRosterRow(player={}){
+      const el = document.getElementById('rosterEditor'); if (!el) return;
+      const row = document.createElement('div'); row.className='player-card';
+      const num = ensureTwoDigits(player.number||'');
+      const name = toTitleCase((player.name||'').toString().slice(0,12));
+      const surname = toTitleCase((player.surname||'').toString().slice(0,12));
+      const nick = (player.nickname||'').toString().slice(0,12).toUpperCase();
+      const role = normalizeRole(player.role||'');
+      const numOptions = buildNumOptions(num);
+      row.innerHTML = `
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select class="input num-select" style="width:6ch; min-width:56px; max-width:72px;">${numOptions}</select>
+          <input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${nick}" />
+          <select class="input role-select" style="width:6ch; min-width:56px; max-width:72px;">
+            <option value="">—</option>
+            <option value="P">P</option>
+            <option value="S">S</option>
+            <option value="O">O</option>
+            <option value="C">C</option>
+            <option value="L">L</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${name}" style="flex:1;" />
+          <input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${surname}" style="flex:1;" />
+          <div style="display:inline-flex; gap:6px; margin-left:auto;">
+            <button type="button" class="icon-button icon-button-outline icon-button-circle add-btn" title="Aggiungi" aria-label="Aggiungi">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button type="button" class="icon-button icon-button-outline icon-button-circle remove-btn" title="Rimuovi" aria-label="Rimuovi">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>`;
+      el.appendChild(row);
+      const sel = row.querySelector('.role-select'); if (sel) sel.value = role||'';
+      const rm = row.querySelector('.remove-btn'); if (rm) rm.addEventListener('click', ()=> row.remove());
+      const add = row.querySelector('.add-btn'); if (add) add.addEventListener('click', ()=> addRosterRow({}));
+      const nameEl = row.querySelector('.name-input'); if (nameEl) nameEl.addEventListener('blur', ()=>{ nameEl.value = toTitleCase(nameEl.value); });
+      const surnameEl = row.querySelector('.surname-input'); if (surnameEl) surnameEl.addEventListener('blur', ()=>{ surnameEl.value = toTitleCase(surnameEl.value); });
+      const nickEl = row.querySelector('.nick-input'); if (nickEl) nickEl.addEventListener('blur', ()=>{ nickEl.value = String(nickEl.value||'').toUpperCase(); });
+    }
+    function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-card')); return rows.map(r=>({ number: ensureTwoDigits(r.querySelector('.num-select')?.value||''), name: (r.querySelector('.name-input')?.value||'').trim(), surname: (r.querySelector('.surname-input')?.value||'').trim(), nickname: (r.querySelector('.nick-input')?.value||'').trim(), role: normalizeRole(r.querySelector('.role-select')?.value||'') })).filter(p=>p.number || p.name || p.surname || p.role); }
+    function renderRosterList(){ const el = document.getElementById('rosterList'); if (!el) return; try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); el.innerHTML = (saved||[]).map((o,idx)=>`<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--border); border-radius:12px; padding:8px; background:#fff;"><div style="display:flex; align-items:center; gap:8px;"><input type="checkbox" class="roster-select" data-id="saved_${idx}"><div style="font-weight:600;">${o.label||('Roster '+(idx+1))}</div></div><div style="display:flex; align-items:center; gap:8px;"><button type="button" class="icon-button" data-action="edit" data-id="saved_${idx}">✎</button><button type="button" class="icon-button" data-action="delete" data-id="saved_${idx}">🗑️</button></div></div>`).join(''); el.querySelectorAll('.roster-select').forEach(cb=>{ cb.addEventListener('change', e=>{ el.querySelectorAll('.roster-select').forEach(x=>{ if (x!==e.target) x.checked=false; }); const id = e.target.getAttribute('data-id'); const picked = (saved||[])[Number(id.replace('saved_',''))]||null; currentRoster = Array.isArray(picked?.roster)?picked.roster:[]; const nameEl = document.getElementById('rosterNameInput'); if (nameEl) nameEl.value = picked?.label || ''; setEditorVisible(false); }); }); el.querySelectorAll('button[data-action]').forEach(btn=>{ btn.addEventListener('click', ()=>{ const id = btn.getAttribute('data-id'); const idx = Number(id.replace('saved_','')); const action = btn.getAttribute('data-action'); const picked = (saved||[])[idx]||null; if (action==='edit'){ currentRoster = Array.isArray(picked?.roster)?picked.roster:[]; const nameEl = document.getElementById('rosterNameInput'); if (nameEl) nameEl.value = picked?.label || ''; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); } else if (action==='delete'){ saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); } }); }); }catch(_){ el.innerHTML = '<div class="empty-note">Nessun roster salvato</div>'; } }
+    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const dataLines = lines.filter(l => !/^\s*Squadra\s*[,;]/i.test(l)); const out = dataLines.map(line=>{ const parts = splitCsv(line); return { number: ensureTwoDigits(parts[1]||''), name: String(parts[2]||'').trim(), surname: String(parts[3]||'').trim(), nickname: String(parts[5]||'').trim(), role: mapRole(parts[4]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); currentRoster = out; renderRosterList(); setEditorVisible(false); } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
+    function exportRosterJSON(){ try { const data = JSON.stringify(collectRosterFromEditor(), null, 2); const blob = new Blob([data], { type:'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'roster.json'; a.click(); URL.revokeObjectURL(url); } catch(_){} }
+    function confirmRosterEditing(){ try { const list = collectRosterFromEditor(); if (!list || list.length === 0){ alert('Aggiungi almeno un giocatore'); return; } const nameEl = document.getElementById('rosterNameInput'); const label = String(nameEl?.value||'').trim() || 'Roster'; const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.push({ label, roster:list }); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); setEditorVisible(false); const listEl = document.getElementById('rosterList'); if (listEl){ const all = listEl.querySelectorAll('.roster-select'); all.forEach(x=> x.checked=false); const cb = listEl.querySelector(`.roster-select[data-id="saved_${saved.length-1}"]`); if (cb){ cb.checked=true; const nm = document.getElementById('rosterNameInput'); if (nm) nm.value = label; currentRoster = list; try{ cb.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(_){ } } } alert('Roster salvato'); } catch(e){ alert('Errore nel salvataggio'); } }
+    function cancelRosterEditing(){ setEditorVisible(false); }
+
+    function deleteRoster(){
+      try {
+        const nameEl = document.getElementById('rosterNameInput');
+        const label = String(nameEl?.value||'').trim();
+        const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+        const idx = saved.findIndex(o => String(o?.label||'').trim() === label);
+        if (idx >= 0){
+          saved.splice(idx,1);
+          localStorage.setItem('savedRosters', JSON.stringify(saved));
+          renderRosterList();
+          setEditorVisible(false);
+          alert('Roster eliminato');
+        } else {
+          alert('Nessun roster salvato con questo nome');
+        }
+      } catch(e){ alert('Errore nella cancellazione'); }
+    }
+
+    function handleContinue(){
+      try {
+        const setupRaw = localStorage.getItem('currentMatchSetup');
+        const setup = setupRaw ? JSON.parse(setupRaw) : null;
+        const roster = collectRosterFromEditor();
+        const finalRoster = Array.isArray(roster) && roster.length>0 ? roster : (Array.isArray(currentRoster)?currentRoster:[]);
+        if (!finalRoster || finalRoster.length === 0){ alert('Il Roster è obbligatorio'); return; }
+        const next = { ...(setup||{}), roster: finalRoster };
+        localStorage.setItem('currentMatchSetup', JSON.stringify(next));
+
+        const matchId = (setup && setup.id) ? setup.id : next.id;
+
+        try {
+          const sessRaw = localStorage.getItem('currentScoutingSession');
+          if (sessRaw) {
+            const sess = JSON.parse(sessRaw);
+            if (!sess.id && matchId) sess.id = matchId;
+            if (!sess.id || sess.id === matchId) {
+              sess.roster = Array.isArray(finalRoster) ? finalRoster : [];
+              localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+            }
+          }
+        } catch(_) {}
+
+        try {
+          const vmRaw = localStorage.getItem('volleyMatches');
+          const list = vmRaw ? JSON.parse(vmRaw) : [];
+          if (matchId) {
+            const idx = list.findIndex(m => m.id === matchId);
+            const base = idx >= 0 ? list[idx] : {};
+            const updated = {
+              ...base,
+              id: matchId,
+              teamId: next.teamId || base.teamId || null,
+              myTeam: next.myTeam || base.myTeam || '',
+              myClub: next.myClub || base.myClub || null,
+              opponentTeam: next.opponent || base.opponentTeam || '',
+              matchDate: next.matchDate || base.matchDate || new Date().toISOString().slice(0,10),
+              eventType: next.eventType || base.eventType || 'partita',
+              location: next.location || base.location || 'casa',
+              description: next.description || base.description || '',
+              status: base.status || 'planned',
+              createdAt: base.createdAt || next.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              roster: Array.isArray(finalRoster) ? finalRoster : []
+            };
+            if (idx >= 0) list[idx] = updated; else list.unshift(updated);
+            localStorage.setItem('volleyMatches', JSON.stringify(list));
+          }
+        } catch(_) {}
+
+        window.location.href = 'set-config.html';
+      } catch(e){ alert('Errore nel proseguire'); }
+    }
+  </script>
+</body>
+</html>

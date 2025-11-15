@@ -121,8 +121,12 @@
             font-size: 24px;
             font-weight: 600;
             text-align: center;
+            text-transform: uppercase;
             margin-bottom: 8px;
             color: #1e293b;
+            display: block;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #cbd5e1;
         }
 
         .section-subtitle {
@@ -246,6 +250,31 @@
             cursor: not-allowed;
         }
 
+        /* Animazione uniforme per elementi cliccabili (stile card squadra) */
+        .btn,
+        .icon-button,
+        .phase-btn,
+        .set-btn,
+        .start-button {
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        }
+        .btn:hover,
+        .icon-button:hover,
+        .phase-btn:hover,
+        .set-btn:hover,
+        .start-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+        }
+        .btn:active,
+        .icon-button:active,
+        .phase-btn:active,
+        .set-btn:active,
+        .start-button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
         .error-message {
             background: #fef2f2;
             color: #dc2626;
@@ -318,7 +347,7 @@
             .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
             .icon-button { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
             .icon-button:hover, .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
-            .account-dropdown { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e9ecef; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); min-width:160px; }
+            .account-dropdown { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e9ecef; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); min-width:160px; z-index: 1000; }
             .account-dropdown .menu-item { width:100%; padding:10px 12px; text-align:left; background:transparent; border:none; cursor:pointer; color:#333; }
             .account-dropdown .menu-item:hover { background:#f8f9fa; }
         </style>
@@ -329,7 +358,12 @@
                 </div>
             </div>
             <div class="back-actions">
-                <a href="#" id="backBtn" class="back-btn" aria-label="Indietro" title="Indietro">←</a>
+                <a href="match-roster.html" id="backBtn" class="back-btn" aria-label="Indietro" title="Indietro">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
             </div>
             <div class="account-actions">
                 <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
@@ -352,7 +386,7 @@
 
         <!-- Match Info -->
         <div class="match-info">
-            <h2 class="section-title" style="font-size:18px; text-align:left; margin-bottom:8px;">Dati della partita</h2>
+            <h2 class="section-title" style="text-align:center;">Dati della partita:</h2>
             <div class="match-summary" id="matchSummary">
                 <!-- Match details will be loaded here -->
             </div>
@@ -360,7 +394,7 @@
 
         <!-- Configuration Section -->
         <div class="config-section">
-            <h2 class="section-title">Setup Set</h2>
+            <h2 class="section-title">Setup Set:</h2>
 
             
 
@@ -496,9 +530,8 @@
                     const teamId = localStorage.getItem('selectedTeamId');
                     const opp = String(matchData.opponent || '').trim();
                     const rosterOk = Array.isArray(matchData.roster) && matchData.roster.length > 0;
-                    const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
                     if (!teamId) { window.location.href = 'my-teams.html'; return; }
-                    if (!rosterOk || oppInvalid) { window.location.href = 'match-setup.html'; return; }
+                    if (!rosterOk || !opp) { window.location.href = 'match-setup.html'; return; }
                 } catch(_) {}
                 displayMatchSummary();
             } catch (error) {
@@ -580,13 +613,15 @@
         function setupHeaderListeners(){
             // Menu account toggle
             if (accountBtn && accountMenu){
-                accountBtn.addEventListener('click', () => {
+                accountBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
                     accountBtn.setAttribute('aria-expanded', (!expanded).toString());
                     accountMenu.hidden = expanded;
                 });
                 document.addEventListener('click', (e) => {
-                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && e.target !== accountBtn){
+                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
                         accountMenu.hidden = true;
                         accountBtn.setAttribute('aria-expanded','false');
                     }
@@ -665,6 +700,7 @@
             };
 
             localStorage.setItem('currentScoutingSession', JSON.stringify(fullConfig));
+            localStorage.setItem('allowScoutingEntry','1');
             
             // Reindirizza alla pagina di scouting (l'attuale index.html con Start-Scouting)
             window.location.href = 'index.html';

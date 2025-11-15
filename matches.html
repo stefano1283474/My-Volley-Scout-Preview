@@ -250,6 +250,7 @@
             margin-bottom: 20px;
             color: #333;
         }
+        .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 
         .matches-list {
             display: flex;
@@ -344,12 +345,35 @@
         }
 
         /* Titolo con didascalia a destra sulla stessa riga */
-        .section-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+        .section-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
         .section-title-row .section-title { margin-bottom: 0; }
         .section-hint { color: #555; font-size: 0.95rem; }
         .section-hint.inline { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
         .tab-panel { margin-top: 0; }
 
+        /* Animazione uniforme per elementi cliccabili (stile card squadra) */
+        .btn,
+        .icon-button,
+        .tab-button,
+        .set-btn {
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        }
+        .btn:hover,
+        .icon-button:hover,
+        .tab-button:hover,
+        .set-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+        }
+        @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .page-slide-in { animation: pageSlideIn .24s ease-out; }
+        .btn:active,
+        .icon-button:active,
+        .tab-button:active,
+        .set-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
         /* Layout: solo "Nuova partita" scrolla verticalmente */
         .container.full-height { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         #newMatchSection { flex: 1 1 auto; overflow-y: auto; }
@@ -374,19 +398,25 @@
                 white-space: nowrap;
             }
         }
-    </style>
+</style>
 </head>
 <body>
     <div class="container">
+        <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
         <!-- Header coerente con welcome -->
         <div class="header">
             <div class="logo">
                 <div class="logo-icon" aria-hidden="true">
-                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" />
+                    <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
                 </div>
             </div>
             <div class="back-actions">
-                <a href="my-teams.html" id="backBtn" class="back-btn" aria-label="Elenco Squadre" title="Elenco Squadre">←</a>
+                <a href="my-teams.html" id="backBtn" class="back-btn" aria-label="Elenco Squadre" title="Elenco Squadre">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
             </div>
             <div class="account-actions">
                 <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
@@ -412,7 +442,7 @@
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:block;">
             <div class="section-title-row">
-                <h2 class="section-title">Elenco Partite</h2>
+                <h2 class="section-title rounded-title">Elenco Partite:</h2>
                 <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
                   <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -436,7 +466,10 @@
                   </button>
                 </div>
             </div>
-            <p class="section-hint" id="teamContext" style="margin:0 0 8px 0;">—</p>
+            <div class="section-hint" id="teamContext" style="margin:0 0 8px 0;">
+                <div id="clubNameTop" style="text-transform:uppercase; font-weight:600;">—</div>
+                <div id="teamNameBottom" style="color:#555;">—</div>
+            </div>
             <p class="section-hint" style="margin:8px 0 16px 0;">Seleziona una partita per iniziare lo scout</p>
             
             <div class="matches-list" id="matchesList">
@@ -646,7 +679,7 @@
             const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
             if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
             if (teamEl) teamEl.textContent = inferredTeam || '—';
-            if (teamCtxEl) teamCtxEl.textContent = inferredClub ? `Partite di: ${inferredTeam} — ${inferredClub}` : `Partite di: ${inferredTeam}`;
+            if (teamCtxEl) {}
             const playerCount = Array.isArray(selectedTeam.players) ? selectedTeam.players.length : (selectedTeam.players || 0);
             const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
             const selName = selectedTeam?.name;
@@ -1348,17 +1381,18 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
-                // Se la partita è completa (tutti i set terminati), apri il Riepilogo All
+
+                // 1) Se completa -> riepilogo
                 try {
                     const sum = match.setSummary || {};
                     let complete = true;
-                    for (let i=1; i<=6; i++) {
+                    for (let i = 1; i <= 6; i++) {
                         const s = sum[i];
                         if (!s) { complete = false; break; }
-                        const h = Number(s.home||0), a = Number(s.away||0);
-                        const isSetFive = (i===5);
+                        const h = Number(s.home || 0), a = Number(s.away || 0);
+                        const isSetFive = (i === 5);
                         const minScore = isSetFive ? 15 : 25;
-                        const ok = ((h>=minScore || a>=minScore) && Math.abs(h-a)>=2);
+                        const ok = ((h >= minScore || a >= minScore) && Math.abs(h - a) >= 2);
                         if (!ok) { complete = false; break; }
                     }
                     if (complete) {
@@ -1367,36 +1401,20 @@
                         return;
                     }
                 } catch(_) {}
-                
-                // Se la partita ha stato/progressi salvati, riprendi direttamente
+
+                // 2) Se ha progressi -> riprendi scout live
                 const hasProgress = (
                     match.status === 'in_progress' ||
                     (Array.isArray(match.actions) && match.actions.length > 0) ||
                     (Array.isArray(match.scoreHistory) && match.scoreHistory.length > 0)
                 );
-
                 if (hasProgress) {
                     const rosterArr = Array.isArray(match.roster) ? match.roster : [];
                     const opp = match.opponentTeam || match.opponent || '';
-                    const teamId = localStorage.getItem('selectedTeamId');
-                    const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
-                    if (!teamId || !rosterArr.length || oppInvalid) {
-                        const setup = {
-                            opponent: match.opponent || match.opponentTeam || '',
-                            matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
-                            eventType: match.eventType || match.matchType || '',
-                            location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
-                            venue: match.venue || '',
-                            description: match.description || '',
-                            teamId: match.teamId || teamId || null,
-                            createdAt: match.createdAt || new Date().toISOString(),
-                            status: match.status || 'planned',
-                            id: match.id,
-                            roster: match.roster || []
-                        };
-                        localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
-                        window.location.href = 'match-setup.html';
-                        return;
+                    let teamId = localStorage.getItem('selectedTeamId');
+                    if (!teamId && match.teamId) {
+                        teamId = String(match.teamId);
+                        localStorage.setItem('selectedTeamId', teamId);
                     }
                     const sess = {
                         id: match.id,
@@ -1416,22 +1434,35 @@
                     localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
                     if (window.appState) window.appState.currentRoster = Array.isArray(sess.roster) ? sess.roster : [];
                     window.location.href = 'index.html';
+                    return;
+                }
+
+                // 3) Altrimenti -> setup/set-config in base ai prerequisiti
+                let teamId = localStorage.getItem('selectedTeamId');
+                if (!teamId && match.teamId) {
+                    teamId = String(match.teamId);
+                    localStorage.setItem('selectedTeamId', teamId);
+                }
+                const rosterArr = Array.isArray(match.roster) ? match.roster : [];
+                const opp = (match.opponent || match.opponentTeam || '').trim();
+                const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
+                const setup = {
+                    opponent: match.opponent || match.opponentTeam || '',
+                    matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
+                    eventType: match.eventType || match.matchType || '',
+                    location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
+                    venue: match.venue || '',
+                    description: match.description || '',
+                    teamId: match.teamId || teamId || null,
+                    createdAt: match.createdAt || new Date().toISOString(),
+                    status: match.status || 'planned',
+                    id: match.id,
+                    roster: rosterArr
+                };
+                localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
+                if (!teamId || !rosterArr.length || oppInvalid) {
+                    window.location.href = 'match-setup.html';
                 } else {
-                    // Altrimenti, mappa nei campi attesi da set-config.html
-                    const setup = {
-                        opponent: match.opponent || match.opponentTeam || '',
-                        matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
-                        eventType: match.eventType || match.matchType || '',
-                        location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
-                        venue: match.venue || '',
-                        description: match.description || '',
-                        teamId: match.teamId || localStorage.getItem('selectedTeamId') || null,
-                        createdAt: match.createdAt || new Date().toISOString(),
-                        status: match.status || 'planned',
-                        id: match.id,
-                        roster: match.roster || []
-                    };
-                    localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
                     window.location.href = 'set-config.html';
                 }
             } catch (e) {

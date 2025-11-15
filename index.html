@@ -13,25 +13,11 @@
     <script>
         (function(){
             try {
-                const teamId = localStorage.getItem('selectedTeamId');
-                if (!teamId) { window.location.replace('my-teams.html'); return; }
-                const rawSess = localStorage.getItem('currentScoutingSession');
-                const sess = rawSess ? JSON.parse(rawSess) : null;
-                if (sess) {
-                    const rosterOk = Array.isArray(sess.roster) && sess.roster.length > 0;
-                    const opp = sess.opponentTeam || sess.opponent || '';
-                    const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
-                    if (!rosterOk || oppInvalid) { window.location.replace('match-setup.html'); return; }
-                    return;
-                }
-                const rawSetup = localStorage.getItem('currentMatchSetup');
-                const setup = rawSetup ? JSON.parse(rawSetup) : null;
-                if (!setup) { window.location.replace('matches.html'); return; }
-                const rosterOk = Array.isArray(setup.roster) && setup.roster.length > 0;
-                const opp = setup.opponent || '';
-                const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
-                if (!rosterOk || oppInvalid) { window.location.replace('match-setup.html'); return; }
-            } catch(_) {}
+                const allow = localStorage.getItem('allowScoutingEntry') === '1';
+                const sessRaw = localStorage.getItem('currentScoutingSession');
+                const hasSession = !!(sessRaw && JSON.parse(sessRaw));
+                if (!allow || !hasSession) { window.location.replace('splash.html'); }
+            } catch(_) { window.location.replace('splash.html'); }
         })();
     </script>
     <script>
@@ -256,8 +242,8 @@
             <aside class="set-sidebar" aria-label="Selezione set">
               <div class="set-sidebar-header">Passa a:</div>
               <div id="setToolbar" class="set-list" role="list">
-                <button class="set-item" role="listitem" onclick="location.href='match-view.html'">Dati Gara</button>
-                <button class="set-item" role="listitem" onclick="location.href='roster.html'">El. gioc.</button>
+                <button class="set-item" role="listitem" onclick="location.href='set-config.html'">Dati Gara</button>
+                <button class="set-item" role="listitem" onclick="location.href='match-roster.html'">El. gioc.</button>
                 <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
                 <button class="set-item" data-set="2" role="listitem">Set 2</button>
                 <button class="set-item" data-set="3" role="listitem">Set 3</button>
@@ -1738,6 +1724,16 @@
                                 const imp = JSON.parse(rawImp);
                                 if (Array.isArray(imp) && imp.length) {
                                     if (window.appState) window.appState.currentRoster = imp;
+                                }
+                            }
+                        } catch(_) {}
+                        // Fallback robusto: se la sessione ha un roster e l'app non l'ha adottato, applicalo ora
+                        try {
+                            if (Array.isArray(sessionData.roster) && sessionData.roster.length) {
+                                if (window.appState && (!Array.isArray(window.appState.currentRoster) || !window.appState.currentRoster.length)) {
+                                    window.appState.currentRoster = sessionData.roster;
+                                    try { if (typeof renderRosterTable === 'function') renderRosterTable(); } catch(_) {}
+                                    try { if (typeof updatePlayersGrid === 'function') updatePlayersGrid(); } catch(_) {}
                                 }
                             }
                         } catch(_) {}

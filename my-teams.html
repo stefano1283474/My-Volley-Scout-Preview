@@ -10,11 +10,12 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#ffffff; min-height:100vh; color:#334155; }
     .container { max-width:960px; margin:0 auto; padding:24px; }
-    .header { background:#ffffff; border-radius:16px; padding:12px 16px; margin-bottom:20px; display:flex; justify-content:center; align-items:center; position:relative; }
+    .header { background:#ffffff; border-radius:16px; padding:12px 16px; margin-bottom:16px; display:flex; justify-content:center; align-items:center; position:relative; }
     .logo { display:flex; align-items:center; }
-    .logo-icon { width:100%; max-width:520px; height:140px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
     .logo-icon img { width:100%; height:100%; object-fit:cover; object-position:50% 40%; display:block; }
     .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; z-index:2; }
+    .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; z-index:2; }
     .icon-button { background:#ffffff; color:#2563eb; border:1px solid #e5e7eb; padding:8px; border-radius:10px; cursor:pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
     .icon-button:hover { background:#f8fafc; border-color:#dbe1e6; transform: translateY(-1px); }
     .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
@@ -25,25 +26,49 @@
     .account-dropdown .menu-item:hover { background:#f1f5f9; }
     .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 10px 0; }
     .section-title { font-size:20px; font-weight:700; color:#0f172a; }
+    .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
     .btn { background:#0d6efd; color:#fff; border:1px solid #0d6efd; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
     .btn-primary { background:#2563eb; border-color:#2563eb; }
     .btn-secondary { background:#f8fafc; color:#0f172a; border:1px solid #e5e7eb; }
     .btn-danger { background:#ef4444; border-color:#ef4444; color:#fff; }
     .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; width:100%; }
-    .empty-state { color:#64748b; padding:12px 2px; }
+    .empty-state { color:#64748b; padding:12px 2px; text-align:center; }
     .section-card { border:1px solid #2563eb; border-radius:16px; padding:16px; background:#fff; }
     .hero-card { background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:8px; }
-    .hero-title { font-size:18px; font-weight:700; color:#0f172a; }
-    .hero-desc { color:#64748b; }
+    .hero-title { font-size:24px; font-weight:700; color:#0f172a; text-align:center; }
+    .hero-desc { color:#64748b; text-align:center; }
     .card { border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:#fff; display:flex; flex-direction:column; gap:8px; }
     .btn-icon { width:36px; height:36px; min-width:36px; min-height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; }
     .btn-icon-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
     .btn-icon-outline:hover { background:#f8fafc; }
+    @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .page-slide-in { animation: pageSlideIn .24s ease-out; }
+    /* Animazione uniforme per elementi cliccabili (stile card squadra) */
+    .btn,
+    .icon-button,
+    .btn-icon,
+    .btn-icon-outline {
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .btn:hover,
+    .icon-button:hover,
+    .btn-icon:hover,
+    .btn-icon-outline:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    }
+    .btn:active,
+    .icon-button:active,
+    .btn-icon:active,
+    .btn-icon-outline:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
     dialog { border:none; padding:0; background: transparent; }
     dialog[open] { position: fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:95%; max-width:560px; }
-    dialog::backdrop { background: rgba(15,23,42,0.35); }
+    dialog::backdrop { background: rgba(15,23,42,0.75); backdrop-filter: blur(12px) saturate(1.1) brightness(0.9); -webkit-backdrop-filter: blur(12px) saturate(1.1) brightness(0.9); }
     .dialog-card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow: 0 10px 20px rgba(0,0,0,.08); width:100%; }
-    .dialog-title { font-size:18px; font-weight:700; margin:0 0 8px 0; color:#0f172a; }
+    .dialog-title { font-size:18px; font-weight:700; margin:0 0 8px 0; color:#0f172a; display:inline-block; padding:6px 12px; border:1px solid #2563eb; border-radius:10px; background:#ffffff; }
     .dialog-form { display:flex; flex-direction:column; gap:12px; }
     .form-label { display:flex; flex-direction:column; gap:6px; color:#334155; }
     .input { width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; font-size:16px; background:#fff; }
@@ -61,9 +86,10 @@
     dialog::backdrop { animation: backdropIn 200ms ease both; }
     dialog.closing .dialog-card { animation: dialogOut 180ms ease both; }
     dialog.closing::backdrop { animation: backdropOut 180ms ease both; }
+    body:has(dialog[open]) .container { filter: blur(4px) brightness(0.94); transition: filter .2s ease; }
     @media (max-width: 600px) {
       .container { padding:16px; }
-      .logo-icon { height:120px; }
+      .logo-icon { height:144px; }
       .section-title { font-size:18px; }
       dialog[open] { width:95%; max-width:560px; }
     }
@@ -75,9 +101,10 @@
 <body>
   <div class="container">
     <div class="header">
+      
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
-          <img src="./LOGO_APP.png" alt="Logo My Volley Scout" />
+          <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
         </div>
       </div>
       <div class="account-actions">
@@ -97,21 +124,24 @@
       </div>
     </div>
 
-    <div id="welcomeHero" style="margin:8px 0 12px 0;">
+    <div id="welcomeHero" style="margin:0 0 16px 0;">
       <div>
-        <div class="hero-title">Benvenuto in My Volley Scout</div>
+        <div class="hero-title">Benvenuto in MyVolleyScout</div>
         <div class="hero-desc">Gestisci le tue squadre, crea le partite e realizza uno scout chiaro e veloce.</div>
       </div>
     </div>
-    <div class="section-card">
+      <div class="section-card" style="margin-top:24px;">
       <div class="section-title-row">
-        <h2 class="section-title">Elenco Squadre</h2>
+        <h2 class="section-title rounded-title">Elenco Squadre:</h2>
         <div class="list-actions" style="display:flex;align-items:center;gap:10px;">
-          <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
           <button id="infoBtn" class="icon-button icon-button-primary icon-button-circle" aria-label="Come funziona" title="Come funziona">i</button>
+          <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
         </div>
       </div>
-      <div id="noTeamsMessage" class="empty-state" style="display:none;">Nessuna squadra. Crea una nuova squadra.</div>
+        <div id="noTeamsMessage" class="empty-state" style="display:none;">
+          <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_PALLONE.png" alt="Logo" onerror="this.onerror=null; this.src='./LOGO_PALLONE.png';" style="width:80px;height:80px;display:block;margin:0 auto 8px;" />
+          Nessuna squadra. Crea una nuova squadra.
+        </div>
       <div id="teamsGrid" class="grid"></div>
     </div>
     <dialog id="infoDialog">
@@ -184,8 +214,10 @@
       if (!list.length) {
         noTeamsMessage.style.display = 'block';
         teamsGrid.innerHTML = '';
+        if (infoBtn) infoBtn.style.display = '';
         return;
       }
+      if (infoBtn) infoBtn.style.display = 'none';
       noTeamsMessage.style.display = 'none';
       let matchesLocal = [];
       try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) {}
@@ -201,12 +233,18 @@
         }).length : 0;
         return `
           <div class="card">
-            <div style="font-weight:700;color:#0f172a;">${t.name}</div>
-            <div style="color:#64748b;">${partiteCount} partite</div>
-            <div style="display:flex;gap:10px;justify-content:flex-end;">
-              <button class="btn btn-primary" data-action="select" data-id="${t.id}">Seleziona</button>
-              <button class="btn btn-danger" data-action="delete" data-id="${t.id}">Elimina</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div class="team-name-click" data-action="select" data-id="${t.id}" style="font-weight:700;color:#0f172a;cursor:pointer;">${t.name}</div>
+              <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-id="${t.id}" title="Elimina" aria-label="Elimina">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
             </div>
+            <div style="color:#64748b;">${partiteCount} partite</div>
           </div>`;
       }).join('');
     }
@@ -214,16 +252,16 @@
     
 
     function handleGridClick(e) {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const id = btn.getAttribute('data-id');
-      const action = btn.getAttribute('data-action');
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const id = el.getAttribute('data-id');
+      const action = el.getAttribute('data-action');
       if (!id || !action) return;
       if (action === 'select') {
         const res = window.teamsModule?.selectTeam?.(id);
         if (res?.success) {
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
-          window.location.href = 'matches.html';
+          window.location.href = 'roster.html';
         }
       } else if (action === 'delete') {
         window.teamsModule?.deleteTeam?.(id).then(() => renderTeamsList());
@@ -261,7 +299,7 @@
           window.teamsModule?.selectTeam?.(res.team.id);
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
           closeCreate();
-          window.location.href = 'matches.html';
+          window.location.href = 'roster.html';
         } else {
           alert(res?.error || 'Errore creazione squadra');
         }
@@ -321,6 +359,9 @@
       createTeamForm.addEventListener('submit', onCreateSubmit);
       if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderTeamsList(); });
     });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){ var c=document.querySelector('.container'); if(c) c.classList.add('page-slide-in'); });
   </script>
 </body>
 </html>
