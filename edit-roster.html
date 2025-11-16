@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modifica Roster</title>
+  <link rel="icon" href="./favicon.ico" />
+  <style>
+    :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; --font-size-title: 20px; }
+    body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
+    .container { max-width:920px; margin:0 auto; padding:16px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .header-card { position:relative; display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:16px; }
+    .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; }
+    .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; }
+    .icon-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; background:#fff; border-radius:50%; width:36px; height:36px; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .section-card { border:1px solid var(--blue); border-radius:16px; padding:16px; background:#fff; margin-top:0; }
+    .section-title { font-size: var(--font-size-title); font-weight:600; color:#0f172a; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); font-weight:600; }
+    .btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    .btn-secondary { background:#fff; color:#0f172a; }
+    .form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+    .player-card { border:1px solid var(--blue); border-radius:12px; padding:18px; background:#fff; display:grid; grid-template-columns:1fr; gap:12px; box-shadow:0 2px 6px rgba(0,0,0,0.08); margin:16px 0; }
+    .input { width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-family: var(--font-family); font-size: var(--font-size-base); }
+  </style>
+  <script>
+    function q(k){ return document.querySelector(k); }
+    function qs(el,k){ return el.querySelector(k); }
+    function paramId(){ try{ const p=new URLSearchParams(location.search); return p.get('id'); }catch(_){ return null; } }
+    function ensureTwoDigits(n){ const s=String(n||'').trim(); const n2=s.replace(/\D+/g,''); if(!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+    function toTitleCase(str){ const s=String(str||'').trim().toLowerCase(); if(!s) return ''; return s.replace(/\b([a-zàèéìòù])([a-zàèéìòù]*)/gi,(m,a,b)=>a.toUpperCase()+b.toLowerCase()); }
+    function normalizeRole(val){ const v=String(val||'').trim().toUpperCase(); const c=v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
+    function buildNumOptions(selected){ const sel=parseInt(String(selected||'').replace(/\D+/g,''),10); let out='<option value="">—</option>'; for(let i=1;i<=99;i++){ const s=String(i); out+=`<option value="${s}" ${i===sel?'selected':''}>${s}</option>`; } return out; }
+    function renderRows(list){ const el=q('#editor'); if(!el) return; el.innerHTML=''; (Array.isArray(list)?list:[]).forEach(p=>addRow(p)); }
+    function addRow(player={}){ const el=q('#editor'); if(!el) return; const row=document.createElement('div'); row.className='player-card'; const num=ensureTwoDigits(player.number||''); const name=toTitleCase((player.name||'').toString().slice(0,12)); const surname=toTitleCase((player.surname||'').toString().slice(0,12)); const nick=(player.nickname||'').toString().slice(0,12).toUpperCase(); const role=normalizeRole(player.role||''); const numOptions=buildNumOptions(num); row.innerHTML=`<div style='display:flex; gap:8px; align-items:center;'><select class='input num-select' style='width:6ch; min-width:56px; max-width:72px;'>${numOptions}</select><input type='text' class='input nick-input' maxlength='12' placeholder='Soprannome' value='${nick}' /><select class='input role-select' style='width:6ch; min-width:56px; max-width:72px;'><option value=''>—</option><option value='P'>P</option><option value='S'>S</option><option value='O'>O</option><option value='C'>C</option><option value='L'>L</option></select></div><div style='display:flex; gap:8px; align-items:center;'><input type='text' class='input name-input' maxlength='12' placeholder='Nome' value='${name}' style='flex:1;' /><input type='text' class='input surname-input' maxlength='12' placeholder='Cognome' value='${surname}' style='flex:1;' /><div style='display:inline-flex; gap:6px; margin-left:auto;'><button type='button' class='icon-button add-btn' title='Aggiungi' aria-label='Aggiungi'>+</button><button type='button' class='icon-button remove-btn' title='Rimuovi' aria-label='Rimuovi'>🗑️</button></div></div>`; el.appendChild(row); const sel=row.querySelector('.role-select'); if(sel) sel.value=role||''; const rm=row.querySelector('.remove-btn'); if(rm) rm.addEventListener('click',()=>row.remove()); const add=row.querySelector('.add-btn'); if(add) add.addEventListener('click',()=>addRow({})); const nameEl=row.querySelector('.name-input'); if(nameEl) nameEl.addEventListener('blur',()=>{ nameEl.value=toTitleCase(nameEl.value); }); const surnameEl=row.querySelector('.surname-input'); if(surnameEl) surnameEl.addEventListener('blur',()=>{ surnameEl.value=toTitleCase(surnameEl.value); }); const nickEl=row.querySelector('.nick-input'); if(nickEl) nickEl.addEventListener('blur',()=>{ nickEl.value=String(nickEl.value||'').toUpperCase(); }); }
+    function collect(){ const el=q('#editor'); if(!el) return []; const rows=Array.from(el.querySelectorAll('.player-card')); return rows.map(r=>({ number:ensureTwoDigits(qs(r,'.num-select')?.value||''), name:String(qs(r,'.name-input')?.value||'').trim(), surname:String(qs(r,'.surname-input')?.value||'').trim(), nickname:String(qs(r,'.nick-input')?.value||'').trim(), role:normalizeRole(qs(r,'.role-select')?.value||'') })).filter(p=>p.number||p.name||p.surname||p.role); }
+    function load(){ const id=paramId(); const idx=Number(String(id||'').replace('saved_','')); const savedRaw=localStorage.getItem('savedRosters'); const list=savedRaw?JSON.parse(savedRaw):[]; const item=list[idx]||{}; const roster=Array.isArray(item.roster)?item.roster:(Array.isArray(item.players)?item.players:[]); const name=item.label||item.name||''; const rn=q('#rosterName'); if(rn) rn.value=name; renderRows(roster); }
+    function save(){ const id=paramId(); const idx=Number(String(id||'').replace('saved_','')); const savedRaw=localStorage.getItem('savedRosters'); const list=savedRaw?JSON.parse(savedRaw):[]; const item=list[idx]||{}; const rn=q('#rosterName'); const label=String(rn?.value||'').trim()||'Roster'; const roster=collect(); const updated={ ...item, label, name: label, roster, players: roster, date: item.date||new Date().toISOString() }; list[idx]=updated; localStorage.setItem('savedRosters', JSON.stringify(list)); location.href='match-roster.html'; }
+    function cancel(){ location.href='match-roster.html'; }
+    document.addEventListener('DOMContentLoaded',()=>{ load(); q('#saveBtn').addEventListener('click', save); q('#cancelBtn').addEventListener('click', cancel); });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="card header-card">
+      <div class="back-actions">
+        <a href="match-roster.html" class="icon-button" title="Indietro" aria-label="Indietro">
+          ←
+        </a>
+      </div>
+      <div class="logo-icon" aria-hidden="true">
+        <img src="./LOGO_APP.png" alt="Logo My Volley Scout">
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Modifica Roster</div>
+      <div style="display:flex; align-items:center; gap:8px; margin:10px 0;">
+        <input type="text" id="rosterName" class="input" placeholder="Nome Roster" />
+      </div>
+      <div id="editor"></div>
+      <div class="form-actions">
+        <button id="cancelBtn" class="btn">Annulla</button>
+        <button id="saveBtn" class="btn btn-primary">Salva</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

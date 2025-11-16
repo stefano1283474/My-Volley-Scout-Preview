@@ -261,7 +261,7 @@
         const res = window.teamsModule?.selectTeam?.(id);
         if (res?.success) {
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
-          window.location.href = 'roster.html';
+          window.location.href = 'match-roster.html';
         }
       } else if (action === 'delete') {
         window.teamsModule?.deleteTeam?.(id).then(() => renderTeamsList());
@@ -299,7 +299,7 @@
           window.teamsModule?.selectTeam?.(res.team.id);
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
           closeCreate();
-          window.location.href = 'roster.html';
+          window.location.href = 'match-roster.html';
         } else {
           alert(res?.error || 'Errore creazione squadra');
         }

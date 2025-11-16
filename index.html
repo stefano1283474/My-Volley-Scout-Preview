@@ -199,14 +199,14 @@
                           </span>
                           <span>Salva</span>
                         </button>
-                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button" onclick="location.href='matches.html'">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- List icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Vai a Elenco Partite</span>
                         </button>
-                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button" onclick="location.href='my-teams.html'">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Users icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
@@ -214,14 +214,14 @@
                           <span>Vai a Elenco Squadre</span>
                         </button>
                         <!-- Nuova voce: Esci (torna a Welcome.html) -->
-                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button" onclick="location.href='src/index.html'">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Back/Home icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Esci</span>
                         </button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button" onclick="(async function(){try{if(window.authFunctions&&window.authFunctions.signOut){await window.authFunctions.signOut();}}catch(_){ } location.href='src/index.html';})()">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Logout icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1288,6 +1288,7 @@
                 const sessionData = (() => {
                     try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; }
                 })();
+                sessionData.fileName = file && file.name ? String(file.name) : (sessionData.fileName || '');
                 sessionData.actionsBySet = sessionData.actionsBySet || {};
                 sessionData.setMeta = sessionData.setMeta || {};
                 sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
@@ -1299,6 +1300,8 @@
                     if (Array.isArray(roster) && roster.length) {
                         // imposta roster importato in appState per uso immediato (export e UI)
                         if (window.appState) window.appState.currentRoster = roster;
+                        // memorizza anche nella sessione corrente per utilizzo cross-pagina
+                        sessionData.roster = roster;
                         try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
                     }
                     if (meta) {
@@ -1488,6 +1491,7 @@
                         setMeta: sessionData.setMeta || {},
                         setStateBySet: sessionData.setStateBySet || {},
                         scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                        roster: Array.isArray(sessionData.roster) ? sessionData.roster : (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_) { return []; } })(),
                         createdAt: new Date().toISOString(),
                         status: 'in_progress'
                     };
@@ -1720,10 +1724,12 @@
                         // Se presente un roster importato, adottalo come roster corrente
                         try {
                             const rawImp = localStorage.getItem('importedRoster');
-                            if (rawImp) {
+                    if (rawImp) {
                                 const imp = JSON.parse(rawImp);
                                 if (Array.isArray(imp) && imp.length) {
                                     if (window.appState) window.appState.currentRoster = imp;
+                                    try { if (typeof renderRosterTable === 'function') renderRosterTable(); } catch(_) {}
+                                    try { if (typeof updatePlayersGrid === 'function') updatePlayersGrid(); } catch(_) {}
                                 }
                             }
                         } catch(_) {}
@@ -2390,5 +2396,19 @@
         });
       }
     </script>
+  <script>
+    (function(){
+      try {
+        var toggleBtn = document.getElementById('headerMenuToggle');
+        var menu = document.getElementById('headerMenu');
+        if (toggleBtn && menu) {
+          var open = false;
+          function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); menu.style.zIndex = '1001'; } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+          toggleBtn.addEventListener('click', function(e){ e.stopPropagation(); setOpen(!open); });
+          document.addEventListener('click', function(){ if (open) setOpen(false); });
+        }
+      } catch(_) {}
+    })();
+  </script>
   </body>
 </html>

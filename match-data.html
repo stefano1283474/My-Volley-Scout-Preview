@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dati Gara</title>
+  <link rel="icon" href="./favicon.ico" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height: 100%; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#ffffff; color:#333; min-height: 100vh; overflow-y: auto; }
+    .container { max-width:1200px; margin:0 auto; padding:16px; padding-bottom: 120px; }
+    .header { background:#ffffff; border-radius:12px; padding:8px 12px; margin-bottom:16px; display:flex; justify-content:center; align-items:center; position:relative; }
+    .logo-icon { width:100%; max-width:576px; height:180px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:100%; object-fit:cover; object-position:50% 40%; display:block; }
+    .back-actions { position:absolute; top:8px; left:8px; display:flex; align-items:center; z-index:2; }
+    .icon-button { background:#ffffff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
+    .icon-button:hover { background:#f8f9fa; border-color:#dbe1e6; transform: translateY(-1px); }
+    .matches-section { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #0d6efd; }
+    .section-title { font-size:24px; font-weight:600; margin-bottom:12px; color:#333; }
+    .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .section-hint { color:#555; font-size:0.95rem; }
+    .input { width:100%; padding:10px; border-radius:10px; border:1px solid #0d6efd; background:#fff; font-size:15px; }
+    .date-row { display:flex; gap:8px; }
+    .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; }
+    .btn { padding:8px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:500; transition:all .3s ease; text-decoration:none; display:inline-block; text-align:center; }
+    .btn-primary { background:#0d6efd; color:#fff; }
+    .btn-secondary { background:#ffffff; color:#0d6efd; border:1px solid #e9ecef; }
+    .btn-secondary:hover { background:#f8f9fa; }
+    .tabs { display:flex; gap:6px; margin: 0 0 12px 0; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; height: 0; }
+    .tab-button { background:transparent; border:none; color:#111; padding:4px 8px; border-radius:0; cursor:pointer; font-weight:600; text-transform:uppercase; }
+    .tab-button:hover { color:#0b5ed7; }
+    .tab-button.active { border-bottom:2px solid #0d6efd; }
+    .tab-panel { margin-top: 0; }
+    .set-panel { border:1px solid #e9ecef; border-radius:12px; padding:16px; background:#fff; }
+    .panel-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
+    .panel-item { display:flex; flex-direction:column; gap:6px; }
+    .footer-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
+    <div class="header">
+      <div class="logo-icon" aria-hidden="true">
+        <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
+      </div>
+      <div class="back-actions">
+        <a href="matches.html" class="icon-button" aria-label="Indietro" title="Indietro">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="matches-section" id="matchDataSection">
+      <div class="section-title-row">
+        <h2 class="section-title rounded-title" style="text-transform:uppercase;">Dati della gara:</h2>
+      </div>
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1;">
+          <span>Nome del file</span>
+          <input type="text" id="fileNameInput" class="input" readonly />
+        </div>
+        <div class="form-group">
+          <span>Avversario</span>
+          <input type="text" id="oppInput" class="input" placeholder="Nome avversario" />
+        </div>
+        <div class="form-group">
+          <span>Tipo partita</span>
+          <select id="typeSelect" class="input">
+            <option value="">Seleziona</option>
+            <option value="campionato">Campionato</option>
+            <option value="coppa">Coppa</option>
+            <option value="pgs">PGS</option>
+            <option value="csi">CSI</option>
+            <option value="amichevole">Amichevole</option>
+            <option value="torneo">Torneo</option>
+            <option value="playoff">Playoff</option>
+            <option value="partita">Partita</option>
+            <option value="altro">Altro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <span>Casa/Trasferta</span>
+          <select id="haSelect" class="input">
+            <option value="">Seleziona</option>
+            <option value="home">Casa</option>
+            <option value="away">Trasferta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <span>Data gara</span>
+          <div class="date-row">
+            <select id="daySel" class="input" aria-label="Giorno"></select>
+            <select id="monthSel" class="input" aria-label="Mese"></select>
+            <input type="number" id="yearInp" class="input" aria-label="Anno" min="1900" max="2100" step="1" placeholder="Anno" />
+          </div>
+          <small id="datePreview" style="color:#6c757d;" aria-live="polite"></small>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <span>Descrizione</span>
+          <input type="text" id="descInput" class="input" />
+        </div>
+      </div>
+      <div class="footer-actions">
+        <button type="button" class="btn btn-secondary" id="cancelBtn">Annulla</button>
+        <button type="button" class="btn btn-primary" id="saveBtn">Conferma</button>
+      </div>
+    </div>
+
+    <div class="matches-section" id="setsSection" style="margin-top:16px;">
+      <div class="section-title-row">
+        <h2 class="section-title rounded-title" style="text-transform:uppercase;">Dati Set:</h2>
+      </div>
+      <div class="tabs" id="setTabs"></div>
+      <div class="tab-panel" id="setPanel"></div>
+    </div>
+  </div>
+
+  <script>
+    const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function composeISO(day,month,year){ if(!day||!month||!year) return ''; const dd=pad2(day); const mm=pad2(month); return `${year}-${mm}-${dd}`; }
+    function initDateSelectors(dateStr){ const daySel=document.getElementById('daySel'); const monthSel=document.getElementById('monthSel'); const yearInp=document.getElementById('yearInp'); const prev=document.getElementById('datePreview'); const today=new Date(dateStr||new Date().toISOString().slice(0,10)); const baseY=today.getFullYear(); const baseM=today.getMonth()+1; const baseD=today.getDate(); const max=31; daySel.innerHTML=''; for(let i=1;i<=max;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=pad2(i); daySel.appendChild(opt);} monthSel.innerHTML=''; for(let i=1;i<=12;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=IT_MONTHS[i-1]; monthSel.appendChild(opt);} yearInp.value=String(baseY); daySel.value=String(baseD); monthSel.value=String(baseM); function update(){ const d=Number(daySel.value); const m=Number(monthSel.value); const y=Number(yearInp.value); prev.textContent=(d&&m&&y)?(`${pad2(d)} ${IT_MONTHS[m-1]} ${y}`):''; }
+      daySel.addEventListener('change', update); monthSel.addEventListener('change', update); yearInp.addEventListener('input', update); update(); }
+    function normalizeHA(val){ const v=String(val||'').toLowerCase(); if(v==='casa'||v==='home') return 'home'; if(v==='trasferta'||v==='away') return 'away'; return ''; }
+    function getSession(){ try{ return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); }catch(_){ return {}; } }
+    function saveSession(sess){ try{ localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); }catch(_){} }
+    function renderTabs(sess){ const tabs=document.getElementById('setTabs'); const panel=document.getElementById('setPanel'); tabs.innerHTML=''; panel.innerHTML=''; const maxSets=6; for(let i=1;i<=maxSets;i++){ const btn=document.createElement('button'); btn.className='tab-button'; btn.textContent='SET '+i; btn.dataset.set=i; btn.addEventListener('click', ()=> selectSet(i)); tabs.appendChild(btn);} function selectSet(n){ tabs.querySelectorAll('.tab-button').forEach(b=>{ b.classList.toggle('active', Number(b.dataset.set)===n); }); const sum = sess.setSummary && sess.setSummary[n] ? sess.setSummary[n] : null; const meta = sess.setMeta && sess.setMeta[n] ? sess.setMeta[n] : {}; const home = sum ? Number(sum.home||0) : (sess.setStateBySet?.[n]?.homeScore||0); const away = sum ? Number(sum.away||0) : (sess.setStateBySet?.[n]?.awayScore||0); const rot = (sum && sum.rotation) || meta.ourRotation || 'P1'; const ph = (sum && sum.phase) || meta.phase || 'servizio'; const phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio'; panel.innerHTML=''; const wrap=document.createElement('div'); wrap.className='set-panel'; const row=document.createElement('div'); row.className='panel-row'; const item1=document.createElement('div'); item1.className='panel-item'; const lab1=document.createElement('span'); lab1.textContent='Rotazione'; const val1=document.createElement('div'); val1.className='input'; val1.style.userSelect='text'; val1.textContent=rot; const item2=document.createElement('div'); item2.className='panel-item'; const lab2=document.createElement('span'); lab2.textContent='Fase'; const val2=document.createElement('div'); val2.className='input'; val2.style.userSelect='text'; val2.textContent=phLbl; const item3=document.createElement('div'); item3.className='panel-item'; const lab3=document.createElement('span'); lab3.textContent='Punteggio'; const score=document.createElement('div'); score.className='input'; score.style.userSelect='text'; score.textContent=String(home)+' a '+String(away); item1.appendChild(lab1); item1.appendChild(val1); item2.appendChild(lab2); item2.appendChild(val2); item3.appendChild(lab3); item3.appendChild(score); row.appendChild(item1); row.appendChild(item2); row.appendChild(item3); wrap.appendChild(row); panel.appendChild(wrap); }
+      selectSet(1); }
+    function loadAndRender(){ const sess=getSession(); const opp=document.getElementById('oppInput'); const type=document.getElementById('typeSelect'); const ha=document.getElementById('haSelect'); const desc=document.getElementById('descInput'); const dRaw = (sess.matchDate || sess.date || ''); const haVal = normalizeHA(sess.homeAway || sess.location); const tVal = String(sess.matchType || sess.eventType || ''); const oVal = String((sess.opponentTeam || sess.opponent || '')).trim(); if(opp) opp.value=oVal; if(type) type.value=tVal||''; if(ha) ha.value=haVal||''; if(desc) desc.value=String(sess.description||''); initDateSelectors(dRaw); renderTabs(sess); const cancel=document.getElementById('cancelBtn'); if(cancel) cancel.addEventListener('click', ()=>{ window.location.href = 'matches.html'; }); const save=document.getElementById('saveBtn'); if(save) save.addEventListener('click', async ()=>{ const daySel=document.getElementById('daySel'); const monthSel=document.getElementById('monthSel'); const yearInp=document.getElementById('yearInp'); const d=composeISO(Number(daySel.value), Number(monthSel.value), Number(yearInp.value)); const o=String(opp.value||'').trim(); const t=String(type.value||''); const h=String(ha.value||''); const loc=(h==='home'?'casa':(h==='away'?'trasferta':'')); const sess=getSession(); sess.matchDate=d; sess.opponentTeam=o; sess.matchType=t; sess.homeAway=h; sess.location=loc; sess.description=String(desc.value||''); saveSession(sess); try{ const local = (()=>{ try{ return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); }catch(_){ return []; } })(); let id = sess.id || null; if(!id){ id = 'm_'+Date.now(); sess.id = id; saveSession(sess); } const idx = local.findIndex(m=>m.id===id); const base = idx>=0 ? local[idx] : {}; const updated = { ...base, id, teamId: sess.teamId || base.teamId || null, opponentTeam: o || base.opponentTeam || 'Avversario', matchDate: d || base.matchDate || new Date().toISOString().slice(0,10), matchType: t || base.matchType || 'partita', homeAway: h || base.homeAway || null, description: sess.description || base.description || '', actionsBySet: sess.actionsBySet || base.actionsBySet || {}, setMeta: sess.setMeta || base.setMeta || {}, setStateBySet: sess.setStateBySet || base.setStateBySet || {}, scoreHistoryBySet: sess.scoreHistoryBySet || base.scoreHistoryBySet || {}, setSummary: sess.setSummary || base.setSummary || {}, roster: (function(){ try{ return JSON.parse(localStorage.getItem('importedRoster')||'[]'); }catch(_){ return base.roster || []; } })(), status: base.status || 'in_progress', createdAt: base.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+            if(idx>=0) local[idx]=updated; else local.unshift(updated); localStorage.setItem('volleyMatches', JSON.stringify(local)); }catch(_){ } window.location.href = 'matches.html'; }); }
+    document.addEventListener('DOMContentLoaded', loadAndRender);
+    document.addEventListener('DOMContentLoaded', function(){ var s=getSession(); var f=document.getElementById('fileNameInput'); if(f) f.value=String(s.fileName||''); });
+  </script>
+</body>
+</html>

@@ -398,6 +398,16 @@
                 white-space: nowrap;
             }
         }
+        .input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-size: 15px; }
+        .dialog { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); padding: 16px; }
+        .dialog-content { background:#fff; border:1px solid #0d6efd; border-radius:16px; width: 100%; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .dialog-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 16px; border-bottom:1px solid #e9ecef; }
+        .dialog-body { padding: 12px 16px; display:flex; flex-direction:column; gap:10px; }
+        .dialog-footer { padding: 12px 16px; border-top:1px solid #e9ecef; display:flex; justify-content:flex-end; }
+        .close-btn { background:#fff; border:1px solid #e9ecef; border-radius:8px; width:32px; height:32px; cursor:pointer; }
+        .dialog-form label { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+        .date-row { display:flex; gap:8px; }
+        .export-btn { padding:8px 14px; border:1px solid #e9ecef; border-radius:10px; background:#fff; cursor:pointer; font-weight:600; }
 </style>
 </head>
 <body>
@@ -467,8 +477,12 @@
                 </div>
             </div>
             <div class="section-hint" id="teamContext" style="margin:0 0 8px 0;">
-                <div id="clubNameTop" style="text-transform:uppercase; font-weight:600;">—</div>
-                <div id="teamNameBottom" style="color:#555;">—</div>
+                <div style="display:grid; grid-template-columns: 160px 1fr; column-gap:6px; row-gap:4px; align-items:baseline;">
+                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">La tua società:</span>
+                    <span id="clubNameTop" style="text-transform:uppercase; font-weight:400; font-size:0.95rem; color:#333;">—</span>
+                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">La tua squadra:</span>
+                    <span id="teamNameBottom" style="color:#555; font-size:0.95rem; font-weight:400;">—</span>
+                </div>
             </div>
             <p class="section-hint" style="margin:8px 0 16px 0;">Seleziona una partita per iniziare lo scout</p>
             
@@ -987,6 +1001,7 @@
                 try { updateImportProgress(40, 'Analisi fogli'); } catch(_) {}
 
                 const sessionData = {};
+                sessionData.fileName = file && file.name ? String(file.name) : '';
                 sessionData.actionsBySet = {};
                 sessionData.setMeta = {};
                 sessionData.scoreHistoryBySet = {};
@@ -1120,37 +1135,7 @@
                 try { updateImportProgress(100, 'Completato'); } catch(_) {}
                 try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
 
-                try { showImportSummary(sessionData).then(async () => {
-                  try {
-                    const matchId = `m_${Date.now()}`;
-                    const match = {
-                      id: matchId,
-                      teamId: sessionData.teamId || null,
-                      opponentTeam: sessionData.opponentTeam || 'Avversario',
-                      matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
-                      matchType: sessionData.matchType || 'partita',
-                      homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
-                      description: sessionData.description || '',
-                      actionsBySet: sessionData.actionsBySet || {},
-                      setMeta: sessionData.setMeta || {},
-                      setStateBySet: sessionData.setStateBySet || {},
-                      scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
-                      setSummary: sessionData.setSummary || {},
-                      roster: (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ return []; } })(),
-                      createdAt: new Date().toISOString(),
-                      status: 'in_progress'
-                    };
-                    if (window.matchesModule?.saveMatch) {
-                      const res = await window.matchesModule.saveMatch(match);
-                      if (!res.success) console.warn('Salvataggio match importato fallito:', res.error);
-                    } else {
-                      const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
-                      local.unshift(match);
-                      localStorage.setItem('volleyMatches', JSON.stringify(local));
-                    }
-                    renderMatches();
-                  } catch(err){ console.warn('Errore salvataggio partita importata:', err); }
-                }); } catch(_) {}
+                window.location.href = 'match-data.html';
             } catch (error) {
                 alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
             }
@@ -1731,17 +1716,19 @@
             return '';
           })();
           form.innerHTML = (
-            '<label><strong>Data gara</strong></label>'+
-            '<div class="date-row" style="display:flex;gap:8px;">'+
-              '<select id="is_day" aria-label="Giorno"></select>'+
-              '<select id="is_month" aria-label="Mese"></select>'+
-              '<input id="is_year" type="number" min="1900" max="2100" step="1" placeholder="Anno" />'+
-            '</div>'+
-            '<small id="is_date_preview" style="color:#6c757d;" aria-live="polite"></small>'+
-            '<label><strong>Avversario</strong></label>'+
-            '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" />'+
-            '<label><strong>Tipo partita</strong></label>'+
-            '<select id="is_type">'+
+            '<label><span>Data gara</span>'+
+              '<div class="date-row">'+
+                '<select id="is_day" aria-label="Giorno" class="input"></select>'+
+                '<select id="is_month" aria-label="Mese" class="input"></select>'+
+                '<input id="is_year" type="number" min="1900" max="2100" step="1" placeholder="Anno" class="input" />'+
+              '</div>'+
+              '<small id="is_date_preview" style="color:#6c757d;" aria-live="polite"></small>'+
+            '</label>'+
+            '<label><span>Avversario</span>'+
+              '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" class="input" />'+
+            '</label>'+
+            '<label><span>Tipo partita</span>'+
+            '<select id="is_type" class="input">'+
               '<option value="">Seleziona</option>'+
               '<option value="campionato">Campionato</option>'+
               '<option value="coppa">Coppa</option>'+
@@ -1752,13 +1739,13 @@
               '<option value="playoff">Playoff</option>'+
               '<option value="partita">Partita</option>'+
               '<option value="altro">Altro</option>'+
-            '</select>'+
-            '<label><strong>Casa/Trasferta</strong></label>'+
-            '<select id="is_homeAway">'+
+            '</select></label>'+
+            '<label><span>Casa/Trasferta</span>'+
+            '<select id="is_homeAway" class="input">'+
               '<option value="">Seleziona</option>'+
               '<option value="home">Casa</option>'+
               '<option value="away">Trasferta</option>'+
-            '</select>'
+            '</select></label>'
           );
           list.appendChild(form);
           var selType = form.querySelector('#is_type');
@@ -1854,10 +1841,10 @@
         });
       }
     </script>
-    <div id="import-summary-dialog" class="dialog" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999;">
+    <div id="import-summary-dialog" class="dialog" style="display:none;">
       <div class="dialog-content">
         <div class="dialog-header">
-          <h3>Dati gara per set</h3>
+          <h3 class="section-title rounded-title" style="text-align:center; text-transform:uppercase; margin:0;">Dati gara per set</h3>
           <button class="close-btn" id="importSummaryClose" aria-label="Chiudi">×</button>
         </div>
         <div class="dialog-body">
