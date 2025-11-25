@@ -1205,7 +1205,11 @@
         function readElGiocSheet(wb){
             const res = { roster: [], meta: {} };
             try {
-                const ws = wb.Sheets['El. Gioc.'] || null;
+                let ws = wb.Sheets['El. Gioc.'] || null;
+                if (!ws) {
+                    const alt = (wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')));
+                    if (alt) ws = wb.Sheets[alt] || null;
+                }
                 if (!ws) return res;
                 // Roster: B..F da riga 3
                 const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
@@ -1331,10 +1335,15 @@
                     } catch(_) { return 'servizio'; }
                 }
 
-                for (let setNum = 1; setNum <= 6; setNum++) {
-                    const sheetName = `Set ${setNum}`;
-                    const ws = wb.Sheets[sheetName];
-                    if (!ws) continue; // foglio mancante: salta
+                const setSheets = (function(){
+                    const names = wb.SheetNames||[];
+                    const pairs = names.map(n => { const m = /set\s*(\d+)/i.exec(String(n||'')); return m ? { n, i: parseInt(m[1],10) } : null; }).filter(Boolean);
+                    pairs.sort((a,b) => a.i - b.i);
+                    return pairs.map(p => ({ num: p.i, ws: wb.Sheets[p.n] })).filter(s => s.ws);
+                })();
+                for (const entry of setSheets) {
+                    const setNum = entry.num;
+                    const ws = entry.ws;
 
                     let initialRotation = '';
                     try {

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Elenco Giocatori</title>
-  <link rel="icon" href="./favicon.ico" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elenco Giocatori</title>
+    <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="styles.css" />
   <style>
     :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; --font-size-title: 20px; --font-size-subtitle: 15px; }
     body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
@@ -78,12 +79,59 @@
         <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';">
       </div>
       <div class="account-actions">
-        <button type="button" class="icon-button" id="accountBtn" title="Account" aria-label="Account" onclick="showAccountMenu(this)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
-            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
         </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-title">Account</div>
+          <div class="menu-divider"></div>
+          <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esporta Partita (Xls)</span>
+          </button>
+          <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Importa Partita (Xls)</span>
+          </button>
+          <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Salva</span>
+          </button>
+          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Vai a Elenco Partite</span>
+          </button>
+          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Vai a Elenco Squadre</span>
+          </button>
+          <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esci</span>
+          </button>
+          <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Logout</span>
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-title" style="text-align:right;">MyVolleyScout Vers. 3.11</div>
+        </div>
       </div>
     </div>
 
@@ -166,6 +214,8 @@
 
     async function tryLoadRosterNameFromCSV(){
       const urls = [
+        './G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
+        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
         './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
         '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
       ];
@@ -188,8 +238,12 @@
 
     function splitCsv(line){ const d = line.includes(';') ? ';' : ','; return line.split(d).map(s => String(s||'').trim()); }
     function mapRole(str){ const v = String(str||'').trim().toLowerCase(); if (!v) return ''; if (v.startsWith('palleg')) return 'P'; if (v.startsWith('schiacc')) return 'S'; if (v.startsWith('oppos')) return 'O'; if (v.startsWith('centr')) return 'C'; if (v.startsWith('liber')) return 'L'; return ''; }
+    function formatNumberForCsv(n){ const s=String(n||'').trim(); const num = s.replace(/^0+/,''); return num || '0'; }
+    function buildRosterFileName(team){ const t = String(team||'').trim() || 'Roster'; const sessRaw = localStorage.getItem('currentScoutingSession'); const setupRaw = localStorage.getItem('currentMatchSetup'); let club = ''; try{ const sess = sessRaw?JSON.parse(sessRaw):null; const setup = setupRaw?JSON.parse(setupRaw):null; club = setup?.myClub || sess?.myClub || ''; }catch(_){ } const now = new Date(); const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear(); const dateStr = `${dd}-${mm}-${yyyy}`; const sanitize = (s)=> s.replace(/[\\/:*?"<>|]/g,'').trim(); const left = sanitize(t); const right = sanitize(club||''); return `${left}${right?` - ${right}`:''}_roster_${dateStr}.csv`; }
     async function tryLoadRosterFromCSV(){
       const urls = [
+        './G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
+        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
         './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
         '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
       ];
@@ -203,14 +257,14 @@
           const players = dataLines.map(line => {
             const cols = splitCsv(line);
             return {
-              number: ensureTwoDigits(cols[1]||''),
-              name: toTitleCase(cols[2]||''),
-              surname: toTitleCase(cols[3]||''),
+              number: ensureTwoDigits(cols[2]||''),
+              name: toTitleCase(cols[3]||''),
+              surname: toTitleCase(cols[4]||''),
               nickname: String(cols[5]||'').trim().toUpperCase(),
-              role: mapRole(cols[4]||'')
+              role: mapRole(cols[6]||'')
             };
           }).filter(p => p.number || p.name || p.surname || p.role);
-          if (players.length){ currentRoster = players; renderRosterList(); setEditorVisible(false); return true; }
+          if (players.length){ currentRoster = players; showRosterEditor(); renderRosterRows(currentRoster); localStorage.setItem('importedRoster', JSON.stringify(currentRoster)); return true; }
         } catch(_){}
       }
       return false;
@@ -231,7 +285,14 @@
       const accountBtn = document.getElementById('accountBtn');
 
       if (importRosterIcon) importRosterIcon.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
-      if (exportRosterIcon) exportRosterIcon.addEventListener('click', exportRosterJSON);
+      if (exportRosterIcon) exportRosterIcon.addEventListener('click', ()=>{
+        const list = collectRosterFromEditor();
+        const players = Array.isArray(list) && list.length ? list : (Array.isArray(currentRoster)?currentRoster:[]);
+        if (!players || !players.length){ alert('Nessun giocatore da esportare'); return; }
+        const rnEl = document.getElementById('rosterNameInput');
+        const team = String(rnEl?.value||'').trim();
+        exportRosterCSV(players, buildRosterFileName(team));
+      });
       if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); });
       if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmRosterEditing);
       if (saveRosterBtn) saveRosterBtn.addEventListener('click', confirmRosterEditing);
@@ -261,14 +322,36 @@
         });
       }
       if (accountBtn) {
-        accountBtn.addEventListener('click', (e) => {
-          showAccountMenu(accountBtn);
-        });
+        accountBtn.addEventListener('click', (e) => {});
       }
       setEditorVisible(isEditorVisible());
     }
 
-    function showAccountMenu(anchor){ const menu=document.createElement('div'); const rect=anchor.getBoundingClientRect(); menu.style.position='absolute'; menu.style.left=rect.left+'px'; menu.style.top=(window.scrollY+rect.bottom+6)+'px'; menu.style.background='#fff'; menu.style.border='1px solid #cbd5e1'; menu.style.boxShadow='0 6px 16px rgba(0,0,0,0.10)'; menu.style.borderRadius='10px'; menu.style.zIndex='9999'; menu.style.minWidth='200px'; menu.innerHTML=`<div style='display:flex;flex-direction:column;padding:6px;gap:4px;'><button type='button' class='btn btn-compact' data-act='matches'>Passa a Partite</button><button type='button' class='btn btn-compact' data-act='teams'>Passa a Squadre</button><button type='button' class='btn btn-compact' data-act='exit'>Esci</button><button type='button' class='btn btn-compact' data-act='logout'>Logout</button></div>`; document.body.appendChild(menu); const close=()=>{ try{ document.body.removeChild(menu); }catch(_){ } document.removeEventListener('click', onDoc); }; const onDoc=(e)=>{ if(!menu.contains(e.target)) close(); }; document.addEventListener('click', onDoc); menu.querySelector('[data-act="matches"]').addEventListener('click', ()=>{ close(); location.href='matches.html'; }); menu.querySelector('[data-act="teams"]').addEventListener('click', ()=>{ close(); location.href='my-teams.html'; }); menu.querySelector('[data-act="exit"]').addEventListener('click', ()=>{ close(); location.href='src/index.html'; }); menu.querySelector('[data-act="logout"]').addEventListener('click', async ()=>{ try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } }catch(_){ } close(); try{ location.href='src/index.html'; }catch(_){ } }); }
+    (function(){
+      const toggleBtn = document.getElementById('headerMenuToggle');
+      const menu = document.getElementById('headerMenu');
+      if (!toggleBtn || !menu) return;
+      let open = false;
+      function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+      toggleBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
+      document.addEventListener('click', function(){ if (open) setOpen(false); });
+      const exportBtn = document.getElementById('exportSetsBtnMobile');
+      const importBtn = document.getElementById('importMatchBtnMobile');
+      const saveBtn = document.getElementById('save-match-btn');
+      const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
+      const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
+      const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+      const signOutBtn = document.getElementById('signOutBtnMobile');
+      if (exportBtn) exportBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.exportAllSetsToExcel==='function'){ await window.exportAllSetsToExcel(); } else { alert('Esporta non disponibile su questa pagina'); } } finally { setOpen(false); } });
+      if (importBtn) importBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.importMatchFromExcel==='function'){ await window.importMatchFromExcel(); } else if (typeof window.importMatchFromExcelOnMatches==='function'){ await window.importMatchFromExcelOnMatches(); } else { location.href='matches.html'; } } finally { setOpen(false); } });
+      if (saveBtn) saveBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.saveCurrentMatch==='function'){ await window.saveCurrentMatch(); alert('Dati salvati'); } else { alert('Salvataggio non disponibile su questa pagina'); } } finally { setOpen(false); } });
+      if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='matches.html'; });
+      if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
+      if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='src/index.html'; });
+      if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); location.href='src/index.html'; } });
+    })();
+
+    function showAccountMenu(anchor){ const menu=document.createElement('div'); const rect=anchor.getBoundingClientRect(); menu.style.position='absolute'; menu.style.left=rect.left+'px'; menu.style.top=(window.scrollY+rect.bottom+6)+'px'; menu.style.background='#fff'; menu.style.border='1px solid #cbd5e1'; menu.style.boxShadow='0 6px 16px rgba(0,0,0,0.10)'; menu.style.borderRadius='10px'; menu.style.zIndex='9999'; menu.style.minWidth='240px'; menu.innerHTML=`<div style='display:flex;flex-direction:column;padding:8px;gap:6px;'><button type='button' class='btn btn-compact' data-act='export'>Esporta Partita (Xls)</button><button type='button' class='btn btn-compact' data-act='import'>Importa Partita (Xls)</button><button type='button' class='btn btn-compact' data-act='save'>Salva</button><button type='button' class='btn btn-compact' data-act='matches'>Vai a Elenco Partite</button><button type='button' class='btn btn-compact' data-act='teams'>Vai a Elenco Squadre</button><button type='button' class='btn btn-compact' data-act='exit'>Esci</button><button type='button' class='btn btn-compact' data-act='logout'>Logout</button><div style='border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;text-align:right;color:#6b7280;font-size:12px;'>MyVolleyScout Vers. 3.11</div></div>`; document.body.appendChild(menu); const close=()=>{ try{ document.body.removeChild(menu); }catch(_){ } document.removeEventListener('click', onDoc); }; const onDoc=(e)=>{ if(!menu.contains(e.target)) close(); }; document.addEventListener('click', onDoc); const onClick=(sel,fn)=>{ const el=menu.querySelector(sel); if(el) el.addEventListener('click', async ()=>{ try{ await fn(); } finally { close(); } }); }; onClick('[data-act="export"]', async ()=>{ try{ if (typeof window.exportAllSetsToExcel==='function'){ await window.exportAllSetsToExcel(); } else { alert('Esporta non disponibile su questa pagina'); } }catch(_){ } }); onClick('[data-act="import"]', async ()=>{ try{ if (typeof window.importMatchFromExcel==='function'){ await window.importMatchFromExcel(); } else if (typeof window.importMatchFromExcelOnMatches==='function'){ await window.importMatchFromExcelOnMatches(); } else { location.href='matches.html'; } }catch(_){ } }); onClick('[data-act="save"]', async ()=>{ try{ if (typeof window.saveCurrentMatch==='function'){ await window.saveCurrentMatch(); alert('Dati salvati'); } else { alert('Salvataggio non disponibile su questa pagina'); } }catch(_){ } }); onClick('[data-act="matches"]', async ()=>{ location.href='matches.html'; }); onClick('[data-act="teams"]', async ()=>{ location.href='my-teams.html'; }); onClick('[data-act="exit"]', async ()=>{ location.href='src/index.html'; }); onClick('[data-act="logout"]', async ()=>{ try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } }catch(_){ } location.href='src/index.html'; }); }
 
     function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
     function toTitleCase(str){ const s = String(str||'').trim().toLowerCase(); if (!s) return ''; return s.replace(/\b([a-zàèéìòù])([a-zàèéìòù]*)/gi, (m,a,b)=> a.toUpperCase()+b.toLowerCase()); }
@@ -334,8 +417,8 @@
 
     function showRosterMenu(item, idx, anchor){ const menu=document.createElement('div'); menu.style.position='absolute'; const rect=anchor.getBoundingClientRect(); menu.style.left=rect.left+'px'; menu.style.top=(window.scrollY+rect.bottom+6)+'px'; menu.style.background='#fff'; menu.style.border='1px solid #cbd5e1'; menu.style.boxShadow='0 6px 16px rgba(0,0,0,0.10)'; menu.style.borderRadius='10px'; menu.style.zIndex='9999'; menu.style.minWidth='180px'; menu.innerHTML=`<div style='display:flex;flex-direction:column;padding:6px;gap:4px;'><button type='button' class='btn btn-compact' data-act='edit'>Modifica</button><button type='button' class='btn btn-compact' data-act='props'>Proprietà</button><button type='button' class='btn btn-compact' data-act='export'>Esporta</button></div>`; document.body.appendChild(menu); const close=()=>{ try{ document.body.removeChild(menu); }catch(_){ } document.removeEventListener('click', onDoc); }; const onDoc=(e)=>{ if(!menu.contains(e.target)) close(); }; document.addEventListener('click', onDoc); menu.querySelector("[data-act='edit']").addEventListener('click', ()=>{ const id='saved_'+idx; location.href='edit-roster.html?id='+encodeURIComponent(id); }); menu.querySelector("[data-act='props']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const sessRaw=localStorage.getItem('currentScoutingSession'); let origin='app', sourceFile='', dateStr=item?.date||''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; const same=Array.isArray(sess?.roster)&&JSON.stringify(sess.roster)===JSON.stringify(rosterArr); if(same) origin='import'; sourceFile=sess?.fileName||''; }catch(_){ } const count=Array.isArray(rosterArr)?rosterArr.length:0; const box=document.createElement('div'); box.style.position='fixed'; box.style.left='0'; box.style.top='0'; box.style.right='0'; box.style.bottom='0'; box.style.background='rgba(0,0,0,0.35)'; box.style.zIndex='10000'; const card=document.createElement('div'); card.style.background='#fff'; card.style.border='1px solid #cbd5e1'; card.style.borderRadius='12px'; card.style.boxShadow='0 8px 20px rgba(0,0,0,0.12)'; card.style.padding='14px'; card.style.maxWidth='420px'; card.style.margin='10vh auto'; card.innerHTML=`<div style='font-weight:600;margin-bottom:8px;'>Proprietà</div><div style='display:grid;gap:8px;'><div><div style='color:#64748b;'>Origine</div><div>${origin==='import'?'Import da match':'Creato nell\'app'}</div></div><div><div style='color:#64748b;'>File</div><div>${sourceFile||'—'}</div></div><div><div style='color:#64748b;'>Data</div><div>${dateStr||'—'}</div></div><div><div style='color:#64748b;'>N. giocatori</div><div>${count}</div></div></div><div class='form-actions'><button class='btn' id='closeProps'>Chiudi</button></div>`; box.appendChild(card); document.body.appendChild(box); card.querySelector('#closeProps').addEventListener('click', ()=>{ try{ document.body.removeChild(box); }catch(_){ } }); close(); }); menu.querySelector("[data-act='export']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); exportRosterCSV(rosterArr, item?.label||item?.name||'Roster'); close(); }); }
 
-    function exportRosterCSV(players, filename){ const headers=['Squadra','Numero','Nome','Cognome','Ruolo','Soprannome']; const sessRaw=localStorage.getItem('currentScoutingSession'); let team=''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; team=sess?.myTeam||sess?.teamName||''; }catch(_){ } const roleMap={'Palleggiatore':'P','Opposto':'O','Schiacciatore':'S','Centrale':'C','Libero':'L'}; const lines=[headers.join(',')].concat((Array.isArray(players)?players:[]).map(p=>{ const row=[team,String(p.number||'').trim(),String(p.name||'').trim(),String(p.surname||'').trim(),roleMap[String(p.role||'')]||String(p.role||'').trim(),String(p.nickname||'').trim()]; return row.map(x=>`"${x}"`).join(','); })); const blob=new Blob([lines.join('\n')],{ type:'text/csv;charset=utf-8;' }); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(filename||'roster')+'.csv'; a.click(); URL.revokeObjectURL(url); }
-    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const dataLines = lines.filter(l => !/^\s*Squadra\s*[,;]/i.test(l)); const out = dataLines.map(line=>{ const parts = splitCsv(line); return { number: ensureTwoDigits(parts[1]||''), name: String(parts[2]||'').trim(), surname: String(parts[3]||'').trim(), nickname: String(parts[5]||'').trim(), role: mapRole(parts[4]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); currentRoster = out; renderRosterList(); setEditorVisible(false); } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
+    function exportRosterCSV(players, filename){ const headers=['Squadra','Società','Numero','Nome','Cognome','Soprannome','Ruolo']; const sessRaw=localStorage.getItem('currentScoutingSession'); const setupRaw=localStorage.getItem('currentMatchSetup'); let team='', club=''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; const setup=setupRaw?JSON.parse(setupRaw):null; team = sess?.myTeam || sess?.teamName || setup?.myTeam || setup?.teamName || ''; club = setup?.myClub || sess?.myClub || ''; }catch(_){ } const roleLabels={'P':'Palleggiatore','S':'Schiacciatore','O':'Opposto','C':'Centrale','L':'Libero'}; const lines=[headers.join(',')].concat((Array.isArray(players)?players:[]).map(p=>{ const roleKey=String(p.role||'').trim().toUpperCase(); const roleOut=roleLabels[roleKey]||roleKey||''; const row=[team,String(formatNumberForCsv(p.number||'')),String(p.name||'').trim(),String(p.surname||'').trim(),String(p.nickname||'').trim(),String(roleOut)]; return [row[0],club,row[1],row[2],row[3],row[4],row[5]].map(x=>String(x||'')).join(','); })); const blob=new Blob([lines.join('\n')],{ type:'text/csv;charset=utf-8;' }); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(filename||'roster.csv'); a.click(); URL.revokeObjectURL(url); }
+    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const header = lines[0]||''; const hparts = splitCsv(header).map(s=>s.toLowerCase()); const idx = { numero: hparts.indexOf('numero'), nome: hparts.indexOf('nome'), cognome: hparts.indexOf('cognome'), soprannome: hparts.indexOf('soprannome'), ruolo: hparts.indexOf('ruolo'), squadra: hparts.indexOf('squadra'), societa: hparts.indexOf('società') }; const dataLines = lines.slice(1).filter(l => !/^\s*Squadra\s*[,;]/i.test(l)); const out = dataLines.map(line=>{ const parts = splitCsv(line); const numIdx = idx.numero>=0?idx.numero:2; const nomeIdx = idx.nome>=0?idx.nome:3; const cogIdx = idx.cognome>=0?idx.cognome:4; const nickIdx = idx.soprannome>=0?idx.soprannome:5; const ruoloIdx = idx.ruolo>=0?idx.ruolo:6; return { number: ensureTwoDigits(parts[numIdx]||''), name: toTitleCase(parts[nomeIdx]||''), surname: toTitleCase(parts[cogIdx]||''), nickname: String(parts[nickIdx]||'').trim(), role: mapRole(parts[ruoloIdx]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); currentRoster = out; localStorage.setItem('importedRoster', JSON.stringify(currentRoster)); const rnEl = document.getElementById('rosterNameInput'); if (rnEl){ const first = lines[1]||''; const firstParts = splitCsv(first); const teamName = idx.squadra>=0 ? firstParts[idx.squadra] : (firstParts[0]||''); rnEl.value = String(teamName||'').trim() || rnEl.value || ''; } showRosterEditor(); renderRosterRows(currentRoster); } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
     function exportRosterJSON(){ try { const data = JSON.stringify(collectRosterFromEditor(), null, 2); const blob = new Blob([data], { type:'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'roster.json'; a.click(); URL.revokeObjectURL(url); } catch(_){} }
     function confirmRosterEditing(){ try { const list = collectRosterFromEditor(); if (!list || list.length === 0){ alert('Aggiungi almeno un giocatore'); return; } const nameEl = document.getElementById('rosterNameInput'); const label = String(nameEl?.value||'').trim() || 'Roster'; const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.push({ label, roster:list }); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); setEditorVisible(false); const listEl = document.getElementById('rosterList'); if (listEl){ const all = listEl.querySelectorAll('.roster-select'); all.forEach(x=> x.checked=false); const cb = listEl.querySelector(`.roster-select[data-id="saved_${saved.length-1}"]`); if (cb){ cb.checked=true; const nm = document.getElementById('rosterNameInput'); if (nm) nm.value = label; currentRoster = list; try{ cb.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(_){ } } } alert('Roster salvato'); } catch(e){ alert('Errore nel salvataggio'); } }
     function cancelRosterEditing(){ setEditorVisible(false); }

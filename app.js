@@ -1008,24 +1008,22 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    // Salvataggio non bloccante (se fallisce, ignora)
                     try { saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'matches.html';
+                    window.location.href = 'my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
                 }
             });
         }
-        // Nuova voce: Esci (torna a Welcome.html)
+        // Voce: Esci (torna alla pagina di benvenuto)
         if (exitToWelcomeBtnMobile) {
             exitToWelcomeBtnMobile.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    // Salvataggio non bloccante del match corrente
                     try { saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'matches.html';
+                    window.location.href = 'src/index.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -1073,13 +1071,11 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    // Salvataggio non bloccante (se fallisce, ignora)
                     try { await saveCurrentMatch(); } catch(_){}
                     if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
                         await window.authFunctions.signOut();
-                    } else {
-                        alert('Logout non disponibile in questa pagina. Torna alla pagina principale per uscire.');
                     }
+                    window.location.href = 'src/index.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');

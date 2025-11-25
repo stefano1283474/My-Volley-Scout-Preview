@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dati Gara</title>
-  <link rel="icon" href="./favicon.ico" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dati Gara</title>
+    <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="styles.css" />
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { height: 100%; }
@@ -56,11 +57,70 @@
           </svg>
         </a>
       </div>
+      <div class="account-actions" style="position:absolute; top:8px; right:8px; display:flex; align-items:center;">
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-title">Account</div>
+          <div class="menu-divider"></div>
+          <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esporta Partita (Xls)</span>
+          </button>
+          <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Importa Partita (Xls)</span>
+          </button>
+          <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Salva</span>
+          </button>
+          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Vai a Elenco Partite</span>
+          </button>
+          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Vai a Elenco Squadre</span>
+          </button>
+          <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esci</span>
+          </button>
+          <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Logout</span>
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-title" style="text-align:right;">MyVolleyScout Vers. 3.11</div>
+        </div>
+      </div>
     </div>
 
     <div class="matches-section" id="matchDataSection">
       <div class="section-title-row">
         <h2 class="section-title rounded-title" style="text-transform:uppercase;">Dati della gara:</h2>
+        <div class="footer-actions" style="margin-top:0;">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Annulla</button>
+          <button type="button" class="btn btn-primary" id="saveBtn">Conferma</button>
+        </div>
       </div>
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1;">
@@ -108,10 +168,7 @@
           <input type="text" id="descInput" class="input" />
         </div>
       </div>
-      <div class="footer-actions">
-        <button type="button" class="btn btn-secondary" id="cancelBtn">Annulla</button>
-        <button type="button" class="btn btn-primary" id="saveBtn">Conferma</button>
-      </div>
+      
     </div>
 
     <div class="matches-section" id="setsSection" style="margin-top:16px;">
@@ -120,6 +177,18 @@
       </div>
       <div class="tabs" id="setTabs"></div>
       <div class="tab-panel" id="setPanel"></div>
+    </div>
+    <div class="matches-section" id="playersSection" style="margin-top:16px;">
+      <div class="section-title-row">
+        <h2 class="section-title rounded-title" style="text-transform:uppercase;">Dati Player:</h2>
+        <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+          <span id="playersCountLabel" class="section-hint"></span>
+          <button type="button" class="btn btn-secondary" id="openRosterDetailBtn">Apri dettaglio roster</button>
+        </div>
+      </div>
+      <div id="playersDetailPanel" class="set-panel" style="display:none;">
+        <div class="panel-row" id="playersDetailRows"></div>
+      </div>
     </div>
   </div>
 
@@ -137,7 +206,43 @@
     function loadAndRender(){ const sess=getSession(); const opp=document.getElementById('oppInput'); const type=document.getElementById('typeSelect'); const ha=document.getElementById('haSelect'); const desc=document.getElementById('descInput'); const dRaw = (sess.matchDate || sess.date || ''); const haVal = normalizeHA(sess.homeAway || sess.location); const tVal = String(sess.matchType || sess.eventType || ''); const oVal = String((sess.opponentTeam || sess.opponent || '')).trim(); if(opp) opp.value=oVal; if(type) type.value=tVal||''; if(ha) ha.value=haVal||''; if(desc) desc.value=String(sess.description||''); initDateSelectors(dRaw); renderTabs(sess); const cancel=document.getElementById('cancelBtn'); if(cancel) cancel.addEventListener('click', ()=>{ window.location.href = 'matches.html'; }); const save=document.getElementById('saveBtn'); if(save) save.addEventListener('click', async ()=>{ const daySel=document.getElementById('daySel'); const monthSel=document.getElementById('monthSel'); const yearInp=document.getElementById('yearInp'); const d=composeISO(Number(daySel.value), Number(monthSel.value), Number(yearInp.value)); const o=String(opp.value||'').trim(); const t=String(type.value||''); const h=String(ha.value||''); const loc=(h==='home'?'casa':(h==='away'?'trasferta':'')); const sess=getSession(); sess.matchDate=d; sess.opponentTeam=o; sess.matchType=t; sess.homeAway=h; sess.location=loc; sess.description=String(desc.value||''); saveSession(sess); try{ const local = (()=>{ try{ return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); }catch(_){ return []; } })(); let id = sess.id || null; if(!id){ id = 'm_'+Date.now(); sess.id = id; saveSession(sess); } const idx = local.findIndex(m=>m.id===id); const base = idx>=0 ? local[idx] : {}; const updated = { ...base, id, teamId: sess.teamId || base.teamId || null, opponentTeam: o || base.opponentTeam || 'Avversario', matchDate: d || base.matchDate || new Date().toISOString().slice(0,10), matchType: t || base.matchType || 'partita', homeAway: h || base.homeAway || null, description: sess.description || base.description || '', actionsBySet: sess.actionsBySet || base.actionsBySet || {}, setMeta: sess.setMeta || base.setMeta || {}, setStateBySet: sess.setStateBySet || base.setStateBySet || {}, scoreHistoryBySet: sess.scoreHistoryBySet || base.scoreHistoryBySet || {}, setSummary: sess.setSummary || base.setSummary || {}, roster: (function(){ try{ return JSON.parse(localStorage.getItem('importedRoster')||'[]'); }catch(_){ return base.roster || []; } })(), status: base.status || 'in_progress', createdAt: base.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
             if(idx>=0) local[idx]=updated; else local.unshift(updated); localStorage.setItem('volleyMatches', JSON.stringify(local)); }catch(_){ } window.location.href = 'matches.html'; }); }
     document.addEventListener('DOMContentLoaded', loadAndRender);
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        var sess = getSession();
+        var arr = Array.isArray(sess.roster) && sess.roster.length ? sess.roster : (function(){ try{ var r=localStorage.getItem('importedRoster'); return r?JSON.parse(r):[]; }catch(_){ return []; } })();
+        var countLbl = document.getElementById('playersCountLabel');
+        if(countLbl) countLbl.textContent = 'Giocatori nel roster: ' + (Array.isArray(arr)?arr.length:0);
+        var btn = document.getElementById('openRosterDetailBtn');
+        var panel = document.getElementById('playersDetailPanel');
+        var rows = document.getElementById('playersDetailRows');
+        if(btn){ btn.addEventListener('click', function(){ if(!panel||!rows) return; rows.innerHTML = (Array.isArray(arr)?arr:[]).map(function(p){ var num=String(p.number||''); var sur=String(p.surname||''); var nam=String(p.name||''); var nick=String(p.nickname||''); var role=String(p.role||''); return '<div class="panel-item"><div class="input" style="display:grid; grid-template-columns:80px 1fr 1fr 1fr 120px; gap:8px; align-items:center;"><div>'+num+'</div><div>'+sur+'</div><div>'+nam+'</div><div>'+nick+'</div><div>'+role+'</div></div></div>'; }).join(''); panel.style.display = 'block'; }); }
+      }catch(_){ }
+    });
     document.addEventListener('DOMContentLoaded', function(){ var s=getSession(); var f=document.getElementById('fileNameInput'); if(f) f.value=String(s.fileName||''); });
   </script>
 </body>
 </html>
+    (function(){
+      const toggleBtn = document.getElementById('headerMenuToggle');
+      const menu = document.getElementById('headerMenu');
+      if (toggleBtn && menu) {
+        let open = false;
+        function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+        toggleBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
+        document.addEventListener('click', function(){ if (open) setOpen(false); });
+        const exportBtn = document.getElementById('exportSetsBtnMobile');
+        const importBtn = document.getElementById('importMatchBtnMobile');
+        const saveBtn = document.getElementById('save-match-btn');
+        const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
+        const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
+        const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+        const signOutBtn = document.getElementById('signOutBtnMobile');
+        if (exportBtn) exportBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.exportAllSetsToExcel==='function'){ await window.exportAllSetsToExcel(); } else { alert('Esporta non disponibile su questa pagina'); } } finally { setOpen(false); } });
+        if (importBtn) importBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.importMatchFromExcel==='function'){ await window.importMatchFromExcel(); } else if (typeof window.importMatchFromExcelOnMatches==='function'){ await window.importMatchFromExcelOnMatches(); } else { location.href='matches.html'; } } finally { setOpen(false); } });
+        if (saveBtn) saveBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.saveCurrentMatch==='function'){ await window.saveCurrentMatch(); alert('Dati salvati'); } else { alert('Salvataggio non disponibile su questa pagina'); } } finally { setOpen(false); } });
+        if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='matches.html'; });
+        if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
+        if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='src/index.html'; });
+        if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); location.href='src/index.html'; } });
+      }
+    })();

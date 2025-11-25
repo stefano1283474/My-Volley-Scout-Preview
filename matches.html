@@ -1007,10 +1007,13 @@
                 sessionData.scoreHistoryBySet = {};
                 sessionData.setStateBySet = {};
 
-                // Leggi foglio "El. Gioc." se presente per impostare metadati partita
                 (function(){
                     try {
-                        const ws = wb.Sheets['El. Gioc.'];
+                        let ws = wb.Sheets['El. Gioc.'] || null;
+                        if (!ws) {
+                            const alt = (wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')));
+                            if (alt) ws = wb.Sheets[alt] || null;
+                        }
                         if (!ws) return;
                         const opponent = ws['D20'] && ws['D20'].v != null ? String(ws['D20'].v).trim() : '';
                         let matchDate = ws['D21'] && ws['D21'].v != null ? String(ws['D21'].v).trim() : '';
@@ -1058,8 +1061,9 @@
                             roster.push({ number: num, surname: sur, name: nam, nickname: nick, role });
                         }
                         if (roster.length) {
-                        try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
-                        try { updateImportProgress(55, 'Metadati e roster'); } catch(_) {}
+                            sessionData.roster = roster;
+                            try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+                            try { updateImportProgress(55, 'Metadati e roster'); } catch(_) {}
                         }
                     } catch(_) {}
                 })();
@@ -1076,10 +1080,15 @@
                     } catch(_) { return 'servizio'; }
                 }
 
-                for (let setNum = 1; setNum <= 6; setNum++) {
-                    const sheetName = `Set ${setNum}`;
-                    const ws = wb.Sheets[sheetName];
-                    if (!ws) continue;
+                const setSheets = (function(){
+                    const names = wb.SheetNames||[];
+                    const pairs = names.map(n => { const m = /set\s*(\d+)/i.exec(String(n||'')); return m ? { n, i: parseInt(m[1],10) } : null; }).filter(Boolean);
+                    pairs.sort((a,b) => a.i - b.i);
+                    return pairs.map(p => ({ num: p.i, ws: wb.Sheets[p.n] })).filter(s => s.ws);
+                })();
+                for (const entry of setSheets) {
+                    const setNum = entry.num;
+                    const ws = entry.ws;
                     let initialRotation = '';
                     try {
                         const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';

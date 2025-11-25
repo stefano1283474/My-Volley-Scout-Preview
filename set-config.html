@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Volley Scout - Configurazione Set</title>
     <link rel="stylesheet" href="animations.css?v=1">
+    <link rel="stylesheet" href="styles.css">
     <style>
         * {
             margin: 0;
@@ -366,18 +367,58 @@
                 </a>
             </div>
             <div class="account-actions">
-                <button class="icon-button" id="accountBtn" aria-expanded="false" aria-controls="accountMenu" aria-label="Account">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"></circle>
-                        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                    </svg>
+                <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+                  <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
                 </button>
-                <div class="account-dropdown" id="accountMenu" hidden>
-                    <div class="menu-item" id="accountEmail">Caricamento...</div>
-                    <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
-                    <button class="menu-item" id="accountLogout">Esci</button>
-                    <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
+                <div id="headerMenu" class="top-account-menu" hidden>
+                  <div class="menu-title">Account</div>
+                  <div class="menu-divider"></div>
+                  <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Esporta Partita (Xls)</span>
+                  </button>
+                  <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Importa Partita (Xls)</span>
+                  </button>
+                  <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+                    </span>
+                    <span>Salva</span>
+                  </button>
+                  <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Vai a Elenco Partite</span>
+                  </button>
+                  <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+                    </span>
+                    <span>Vai a Elenco Squadre</span>
+                  </button>
+                  <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Esci</span>
+                  </button>
+                  <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+                    <span class="menu-item-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Logout</span>
+                  </button>
+                  <div class="menu-divider"></div>
+                  <div class="menu-title" style="text-align:right;">MyVolleyScout Vers. 3.11</div>
                 </div>
             </div>
         </div>
@@ -480,8 +521,8 @@
         const ourRotationSelect = document.getElementById('ourRotationSelect');
         const opponentRotationSelect = document.getElementById('opponentRotationSelect');
         // Header elements
-        const accountBtn = document.getElementById('accountBtn');
-        const accountMenu = document.getElementById('accountMenu');
+        const headerMenuToggle = document.getElementById('headerMenuToggle');
+        const headerMenu = document.getElementById('headerMenu');
         const accountEmail = document.getElementById('accountEmail');
         const accountLogout = document.getElementById('accountLogout');
         const goToMatchesBtn = document.getElementById('goToMatchesBtn');
@@ -612,20 +653,25 @@
 
         function setupHeaderListeners(){
             // Menu account toggle
-            if (accountBtn && accountMenu){
-                accountBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
-                    accountBtn.setAttribute('aria-expanded', (!expanded).toString());
-                    accountMenu.hidden = expanded;
-                });
-                document.addEventListener('click', (e) => {
-                    if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
-                        accountMenu.hidden = true;
-                        accountBtn.setAttribute('aria-expanded','false');
-                    }
-                });
+            if (headerMenuToggle && headerMenu){
+                let open = false;
+                function setOpen(v){ open = !!v; if (open){ headerMenu.removeAttribute('hidden'); headerMenuToggle.setAttribute('aria-expanded','true'); } else { headerMenu.setAttribute('hidden',''); headerMenuToggle.setAttribute('aria-expanded','false'); } }
+                headerMenuToggle.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
+                document.addEventListener('click', function(){ if (open) setOpen(false); });
+                const exportBtn = document.getElementById('exportSetsBtnMobile');
+                const importBtn = document.getElementById('importMatchBtnMobile');
+                const saveBtn = document.getElementById('save-match-btn');
+                const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
+                const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
+                const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+                const signOutBtn = document.getElementById('signOutBtnMobile');
+                if (exportBtn) exportBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.exportAllSetsToExcel==='function'){ await window.exportAllSetsToExcel(); } else { alert('Esporta non disponibile su questa pagina'); } } finally { setOpen(false); } });
+                if (importBtn) importBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.importMatchFromExcel==='function'){ await window.importMatchFromExcel(); } else if (typeof window.importMatchFromExcelOnMatches==='function'){ await window.importMatchFromExcelOnMatches(); } else { location.href='matches.html'; } } finally { setOpen(false); } });
+                if (saveBtn) saveBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.saveCurrentMatch==='function'){ await window.saveCurrentMatch(); alert('Dati salvati'); } else { alert('Salvataggio non disponibile su questa pagina'); } } finally { setOpen(false); } });
+                if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='matches.html'; });
+                if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
+                if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='src/index.html'; });
+                if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); location.href='src/index.html'; } });
             }
             // Navigazione menu account
             if (goToMatchesBtn){
@@ -684,12 +730,9 @@
             // Prerequisiti prima di iniziare lo scouting
             try {
                 const teamId = localStorage.getItem('selectedTeamId');
-                const opp = String(matchData?.opponent || '').trim();
                 const rosterOk = Array.isArray(matchData?.roster) && matchData.roster.length > 0;
-                const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
                 if (!teamId) { showError('Seleziona una squadra prima di iniziare.'); return; }
                 if (!rosterOk) { showError('Aggiungi un roster alla partita prima di iniziare.'); return; }
-                if (oppInvalid) { showError('Inserisci un nome avversario valido (non placeholder).'); return; }
             } catch(_) {}
 
             // Salva la configurazione del set
