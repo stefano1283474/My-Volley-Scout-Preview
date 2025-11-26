@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "module": "esnext",
+    "target": "es2019",
+    "moduleResolution": "node",
+    "baseUrl": "."
+  },
+  "include": [
+    "src/**/*.js",
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/**",
+    "functions/**"
+  ]
+}

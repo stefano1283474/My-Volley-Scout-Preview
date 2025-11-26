@@ -1,21 +1,21 @@
 {
-  "name": "My Volley Scout PWA",
-  "short_name": "VolleyScout",
+  "name": "MyVolleyScout",
+  "short_name": "MyVolleyScout",
   "description": "Applicazione PWA per lo scouting nel volley",
-  "start_url": "/my-teams.html",
+  "start_url": "/splash.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "Copilot_20251105_011636.png",
+      "src": "LOGO_APP.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "Copilot_20251105_011636.png",
+      "src": "LOGO_APP.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"

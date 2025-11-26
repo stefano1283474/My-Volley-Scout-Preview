@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>My Volley Scout PWA</title>
+    <title>MyVolleyScout</title>
     <!-- Avvio standard: carica index e lascia che la logica di autenticazione reindirizzi verso login o welcome -->
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css?v=3">
     <link rel="stylesheet" href="animations.css?v=1">
     <meta name="theme-color" content="#2563eb">
     <link rel="icon" type="image/png" href="Copilot_20251105_011636.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" sizes="180x180" href="./LOGO_APP.png">
+    <link rel="apple-touch-startup-image" href="./LOGO_APP.png">
     <script>
         (function(){
             try {
@@ -148,7 +152,7 @@
     <div id="loading-screen" style="position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;">
       <div style="text-align:center;">
         <img src="./LOGO_APP.png" alt="Logo My Volley Scout" style="width:min(80vw, 420px);height:auto;margin-bottom:10px;display:block;" />
-        <div style="font-weight:600;color:#2563eb;margin-bottom:6px;">My Volley Scout</div>
+        <div style="font-weight:600;color:#2563eb;margin-bottom:6px;">MyVolleyScout</div>
         <div style="color:#374151;">Caricamento…</div>
       </div>
     </div>

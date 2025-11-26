@@ -23,7 +23,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const isLocal = (typeof location !== 'undefined') && (location.hostname === 'localhost');
 if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
-  firebase.firestore.setLogLevel('error');
+  firebase.firestore.setLogLevel('silent');
 }
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 // Configura il provider Google per funzionare in locale
@@ -38,14 +38,36 @@ db.settings(Object.assign({
 }, isLocal ? { experimentalAutoDetectLongPolling: true } : {}));
 
 // Enable offline persistence
-db.enablePersistence({ synchronizeTabs: true })
-  .catch((err) => {
-    if (err.code == 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code == 'unimplemented') {
-      console.warn('The current browser does not support all of the features required to enable persistence');
-    }
-  });
+if (!isLocal) {
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+      } else if (err.code == 'unimplemented') {
+        console.warn('The current browser does not support all of the features required to enable persistence');
+      }
+    });
+}
+
+try {
+  if (isLocal && firebase && firebase.auth && typeof firebase.auth.Auth === 'function') {
+    auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(function(){ });
+  }
+} catch(_) {}
+
+try {
+  if (isLocal) {
+    const originalError = console.error;
+    console.error = function(){
+      try {
+        const msg = arguments && String(arguments[0]||'');
+        const suppress = (msg.indexOf('google.firestore.v1.Firestore/Listen/channel')>=0) || (msg.indexOf('securetoken.googleapis.com')>=0);
+        if (suppress) return;
+      } catch(_){ }
+      return originalError.apply(console, arguments);
+    };
+  }
+} catch(_){ }
 
 // Authentication functions
 const authFunctions = {
