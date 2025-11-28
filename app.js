@@ -3991,3 +3991,20 @@ function activateMuroOverride() {
         showScoutingStep('step-player');
     } catch (_) {}
 }
+try {
+  window.appBuild = { version: '3.11', commit: '0888b3d' };
+  function renderAppVersion(){
+    try {
+      var els = document.querySelectorAll('.app-version');
+      var v = (window.appBuild && window.appBuild.version) ? String(window.appBuild.version) : '';
+      var c = (window.appBuild && window.appBuild.commit) ? String(window.appBuild.commit) : '';
+      var text = 'MyVolleyScout Vers. ' + v + (c ? (' (' + c + ')') : '');
+      els.forEach(function(el){ el.textContent = text; });
+    } catch(_){}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderAppVersion);
+  } else {
+    renderAppVersion();
+  }
+} catch(_){}
