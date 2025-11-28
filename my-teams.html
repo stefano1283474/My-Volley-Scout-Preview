@@ -342,7 +342,7 @@
         let file = null;
         if (window.showOpenFilePicker) {
           try {
-            const [handle] = await window.showOpenFilePicker({ multiple: false, types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] } }] });
+            const [handle] = await window.showOpenFilePicker({ multiple: false, types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'] } }] });
             file = await handle.getFile();
           } catch (err) {
             if (err && err.name === 'AbortError') return;
@@ -351,7 +351,7 @@
         } else {
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
+          input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
           input.style.display = 'none';
           document.body.appendChild(input);
           const picked = await new Promise(resolve => { input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null); input.click(); });

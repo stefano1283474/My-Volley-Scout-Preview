@@ -1263,7 +1263,7 @@
                             multiple: false,
                             types: [{
                                 description: 'Excel Workbook',
-                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] }
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'] }
                             }]
                         });
                         file = await handle.getFile();
@@ -1274,7 +1274,7 @@
                 } else {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
+                    input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -1643,7 +1643,7 @@
                     // Fallback input file
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
+                    input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
