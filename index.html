@@ -1257,13 +1257,14 @@
             try {
                 // Chiede file
                 let file = null;
-                if (window.showOpenFilePicker) {
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (('ontouchstart' in window) && (navigator.maxTouchPoints||0) > 0);
+                if (window.showOpenFilePicker && !isMobile) {
                     try {
                         const [handle] = await window.showOpenFilePicker({
                             multiple: false,
                             types: [{
                                 description: 'Excel Workbook',
-                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'] }
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'], 'application/*': ['.xlsx','.xlsm','.xls'] }
                             }]
                         });
                         file = await handle.getFile();
@@ -1274,7 +1275,7 @@
                 } else {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
+                    input.accept = '.xlsx,.xlsm,.xls,application/*,application/octet-stream,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -1283,6 +1284,7 @@
                     });
                     document.body.removeChild(input);
                     file = picked;
+                    if (file && !/\.xlsm$|\.xlsx$|\.xls$/i.test(file.name||'')) { alert('Seleziona un file Excel (.xlsm, .xlsx, .xls)'); return; }
                 }
 
                 if (!file) return;

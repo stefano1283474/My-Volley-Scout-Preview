@@ -340,9 +340,10 @@
       try {
         try { var m=document.getElementById('accountMenu'); var b=document.getElementById('accountBtn'); if(m){ m.hidden=true; } if(b){ b.setAttribute('aria-expanded','false'); } } catch(_){}
         let file = null;
-        if (window.showOpenFilePicker) {
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (('ontouchstart' in window) && (navigator.maxTouchPoints||0) > 0);
+        if (window.showOpenFilePicker && !isMobile) {
           try {
-            const [handle] = await window.showOpenFilePicker({ multiple: false, types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'] } }] });
+            const [handle] = await window.showOpenFilePicker({ multiple: false, excludeAcceptAllOption: false, types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'], 'application/*': ['.xlsx','.xlsm','.xls'] } }] });
             file = await handle.getFile();
           } catch (err) {
             if (err && err.name === 'AbortError') return;
@@ -351,12 +352,13 @@
         } else {
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
+          input.accept = '.xlsx,.xlsm,.xls,application/*,application/octet-stream,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
           input.style.display = 'none';
           document.body.appendChild(input);
           const picked = await new Promise(resolve => { input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null); input.click(); });
           document.body.removeChild(input);
           file = picked;
+          if (file && !/\.xlsm$|\.xlsx$|\.xls$/i.test(file.name||'')) { alert('Seleziona un file Excel (.xlsm, .xlsx, .xls)'); return; }
         }
 
         if (!file) return;
