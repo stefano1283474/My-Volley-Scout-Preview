@@ -2,6 +2,172 @@
 // Gestisce tutte le operazioni di salvataggio e recupero dati da Firestore
 
 const firestoreService = {
+    _emailKey: (email) => String(email||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'_'),
+    _sanitizeRosterPlayers: (players) => {
+        const list = Array.isArray(players)?players:[];
+        return list.map(p=>({
+            number: String(p.number||'').trim(),
+            nickname: String(p.nickname||'').trim(),
+            role: String(p.role||'').trim().toUpperCase()
+        })).filter(p=>p.number||p.nickname||p.role);
+    },
+    _sanitizeMatchMeta: (match) => ({
+        id: String(match.id||Date.now()),
+        myTeam: match.myTeam||match.homeTeam||'',
+        opponentTeam: match.opponentTeam||match.awayTeam||'',
+        homeTeam: match.homeTeam||'',
+        awayTeam: match.awayTeam||'',
+        homeAway: match.homeAway||'',
+        matchType: match.matchType||match.eventType||'partita',
+        date: match.matchDate||match.date||new Date().toISOString().slice(0,10),
+        description: match.description||'',
+        status: match.status||'created',
+        currentSet: match.currentSet||1,
+        score: match.score||{home:0,away:0}
+    }),
+    getUserRef: () => {
+        const user = authFunctions.getCurrentUser();
+        if (!user) throw new Error('Utente non autenticato');
+        const userDocId = String(user.email || '').trim();
+        if (!userDocId) throw new Error('Email utente non valida');
+        return window.db.collection('users').doc(userDocId);
+    },
+    getUserRefEnsured: async () => {
+        const user = authFunctions.getCurrentUser();
+        if (!user) throw new Error('Utente non autenticato');
+        const userDocId = String(user.email || '').trim();
+        if (!userDocId) throw new Error('Email utente non valida');
+        const ref = window.db.collection('users').doc(userDocId);
+        const snap = await ref.get();
+        if (!snap.exists) {
+            await ref.set({
+                email: user.email,
+                role: 'user',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastAccess: firebase.firestore.FieldValue.serverTimestamp(),
+                stats: { totalMatches: 0, totalRosters: 0, lastMatchDate: null }
+            });
+        }
+        return ref;
+    },
+
+    saveTeam: async (team) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const teamsRef = userRef.collection('teams');
+            const id = String(team.id || Date.now());
+            const docRef = teamsRef.doc(id);
+            const data = {
+                id,
+                name: team.name,
+                teamName: team.teamName || team.name,
+                clubName: team.clubName || '',
+                players: Array.isArray(team.players) ? team.players : [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await docRef.set(data, { merge: true });
+            return { success: true, id };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    loadUserTeams: async () => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const snap = await userRef.collection('teams').orderBy('createdAt', 'desc').get();
+            const teams = [];
+            snap.forEach(d => teams.push({ id: d.id, ...d.data() }));
+            return { success: true, documents: teams };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    saveMatchTree: async (teamId, match) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
+            const meta = firestoreService._sanitizeMatchMeta(match);
+            const matchDoc = matchesRef.doc(meta.id);
+            await matchDoc.set(Object.assign({}, meta, {
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }), { merge: true });
+            const subRef = matchDoc.collection('match_data').doc('main');
+            await subRef.set({
+                myTeam: meta.myTeam,
+                opponentTeam: meta.opponentTeam,
+                matchType: meta.matchType,
+                date: meta.date,
+                status: meta.status,
+                score: meta.score,
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return { success: true, id: meta.id };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    saveMatchRosterTree: async (teamId, matchId, rosterData) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const subRef = matchDoc.collection('match_roster').doc('main');
+            await subRef.set({ roster: firestoreService._sanitizeRosterPlayers(rosterData), ts: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    saveSetStartTree: async (teamId, matchId, setNumber, payload) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const subName = `set_${setNumber}_start`;
+            const subRef = matchDoc.collection(subName).doc('main');
+            await subRef.set({
+                setNumber: Number(setNumber)||1,
+                phase: payload?.phase||'servizio',
+                rotation: payload?.rotation||'P1',
+                opponentRotation: payload?.opponentRotation||'P1',
+                startTime: payload?.startTime||new Date().toISOString(),
+                ts: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+    loadTeamMatches: async (teamId) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchesSnap = await userRef.collection('teams').doc(String(teamId)).collection('matches').orderBy('createdAt','desc').get();
+            const out = [];
+            matchesSnap.forEach(doc => { out.push({ id: doc.id, ...doc.data(), source: 'firestore_team' }); });
+            return { success: true, documents: out };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+    getMatchData: async (teamId, matchId) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchRef = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const metaDoc = await matchRef.get();
+            const rosterDoc = await matchRef.collection('match_roster').doc('main').get();
+            const dataDoc = await matchRef.collection('match_data').doc('main').get();
+            const meta = metaDoc.exists ? { id: metaDoc.id, ...metaDoc.data() } : null;
+            const roster = rosterDoc.exists ? (rosterDoc.data()?.roster || []) : [];
+            const details = dataDoc.exists ? dataDoc.data() : {};
+            return { success: true, meta, roster, details };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
     // Crea una collection per l'utente con nome basato sull'email
     createUserCollection: async (userEmail) => {
         try {
@@ -18,7 +184,8 @@ const firestoreService = {
             const safeCollectionName = userEmail.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
             
             // Riferimento alla collection dell'utente
-            const userCollectionRef = window.db.collection('users').doc(user.uid);
+            const userDocId = String(user.email || userEmail || '').trim();
+            const userCollectionRef = window.db.collection('users').doc(userDocId);
             
             // Verifica se esiste già
             const doc = await userCollectionRef.get();
@@ -38,7 +205,7 @@ const firestoreService = {
                 }
             });
                 
-                console.log('Collection utente creata:', safeCollectionName);
+                console.log('Collection utente creata:', userDocId);
             } else {
                 // Aggiorna solo lastAccess se esiste già
                 await userCollectionRef.update({
@@ -68,7 +235,8 @@ const firestoreService = {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
 
-            await window.db.collection('users').doc(user.uid).update({
+            const userRef = firestoreService.getUserRef();
+            await userRef.update({
                 lastAccess: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -86,7 +254,7 @@ const firestoreService = {
             if (!user) return { success: false, error: 'Utente non autenticato' };
 
             // Solo admin può modificare ruoli
-            const currentUserDoc = await window.db.collection('users').doc(user.uid).get();
+            const currentUserDoc = await firestoreService.getUserRef().get();
             const currentUserData = currentUserDoc.data();
             
             if (currentUserData?.role !== 'admin') {
@@ -126,7 +294,7 @@ const firestoreService = {
             if (!user) return { success: false, error: 'Utente non autenticato' };
 
             const targetEmail = userEmail || user.email;
-            const userDoc = await window.db.collection('users').doc(user.uid).get();
+            const userDoc = await firestoreService.getUserRef().get();
             
             if (!userDoc.exists) {
                 // Crea utente se non esiste
@@ -162,7 +330,7 @@ const firestoreService = {
             }
 
             // Carica il profilo utente
-            const profileDoc = await window.db.collection('users').doc(user.uid).get();
+            const profileDoc = await firestoreService.getUserRef().get();
             
             if (profileDoc.exists) {
                 const userData = profileDoc.data();
@@ -187,7 +355,7 @@ const firestoreService = {
                 throw new Error('Utente non autenticato');
             }
 
-            const matchRef = window.db.collection('users').doc(user.uid)
+            const matchRef = firestoreService.getUserRef()
                 .collection('matches').doc();
 
             const matchToSave = {
@@ -200,7 +368,7 @@ const firestoreService = {
             await matchRef.set(matchToSave);
 
             // Aggiorna le statistiche utente
-            await window.db.collection('users').doc(user.uid).update({
+            await firestoreService.getUserRef().update({
                 'stats.totalMatches': firebase.firestore.FieldValue.increment(1),
                 'stats.lastMatchDate': firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -267,7 +435,7 @@ const firestoreService = {
                 throw new Error('Utente non autenticato');
             }
 
-            const rosterRef = window.db.collection('users').doc(user.uid)
+            const rosterRef = firestoreService.getUserRef()
                 .collection('rosters').doc();
 
             const rosterToSave = {
@@ -280,7 +448,7 @@ const firestoreService = {
             await rosterRef.set(rosterToSave);
 
             // Aggiorna le statistiche utente
-            await window.db.collection('users').doc(user.uid).update({
+            await firestoreService.getUserRef().update({
                 'stats.totalRosters': firebase.firestore.FieldValue.increment(1)
             });
 
@@ -301,7 +469,7 @@ const firestoreService = {
                 return { success: false, error: 'Utente non autenticato' };
             }
 
-            const rostersSnapshot = await window.db.collection('users').doc(user.uid)
+            const rostersSnapshot = await firestoreService.getUserRef()
                 .collection('rosters')
                 .orderBy('createdAt', 'desc')
                 .get();
@@ -330,9 +498,7 @@ const firestoreService = {
                 return { success: false, error: 'ID roster non valido' };
             }
 
-            await window.db
-                .collection('users')
-                .doc(user.uid)
+            await firestoreService.getUserRef()
                 .collection('rosters')
                 .doc(rosterId)
                 .delete();
@@ -356,9 +522,7 @@ const firestoreService = {
                 return { success: false, error: 'Nome roster non valido' };
             }
 
-            const querySnap = await window.db
-                .collection('users')
-                .doc(user.uid)
+            const querySnap = await firestoreService.getUserRef()
                 .collection('rosters')
                 .where('name', '==', name)
                 .get();
@@ -397,7 +561,7 @@ const firestoreService = {
                 return { success: false, error: 'Utente non autenticato' };
             }
 
-            const matchesSnapshot = await window.db.collection('users').doc(user.uid)
+            const matchesSnapshot = await firestoreService.getUserRef()
                 .collection('matches')
                 .orderBy('createdAt', 'desc')
                 .get();
@@ -432,7 +596,7 @@ const firestoreService = {
             };
 
             // Salva lo stato nell'oggetto backup dell'utente
-            await window.db.collection('users').doc(user.uid).update({
+            await firestoreService.getUserRef().update({
                 lastBackup: {
                     data: appState,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()

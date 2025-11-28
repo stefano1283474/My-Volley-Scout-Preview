@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roster Setup</title>
+  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="animations.css?v=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ffffff; color: #333; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { background: #ffffff; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; border: none; }
+    .logo-icon { width: 100%; max-width: 520px; margin: 0 auto; }
+    .logo-icon img { width: 100%; height: auto; max-height: 140px; object-fit: contain; object-position: center; display: block; }
+    .back-btn { background: #f8f9fa; border: 1px solid #e9ecef; color: #666; padding: 8px 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: all .3s ease; justify-self: start; }
+    .back-btn:hover { background: #e9ecef; }
+    .actions-section { background: rgba(255,255,255,.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,.1); border: 2px solid #2563eb; }
+    .setup-container { display:flex; flex-direction:column; gap:12px; border: none; border-radius: 16px; padding: 12px; background:#fff; }
+    .section-card { border: none; border-radius: 14px; padding: 12px; background:#fff; }
+    .name-card, .roster-card { border: 1px solid #2563eb; border-radius: 14px; }
+    .name-card .section-title { font-size: 130%; padding: 12px 0; }
+    #rosterNameInput { font-size: 130%; padding: 12px; }
+    .input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-size: 15px; }
+    .player-card { display:grid; grid-template-columns: 60px 1fr 1fr 1fr 80px 60px; gap:8px; align-items:center; padding:6px; border-bottom:1px solid #e9ecef; width:100%; }
+    .player-card .input { width: 100%; }
+    .actions-row { display:flex; gap:8px; flex-wrap:wrap; }
+    @media (max-width: 600px){ .actions-section { padding: 16px; border-radius: 16px; } .logo-icon img { max-height: 120px; } }
+    @media (max-width: 430px){
+      .logo-icon img { max-height: 96px; }
+      .player-header { display:none !important; }
+      .player-card { grid-template-columns: 56px 1fr 72px 60px; }
+      .player-card > div:nth-child(2){ grid-column:2 / 5; }
+      .player-card > div:nth-child(3){ grid-column:2 / 5; }
+      .player-card > div:nth-child(4){ grid-column:2 / 5; }
+      .player-card > div:nth-child(5){ grid-column:2 / 4; }
+      .player-card > div:nth-child(6){ grid-column:4 / 5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="match-roster.html" class="back-btn" aria-label="Indietro">←</a>
+      <div class="logo-icon"><img src="./Immagini/Scritta con Pallone.png" alt="Logo"></div>
+      <div class="account-actions" style="justify-self:end;">
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-title">Account</div>
+          <div class="menu-divider"></div>
+          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Vai a Elenco Partite</span>
+          </button>
+          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Vai a Elenco Squadre</span>
+          </button>
+          <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esci</span>
+          </button>
+          <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Logout</span>
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-title" style="text-align:right;">MyVolleyScout Vers. 3.11</div>
+        </div>
+      </div>
+    </div>
+      <div class="setup-container">
+      <div class="section-card name-card">
+        <div class="section-title-row" style="display:flex; align-items:center; gap:8px;">
+          <h3 class="section-title rounded-title" style="font-weight:400; flex:1;">NOME ROSTER:</h3>
+          <div style="display:inline-flex; gap:8px; align-items:center; margin-left:auto;">
+            <button type="button" id="nameImportBtn" class="icon-button icon-button-outline icon-button-circle" title="Importa CSV" aria-label="Importa" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button type="button" id="nameExportBtn" class="icon-button icon-button-outline icon-button-circle" title="Esporta CSV" aria-label="Esporta" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 15V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 9l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <input id="nameCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input id="rosterNameInput" type="text" class="input" placeholder="Nome roster" style="flex:1; min-width:200px;" />
+          <div style="display:inline-flex; gap:8px; align-items:center; margin-left:auto;">
+            <button id="confirmRosterBtn" class="btn btn-primary" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">Conferma Roster</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-card roster-card">
+      <div id="rosterEditor" style="display:block;">
+        <div class="player-header" style="display:grid; grid-template-columns: 60px 1fr 1fr 1fr 80px 60px; gap:8px; align-items:center; padding:6px; border-bottom:1px solid #e9ecef; margin-bottom:8px;">
+          <div>#</div>
+          <div>Nome</div>
+          <div>Cognome</div>
+          <div>Nick</div>
+          <div>Ruolo</div>
+          <div></div>
+        </div>
+      </div>
+      <div class="actions-row" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <button id="addRowBtn" type="button" class="icon-button icon-button-outline icon-button-circle" title="Aggiungi" aria-label="Aggiungi" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      </div>
+      </div>
+  </div>
+
+  <script>
+    let currentRoster = [];
+    function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+    function normalizeRole(val){ const v = String(val||'').trim().toUpperCase(); const c = v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
+    function toTitleCase(s){ return String(s||'').toLowerCase().replace(/\b\w/g, c=>c.toUpperCase()); }
+    function applyResponsiveGrid(row){ try { const w = window.innerWidth || 800; if (w <= 430) { row.style.gridTemplateColumns = '56px 1fr 72px 56px'; } else { row.style.gridTemplateColumns = '60px 1fr 1fr 1fr 80px 60px'; } } catch(_){} }
+    function setEditorVisible(val){ const el = document.getElementById('rosterEditor'); if (el) el.style.display = val ? 'block' : 'none'; }
+    function addRosterRow(player={}){
+      const el = document.getElementById('rosterEditor'); if (!el) return;
+      const row = document.createElement('div'); row.className='player-card';
+      const num = ensureTwoDigits(player.number||'');
+      const name = (player.name||'').toString();
+      const surname = (player.surname||'').toString();
+      const nick = (player.nickname||'').toString();
+      const role = normalizeRole(player.role||'');
+      row.style.display = 'flex'; row.style.flexDirection = 'column'; row.style.gap = '6px'; row.style.padding = '6px'; row.style.borderBottom = '1px solid #e9ecef'; row.style.width='100%';
+      let numOptions = '<option value="">—</option>';
+      for(let i=1;i<=99;i++){ const v = String(i).padStart(2,'0'); numOptions += '<option value="'+v+'">'+v+'</option>'; }
+      row.innerHTML = `
+        <div class="player-row-1" style="display:flex; gap:8px; align-items:center;">
+          <select class="input num-select" style="width:6ch; min-width:56px; max-width:72px;">${numOptions}</select>
+          <select class="input role-select" style="width:6ch; min-width:56px; max-width:72px;">
+            <option value="">—</option>
+            <option value="P">P</option>
+            <option value="S">S</option>
+            <option value="O">O</option>
+            <option value="C">C</option>
+            <option value="L">L</option>
+          </select>
+          <input type="text" class="input nick-input" maxlength="24" placeholder="Soprannome" value="${nick}" style="flex:1;" />
+        </div>
+        <div class="player-row-2" style="display:flex; gap:8px; align-items:center;">
+          <input type="text" class="input name-input" maxlength="24" placeholder="Nome" value="${name}" style="flex:1;" />
+          <input type="text" class="input surname-input" maxlength="24" placeholder="Cognome" value="${surname}" style="flex:1;" />
+          <button type="button" class="icon-button icon-button-outline icon-button-circle remove-btn" title="Rimuovi" aria-label="Rimuovi" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      `;
+      el.appendChild(row);
+      applyResponsiveGrid(row);
+      const sel = row.querySelector('.role-select'); if (sel) sel.value = role||'';
+      const numSel = row.querySelector('.num-select'); if (numSel) numSel.value = num||'';
+      const rm = row.querySelector('.remove-btn'); if (rm) rm.addEventListener('click', ()=> row.remove());
+      const nameEl = row.querySelector('.name-input'); if (nameEl) nameEl.addEventListener('blur', ()=>{ nameEl.value = toTitleCase(nameEl.value); });
+      const surnameEl = row.querySelector('.surname-input'); if (surnameEl) surnameEl.addEventListener('blur', ()=>{ surnameEl.value = toTitleCase(surnameEl.value); });
+      const nickEl = row.querySelector('.nick-input'); if (nickEl) nickEl.addEventListener('blur', ()=>{ nickEl.value = String(nickEl.value||'').toUpperCase(); });
+    }
+    function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; const header = el.querySelector('.player-header'); el.innerHTML=''; if (header) el.appendChild(header); (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
+    function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-card')); return rows.map(r=>({ number: ensureTwoDigits(r.querySelector('.num-select')?.value||''), name: (r.querySelector('.name-input')?.value||'').trim(), surname: (r.querySelector('.surname-input')?.value||'').trim(), nickname: (r.querySelector('.nick-input')?.value||'').trim(), role: normalizeRole(r.querySelector('.role-select')?.value||'') })).filter(p=>p.number || p.name || p.surname || p.role); }
+    function splitCsv(line){ const out=[]; let cur=''; let q=false; for(let i=0;i<String(line||'').length;i++){ const ch=line[i]; if(ch==='"'){ if(q && line[i+1]==='"'){ cur+='"'; i++; } else { q=!q; } } else if(ch===',' && !q){ out.push(cur); cur=''; } else { cur+=ch; } } out.push(cur); return out; }
+    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const header = lines[0]||''; const hparts = splitCsv(header).map(s=>s.toLowerCase()); const idx = { numero: hparts.indexOf('numero'), nome: hparts.indexOf('nome'), cognome: hparts.indexOf('cognome'), soprannome: hparts.indexOf('soprannome'), ruolo: hparts.indexOf('ruolo') }; const data = lines.slice(1).map(line=>{ const parts = splitCsv(line); return { number: ensureTwoDigits(parts[idx.numero>=0?idx.numero:0]||''), name: toTitleCase(parts[idx.nome>=0?idx.nome:1]||''), surname: toTitleCase(parts[idx.cognome>=0?idx.cognome:2]||''), nickname: String(parts[idx.soprannome>=0?idx.soprannome:3]||'').trim(), role: normalizeRole(parts[idx.ruolo>=0?idx.ruolo:4]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); currentRoster = data; renderRosterRows(currentRoster); } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
+    function exportRosterCSV(){ try { const players = collectRosterFromEditor(); if (!Array.isArray(players) || !players.length) { alert('Nessun giocatore nel roster da esportare'); return; } const header = 'Numero,Nome,Cognome,Soprannome,Ruolo'; function esc(v){ const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"'+s.replace(/"/g,'""')+'"' : s; } const lines = [header].concat(players.map(p => { const num = p.number ? String(parseInt(p.number,10) || '').trim() : ''; return [num, p.name||'', p.surname||'', p.nickname||'', p.role||''].map(esc).join(','); })); const csvText = lines.join('\n'); const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'roster.csv'; a.click(); URL.revokeObjectURL(url); } catch(e){ alert('Errore esportazione CSV'); } }
+    function confirmAndReturn(){ try { const list = collectRosterFromEditor(); if (!list || list.length === 0){ alert('Aggiungi almeno un giocatore'); return; } const url = new URL(window.location.href); const idParam = url.searchParams.get('id'); const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const labelEl = document.getElementById('rosterNameInput'); const label = String(labelEl?.value||'').trim() || 'Roster'; if (idParam && idParam.startsWith('saved_')){ const idx = Number(idParam.replace('saved_','')); saved[idx] = Object.assign({}, saved[idx]||{}, { label, roster: list }); } else { saved.push({ label, roster:list }); } localStorage.setItem('savedRosters', JSON.stringify(saved)); location.href = 'match-roster.html'; } catch(e){ alert('Errore nel salvataggio'); } }
+    function initFromSaved(){ try { const url = new URL(window.location.href); const idParam = url.searchParams.get('id'); if (idParam && idParam.startsWith('saved_')){ const idx = Number(idParam.replace('saved_','')); const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const item = saved[idx]; const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const name = item?.label || item?.name || ''; const nameEl = document.getElementById('rosterNameInput'); if (nameEl) nameEl.value = name; currentRoster = Array.isArray(rosterArr)?rosterArr:[]; renderRosterRows(currentRoster); } else { const imported = JSON.parse(localStorage.getItem('importedRoster')||'[]'); if (Array.isArray(imported) && imported.length) { currentRoster = imported; renderRosterRows(currentRoster); const teamName = localStorage.getItem('derivedTeamNameForSetup'); const nameEl = document.getElementById('rosterNameInput'); if (nameEl && teamName) nameEl.value = teamName; localStorage.removeItem('importedRoster'); localStorage.removeItem('derivedTeamNameForSetup'); } else { renderRosterRows([]); addRosterRow({}); } } } catch(_){ renderRosterRows([]); addRosterRow({}); } }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      initFromSaved();
+      const addBtn = document.getElementById('addRowBtn'); if (addBtn) addBtn.addEventListener('click', ()=> addRosterRow({}));
+      const confirmBtn = document.getElementById('confirmRosterBtn'); if (confirmBtn) confirmBtn.addEventListener('click', confirmAndReturn);
+      
+      
+      const nameImpBtn = document.getElementById('nameImportBtn'); const nameCsvInput = document.getElementById('nameCsvInput'); if (nameImpBtn && nameCsvInput){ nameImpBtn.addEventListener('click', ()=> nameCsvInput.click()); nameCsvInput.addEventListener('change', ()=>{ const f=nameCsvInput.files&&nameCsvInput.files[0]; if (f) importRosterCSV(f); }); }
+      const nameExpBtn = document.getElementById('nameExportBtn'); if (nameExpBtn){ nameExpBtn.addEventListener('click', exportRosterCSV); }
+      (function(){
+        const toggleBtn = document.getElementById('headerMenuToggle');
+        const menu = document.getElementById('headerMenu');
+        if (!toggleBtn || !menu) return;
+        let open = false;
+        function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+        toggleBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
+        document.addEventListener('click', function(){ if (open) setOpen(false); });
+        const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
+        const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
+        const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+        const signOutBtn = document.getElementById('signOutBtnMobile');
+        if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='matches.html'; });
+        if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
+        if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
+        if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); location.href='/auth-login.html'; } });
+      })();
+      window.addEventListener('resize', ()=>{
+        document.querySelectorAll('.player-card').forEach(applyResponsiveGrid);
+      });
+      document.querySelectorAll('.player-card').forEach(applyResponsiveGrid);
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){ var c=document.querySelector('.container'); if(c) c.classList.add('page-slide-in'); });
+  </script>
+</body>
+</html>

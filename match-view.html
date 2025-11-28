@@ -59,7 +59,7 @@
     <section class="section">
       <div class="section-header">
         <h3>Riepilogo Set</h3>
-        <button type="button" class="btn" onclick="location.href='set-config.html'">Configura Set</button>
+        <button type="button" class="btn" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=localStorage.getItem('selectedMatchId')||''; var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='set-config.html'; } })()">Configura Set</button>
       </div>
       <div id="setSummaryList"></div>
     </section>

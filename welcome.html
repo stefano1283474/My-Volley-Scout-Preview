@@ -531,6 +531,7 @@
         async function loadTeams() {
             try {
                 if (window.teamsModule) {
+                    try { await window.teamsModule.loadTeams?.(); } catch(_){ }
                     teams = window.teamsModule.getTeams();
                     if (!window.__teamsSubscribed) {
                         window.__teamsSubscribed = true;
@@ -619,7 +620,7 @@
             // Seleziona e memorizza la squadra, poi apri la pagina dedicata del roster
             window.teamsModule.selectTeam(teamId);
             localStorage.setItem('selectedTeamId', teamId);
-window.location.href = '/roster.html';
+            window.location.href = 'my-teams.html';
         }
 
         function deleteTeam(teamId) {
@@ -663,7 +664,8 @@ window.location.href = '/roster.html';
                         const newTeamId = result.team.id;
                         window.teamsModule.selectTeam(newTeamId);
                         localStorage.setItem('selectedTeamId', newTeamId);
-window.location.href = '/roster.html';
+                        // Resta sull'elenco squadre: l'utente potrà selezionare la squadra e creare la partita
+                        renderTeamsList();
                     } else {
                         alert('Errore nella creazione: ' + result.error);
                     }

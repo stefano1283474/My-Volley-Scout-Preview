@@ -118,6 +118,7 @@
           <div class="menu-item" id="accountEmail">Caricamento...</div>
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+          <button class="menu-item" id="purgeAllBtn" type="button">Pulisci tutto</button>
           <button class="menu-item" id="accountLogout">Esci</button>
           <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
         </div>
@@ -261,10 +262,36 @@
         const res = window.teamsModule?.selectTeam?.(id);
         if (res?.success) {
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
-          window.location.href = 'match-roster.html';
+          window.location.href = 'matches.html';
         }
       } else if (action === 'delete') {
         window.teamsModule?.deleteTeam?.(id).then(() => renderTeamsList());
+      }
+    }
+
+    async function purgeAll() {
+      try {
+        try { localStorage.clear(); } catch(_) {}
+        try { sessionStorage.clear(); } catch(_) {}
+        try { if ('caches' in window) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } } catch(_) {}
+        try {
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          }
+        } catch(_) {}
+        try {
+          const dbs = indexedDB && indexedDB.databases ? await indexedDB.databases() : [];
+          const names = Array.isArray(dbs) ? dbs.map(d => d.name).filter(Boolean) : [];
+          const extra = ['firebaseLocalStorageDb','firestore/(default)','firebase-auth-database','firebase-installations-database'];
+          const all = Array.from(new Set([].concat(names, extra)));
+          await Promise.all(all.map(n => { try { return indexedDB.deleteDatabase(n); } catch(_) { return Promise.resolve(); } }));
+        } catch(_) {}
+        try { if (window.authFunctions && typeof window.authFunctions.signOut === 'function') { await window.authFunctions.signOut(); } } catch(_) {}
+        alert('Pulizia completata');
+        location.href = '/auth-login.html';
+      } catch(_) {
+        location.href = '/auth-login.html';
       }
     }
 
@@ -299,7 +326,7 @@
           window.teamsModule?.selectTeam?.(res.team.id);
           try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
           closeCreate();
-          window.location.href = 'match-roster.html';
+          renderTeamsList();
         } else {
           alert(res?.error || 'Errore creazione squadra');
         }
@@ -308,11 +335,13 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       // Auth stato e account menu
-      function initMyTeams() {
+      async function initMyTeams() {
         if (typeof window.authFunctions === 'undefined') { setTimeout(initMyTeams, 200); return; }
         window.authFunctions.onAuthStateChanged((user) => {
           if (!user) { window.location.href = '/auth-login.html'; return; }
           if (accountEmail) accountEmail.textContent = user.email;
+          try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
+          try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.((updated)=>{ renderTeamsList(); }); } } catch(_){ }
           renderTeamsList();
         });
       }
@@ -324,6 +353,8 @@
           accountBtn.setAttribute('aria-expanded', (!expanded).toString());
           accountMenu.hidden = expanded;
         });
+        const purgeBtn = document.getElementById('purgeAllBtn');
+        if (purgeBtn) purgeBtn.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); await purgeAll(); });
         document.addEventListener('click', (e) => {
           if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
             accountMenu.hidden = true;

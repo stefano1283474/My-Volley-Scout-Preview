@@ -218,14 +218,14 @@
                           <span>Vai a Elenco Squadre</span>
                         </button>
                         <!-- Nuova voce: Esci (torna a Welcome.html) -->
-                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button" onclick="location.href='src/index.html'">
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button" onclick="location.href='my-teams.html'">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Back/Home icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Esci</span>
                         </button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button" onclick="(async function(){try{if(window.authFunctions&&window.authFunctions.signOut){await window.authFunctions.signOut();}}catch(_){ } location.href='src/index.html';})()">
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button" onclick="(async function(){try{if(window.authFunctions&&window.authFunctions.signOut){await window.authFunctions.signOut();}}catch(_){ } location.href='/auth-login.html';})()">
                           <span class="menu-item-icon" aria-hidden="true">
                             <!-- Logout icon -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -246,7 +246,7 @@
             <aside class="set-sidebar" aria-label="Selezione set">
               <div class="set-sidebar-header">Passa a:</div>
               <div id="setToolbar" class="set-list" role="list">
-                <button class="set-item" role="listitem" onclick="location.href='set-config.html'">Dati Gara</button>
+                <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='set-config.html'; } })()">Dati Gara</button>
                 <button class="set-item" role="listitem" onclick="location.href='match-roster.html'">El. gioc.</button>
                 <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
                 <button class="set-item" data-set="2" role="listitem">Set 2</button>

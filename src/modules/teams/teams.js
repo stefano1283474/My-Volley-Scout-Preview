@@ -27,6 +27,18 @@ class TeamsModule {
     async init() {
         try {
             await this.loadTeams();
+            try {
+                const storedId = localStorage.getItem('selectedTeamId');
+                if (storedId) {
+                    const res = this.selectTeam(storedId);
+                    if (!res?.success) {
+                        const byId = this.getTeamById(storedId);
+                        if (byId) this.selectTeam(byId.id);
+                    }
+                } else if (this.state.teams.length === 1) {
+                    this.selectTeam(this.state.teams[0].id);
+                }
+            } catch(_) {}
             this.setupEventListeners();
             console.log('TeamsModule inizializzato correttamente');
         } catch (error) {
@@ -69,12 +81,14 @@ class TeamsModule {
             
             // Carica da Firestore se disponibile
             let firestoreTeams = [];
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.loadUserRosters) {
-                const result = await window.firestoreService.loadUserRosters();
+            if (window.authModule?.isAuthenticated() && window.firestoreService?.loadUserTeams) {
+                const result = await window.firestoreService.loadUserTeams();
                 if (result.success) {
                     firestoreTeams = result.documents.map(doc => ({
                         id: doc.id,
                         name: doc.name,
+                        teamName: doc.teamName,
+                        clubName: doc.clubName,
                         players: doc.players || [],
                         createdAt: doc.createdAt,
                         updatedAt: doc.updatedAt,
@@ -102,26 +116,27 @@ class TeamsModule {
      */
     getLocalTeams() {
         try {
-            const stored = localStorage.getItem('volleyTeams');
-            const teams = stored ? JSON.parse(stored) : [];
-            // Backward compatibility: deriviamo teamName e clubName da name se mancano
-            return teams.map(team => {
-                const out = { ...team, source: 'local' };
-                if (!out.teamName || !out.clubName) {
-                    const parts = String(out.name || '').split(' - ');
-                    if (parts.length >= 2) {
-                        out.teamName = out.teamName || parts[0];
-                        out.clubName = out.clubName || parts.slice(1).join(' - ');
-                    } else {
-                        // se non presente il separatore, assumiamo che name sia il nome squadra
-                        out.teamName = out.teamName || out.name || '';
-                        out.clubName = out.clubName || '';
-                    }
-                }
-                return out;
+            const raw = localStorage.getItem('volleyTeams');
+            const arr = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(arr)) return [];
+            return arr.map(t => {
+                const id = t.id != null ? t.id : Date.now();
+                const nameStr = String(t.name || '').trim();
+                const teamName = String(t.teamName || (nameStr ? nameStr.split(' - ')[0] : '')).trim();
+                const clubName = String(t.clubName || (() => {
+                    const parts = nameStr.split(' - ');
+                    return parts.length >= 2 ? parts.slice(1).join(' - ') : '';
+                })()).trim();
+                const combinedName = teamName + (clubName ? ` - ${clubName}` : '');
+                return {
+                    id,
+                    name: combinedName,
+                    teamName,
+                    clubName,
+                    players: Array.isArray(t.players) ? t.players : []
+                };
             });
-        } catch (error) {
-            console.error('Errore nel caricamento squadre locali:', error);
+        } catch (_) {
             return [];
         }
     }
@@ -177,16 +192,11 @@ class TeamsModule {
             await this.saveTeamLocally(team);
             
             // Salva su Firestore se disponibile
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveRoster) {
+            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveTeam) {
                 try {
-                    await window.firestoreService.saveRoster({
-                        name: team.name,
-                        players: team.players,
-                        date: new Date().toLocaleDateString('it-IT')
-                    });
+                    await window.firestoreService.saveTeam(team);
                 } catch (firestoreError) {
                     console.warn('Errore nel salvataggio su Firestore:', firestoreError);
-                    // Non bloccare il salvataggio locale
                 }
             }
             

@@ -587,7 +587,10 @@
                 if (selectedTeamId) { try { localStorage.setItem('selectedTeamId', String(selectedTeamId)); } catch(_){} }
                 const formMyTeam = document.getElementById('myTeamInput')?.value.trim() || '';
                 const formMyClub = document.getElementById('myClub')?.value.trim() || '';
-                const myTeamName = currentTeam?.name || formMyTeam || derivedTeamName || null;
+                let selectedTeamObj = null;
+                try { if (window.teamsModule?.getTeamById && selectedTeamId) selectedTeamObj = window.teamsModule.getTeamById(selectedTeamId); } catch(_){ }
+                const myTeamName = (selectedTeamObj?.teamName || currentTeam?.teamName || formMyTeam || derivedTeamName || '').trim();
+                const myClubName = (selectedTeamObj?.clubName || formMyClub || derivedClubName || '').trim();
                 const roster = [];
 
                 // Prepara payload coerente con uso generale
@@ -595,7 +598,7 @@
                     id: matchId,
                     teamId: selectedTeamId,
                     myTeam: myTeamName,
-                    myClub: formMyClub || derivedClubName || null,
+                    myClub: myClubName || null,
                     opponentTeam: matchData.opponent,
                     matchDate: matchData.matchDate,
                     eventType: matchData.eventType,
@@ -618,10 +621,10 @@
 
                 // 2) Persistenza cloud (se utente loggato e funzioni disponibili)
                 try {
-                    if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
+                    if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree && selectedTeamId) {
                         const user = window.authFunctions.getCurrentUser();
                         if (user) {
-                            await window.firestoreFunctions.saveMatch(payload);
+                            await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
                         }
                     }
                 } catch (e) {
@@ -635,7 +638,8 @@
 
                 // Reindirizza alla pagina roster dopo breve attesa
                 setTimeout(() => {
-                    window.location.href = 'match-roster.html';
+                    const qp = new URLSearchParams(); qp.set('team', String(selectedTeamId||'')); qp.set('match', String(matchId));
+                    window.location.href = 'match-roster.html?' + qp.toString();
                 }, 900);
 
             } catch (error) {

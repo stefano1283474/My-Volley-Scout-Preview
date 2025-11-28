@@ -1,7 +1,3 @@
-// Firebase SDK viene caricato tramite CDN nel file HTML
-// Utilizziamo le funzioni globali di Firebase
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyADkMksRlaVVcsLIhV2XucfEt5Y-ELzUMA",
   authDomain: "volley-data-studio.firebaseapp.com",
@@ -12,211 +8,112 @@ const firebaseConfig = {
   measurementId: "G-GFHR0LSQPR"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-
-// Analytics disabilitato temporaneamente per evitare errori
+let app = null;
 let analytics = null;
-console.log('Analytics disabilitato per migliorare le performance');
-
-const auth = firebase.auth();
-const db = firebase.firestore();
+let auth = null;
+let db = null;
+let googleProvider = null;
 const isLocal = (typeof location !== 'undefined') && (location.hostname === 'localhost');
-if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
-  firebase.firestore.setLogLevel('silent');
-}
-const googleProvider = new firebase.auth.GoogleAuthProvider();
-// Configura il provider Google per funzionare in locale
-googleProvider.setCustomParameters({
-  prompt: 'select_account'
-});
 
-// Configure Firestore settings to reduce connection errors
-db.settings(Object.assign({
-  cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-  ignoreUndefinedProperties: true
-}, isLocal ? { experimentalAutoDetectLongPolling: true } : {}));
-
-// Enable offline persistence
-if (!isLocal) {
-  db.enablePersistence({ synchronizeTabs: true })
-    .catch((err) => {
-      if (err.code == 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-      } else if (err.code == 'unimplemented') {
-        console.warn('The current browser does not support all of the features required to enable persistence');
-      }
-    });
-}
-
-try {
-  if (isLocal && firebase && firebase.auth && typeof firebase.auth.Auth === 'function') {
-    auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(function(){ });
+if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp === 'function') {
+  app = firebase.initializeApp(firebaseConfig);
+  analytics = null;
+  auth = firebase.auth();
+  db = firebase.firestore();
+  if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+    firebase.firestore.setLogLevel('silent');
   }
-} catch(_) {}
+  googleProvider = new firebase.auth.GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    db.settings(Object.assign({
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+      ignoreUndefinedProperties: true
+    }, isLocal ? { experimentalAutoDetectLongPolling: true } : {}));
+  } catch(_) {}
+  if (!isLocal) {
+    try {
+      db.enablePersistence({ synchronizeTabs: true }).catch(function(){ });
+    } catch(_) {}
+  }
+  try { if (isLocal && firebase && firebase.auth) { auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function(){ }); } } catch(_) {}
+  try {
+    if (isLocal) {
+      const originalError = console.error;
+      console.error = function(){
+        try {
+          const msg = arguments && String(arguments[0]||'');
+          const suppress = (msg.indexOf('google.firestore.v1.Firestore/Listen/channel')>=0) || (msg.indexOf('securetoken.googleapis.com')>=0);
+          if (suppress) return;
+        } catch(_){ }
+        return originalError.apply(console, arguments);
+      };
+    }
+  } catch(_){ }
+}
 
-try {
-  if (isLocal) {
-    const originalError = console.error;
-    console.error = function(){
-      try {
-        const msg = arguments && String(arguments[0]||'');
-        const suppress = (msg.indexOf('google.firestore.v1.Firestore/Listen/channel')>=0) || (msg.indexOf('securetoken.googleapis.com')>=0);
-        if (suppress) return;
-      } catch(_){ }
-      return originalError.apply(console, arguments);
+const authFunctions = (function(){
+  if (auth && typeof auth === 'object') {
+    return {
+      signUp: async (email, password) => {
+        try { const userCredential = await auth.createUserWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      signIn: async (email, password) => {
+        try { const userCredential = await auth.signInWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      signInWithGoogle: async () => {
+        try { const result = await auth.signInWithPopup(googleProvider); return { success: true, user: result.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+      },
+      signOut: async () => {
+        try { await auth.signOut(); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      getCurrentUser: () => { return auth.currentUser; },
+      onAuthStateChanged: (callback) => { return auth.onAuthStateChanged(callback); }
     };
   }
-} catch(_){ }
+  return {
+    signUp: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    signIn: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    signInWithGoogle: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    signOut: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    getCurrentUser: () => null,
+    onAuthStateChanged: (callback) => { try { if (typeof callback==='function') callback(null); } catch(_) {} return function(){}; }
+  };
+})();
 
-// Authentication functions
-const authFunctions = {
-  // Sign up with email and password
-  signUp: async (email, password) => {
-    try {
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      return { success: true, user: userCredential.user };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Sign in with email and password
-  signIn: async (email, password) => {
-    try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      return { success: true, user: userCredential.user };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Sign in with Google
-  signInWithGoogle: async () => {
-    try {
-      console.log('Tentativo di login con Google...');
-      const result = await auth.signInWithPopup(googleProvider);
-      console.log('Login Google riuscito:', result.user.email);
-      return { success: true, user: result.user };
-    } catch (error) {
-      console.error('Errore login Google:', error.code, error.message);
-      return { success: false, error: error.message, code: error.code };
-    }
-  },
-
-  // Sign out
-  signOut: async () => {
-    try {
-      await auth.signOut();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Get current user
-  getCurrentUser: () => {
-    return auth.currentUser;
-  },
-
-  // Listen to auth state changes
-  onAuthStateChanged: (callback) => {
-    return auth.onAuthStateChanged(callback);
+const firestoreFunctions = (function(){
+  if (db && typeof db === 'object') {
+    return {
+      addDocument: async (collectionName, data) => {
+        try { const docRef = await db.collection(collectionName).add(Object.assign({}, data, { createdAt: new Date(), userId: authFunctions.getCurrentUser()?.uid })); return { success: true, id: docRef.id }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      getDocuments: async (collectionName, userId = null) => {
+        try { const query = userId ? db.collection(collectionName).where('userId','==',userId).orderBy('createdAt','desc') : db.collection(collectionName).orderBy('createdAt','desc'); const qs = await query.get(); const documents = []; qs.forEach(doc=> documents.push(Object.assign({ id: doc.id }, doc.data()))); return { success: true, documents }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      updateDocument: async (collectionName, docId, data) => {
+        try { await db.collection(collectionName).doc(docId).update(Object.assign({}, data, { updatedAt: new Date() })); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      deleteDocument: async (collectionName, docId) => {
+        try { await db.collection(collectionName).doc(docId).delete(); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+      },
+      saveMatch: async (matchData) => { return await firestoreFunctions.addDocument('matches', matchData); },
+      getUserMatches: async () => { const userId = authFunctions.getCurrentUser()?.uid; if (!userId) return { success: false, error: 'User not authenticated' }; return await firestoreFunctions.getDocuments('matches', userId); },
+      saveRoster: async (rosterData) => { return await firestoreFunctions.addDocument('rosters', rosterData); },
+      getUserRosters: async () => { const userId = authFunctions.getCurrentUser()?.uid; if (!userId) return { success: false, error: 'User not authenticated' }; return await firestoreFunctions.getDocuments('rosters', userId); }
+    };
   }
-};
+  return {
+    addDocument: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    getDocuments: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    updateDocument: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    deleteDocument: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    saveMatch: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    getUserMatches: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    saveRoster: async () => ({ success: false, error: 'Firebase non disponibile' }),
+    getUserRosters: async () => ({ success: false, error: 'Firebase non disponibile' })
+  };
+})();
 
-// Firestore functions
-const firestoreFunctions = {
-  // Add a new document
-  addDocument: async (collectionName, data) => {
-    try {
-      const docRef = await db.collection(collectionName).add({
-        ...data,
-        createdAt: new Date(),
-        userId: auth.currentUser?.uid
-      });
-      return { success: true, id: docRef.id };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Get all documents from a collection
-  getDocuments: async (collectionName, userId = null) => {
-    try {
-      let query;
-      if (userId) {
-        query = db.collection(collectionName)
-          .where("userId", "==", userId)
-          .orderBy("createdAt", "desc");
-      } else {
-        query = db.collection(collectionName)
-          .orderBy("createdAt", "desc");
-      }
-      const querySnapshot = await query.get();
-      const documents = [];
-      querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() });
-      });
-      return { success: true, documents };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Update a document
-  updateDocument: async (collectionName, docId, data) => {
-    try {
-      await db.collection(collectionName).doc(docId).update({
-        ...data,
-        updatedAt: new Date()
-      });
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Delete a document
-  deleteDocument: async (collectionName, docId) => {
-    try {
-      await db.collection(collectionName).doc(docId).delete();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Save match data
-  saveMatch: async (matchData) => {
-    return await firestoreFunctions.addDocument('matches', matchData);
-  },
-
-  // Get user matches
-  getUserMatches: async () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
-    return await firestoreFunctions.getDocuments('matches', userId);
-  },
-
-  // Save roster data
-  saveRoster: async (rosterData) => {
-    return await firestoreFunctions.addDocument('rosters', rosterData);
-  },
-
-  // Get user rosters
-  getUserRosters: async () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
-    return await firestoreFunctions.getDocuments('rosters', userId);
-  }
-};
-
-// Esponi le funzioni globalmente
 window.authFunctions = authFunctions;
 window.firestoreFunctions = firestoreFunctions;
 window.app = app;

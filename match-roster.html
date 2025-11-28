@@ -159,29 +159,19 @@
           </button>
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-        <div class="roster-name-wrapper" style="flex:1;">
-          <button type="button" class="icon-button icon-button-plain" id="toggleEditorBtn" title="Mostra/Nascondi editor" aria-label="Mostra/Nascondi">▾</button>
-          <input type="text" id="rosterNameInput" class="roster-name-field" placeholder="Nome Roster" />
-        </div>
-        <button type="button" class="icon-button icon-button-outline icon-button-circle" id="saveRosterBtn" title="Salva" aria-label="Salva">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M5 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M9 4v6h6V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button type="button" class="icon-button icon-button-outline icon-button-circle" id="deleteRosterBtn" title="Elimina roster" aria-label="Elimina roster">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
+      
 
       <div id="rosterList" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px; margin-bottom:8px;"></div>
+      <div id="emptyRoster" style="display:none; text-align:center; padding:24px;">
+        <img src="./LOGO_PALLONE.png" alt="Pallone" style="width:120px;height:120px;object-fit:contain;margin:0 auto 12px;"/>
+        <p style="margin:4px 0;color:#334155;">Nessun giocatore nel roster</p>
+        <p style="margin:4px 0;color:#64748b;">Importa CSV, crea manualmente, oppure vai a Elenco Squadre.</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="emptyImportCsvBtn">Importa CSV</button>
+          <button type="button" class="btn btn-secondary" id="emptyCreateBtn">Crea manualmente</button>
+          <button type="button" class="btn" id="emptyGoTeamsBtn">Vai a Elenco Squadre</button>
+        </div>
+      </div>
       <div id="rosterEditor" class="cards-list" style="display:none;"></div>
       <input type="file" id="rosterCsvInput" accept=".csv" style="display:none;" />
     </div>
@@ -189,86 +179,61 @@
     
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./src/modules/teams/teams.js"></script>
+  <script>try{ if(window.authModule && typeof window.authModule.initializeAuth==='function'){ window.authModule.initializeAuth(); setTimeout(function(){ try{ if(!window.authModule.isAuthenticated()){ location.href='auth-login.html'; } }catch(_){ } }, 600); } }catch(_){ }</script>
+
   <script>
     let currentRoster = [];
 
     document.addEventListener('DOMContentLoaded', async function(){
       try {
-        const setupRaw = localStorage.getItem('currentMatchSetup');
-        const setup = setupRaw ? JSON.parse(setupRaw) : null;
-        const sessRaw = localStorage.getItem('currentScoutingSession');
-        const sess = sessRaw ? JSON.parse(sessRaw) : null;
-        if (!setup && !sess) { window.location.href = 'match-setup.html'; return; }
-        const rosterName = (sess?.myTeam || sess?.teamName || setup?.myTeam || setup?.rosterName || '') || (await tryLoadRosterNameFromCSV());
-        const rnEl = document.getElementById('rosterNameInput'); if (rnEl && rosterName) rnEl.value = rosterName;
-        let loaded = false;
-        if (Array.isArray(sess?.roster) && sess.roster.length) { currentRoster = sess.roster; loaded = true; setEditorVisible(false); }
-        if (!loaded) {
-          try { const imp = JSON.parse(localStorage.getItem('importedRoster')||'[]'); if (Array.isArray(imp) && imp.length) { currentRoster = imp; loaded = true; setEditorVisible(false); } } catch(_) {}
+        const start = Date.now();
+        let team = window.teamsModule?.getCurrentTeam?.() || null;
+        while (!team && Date.now() - start < 1500) {
+          await new Promise(r => setTimeout(r, 100));
+          team = window.teamsModule?.getCurrentTeam?.() || null;
         }
-        if (!loaded) loaded = await tryLoadRosterFromCSV();
-        if (!loaded) renderRosterList();
+        if (!team) { window.location.href = 'my-teams.html'; return; }
+        const rnEl = document.getElementById('rosterNameInput'); if (rnEl) rnEl.value = '';
+        currentRoster = Array.isArray(team.players) ? team.players : [];
+        renderRosterList();
+        try{ tidyRosterCards(); }catch(_){ }
         bindControls();
-      } catch(_) { window.location.href = 'match-setup.html'; }
+      } catch(_) { window.location.href = 'my-teams.html'; }
     });
 
-    async function tryLoadRosterNameFromCSV(){
-      const urls = [
-        './G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
-        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
-        './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
-        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
-      ];
-      for (const u of urls){
-        try {
-          const res = await fetch(u);
-          if (!res.ok) continue;
-          const text = await res.text();
-          const lines = String(text||'').split(/\r?\n/).filter(l => l.trim());
-          if (lines.length > 1){
-            const firstData = lines.find(l => !/^\s*Squadra\s*[,;]/i.test(l)) || lines[1];
-            const cols = splitCsv(firstData);
-            const name = (cols[0]||'').trim();
-            if (name) return name;
-          }
-        } catch(_){}
-      }
-      return null;
-    }
+    async function tryLoadRosterNameFromCSV(){ return null; }
 
-    function splitCsv(line){ const d = line.includes(';') ? ';' : ','; return line.split(d).map(s => String(s||'').trim()); }
-    function mapRole(str){ const v = String(str||'').trim().toLowerCase(); if (!v) return ''; if (v.startsWith('palleg')) return 'P'; if (v.startsWith('schiacc')) return 'S'; if (v.startsWith('oppos')) return 'O'; if (v.startsWith('centr')) return 'C'; if (v.startsWith('liber')) return 'L'; return ''; }
-    function formatNumberForCsv(n){ const s=String(n||'').trim(); const num = s.replace(/^0+/,''); return num || '0'; }
-    function buildRosterFileName(team){ const t = String(team||'').trim() || 'Roster'; const sessRaw = localStorage.getItem('currentScoutingSession'); const setupRaw = localStorage.getItem('currentMatchSetup'); let club = ''; try{ const sess = sessRaw?JSON.parse(sessRaw):null; const setup = setupRaw?JSON.parse(setupRaw):null; club = setup?.myClub || sess?.myClub || ''; }catch(_){ } const now = new Date(); const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear(); const dateStr = `${dd}-${mm}-${yyyy}`; const sanitize = (s)=> s.replace(/[\\/:*?"<>|]/g,'').trim(); const left = sanitize(t); const right = sanitize(club||''); return `${left}${right?` - ${right}`:''}_roster_${dateStr}.csv`; }
-    async function tryLoadRosterFromCSV(){
-      const urls = [
-        './G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
-        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/G.P.B. 2DivF - Bollate-Team-Volley_roster_OK_17-11-2025.csv',
-        './2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv',
-        '/c:/Users/STEFANO/Desktop/My-Volley-Scout/2Div_F-G-P-B---Bollate-Team-Volley_roster_12-11-2025.csv'
-      ];
-      for (const u of urls){
-        try {
-          const res = await fetch(u);
-          if (!res.ok) continue;
-          const text = await res.text();
-          const lines = String(text||'').split(/\r?\n/).filter(l => l.trim());
-          const dataLines = lines.filter(l => !/^\s*Squadra\s*[,;]/i.test(l));
-          const players = dataLines.map(line => {
-            const cols = splitCsv(line);
-            return {
-              number: ensureTwoDigits(cols[2]||''),
-              name: toTitleCase(cols[3]||''),
-              surname: toTitleCase(cols[4]||''),
-              nickname: String(cols[5]||'').trim().toUpperCase(),
-              role: mapRole(cols[6]||'')
-            };
-          }).filter(p => p.number || p.name || p.surname || p.role);
-          if (players.length){ currentRoster = players; showRosterEditor(); renderRosterRows(currentRoster); localStorage.setItem('importedRoster', JSON.stringify(currentRoster)); return true; }
-        } catch(_){}
-      }
-      return false;
-    }
+  function splitCsv(line){ const d = line.includes(';') ? ';' : ','; return line.split(d).map(s => String(s||'').trim()); }
+  function mapRole(str){ const v = String(str||'').trim().toLowerCase(); if (!v) return ''; if (v.startsWith('palleg')) return 'P'; if (v.startsWith('schiacc')) return 'S'; if (v.startsWith('oppos')) return 'O'; if (v.startsWith('centr')) return 'C'; if (v.startsWith('liber')) return 'L'; return ''; }
+  function formatNumberForCsv(n){ const s=String(n||'').trim(); const num = s.replace(/^0+/,''); return num || '0'; }
+  function buildRosterFileName(team){ const t = String(team||'').trim() || 'Roster'; const sessRaw = localStorage.getItem('currentScoutingSession'); const setupRaw = localStorage.getItem('currentMatchSetup'); let club = ''; try{ const sess = sessRaw?JSON.parse(sessRaw):null; const setup = setupRaw?JSON.parse(setupRaw):null; club = setup?.myClub || sess?.myClub || ''; }catch(_){ } const now = new Date(); const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear(); const dateStr = `${dd}-${mm}-${yyyy}`; const sanitize = (s)=> s.replace(/[\\/:*?"<>|]/g,'').trim(); const left = sanitize(t); const right = sanitize(club||''); return `${left}${right?` - ${right}`:''}_roster_${dateStr}.csv`; }
+  async function tryLoadRosterFromCSV(){ return false; }
+
+  function tidyRosterCards(){
+    try{
+      const listEl = document.getElementById('rosterList'); if (!listEl) return;
+      const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+      listEl.querySelectorAll('.card').forEach(card=>{
+        const idx = Number(card.getAttribute('data-id'));
+        const rosterArr = Array.isArray(saved[idx]?.roster)?saved[idx].roster:(Array.isArray(saved[idx]?.players)?saved[idx].players:[]);
+        const edit = card.querySelector('[data-action="edit"]'); if (edit) edit.remove();
+        const info = Array.from(card.children).find(ch => String(ch.style?.flexDirection||'').includes('column')) || card.querySelector('div[style*="flex-direction:column"]');
+        if (info){
+          const meta = info.children[1] || info.appendChild(document.createElement('div'));
+          meta.textContent = `${Array.isArray(rosterArr)?rosterArr.length:0} giocatori`;
+          meta.style.fontSize = '12px'; meta.style.color = '#64748b';
+        }
+      });
+    }catch(_){ }
+  }
 
     function bindControls(){
       const importRosterIcon = document.getElementById('importRosterIcon');
@@ -283,6 +248,9 @@
       const toggleEditorBtn = document.getElementById('toggleEditorBtn');
       const rosterListEl = document.getElementById('rosterList');
       const accountBtn = document.getElementById('accountBtn');
+      const emptyImportCsvBtn = document.getElementById('emptyImportCsvBtn');
+      const emptyCreateBtn = document.getElementById('emptyCreateBtn');
+      const emptyGoTeamsBtn = document.getElementById('emptyGoTeamsBtn');
 
       if (importRosterIcon) importRosterIcon.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
       if (exportRosterIcon) exportRosterIcon.addEventListener('click', ()=>{
@@ -293,14 +261,17 @@
         const team = String(rnEl?.value||'').trim();
         exportRosterCSV(players, buildRosterFileName(team));
       });
-      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); });
+      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ location.href='roster-setup.html'; });
+      if (emptyImportCsvBtn) emptyImportCsvBtn.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
+      if (emptyCreateBtn) emptyCreateBtn.addEventListener('click', ()=>{ location.href='roster-setup.html'; });
+      if (emptyGoTeamsBtn) emptyGoTeamsBtn.addEventListener('click', ()=>{ window.location.href='my-teams.html'; });
       if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmRosterEditing);
       if (saveRosterBtn) saveRosterBtn.addEventListener('click', confirmRosterEditing);
       if (deleteRosterBtn) deleteRosterBtn.addEventListener('click', deleteRoster);
       if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', cancelRosterEditing);
       if (rosterCsvInput) rosterCsvInput.addEventListener('change', e => importRosterCSV(e.target.files[0]));
       if (rosterNameInput) rosterNameInput.addEventListener('click', ()=>{ if (!isEditorVisible()) handleContinue(); });
-      if (toggleEditorBtn) toggleEditorBtn.addEventListener('click', toggleEditor);
+      if (toggleEditorBtn) toggleEditorBtn.addEventListener('click', ()=>{ location.href='roster-setup.html'; });
       if (rosterListEl) {
         rosterListEl.addEventListener('click', (e) => {
           const card = e.target.closest('.card');
@@ -360,7 +331,7 @@
     function isEditorVisible(){ const el = document.getElementById('rosterEditor'); return !!(el && el.style.display !== 'none'); }
     function setEditorVisible(v){ const el = document.getElementById('rosterEditor'); if (!el) return; el.style.display = v ? 'block' : 'none'; const sb = document.getElementById('saveRosterBtn'); if (sb) sb.style.display = v ? 'inline-flex' : 'none'; const ni = document.getElementById('rosterNameInput'); if (ni){ ni.readOnly = !v; ni.style.cursor = !v ? 'pointer' : 'text'; } updateToggleIcon(); }
     function toggleEditor(){ setEditorVisible(!isEditorVisible()); }
-    function updateToggleIcon(){ const btn = document.getElementById('toggleEditorBtn'); const el = document.getElementById('rosterEditor'); if (!btn) return; const vis = el && el.style.display !== 'none'; btn.textContent = vis ? '▾' : '▸'; }
+    function updateToggleIcon(){ const btn = document.getElementById('toggleEditorBtn'); const el = document.getElementById('rosterEditor'); if (!btn) return; const vis = el && el.style.display !== 'none'; btn.textContent = vis ? '▾' : '▸'; btn.setAttribute('aria-expanded', vis ? 'true' : 'false'); }
     function showRosterEditor(){ setEditorVisible(true); }
     function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; el.innerHTML=''; (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
     function addRosterRow(player={}){
@@ -413,14 +384,14 @@
       const nickEl = row.querySelector('.nick-input'); if (nickEl) nickEl.addEventListener('blur', ()=>{ nickEl.value = String(nickEl.value||'').toUpperCase(); });
     }
     function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-card')); return rows.map(r=>({ number: ensureTwoDigits(r.querySelector('.num-select')?.value||''), name: (r.querySelector('.name-input')?.value||'').trim(), surname: (r.querySelector('.surname-input')?.value||'').trim(), nickname: (r.querySelector('.nick-input')?.value||'').trim(), role: normalizeRole(r.querySelector('.role-select')?.value||'') })).filter(p=>p.number || p.name || p.surname || p.role); }
-    function renderRosterList(){ const el = document.getElementById('rosterList'); if (!el) return; try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); el.innerHTML = (saved||[]).map((o,idx)=>`<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--border); border-radius:12px; padding:8px; background:#fff;"><div class="roster-label" data-id="saved_${idx}" style="font-weight:600; cursor:pointer;">${o.label||o.name||('Roster '+(idx+1))}</div><div style="display:flex; align-items:center; gap:8px;"><button type="button" class="icon-button" data-action="delete" data-id="saved_${idx}">🗑️</button></div></div>`).join(''); el.querySelectorAll('.roster-label').forEach(lbl=>{ const id = lbl.getAttribute('data-id'); const idx = Number(id.replace('saved_','')); const picked = (saved||[])[idx]||null; let pressTimer = null; const start=(ev)=>{ clearTimeout(pressTimer); pressTimer=setTimeout(()=>{ showRosterMenu(picked, idx, lbl); },500); }; const cancel=()=>{ clearTimeout(pressTimer); }; lbl.addEventListener('mousedown', start); lbl.addEventListener('touchstart', start); lbl.addEventListener('mouseup', cancel); lbl.addEventListener('mouseleave', cancel); lbl.addEventListener('touchend', cancel); lbl.addEventListener('click', ()=>{ currentRoster = Array.isArray(picked?.roster)?picked.roster:(Array.isArray(picked?.players)?picked.players:[]); const nameEl = document.getElementById('rosterNameInput'); if (nameEl) nameEl.value = picked?.label || picked?.name || ''; setEditorVisible(false); handleContinue(); }); }); el.querySelectorAll("button[data-action='delete']").forEach(btn=>{ btn.addEventListener('click', ()=>{ const id = btn.getAttribute('data-id'); const idx = Number(id.replace('saved_','')); saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); }); }); }catch(_){ el.innerHTML = '<div class="empty-note">Nessun roster salvato</div>'; } }
+    function renderRosterList(){ const el = document.getElementById('rosterList'); const empty = document.getElementById('emptyRoster'); if (!el) return; try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const list = Array.isArray(saved)?saved:[]; if (!list.length){ el.innerHTML=''; if (empty) empty.style.display='block'; return; } if (empty) empty.style.display='none'; el.innerHTML = list.map((item,idx)=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const hasPlayers = Array.isArray(rosterArr) && rosterArr.length>0; const name = item?.label || item?.name || `Roster ${idx+1}`; const preview = hasPlayers ? rosterArr.slice(0,5).map(p=>`${String(p.number||'').padStart(2,'0')} ${(p.nickname||((p.name||'')+' '+(p.surname||''))).toString().slice(0,10)} ${(p.role||'')}`).join(' • ') : 'Vuoto'; return `<div class="card" data-id="${idx}" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;">\n<div style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #cbd5e1; border-radius:8px; color:#0d6efd;" data-action="edit" aria-label="Modifica">\n<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 5l9 7-9 7V5z"/></svg>\n</div>\n<div style="flex:1; display:flex; flex-direction:column;">\n<div style="font-weight:600;">${name}</div>\n<div style="font-size:12px; color:#64748b;">${preview}</div>\n</div>\n<button type="button" class="icon-button" data-action="delete" aria-label="Elimina" style="border:1px solid #e9ecef; background:#fff; color:#dc3545;">🗑️</button>\n</div>`; }).join(''); Array.from(el.querySelectorAll('.card')).forEach(card=>{ const idx = Number(card.getAttribute('data-id')); const actionEdit = card.querySelector('[data-action="edit"]'); const actionDel = card.querySelector('[data-action="delete"]'); card.addEventListener('click', async (e)=>{ if (e.target.closest('[data-action]')) return; try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const item = saved[idx]; const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); currentRoster = rosterArr||[]; await handleContinue(); } catch(_){ await handleContinue(); } }); if (actionEdit){ actionEdit.addEventListener('click', (e)=>{ e.stopPropagation(); location.href = 'roster-setup.html?id='+encodeURIComponent('saved_'+idx); }); } if (actionDel){ actionDel.addEventListener('click', (e)=>{ e.stopPropagation(); try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); }catch(_){ } }); } }); }catch(_){ const el = document.getElementById('rosterList'); if (el) el.innerHTML=''; const empty = document.getElementById('emptyRoster'); if (empty) empty.style.display='block'; } }
 
     function showRosterMenu(item, idx, anchor){ const menu=document.createElement('div'); menu.style.position='absolute'; const rect=anchor.getBoundingClientRect(); menu.style.left=rect.left+'px'; menu.style.top=(window.scrollY+rect.bottom+6)+'px'; menu.style.background='#fff'; menu.style.border='1px solid #cbd5e1'; menu.style.boxShadow='0 6px 16px rgba(0,0,0,0.10)'; menu.style.borderRadius='10px'; menu.style.zIndex='9999'; menu.style.minWidth='180px'; menu.innerHTML=`<div style='display:flex;flex-direction:column;padding:6px;gap:4px;'><button type='button' class='btn btn-compact' data-act='edit'>Modifica</button><button type='button' class='btn btn-compact' data-act='props'>Proprietà</button><button type='button' class='btn btn-compact' data-act='export'>Esporta</button></div>`; document.body.appendChild(menu); const close=()=>{ try{ document.body.removeChild(menu); }catch(_){ } document.removeEventListener('click', onDoc); }; const onDoc=(e)=>{ if(!menu.contains(e.target)) close(); }; document.addEventListener('click', onDoc); menu.querySelector("[data-act='edit']").addEventListener('click', ()=>{ const id='saved_'+idx; location.href='edit-roster.html?id='+encodeURIComponent(id); }); menu.querySelector("[data-act='props']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const sessRaw=localStorage.getItem('currentScoutingSession'); let origin='app', sourceFile='', dateStr=item?.date||''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; const same=Array.isArray(sess?.roster)&&JSON.stringify(sess.roster)===JSON.stringify(rosterArr); if(same) origin='import'; sourceFile=sess?.fileName||''; }catch(_){ } const count=Array.isArray(rosterArr)?rosterArr.length:0; const box=document.createElement('div'); box.style.position='fixed'; box.style.left='0'; box.style.top='0'; box.style.right='0'; box.style.bottom='0'; box.style.background='rgba(0,0,0,0.35)'; box.style.zIndex='10000'; const card=document.createElement('div'); card.style.background='#fff'; card.style.border='1px solid #cbd5e1'; card.style.borderRadius='12px'; card.style.boxShadow='0 8px 20px rgba(0,0,0,0.12)'; card.style.padding='14px'; card.style.maxWidth='420px'; card.style.margin='10vh auto'; card.innerHTML=`<div style='font-weight:600;margin-bottom:8px;'>Proprietà</div><div style='display:grid;gap:8px;'><div><div style='color:#64748b;'>Origine</div><div>${origin==='import'?'Import da match':'Creato nell\'app'}</div></div><div><div style='color:#64748b;'>File</div><div>${sourceFile||'—'}</div></div><div><div style='color:#64748b;'>Data</div><div>${dateStr||'—'}</div></div><div><div style='color:#64748b;'>N. giocatori</div><div>${count}</div></div></div><div class='form-actions'><button class='btn' id='closeProps'>Chiudi</button></div>`; box.appendChild(card); document.body.appendChild(box); card.querySelector('#closeProps').addEventListener('click', ()=>{ try{ document.body.removeChild(box); }catch(_){ } }); close(); }); menu.querySelector("[data-act='export']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); exportRosterCSV(rosterArr, item?.label||item?.name||'Roster'); close(); }); }
 
     function exportRosterCSV(players, filename){ const headers=['Squadra','Società','Numero','Nome','Cognome','Soprannome','Ruolo']; const sessRaw=localStorage.getItem('currentScoutingSession'); const setupRaw=localStorage.getItem('currentMatchSetup'); let team='', club=''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; const setup=setupRaw?JSON.parse(setupRaw):null; team = sess?.myTeam || sess?.teamName || setup?.myTeam || setup?.teamName || ''; club = setup?.myClub || sess?.myClub || ''; }catch(_){ } const roleLabels={'P':'Palleggiatore','S':'Schiacciatore','O':'Opposto','C':'Centrale','L':'Libero'}; const lines=[headers.join(',')].concat((Array.isArray(players)?players:[]).map(p=>{ const roleKey=String(p.role||'').trim().toUpperCase(); const roleOut=roleLabels[roleKey]||roleKey||''; const row=[team,String(formatNumberForCsv(p.number||'')),String(p.name||'').trim(),String(p.surname||'').trim(),String(p.nickname||'').trim(),String(roleOut)]; return [row[0],club,row[1],row[2],row[3],row[4],row[5]].map(x=>String(x||'')).join(','); })); const blob=new Blob([lines.join('\n')],{ type:'text/csv;charset=utf-8;' }); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(filename||'roster.csv'); a.click(); URL.revokeObjectURL(url); }
-    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const header = lines[0]||''; const hparts = splitCsv(header).map(s=>s.toLowerCase()); const idx = { numero: hparts.indexOf('numero'), nome: hparts.indexOf('nome'), cognome: hparts.indexOf('cognome'), soprannome: hparts.indexOf('soprannome'), ruolo: hparts.indexOf('ruolo'), squadra: hparts.indexOf('squadra'), societa: hparts.indexOf('società') }; const dataLines = lines.slice(1).filter(l => !/^\s*Squadra\s*[,;]/i.test(l)); const out = dataLines.map(line=>{ const parts = splitCsv(line); const numIdx = idx.numero>=0?idx.numero:2; const nomeIdx = idx.nome>=0?idx.nome:3; const cogIdx = idx.cognome>=0?idx.cognome:4; const nickIdx = idx.soprannome>=0?idx.soprannome:5; const ruoloIdx = idx.ruolo>=0?idx.ruolo:6; return { number: ensureTwoDigits(parts[numIdx]||''), name: toTitleCase(parts[nomeIdx]||''), surname: toTitleCase(parts[cogIdx]||''), nickname: String(parts[nickIdx]||'').trim(), role: mapRole(parts[ruoloIdx]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); currentRoster = out; localStorage.setItem('importedRoster', JSON.stringify(currentRoster)); const rnEl = document.getElementById('rosterNameInput'); if (rnEl){ const first = lines[1]||''; const firstParts = splitCsv(first); const teamName = idx.squadra>=0 ? firstParts[idx.squadra] : (firstParts[0]||''); rnEl.value = String(teamName||'').trim() || rnEl.value || ''; } showRosterEditor(); renderRosterRows(currentRoster); } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
+    function importRosterCSV(file){ const reader = new FileReader(); reader.onload = ()=>{ try { const text = reader.result; const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim()); const header = lines[0]||''; const hparts = splitCsv(header).map(s=>s.toLowerCase()); const idx = { numero: hparts.indexOf('numero'), nome: hparts.indexOf('nome'), cognome: hparts.indexOf('cognome'), soprannome: hparts.indexOf('soprannome'), ruolo: hparts.indexOf('ruolo'), squadra: hparts.indexOf('squadra'), societa: hparts.indexOf('società') }; const dataLines = lines.slice(1).filter(l => !/^\s*Squadra\s*[,;]/i.test(l)); const out = dataLines.map(line=>{ const parts = splitCsv(line); const numIdx = idx.numero>=0?idx.numero:2; const nomeIdx = idx.nome>=0?idx.nome:3; const cogIdx = idx.cognome>=0?idx.cognome:4; const nickIdx = idx.soprannome>=0?idx.soprannome:5; const ruoloIdx = idx.ruolo>=0?idx.ruolo:6; return { number: ensureTwoDigits(parts[numIdx]||''), name: toTitleCase(parts[nomeIdx]||''), surname: toTitleCase(parts[cogIdx]||''), nickname: String(parts[nickIdx]||'').trim(), role: mapRole(parts[ruoloIdx]||'') }; }).filter(p=>p.number||p.name||p.surname||p.role); localStorage.setItem('importedRoster', JSON.stringify(out)); const first = lines[1]||''; const firstParts = splitCsv(first); const teamName = idx.squadra>=0 ? firstParts[idx.squadra] : (firstParts[0]||''); localStorage.setItem('derivedTeamNameForSetup', String(teamName||'').trim()); location.href = 'roster-setup.html?source=import'; } catch(e){ alert('Import non riuscito'); } }; reader.readAsText(file); }
     function exportRosterJSON(){ try { const data = JSON.stringify(collectRosterFromEditor(), null, 2); const blob = new Blob([data], { type:'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'roster.json'; a.click(); URL.revokeObjectURL(url); } catch(_){} }
-    function confirmRosterEditing(){ try { const list = collectRosterFromEditor(); if (!list || list.length === 0){ alert('Aggiungi almeno un giocatore'); return; } const nameEl = document.getElementById('rosterNameInput'); const label = String(nameEl?.value||'').trim() || 'Roster'; const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.push({ label, roster:list }); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); setEditorVisible(false); const listEl = document.getElementById('rosterList'); if (listEl){ const all = listEl.querySelectorAll('.roster-select'); all.forEach(x=> x.checked=false); const cb = listEl.querySelector(`.roster-select[data-id="saved_${saved.length-1}"]`); if (cb){ cb.checked=true; const nm = document.getElementById('rosterNameInput'); if (nm) nm.value = label; currentRoster = list; try{ cb.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(_){ } } } alert('Roster salvato'); } catch(e){ alert('Errore nel salvataggio'); } }
+    async function confirmRosterEditing(){ try { const list = collectRosterFromEditor(); if (!list || list.length === 0){ alert('Aggiungi almeno un giocatore'); return; } const nameEl = document.getElementById('rosterNameInput'); const label = String(nameEl?.value||'').trim() || 'Roster'; const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.push({ label, roster:list }); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); setEditorVisible(false); const listEl = document.getElementById('rosterList'); if (listEl){ const all = listEl.querySelectorAll('.roster-select'); all.forEach(x=> x.checked=false); const cb = listEl.querySelector(`.roster-select[data-id="saved_${saved.length-1}"]`); if (cb){ cb.checked=true; const nm = document.getElementById('rosterNameInput'); if (nm) nm.value = label; currentRoster = list; try{ cb.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(_){ } } } try { const teamId = localStorage.getItem('selectedTeamId'); const sessRaw = localStorage.getItem('currentScoutingSession'); let matchId = null; try { const sess = JSON.parse(sessRaw||'null'); matchId = sess?.id || null; } catch(_){ } if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchRosterTree && teamId && matchId) { await window.firestoreService.saveMatchRosterTree(teamId, matchId, list); } } catch(_){ } alert('Roster salvato'); } catch(e){ alert('Errore nel salvataggio'); } }
     function cancelRosterEditing(){ setEditorVisible(false); }
 
     function deleteRoster(){
@@ -432,7 +403,7 @@
         if (idx >= 0){
           saved.splice(idx,1);
           localStorage.setItem('savedRosters', JSON.stringify(saved));
-          renderRosterList();
+          renderRosterList(); try{ tidyRosterCards(); }catch(_){ }
           setEditorVisible(false);
           alert('Roster eliminato');
         } else {
@@ -441,58 +412,21 @@
       } catch(e){ alert('Errore nella cancellazione'); }
     }
 
-    function handleContinue(){
+    async function handleContinue(){
       try {
-        const setupRaw = localStorage.getItem('currentMatchSetup');
-        const setup = setupRaw ? JSON.parse(setupRaw) : null;
         const roster = collectRosterFromEditor();
         const finalRoster = Array.isArray(roster) && roster.length>0 ? roster : (Array.isArray(currentRoster)?currentRoster:[]);
         if (!finalRoster || finalRoster.length === 0){ alert('Il Roster è obbligatorio'); return; }
-        const next = { ...(setup||{}), roster: finalRoster };
-        localStorage.setItem('currentMatchSetup', JSON.stringify(next));
+        const selTeamId = localStorage.getItem('selectedTeamId');
+        let matchId = null;
+        try { const url = new URL(window.location.href); matchId = url.searchParams.get('match'); } catch(_){ }
+        if (!matchId) { try { const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); matchId = setup?.id || null; } catch(_){ } }
+        if (!matchId) { matchId = String(Date.now()); try { const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); localStorage.setItem('currentMatchSetup', JSON.stringify(Object.assign({}, setup, { id: matchId }))); } catch(_){} }
 
-        const matchId = (setup && setup.id) ? setup.id : next.id;
+        try { if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchRosterTree && selTeamId && matchId) { await window.firestoreService.saveMatchRosterTree(selTeamId, matchId, finalRoster); } } catch(_){}
 
-        try {
-          const sessRaw = localStorage.getItem('currentScoutingSession');
-          if (sessRaw) {
-            const sess = JSON.parse(sessRaw);
-            if (!sess.id && matchId) sess.id = matchId;
-            if (!sess.id || sess.id === matchId) {
-              sess.roster = Array.isArray(finalRoster) ? finalRoster : [];
-              localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
-            }
-          }
-        } catch(_) {}
-
-        try {
-          const vmRaw = localStorage.getItem('volleyMatches');
-          const list = vmRaw ? JSON.parse(vmRaw) : [];
-          if (matchId) {
-            const idx = list.findIndex(m => m.id === matchId);
-            const base = idx >= 0 ? list[idx] : {};
-            const updated = {
-              ...base,
-              id: matchId,
-              teamId: next.teamId || base.teamId || null,
-              myTeam: next.myTeam || base.myTeam || '',
-              myClub: next.myClub || base.myClub || null,
-              opponentTeam: next.opponent || base.opponentTeam || '',
-              matchDate: next.matchDate || base.matchDate || new Date().toISOString().slice(0,10),
-              eventType: next.eventType || base.eventType || 'partita',
-              location: next.location || base.location || 'casa',
-              description: next.description || base.description || '',
-              status: base.status || 'planned',
-              createdAt: base.createdAt || next.createdAt || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              roster: Array.isArray(finalRoster) ? finalRoster : []
-            };
-            if (idx >= 0) list[idx] = updated; else list.unshift(updated);
-            localStorage.setItem('volleyMatches', JSON.stringify(list));
-          }
-        } catch(_) {}
-
-        window.location.href = 'set-config.html';
+        const qp = new URLSearchParams(); qp.set('team', selTeamId||''); qp.set('match', String(matchId));
+        window.location.href = 'set-config.html?'+qp.toString();
       } catch(e){ alert('Errore nel proseguire'); }
     }
   </script>

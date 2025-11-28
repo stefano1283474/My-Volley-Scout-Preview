@@ -496,7 +496,7 @@
                 <p>Nessuna partita disponibile</p>
                 <p>Crea una nuova partita oppure importa da file Excel.</p>
                 <div class="empty-actions">
-                  <button type="button" class="btn btn-primary" onclick="window.location.href='match-setup.html'">Crea nuova partita</button>
+                  <button type="button" class="btn btn-primary" onclick="openNewMatchDialog()">Crea nuova partita</button>
                   <button type="button" class="btn btn-secondary" onclick="importMatchFromExcelOnMatches()">Importa da Excel</button>
                 </div>
             </div>
@@ -637,9 +637,7 @@
             }
             // Azioni Elenco: nuova partita e import
             // Apri una pagina intera per la creazione partita (no dialog)
-            if (newMatchBtn) newMatchBtn.addEventListener('click', () => {
-                window.location.href = 'match-setup.html';
-            });
+            if (newMatchBtn) newMatchBtn.addEventListener('click', openNewMatchDialog);
             if (importMatchBtn) importMatchBtn.addEventListener('click', importMatchFromExcelOnMatches);
             if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             // Form nuova partita (dialog)
@@ -953,8 +951,16 @@
 
         // — Dialog: Nuova partita —
         function openNewMatchDialog(){
-            // Reindirizza alla pagina dedicata alla creazione della partita
-            window.location.href = 'match-setup.html';
+            try {
+                if (!selectedTeam) {
+                    alert('Seleziona una squadra dall’elenco prima di creare una partita');
+                    window.location.href = 'my-teams.html';
+                    return;
+                }
+                window.location.href = 'match-setup.html';
+            } catch(_) {
+                window.location.href = 'match-setup.html';
+            }
         }
 
         function closeNewMatchDialog(){
@@ -1440,24 +1446,13 @@
                 const rosterArr = Array.isArray(match.roster) ? match.roster : [];
                 const opp = (match.opponent || match.opponentTeam || '').trim();
                 const oppInvalid = !opp || /^(test|avversario)$/i.test(opp);
-                const setup = {
-                    opponent: match.opponent || match.opponentTeam || '',
-                    matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
-                    eventType: match.eventType || match.matchType || '',
-                    location: (match.location === 'home' || match.homeAway === 'home' || match.location === 'casa') ? 'casa' : 'trasferta',
-                    venue: match.venue || '',
-                    description: match.description || '',
-                    teamId: match.teamId || teamId || null,
-                    createdAt: match.createdAt || new Date().toISOString(),
-                    status: match.status || 'planned',
-                    id: match.id,
-                    roster: rosterArr
-                };
-                localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
-                if (!teamId || !rosterArr.length || oppInvalid) {
-                    window.location.href = 'match-setup.html';
+                const tId = match.teamId || teamId || null;
+                if (!tId || !rosterArr.length || oppInvalid) {
+                    alert('Completa il setup partita dalla schermata Squadre selezionando la tua squadra.');
+                    window.location.href = 'my-teams.html';
                 } else {
-                    window.location.href = 'set-config.html';
+                    const qp = new URLSearchParams(); qp.set('team', String(tId)); qp.set('match', String(match.id));
+                    window.location.href = 'set-config.html?'+qp.toString();
                 }
             } catch (e) {
                 console.error('Errore nell\'avvio scouting:', e);

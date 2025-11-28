@@ -76,41 +76,15 @@ class MatchesModule {
     async loadMatches() {
         try {
             this.state.isLoading = true;
-            
-            // Carica da localStorage
-            const localMatches = this.getLocalMatches();
-            
-            // Carica da Firestore se disponibile
-            let firestoreMatches = [];
-            // 1) Struttura annidata: users/{uid}/matches
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.loadUserMatches) {
-                const result = await window.firestoreService.loadUserMatches();
-                if (result.success) {
-                    firestoreMatches = result.documents.map(doc => ({
-                        ...doc,
-                        source: 'firestore_nested'
-                    }));
-                }
+            // Carica da Firestore per la squadra corrente (struttura ad albero users→teams→matches)
+            const currentTeam = window.teamsModule?.getCurrentTeam?.();
+            let teamMatches = [];
+            if (currentTeam?.id && window.authModule?.isAuthenticated() && window.firestoreService?.loadTeamMatches) {
+                const resTeam = await window.firestoreService.loadTeamMatches(currentTeam.id);
+                if (resTeam?.success) teamMatches = resTeam.documents;
             }
-            // 2) Struttura top-level: collection 'matches' con userId
-            let firestoreTopLevel = [];
-            if (window.authModule?.isAuthenticated() && window.firestoreFunctions?.getUserMatches) {
-                try {
-                    const res2 = await window.firestoreFunctions.getUserMatches();
-                    if (res2?.success) {
-                        firestoreTopLevel = res2.documents.map(doc => ({
-                            ...doc,
-                            source: 'firestore_top'
-                        }));
-                    }
-                } catch (e) {
-                    console.warn('Caricamento partite (top-level) non riuscito:', e);
-                }
-            }
-            
-            // Combina e deduplica
-            const allMatches = [...localMatches, ...firestoreMatches, ...firestoreTopLevel];
-            this.state.matches = this.deduplicateMatches(allMatches);
+            // Usa solo le partite della squadra selezionata
+            this.state.matches = this.deduplicateMatches(teamMatches);
             
             this.notifyMatchesUpdate();
             
@@ -125,16 +99,7 @@ class MatchesModule {
     /**
      * Ottiene le partite dal localStorage
      */
-    getLocalMatches() {
-        try {
-            const stored = localStorage.getItem('volleyMatches');
-            const matches = stored ? JSON.parse(stored) : [];
-            return matches.map(match => ({ ...match, source: 'local' }));
-        } catch (error) {
-            console.error('Errore nel caricamento partite locali:', error);
-            return [];
-        }
-    }
+    getLocalMatches() { return []; }
 
     /**
      * Deduplica le partite basandosi sull'ID
@@ -244,12 +209,14 @@ class MatchesModule {
             await this.saveMatchLocally(match);
             
             // Salva su Firestore se disponibile
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveMatchStats) {
+            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveMatchTree) {
                 try {
-                    await window.firestoreService.saveMatchStats(match);
+                    const currentTeam = window.teamsModule?.getCurrentTeam?.();
+                    if (currentTeam?.id) {
+                        await window.firestoreService.saveMatchTree(currentTeam.id, match);
+                    }
                 } catch (firestoreError) {
                     console.warn('Errore nel salvataggio su Firestore:', firestoreError);
-                    // Non bloccare il salvataggio locale
                 }
             }
             
@@ -382,7 +349,7 @@ class MatchesModule {
     /**
      * Avvia il set con la configurazione corrente
      */
-    startSet() {
+    async startSet() {
         try {
             if (!this.state.currentMatch) {
                 throw new Error('Nessuna partita selezionata');
@@ -423,6 +390,14 @@ class MatchesModule {
             }
             
             this.saveMatch(this.state.currentMatch);
+            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveSetStartTree) {
+                try {
+                    const currentTeam = window.teamsModule?.getCurrentTeam?.();
+                    if (currentTeam?.id && this.state.currentMatch?.id) {
+                        await window.firestoreService.saveSetStartTree(currentTeam.id, this.state.currentMatch.id, this.state.currentSet, setData);
+                    }
+                } catch (e) {}
+            }
             
             // Notifica l'avvio del set
             this.notifySetStart(setData);

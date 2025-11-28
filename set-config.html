@@ -556,28 +556,71 @@
             });
         }
 
-        function loadMatchData() {
-            // Carica i dati della partita dal localStorage
-            const savedMatchData = localStorage.getItem('currentMatchSetup');
-            if (!savedMatchData) {
-                showError('Errore: dati partita non trovati. Torna alla configurazione partita.');
-                return;
-            }
-
+        async function loadMatchData() {
             try {
-                matchData = JSON.parse(savedMatchData);
-                // Guardie prerequisiti: squadra selezionata, avversario valido, roster presente
+                const url = new URL(window.location.href);
+                const teamId = url.searchParams.get('team') || localStorage.getItem('selectedTeamId');
+                let matchId = url.searchParams.get('match');
+                if (!matchId) {
+                    try {
+                        const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}');
+                        matchId = setup?.id || localStorage.getItem('selectedMatchId') || null;
+                    } catch(_) {
+                        matchId = localStorage.getItem('selectedMatchId');
+                    }
+                }
+                if (!teamId || !matchId) { hideError(); return; }
+
+                function normalize(meta){
+                    const m = meta || {};
+                    const homeAway = m.homeAway || (m.location === 'casa' ? 'home' : (m.location === 'trasferta' ? 'away' : ''));
+                    const loc = m.location || (homeAway === 'home' ? 'casa' : (homeAway === 'away' ? 'trasferta' : ''));
+                    const opp = m.opponent || m.opponentTeam || (() => {
+                        const my = m.myTeam || m.teamName || '';
+                        if (homeAway === 'home') return m.awayTeam || '';
+                        if (homeAway === 'away') return m.homeTeam || '';
+                        return m.awayTeam || m.homeTeam || '';
+                    })();
+                    const dateStr = m.matchDate || m.date || '';
+                    const type = m.eventType || m.matchType || '';
+                    return { opponent: opp, matchDate: dateStr, eventType: type, location: loc, myTeam: m.myTeam || m.teamName || '', description: m.description || '' };
+                }
+
+                let loaded = false;
                 try {
-                    const teamId = localStorage.getItem('selectedTeamId');
-                    const opp = String(matchData.opponent || '').trim();
-                    const rosterOk = Array.isArray(matchData.roster) && matchData.roster.length > 0;
-                    if (!teamId) { window.location.href = 'my-teams.html'; return; }
-                    if (!rosterOk || !opp) { window.location.href = 'match-setup.html'; return; }
+                    const res = await window.firestoreService.getMatchData(teamId, matchId);
+                    if (res?.success && res.meta) {
+                        const norm = normalize(res.meta);
+                        matchData = { ...norm, teamId, roster: Array.isArray(res.roster)?res.roster:[] };
+                        loaded = true;
+                    }
                 } catch(_) {}
-                displayMatchSummary();
+
+                if (!loaded) {
+                    try {
+                        const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                        const found = Array.isArray(local) ? local.find(x => String(x.id) === String(matchId)) : null;
+                        if (found) {
+                            const norm = normalize(found);
+                            matchData = { ...norm, teamId, roster: Array.isArray(found.roster)?found.roster:[] };
+                            loaded = true;
+                        }
+                    } catch(_) {}
+                }
+
+                if (!loaded) {
+                    try {
+                        const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}');
+                        const norm = normalize(setup);
+                        matchData = { ...norm, teamId, roster: Array.isArray(setup.roster)?setup.roster:[] };
+                        loaded = !!(norm.opponent || norm.matchDate || norm.eventType || norm.location);
+                    } catch(_) {}
+                }
+
+                if (loaded) { displayMatchSummary(); } else { hideError(); }
             } catch (error) {
-                console.error('Errore nel parsing dei dati partita:', error);
-                showError('Errore nel caricamento dei dati partita.');
+                console.error('Errore nel caricamento dati partita:', error);
+                hideError();
             }
         }
 
@@ -587,6 +630,8 @@
             const eventTypeLabelMap = {
                 'campionato': 'Campionato',
                 'coppa': 'Coppa',
+                'pgs': 'PGS',
+                'csi': 'CSI',
                 'playoff': 'Playoff',
                 'amichevole': 'Amichevole',
                 'torneo': 'Torneo',
@@ -597,21 +642,21 @@
                 <div class="match-row">
                     <div class="match-detail">
                         <div class="match-detail-label">Avversario</div>
-                        <div class="match-detail-value">${matchData.opponent}</div>
+                        <div class="match-detail-value">${matchData.opponent || matchData.opponentTeam || ''}</div>
                     </div>
                     <div class="match-detail">
                         <div class="match-detail-label">Data</div>
-                        <div class="match-detail-value">${formatDate(matchData.matchDate)}</div>
+                        <div class="match-detail-value">${formatDate(matchData.matchDate || matchData.date || '')}</div>
                     </div>
                 </div>
                 <div class="match-row">
                     <div class="match-detail">
                         <div class="match-detail-label">Tipo</div>
-                        <div class="match-detail-value">${eventTypeLabelMap[matchData.eventType] || matchData.eventType}</div>
+                        <div class="match-detail-value">${eventTypeLabelMap[(matchData.eventType || matchData.matchType || '').toLowerCase()] || (matchData.eventType || matchData.matchType || '')}</div>
                     </div>
                     <div class="match-detail">
                         <div class="match-detail-label">Luogo</div>
-                        <div class="match-detail-value">${matchData.location === 'casa' ? 'Casa' : 'Trasferta'}</div>
+                        <div class="match-detail-value">${(matchData.location || ((matchData.homeAway==='home')?'casa':(matchData.homeAway==='away')?'trasferta':'')) === 'casa' ? 'Casa' : 'Trasferta'}</div>
                     </div>
                 </div>
             `;
@@ -722,30 +767,31 @@
         }
 
         function startScouting() {
-            if (!setConfig.phase || !setConfig.ourRotation) {
-                showError('Completa tutti i campi obbligatori prima di iniziare.');
-                return;
-            }
-
-            // Prerequisiti prima di iniziare lo scouting
+            const missing = [];
+            if (!setConfig.phase) missing.push('Fase di inizio');
+            if (!setConfig.ourRotation) missing.push('Rotazione Nostra');
+            let teamId = null, matchId = null;
             try {
-                const teamId = localStorage.getItem('selectedTeamId');
-                const rosterOk = Array.isArray(matchData?.roster) && matchData.roster.length > 0;
-                if (!teamId) { showError('Seleziona una squadra prima di iniziare.'); return; }
-                if (!rosterOk) { showError('Aggiungi un roster alla partita prima di iniziare.'); return; }
-            } catch(_) {}
+                const url = new URL(window.location.href);
+                teamId = url.searchParams.get('team') || localStorage.getItem('selectedTeamId');
+                matchId = url.searchParams.get('match') || null;
+            } catch(_) { teamId = localStorage.getItem('selectedTeamId'); }
+            if (!matchId) {
+                try {
+                    const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}');
+                    matchId = setup?.id || localStorage.getItem('selectedMatchId') || null;
+                } catch(_) {
+                    matchId = localStorage.getItem('selectedMatchId');
+                }
+            }
+            if (!teamId) missing.push('Squadra selezionata');
+            if (!matchId) missing.push('ID partita');
 
-            // Salva la configurazione del set
-            const fullConfig = {
-                ...matchData,
-                setConfig: { ...setConfig, set: 1 },
-                startTime: new Date().toISOString()
-            };
+            if (missing.length) { showError(missing); return; }
 
+            const fullConfig = { ...matchData, teamId, matchId, setConfig: { ...setConfig, set: 1 }, startTime: new Date().toISOString() };
             localStorage.setItem('currentScoutingSession', JSON.stringify(fullConfig));
             localStorage.setItem('allowScoutingEntry','1');
-            
-            // Reindirizza alla pagina di scouting (l'attuale index.html con Start-Scouting)
             window.location.href = 'index.html';
         }
 
@@ -764,7 +810,11 @@
         }
 
         function showError(message) {
-            errorMessage.textContent = message;
+            if (Array.isArray(message)) {
+                errorMessage.innerHTML = 'Parametri mancanti:<ul>' + message.map(m => `<li>${m}</li>`).join('') + '</ul>';
+            } else {
+                errorMessage.textContent = String(message || '');
+            }
             errorMessage.style.display = 'block';
             errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }

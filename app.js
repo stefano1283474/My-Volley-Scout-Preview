@@ -1202,6 +1202,19 @@ async function saveCurrentMatch() {
             updatedAt: new Date().toISOString()
         };
 
+        try {
+            const userEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
+            const userKey = String(userEmail).trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
+            if (userKey && (selectedTeamId || currentTeam?.id)) {
+                payload.cloudRef = {
+                    userKey,
+                    teamId: selectedTeamId || currentTeam?.id,
+                    matchId: payload.id,
+                    path: `users/${userKey}/teams/${selectedTeamId || currentTeam?.id}/matches/${payload.id}`
+                };
+            }
+        } catch(_) {}
+
         // Notifica inizio salvataggio
         try { window.dispatchEvent(new CustomEvent('save:started')); } catch(_) {}
 
@@ -1215,10 +1228,13 @@ async function saveCurrentMatch() {
 
         // Salvataggio su Firestore (se disponibile)
         try {
-            if (window.authFunctions?.getCurrentUser && window.firestoreFunctions?.saveMatch) {
+            if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree) {
                 const user = window.authFunctions.getCurrentUser();
                 if (user) {
-                    await window.firestoreFunctions.saveMatch(payload);
+                    const teamId = selectedTeamId || currentTeam?.id || null;
+                    if (teamId) {
+                        await window.firestoreService.saveMatchTree(teamId, payload);
+                    }
                 }
             }
         } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
