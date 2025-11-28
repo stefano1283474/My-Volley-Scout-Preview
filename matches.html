@@ -439,7 +439,8 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="accountLogout">Esci</button>
+                    <button class="menu-item" id="accountExit" type="button">Esci</button>
+                    <button class="menu-item" id="accountLogout" type="button">Logout</button>
                     <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
                 </div>
             </div>
@@ -551,6 +552,7 @@
         const accountBtn = document.getElementById('accountBtn');
         const accountMenu = document.getElementById('accountMenu');
         const accountEmail = document.getElementById('accountEmail');
+        const accountExit = document.getElementById('accountExit');
         const accountLogout = document.getElementById('accountLogout');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
@@ -605,9 +607,14 @@
                     }
                 });
             }
-            if (accountLogout){
-                accountLogout.addEventListener('click', handleLogout);
+            if (accountExit){
+                accountExit.addEventListener('click', (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
+                    window.location.href = 'my-teams.html';
+                });
             }
+            if (accountLogout){ accountLogout.addEventListener('click', handleLogout); }
             const goToTeamsBtn = document.getElementById('goToTeamsBtn');
             if (goToTeamsBtn){
                 goToTeamsBtn.addEventListener('click', (e) => {
@@ -971,6 +978,7 @@
         // Importa partita da Excel dalla pagina Partite: crea voce in elenco e resta in lista
         async function importMatchFromExcelOnMatches(){
             try {
+                try { var m=document.getElementById('accountMenu'); var b=document.getElementById('accountBtn'); if(m){ m.hidden=true; } if(b){ b.setAttribute('aria-expanded','false'); } } catch(_){}
                 let file = null;
                 if (window.showOpenFilePicker) {
                     try {
@@ -1046,8 +1054,11 @@
                         const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
                         const roster = [];
                         for (let r = 3; r <= (range.e.r + 1); r++) {
-                            const b = ws[`B${r}`], c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
-                            let num = b && b.v != null ? String(b.v).trim() : '';
+                            const b = ws[`B${r}`];
+                            const rawB = b && b.v != null ? String(b.v).trim() : '';
+                            if (!rawB) break;
+                            const c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
+                            let num = rawB;
                             if (num.startsWith("'")) num = num.slice(1);
                             num = num.replace(/\D/g,'').padStart(2,'0').slice(-2);
                             const sur = c && c.v != null ? String(c.v).trim() : '';
@@ -1147,10 +1158,36 @@
                 } catch(_) {}
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
                 try { updateImportProgress(92, 'Riepilogo pronto'); } catch(_) {}
-                try { updateImportProgress(100, 'Completato'); } catch(_) {}
-                try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
+                try { hideImportProgress(); } catch(_) {}
 
-                window.location.href = 'match-data.html';
+                // riepilogo viene gestito nella pagina match-data; qui si procede senza dialog
+
+                try {
+                    const teamId = localStorage.getItem('selectedTeamId') || null;
+                    const matchId = `m_${Date.now()}`;
+                    const match = {
+                        id: matchId,
+                        teamId,
+                        opponentTeam: sessionData.opponentTeam || sessionData.opponent || 'Avversario',
+                        matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
+                        matchType: sessionData.matchType || sessionData.eventType || 'partita',
+                        homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
+                        description: sessionData.description || '',
+                        actionsBySet: sessionData.actionsBySet || {},
+                        setMeta: sessionData.setMeta || {},
+                        setStateBySet: sessionData.setStateBySet || {},
+                        scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
+                        roster: Array.isArray(sessionData.roster) ? sessionData.roster : (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_) { return []; } })(),
+                        createdAt: new Date().toISOString(),
+                        status: 'in_progress'
+                    };
+                    const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
+                    local.unshift(match);
+                    localStorage.setItem('volleyMatches', JSON.stringify(local));
+                } catch(_) {}
+
+                try { updateImportProgress(100, 'Completato'); } catch(_) {}
+                window.location.href = 'matches.html';
             } catch (error) {
                 alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
             }
@@ -1223,6 +1260,65 @@
             return `${dd}/${mm}/${yyyy}`;
         }
 
+        function computeMatchOutcome(match) {
+            try {
+                const sum = match.setSummary || {};
+                const st = match.setStateBySet || {};
+                const ha = String(match.homeAway || (match.location === 'casa' ? 'home' : (match.location === 'trasferta' ? 'away' : '')) || '').toLowerCase();
+                let my = 0, opp = 0;
+                for (let i = 1; i <= 6; i++) {
+                    let myPts = null, oppPts = null;
+                    const state = st && st[i] ? st[i] : null;
+                    if (state && ((Number(state.homeScore||0) + Number(state.awayScore||0)) > 0)) {
+                        const h = Number(state.homeScore||0);
+                        const a = Number(state.awayScore||0);
+                        if (ha === 'away') { myPts = a; oppPts = h; } else { myPts = h; oppPts = a; }
+                    } else if (sum && sum[i]) {
+                        const h = Number(sum[i].home || 0);
+                        const a = Number(sum[i].away || 0);
+                        if (ha === 'away') { myPts = a; oppPts = h; } else { myPts = h; oppPts = a; }
+                    } else {
+                        continue;
+                    }
+                    if ((myPts || 0) === 0 && (oppPts || 0) === 0) continue;
+                    if (myPts > oppPts) my++; else if (oppPts > myPts) opp++;
+                }
+                if ((my + opp) === 0) return { label: '', outcome: '' };
+                const outcome = my > opp ? 'Vinto' : 'Perso';
+                return { label: `${my}-${opp}`, outcome };
+            } catch(_) { return { label: '', outcome: '' }; }
+        }
+
+        function isSetCompletedGeneric(setNum, match){
+            const st = match.setStateBySet || {};
+            const sum = match.setSummary || {};
+            const hist = match.scoreHistoryBySet || {};
+            const isSetFive = Number(setNum) === 5;
+            const minScore = isSetFive ? 15 : 25;
+            const state = st[setNum] || {};
+            let home = Number(state.homeScore||0), away = Number(state.awayScore||0);
+            if (!(home || away)) {
+                const arr = Array.isArray(hist[setNum]) ? hist[setNum] : [];
+                const last = arr.length ? arr[arr.length - 1] : null;
+                home = Number(last?.homeScore||0);
+                away = Number(last?.awayScore||0);
+            }
+            if (!(home || away)) {
+                const s = sum[setNum] || {};
+                home = Number(s.home||0);
+                away = Number(s.away||0);
+            }
+            return ((home >= minScore || away >= minScore) && Math.abs(home - away) >= 2);
+        }
+
+        function isMatchCompleted(match){
+            let completed = 0;
+            for (let i = 1; i <= 6; i++) {
+                if (isSetCompletedGeneric(i, match)) completed++;
+            }
+            return completed >= 3;
+        }
+
         function createMatchCard(match) {
             const card = document.createElement('div');
             card.className = 'match-card';
@@ -1234,6 +1330,7 @@
             const typeMap = { campionato: 'Campionato', coppa: 'Coppa', pgs: 'PGS', csi: 'CSI', amichevole: 'Amichevole', torneo: 'Torneo', playoff: 'Playoff', partita: 'Partita' };
             const typeKey = String(rawType).toLowerCase();
             const typeLabel = typeMap[typeKey] || (rawType.charAt(0).toUpperCase() + rawType.slice(1));
+            const res = computeMatchOutcome(match);
 
             // Riga con azioni a sinistra + testo
             card.innerHTML = `
@@ -1254,7 +1351,7 @@
                     </svg>
                   </button>
                 </div>
-                <div class="match-line">${dateLabel} • ${typeLabel} • ${opp}</div>
+                <div class="match-line">${dateLabel} • ${typeLabel} • ${opp}${res.label ? ` • ${res.label} ${res.outcome}` : ''}</div>
               </div>`;
             card.style.cursor = 'pointer';
             // Apri configurazione set cliccando la card
@@ -1381,6 +1478,11 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
+                if (match.status === 'completed' || isMatchCompleted(match)) {
+                    localStorage.setItem('selectedMatchId', match.id);
+                    window.location.href = 'report-riepilogo-all.html';
+                    return;
+                }
 
                 // 1) Se completa -> riepilogo
                 try {
@@ -1654,33 +1756,71 @@
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
       })();
     </script>
-    <div id="import-progress" class="import-progress" hidden>
-      <div class="import-progress-title">Importazione</div>
-      <div class="import-progress-bar"><div class="import-progress-fill" id="import-progress-fill"></div></div>
-      <div class="import-progress-text" id="import-progress-text"></div>
+    <style>
+      .import-overlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999}
+      .import-overlay[hidden]{display:none !important}
+      .import-card{width:min(640px,92vw);border-radius:16px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 20px 40px rgba(0,0,0,.18);padding:18px}
+      .import-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+      .import-title{font-weight:700;color:#0f172a}
+      .import-sub{color:#64748b;font-size:13px}
+      .import-progress-wrap{margin-top:6px;background:#f1f5f9;border:1px solid #e5e7eb;border-radius:12px;height:12px;overflow:hidden}
+      .import-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ea5e9,#2563eb);transition:width .25s ease}
+      .import-status{display:flex;align-items:center;gap:10px;margin-top:10px;color:#334155}
+      .import-spin{width:16px;height:16px;border-radius:999px;border:2px solid #93c5fd;border-top-color:#2563eb;animation:spin .8s linear infinite}
+      .import-percent{margin-left:auto;color:#0d6efd;font-weight:600}
+      .import-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+      .step{border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;font-size:12px;color:#475569;display:flex;align-items:center;gap:8px}
+      .step::before{content:'';width:8px;height:8px;border-radius:999px;background:#e2e8f0}
+      .step.active{border-color:#2563eb;color:#1e293b}
+      .step.active::before{background:#2563eb}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+    <div id="import-progress" class="import-overlay" hidden>
+      <div class="import-card" role="dialog" aria-live="polite" aria-label="Stato import">
+        <div class="import-head">
+          <div class="import-title" id="import-progress-title">Importazione partita</div>
+          <div class="import-sub" id="import-progress-sub">In corso…</div>
+        </div>
+        <div class="import-progress-wrap"><div class="import-progress-fill" id="import-progress-fill"></div></div>
+        <div class="import-status">
+          <div class="import-spin" id="import-spin"></div>
+          <div id="import-progress-text">Avvio</div>
+          <div class="import-percent" id="import-progress-percent">0%</div>
+        </div>
+        <div class="import-steps">
+          <div class="step" data-key="lettura">Lettura file</div>
+          <div class="step" data-key="elaborazione">Elaborazione</div>
+          <div class="step" data-key="analisi">Analisi fogli</div>
+          <div class="step" data-key="meta">Metadati e roster</div>
+          <div class="step" data-key="set">Import set</div>
+          <div class="step" data-key="riepilogo">Riepilogo</div>
+          <div class="step" data-key="completato">Completato</div>
+        </div>
+      </div>
     </div>
     <script>
       function showImportProgress(title){
-        var el=document.getElementById('import-progress');
-        if(!el) return;
-        el.hidden=false;
-        var t=el.querySelector('.import-progress-title');
-        if(t) t.textContent=title||'Importazione';
-        var f=document.getElementById('import-progress-fill');
-        if(f) f.style.width='0%';
-        var tx=document.getElementById('import-progress-text');
-        if(tx) tx.textContent='';
+        var el=document.getElementById('import-progress'); if(!el) return; el.hidden=false;
+        var t=document.getElementById('import-progress-title'); if(t) t.textContent=title||'Importazione partita';
+        var sub=document.getElementById('import-progress-sub'); if(sub) sub.textContent='In corso…';
+        var f=document.getElementById('import-progress-fill'); if(f) f.style.width='0%';
+        var tx=document.getElementById('import-progress-text'); if(tx) tx.textContent='Avvio';
+        var pc=document.getElementById('import-progress-percent'); if(pc) pc.textContent='0%';
+        var spin=document.getElementById('import-spin'); if(spin) spin.style.visibility='visible';
+        document.querySelectorAll('.import-steps .step').forEach(function(s){ s.classList.remove('active'); });
       }
       function updateImportProgress(p,text){
-        var f=document.getElementById('import-progress-fill');
-        if(f) f.style.width=(Math.max(0,Math.min(100,Math.round(p)))+'%');
-        var tx=document.getElementById('import-progress-text');
-        if(tx && text!=null) tx.textContent=String(text);
+        var val=Math.max(0,Math.min(100,Math.round(p||0)));
+        var f=document.getElementById('import-progress-fill'); if(f) f.style.width=(val+'%');
+        var pc=document.getElementById('import-progress-percent'); if(pc) pc.textContent=(val+'%');
+        var tx=document.getElementById('import-progress-text'); if(tx && text!=null) tx.textContent=String(text);
+        var key=''; var s=String(text||'').toLowerCase();
+        if (s.includes('lettura')) key='lettura'; else if (s.includes('elaborazione')) key='elaborazione'; else if (s.includes('analisi')) key='analisi'; else if (s.includes('meta')) key='meta'; else if (s.startsWith('set')) key='set'; else if (s.includes('riepilogo')||s.includes('ricalcolo')) key='riepilogo'; else if (s.includes('completato')) key='completato';
+        if (key){ document.querySelectorAll('.import-steps .step').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-key')===key); }); }
+        var spin=document.getElementById('import-spin'); if(spin) spin.style.visibility = (val>=100 ? 'hidden' : 'visible');
+        var sub=document.getElementById('import-progress-sub'); if(sub) sub.textContent = (val>=100 ? 'Fatto' : 'In corso…');
       }
-      function hideImportProgress(){
-        var el=document.getElementById('import-progress');
-        if(el) el.hidden=true;
-      }
+      function hideImportProgress(){ var el=document.getElementById('import-progress'); if(el) el.hidden=true; }
     </script>
     <script>
       async function showImportSummary(sessionData){

@@ -84,7 +84,9 @@ class MatchesModule {
                 if (resTeam?.success) teamMatches = resTeam.documents;
             }
             // Usa solo le partite della squadra selezionata
-            this.state.matches = this.deduplicateMatches(teamMatches);
+            const localMatches = this.getLocalMatches();
+            const merged = this.deduplicateMatches([].concat(localMatches, teamMatches));
+            this.state.matches = merged;
             
             this.notifyMatchesUpdate();
             
@@ -99,7 +101,21 @@ class MatchesModule {
     /**
      * Ottiene le partite dal localStorage
      */
-    getLocalMatches() { return []; }
+    getLocalMatches() {
+        let list = [];
+        try { list = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { list = []; }
+        const currentTeam = window.teamsModule?.getCurrentTeam?.();
+        if (!currentTeam) return Array.isArray(list) ? list : [];
+        const selId = currentTeam?.id != null ? String(currentTeam.id) : null;
+        const selName = currentTeam?.name || '';
+        return (Array.isArray(list) ? list : []).filter(m => {
+            const teamIdMatch = m.teamId != null && selId ? String(m.teamId) === selId : false;
+            const my = m.myTeam || m.teamName;
+            const home = m.homeTeam;
+            const away = m.awayTeam;
+            return teamIdMatch || (selName && (my === selName || home === selName || away === selName));
+        });
+    }
 
     /**
      * Deduplica le partite basandosi sull'ID

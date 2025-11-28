@@ -1175,6 +1175,8 @@ async function saveCurrentMatch() {
             localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
         } catch (e) { console.warn('Aggiornamento dati per set fallito:', e); }
 
+        const __label = __computeMatchStatusLabel(sessionData);
+        const __code = __mapMatchStatusCode(__label);
         const payload = {
             id: sessionData.id || ('match_' + Date.now()),
             teamId: selectedTeamId || null,
@@ -1188,7 +1190,8 @@ async function saveCurrentMatch() {
             setConfig: sessionData.setConfig || {},
             sessionStartTime: sessionData.startTime || null,
             scoutingEndTime: new Date().toISOString(),
-            status: 'in_progress',
+            status: __code,
+            statusLabel: __label,
             score: {
                 home: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
                 away: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0
@@ -3491,6 +3494,74 @@ function updateSetSidebarColors(){
 
 // Espone per altri script
 window.updateSetSidebarColors = updateSetSidebarColors;
+
+function __getSetDataSnapshotFromSession(session, setNum){
+    let actions = [];
+    let home = 0, away = 0;
+    let started = false;
+    try {
+        const abSet = session.actionsBySet || {};
+        const stBySet = session.setStateBySet || {};
+        const shBySet = session.scoreHistoryBySet || {};
+        const sumBySet = session.setSummary || {};
+        actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
+        const st = stBySet[setNum] || {};
+        if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+            home = Number(st.homeScore||0);
+            away = Number(st.awayScore||0);
+        } else {
+            const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+            const last = arr.length ? arr[arr.length - 1] : null;
+            home = Number(last?.homeScore||0);
+            away = Number(last?.awayScore||0);
+            if (!home && !away) {
+                const sum = sumBySet[setNum] || {};
+                home = Number(sum.home||0);
+                away = Number(sum.away||0);
+            }
+        }
+        started = !!st.setStarted;
+    } catch(_) {}
+    return { actions, home, away, started };
+}
+
+function __isSetCompletedFromScores(setNum, home, away){
+    const isSetFive = Number(setNum) === 5;
+    const minScore = isSetFive ? 15 : 25;
+    if ((home >= minScore || away >= minScore) && Math.abs(home - away) >= 2) {
+        return true;
+    }
+    return false;
+}
+
+function __computeSetStatusFromSession(session, setNum){
+    const hasMeta = __getSetMetaPresence(setNum);
+    const snap = __getSetDataSnapshotFromSession(session, setNum);
+    const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
+    const completed = __isSetCompletedFromScores(setNum, snap.home, snap.away);
+    if (completed) return 'completed';
+    if (hasQuartine || snap.started || hasMeta) return 'partial';
+    return 'none';
+}
+
+function __computeMatchStatusLabel(session){
+    let completed = 0;
+    let partial = false;
+    for (let i = 1; i <= 6; i++) {
+        const s = __computeSetStatusFromSession(session, i);
+        if (s === 'completed') completed++;
+        else if (s === 'partial') partial = true;
+    }
+    if (completed >= 3) return 'Ultimato';
+    if (partial) return 'parziale';
+    return 'inizializzato';
+}
+
+function __mapMatchStatusCode(label){
+    if (label === 'Ultimato') return 'completed';
+    if (label === 'parziale') return 'in_progress';
+    return 'initialized';
+}
 
 function checkSetEnd() {
     // Evita prompt durante import/ricostruzioni automatiche

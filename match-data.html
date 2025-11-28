@@ -220,8 +220,7 @@
     });
     document.addEventListener('DOMContentLoaded', function(){ var s=getSession(); var f=document.getElementById('fileNameInput'); if(f) f.value=String(s.fileName||''); });
   </script>
-</body>
-</html>
+  <script>
     (function(){
       const toggleBtn = document.getElementById('headerMenuToggle');
       const menu = document.getElementById('headerMenu');
@@ -246,3 +245,6 @@
         if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); location.href='src/index.html'; } });
       }
     })();
+  </script>
+</body>
+</html>

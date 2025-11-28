@@ -1218,9 +1218,11 @@
                 // Roster: B..F da riga 3
                 const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
                 for (let r = 3; r <= (range.e.r + 1); r++) {
-                    const b = ws[`B${r}`], c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
-                    let number = b && b.v != null ? String(b.v).trim() : '';
-                    // Rimuove apice iniziale e normalizza a due cifre
+                    const b = ws[`B${r}`];
+                    const rawB = b && b.v != null ? String(b.v).trim() : '';
+                    if (!rawB) break;
+                    const c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
+                    let number = rawB;
                     if (number.startsWith("'")) number = number.slice(1);
                     number = ensureTwoDigits(number);
                     const surname = c && c.v != null ? String(c.v).trim() : '';
@@ -1488,10 +1490,72 @@
 
                 await showImportSummary(sessionData);
 
-                // Crea/aggiorna voce partita nell'elenco locale e reindirizza all'elenco
+                
                 try {
                     const teamId = localStorage.getItem('selectedTeamId') || null;
                     const matchId = `m_${Date.now()}`;
+                    
+                    function __getSetDataSnapshotFromSession(session, setNum){
+                        let actions = [];
+                        let home = 0, away = 0;
+                        let started = false;
+                        try {
+                            const abSet = session.actionsBySet || {};
+                            const stBySet = session.setStateBySet || {};
+                            const shBySet = session.scoreHistoryBySet || {};
+                            const sumBySet = session.setSummary || {};
+                            actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
+                            const st = stBySet[setNum] || {};
+                            if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                                home = Number(st.homeScore||0);
+                                away = Number(st.awayScore||0);
+                            } else {
+                                const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+                                const last = arr.length ? arr[arr.length - 1] : null;
+                                home = Number(last?.homeScore||0);
+                                away = Number(last?.awayScore||0);
+                                if (!home && !away) {
+                                    const sum = sumBySet[setNum] || {};
+                                    home = Number(sum.home||0);
+                                    away = Number(sum.away||0);
+                                }
+                            }
+                            started = !!st.setStarted;
+                        } catch(_) {}
+                        return { actions, home, away, started };
+                    }
+                    function __isSetCompletedFromScores(setNum, home, away){
+                        const isSetFive = Number(setNum) === 5;
+                        const minScore = isSetFive ? 15 : 25;
+                        return ((home >= minScore || away >= minScore) && Math.abs(home - away) >= 2);
+                    }
+                    function __computeSetStatusFromSession(session, setNum){
+                        const snap = __getSetDataSnapshotFromSession(session, setNum);
+                        const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
+                        const completed = __isSetCompletedFromScores(setNum, snap.home, snap.away);
+                        if (completed) return 'completed';
+                        if (hasQuartine || snap.started) return 'partial';
+                        return 'none';
+                    }
+                    function __computeMatchStatusLabel(session){
+                        let completed = 0; let partial = false;
+                        for (let i = 1; i <= 6; i++) {
+                            const s = __computeSetStatusFromSession(session, i);
+                            if (s === 'completed') completed++;
+                            else if (s === 'partial') partial = true;
+                        }
+                        if (completed >= 3) return 'Ultimato';
+                        if (partial) return 'parziale';
+                        return 'inizializzato';
+                    }
+                    function __mapMatchStatusCode(label){
+                        if (label === 'Ultimato') return 'completed';
+                        if (label === 'parziale') return 'in_progress';
+                        return 'initialized';
+                    }
+
+                    const __label = __computeMatchStatusLabel(sessionData);
+                    const __code = __mapMatchStatusCode(__label);
                     const match = {
                         id: matchId,
                         teamId,
@@ -1506,7 +1570,8 @@
                         scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
                         roster: Array.isArray(sessionData.roster) ? sessionData.roster : (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_) { return []; } })(),
                         createdAt: new Date().toISOString(),
-                        status: 'in_progress'
+                        status: __code,
+                        statusLabel: __label
                     };
                     const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
                     local.unshift(match);

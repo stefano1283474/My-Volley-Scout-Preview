@@ -178,29 +178,49 @@
       </div>
     </main>
 
-    <script src="app.js?v=9"></script>
-    <script>
+  <script src="app.js?v=9"></script>
+  <script>
       // All’avvio: ripristina la sessione salvata (roster, match, logs)
       document.addEventListener('DOMContentLoaded', function(){
-        try {
-          const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
-          if (sessionData && Object.keys(sessionData).length > 0 && typeof window.loadScoutingSession === 'function') {
-            window.loadScoutingSession(sessionData);
-          }
-        } catch(_) {}
-        // Forza la modalità Report – Riepilogo All
-        try { switchPage('report-riepilogo-all'); } catch (_) {}
-        // Calcolo offset sticky per la seconda colonna in base alla larghezza effettiva della prima
-        function computeStickyOffsets(){
           try {
-            document.querySelectorAll('#report-riepilogo-all .simple-table').forEach(tbl => {
-              const firstCell = tbl.querySelector('tbody tr td:first-child') || tbl.querySelector('thead tr th:first-child');
-              if (!firstCell) return;
-              const w = Math.round(firstCell.getBoundingClientRect().width);
-              tbl.style.setProperty('--sticky-left-2', (w || 56) + 'px');
-            });
+              const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+              if (sessionData && Object.keys(sessionData).length > 0 && typeof window.loadScoutingSession === 'function') {
+                  window.loadScoutingSession(sessionData);
+              }
           } catch(_) {}
-        }
+          // Forza la modalità Report – Riepilogo All
+          try { switchPage('report-riepilogo-all'); } catch (_) {}
+          // Gestione menu account: toggle e azioni
+          try {
+            const toggle = document.getElementById('headerMenuToggle');
+            const menu = document.getElementById('headerMenu');
+            function closeMenu(){ if (menu){ menu.hidden = true; } if (toggle){ toggle.setAttribute('aria-expanded','false'); } }
+            function openMenu(){ if (menu){ menu.hidden = false; } if (toggle){ toggle.setAttribute('aria-expanded','true'); } }
+            if (toggle && menu){
+              toggle.addEventListener('click', (e)=>{ e.preventDefault(); const expanded = toggle.getAttribute('aria-expanded') === 'true'; if (expanded) closeMenu(); else openMenu(); });
+              document.addEventListener('click', (e)=>{ if (!menu.hidden && !menu.contains(e.target) && !toggle.contains(e.target)){ closeMenu(); } });
+              document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeMenu(); } });
+            }
+            const toMatches = document.getElementById('goToMatchesBtnMobile');
+            const toTeams = document.getElementById('goToTeamsBtnMobile');
+            const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+            const logoutBtn = document.getElementById('signOutBtnMobile');
+            if (toMatches){ toMatches.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='matches.html'; }); }
+            if (toTeams){ toTeams.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
+            if (exitBtn){ exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
+            if (logoutBtn){ logoutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } localStorage.removeItem('selectedTeamId'); } finally { closeMenu(); location.href='/auth-login.html'; } }); }
+          } catch(_) {}
+          // Calcolo offset sticky per la seconda colonna in base alla larghezza effettiva della prima
+          function computeStickyOffsets(){
+              try {
+                  document.querySelectorAll('#report-riepilogo-all .simple-table').forEach(tbl => {
+                      const firstCell = tbl.querySelector('tbody tr td:first-child') || tbl.querySelector('thead tr th:first-child');
+                      if (!firstCell) return;
+                      const w = Math.round(firstCell.getBoundingClientRect().width);
+                      tbl.style.setProperty('--sticky-left-2', (w || 56) + 'px');
+                  });
+              } catch(_) {}
+          }
         // Calcolo offset per la barra filtri sticky sotto la topbar
         function setStickyFilterTop(){
           try {

@@ -118,8 +118,10 @@
           <div class="menu-item" id="accountEmail">Caricamento...</div>
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+          <button class="menu-item" id="importMatchXlsBtn" type="button">Importa Partita (Xls)</button>
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci tutto</button>
-          <button class="menu-item" id="accountLogout">Esci</button>
+          <button class="menu-item" id="accountExit">Esci</button>
+          <button class="menu-item" id="accountLogout">Logout</button>
           <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 3.11</div>
         </div>
       </div>
@@ -192,6 +194,7 @@
   <script src="./auth.js"></script>
   <script src="./src/modules/teams/teams.js"></script>
   <script src="./src/modules/matches/matches.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <script>
     const teamsGrid = document.getElementById('teamsGrid');
@@ -333,6 +336,146 @@
       }).catch(err => alert(err?.message || 'Errore creazione squadra'));
     }
 
+    async function importMatchFromExcelOnMyTeams(){
+      try {
+        try { var m=document.getElementById('accountMenu'); var b=document.getElementById('accountBtn'); if(m){ m.hidden=true; } if(b){ b.setAttribute('aria-expanded','false'); } } catch(_){}
+        let file = null;
+        if (window.showOpenFilePicker) {
+          try {
+            const [handle] = await window.showOpenFilePicker({ multiple: false, types: [{ description: 'Excel Workbook', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] } }] });
+            file = await handle.getFile();
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+            throw err;
+          }
+        } else {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12';
+          input.style.display = 'none';
+          document.body.appendChild(input);
+          const picked = await new Promise(resolve => { input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null); input.click(); });
+          document.body.removeChild(input);
+          file = picked;
+        }
+
+        if (!file) return;
+        try { showImportProgress('Importazione partita'); } catch(_){}
+        try { updateImportProgress(10, 'Lettura file'); } catch(_){}
+        const data = await file.arrayBuffer();
+        try { updateImportProgress(30, 'Elaborazione file'); } catch(_){}
+        const wb = XLSX.read(data, { type: 'array' });
+        try { updateImportProgress(40, 'Analisi fogli'); } catch(_){}
+
+        const sessionData = {};
+        sessionData.fileName = file && file.name ? String(file.name) : '';
+        sessionData.actionsBySet = {};
+        sessionData.setMeta = {};
+        sessionData.scoreHistoryBySet = {};
+        sessionData.setStateBySet = {};
+
+        (function(){
+          try {
+            let ws = wb.Sheets['El. Gioc.'] || null;
+            if (!ws) {
+              const alt = (wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')));
+              if (alt) ws = wb.Sheets[alt] || null;
+            }
+            if (!ws) return;
+            const opponent = ws['D20'] && ws['D20'].v != null ? String(ws['D20'].v).trim() : '';
+            let matchDate = ws['D21'] && ws['D21'].v != null ? String(ws['D21'].v).trim() : '';
+            try {
+              const mdCell = ws['D21'];
+              if (mdCell && typeof mdCell.v === 'number') {
+                const dt = XLSX.SSF.parse_date_code(mdCell.v);
+                if (dt && dt.y && dt.m && dt.d) {
+                  matchDate = new Date(dt.y, dt.m - 1, dt.d).toISOString().slice(0,10);
+                }
+              }
+            } catch(_) {}
+            const eventType = ws['D22'] && ws['D22'].v != null ? String(ws['D22'].v).trim() : '';
+            const locLabel = ws['D23'] && ws['D23'].v != null ? String(ws['D23'].v).trim().toLowerCase() : '';
+            const notes = ws['D24'] && ws['D24'].v != null ? String(ws['D24'].v).trim() : '';
+            const homeAway = (locLabel === 'casa') ? 'home' : (locLabel === 'trasferta' ? 'away' : '');
+            if (opponent) sessionData.opponentTeam = opponent;
+            if (matchDate) sessionData.matchDate = matchDate;
+            if (eventType) sessionData.matchType = eventType;
+            if (homeAway) sessionData.homeAway = homeAway; else if (locLabel) sessionData.location = locLabel;
+            if (notes) sessionData.description = notes;
+            const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+            const roster = [];
+            for (let r = 3; r <= (range.e.r + 1); r++) {
+              const b = ws[`B${r}`];
+              const rawB = b && b.v != null ? String(b.v).trim() : '';
+              if (!rawB) break;
+              const c = ws[`C${r}`], d = ws[`D${r}`], e = ws[`E${r}`], f = ws[`F${r}`];
+              let num = rawB;
+              if (num.startsWith("'")) num = num.slice(1);
+              num = num.replace(/\D/g,'').padStart(2,'0').slice(-2);
+              const sur = c && c.v != null ? String(c.v).trim() : '';
+              const nam = d && d.v != null ? String(d.v).trim() : '';
+              const nick = e && e.v != null ? String(e.v).trim() : '';
+              const role = (function(raw){ const s = String(raw||'').trim(); const up = s.toUpperCase(); if (up === 'P' || /palleggiator|alzator/i.test(s)) return 'Palleggiatore'; if (up === 'S' || /schiacciator|banda|posto\s*4/i.test(s)) return 'Schiacciatore'; if (up === 'C' || /central/i.test(s)) return 'Centrale'; if (up === 'O' || /oppost/i.test(s)) return 'Opposto'; if (up === 'L' || /liber/i.test(s)) return 'Libero'; return ''; })(f && f.v != null ? String(f.v).trim() : '');
+              if (!num && !sur && !nam && !nick && !role) continue;
+              roster.push({ number: num, surname: sur, name: nam, nickname: nick, role });
+            }
+            if (roster.length) {
+              sessionData.roster = roster;
+              try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
+            }
+          } catch(_) {}
+        })();
+
+        function deduceInitialPhaseFromB18(ws){
+          try {
+            const b18 = ws['B18'];
+            const val = String(b18 && b18.v != null ? b18.v : '').trim();
+            if (!val || val.length < 3) return 'servizio';
+            const ch = String(val.charAt(2)).toLowerCase();
+            if (ch === 'b') return 'servizio';
+            if (ch === 'r') return 'ricezione';
+            return 'servizio';
+          } catch(_) { return 'servizio'; }
+        }
+
+        const setSheets = (function(){ const names = wb.SheetNames||[]; const pairs = names.map(n => { const m = /set\s*(\d+)/i.exec(String(n||'')); return m ? { n, i: parseInt(m[1],10) } : null; }).filter(Boolean); pairs.sort((a,b) => a.i - b.i); return pairs.map(p => ({ num: p.i, ws: wb.Sheets[p.n] })).filter(s => s.ws); })();
+        for (const entry of setSheets) {
+          const setNum = entry.num;
+          const ws = entry.ws;
+          let initialRotation = '';
+          try { const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : ''; if (a7) initialRotation = `P${String(a7).replace(/^P/i,'')}`; } catch(_) {}
+          try { const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : ''; if (a6) sessionData.setMeta[setNum] = { ...(sessionData.setMeta[setNum]||{}), opponentRotation: `P${String(a6).replace(/^P/i,'')}` }; } catch(_) {}
+          const initialPhase = deduceInitialPhaseFromB18(ws);
+          const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+          const startRow = 18;
+          const quartets = [];
+          for (let r = startRow; r <= (range.e.r + 1); r++) {
+            const cell = ws[`B${r}`];
+            if (!cell) continue;
+            const val = String(cell.v == null ? '' : cell.v).trim();
+            if (!val) continue;
+            quartets.push(val);
+          }
+          let homeScore = 0;
+          let awayScore = 0;
+          try { const c12 = ws['C12'] && ws['C12'].v != null ? ws['C12'].v : null; const e12 = ws['E12'] && ws['E12'].v != null ? ws['E12'].v : null; homeScore = Number(c12 || 0) || 0; awayScore = Number(e12 || 0) || 0; } catch(_) {}
+          sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
+          sessionData.setMeta[setNum] = { ourRotation: initialRotation, phase: initialPhase };
+          sessionData.setSummary = sessionData.setSummary || {};
+          sessionData.setSummary[setNum] = { home: homeScore, away: awayScore, rotation: initialRotation || 'P1', phase: initialPhase };
+        }
+
+        try { const meta1 = sessionData.setMeta?.[1]; if (meta1 && meta1.ourRotation && meta1.phase) { sessionData.setConfig = sessionData.setConfig || {}; sessionData.setConfig.ourRotation = meta1.ourRotation; sessionData.setConfig.phase = meta1.phase; sessionData.setConfig.set = 1; } } catch(_) {}
+        try { const teamId = localStorage.getItem('selectedTeamId'); if (teamId) sessionData.teamId = teamId; } catch(_) {}
+        localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+        try { updateImportProgress(92, 'Riepilogo pronto'); } catch(_){}
+        try { hideImportProgress(); } catch(_){}
+        window.location.href = 'match-data.html';
+      } catch (error) {
+        alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Auth stato e account menu
       async function initMyTeams() {
@@ -366,7 +509,11 @@
       if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'my-teams.html'; }); }
       const goToMatchesBtn = document.getElementById('goToMatchesBtn');
       if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'matches.html'; }); }
-      if (accountLogout){ accountLogout.addEventListener('click', async ()=>{ try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); window.location.href='/auth-login.html'; } catch(e){} }); }
+      const importMatchBtn = document.getElementById('importMatchXlsBtn');
+      if (importMatchBtn){ importMatchBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ await importMatchFromExcelOnMyTeams(); } finally { if(accountMenu){ accountMenu.hidden = true; } if(accountBtn){ accountBtn.setAttribute('aria-expanded','false'); } } }); }
+      const accountExit = document.getElementById('accountExit');
+      if (accountExit){ accountExit.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){} window.location.href = 'my-teams.html'; }); }
+      if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){} window.location.href='/auth-login.html'; } }); }
 
       renderTeamsList();
       if (infoBtn && infoDialog) { infoBtn.addEventListener('click', (e)=>{ e.preventDefault(); infoDialog.showModal(); }); }
@@ -391,6 +538,74 @@
       if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderTeamsList(); });
     });
   </script>
+  <style>
+    .import-overlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(15,23,42,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .import-overlay[hidden]{display:none !important}
+    .import-card{width:min(640px,92vw);border-radius:16px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 20px 40px rgba(0,0,0,.18);padding:18px}
+    .import-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .import-title{font-weight:700;color:#0f172a}
+    .import-sub{color:#64748b;font-size:13px}
+    .import-progress-wrap{margin-top:6px;background:#f1f5f9;border:1px solid #e5e7eb;border-radius:12px;height:12px;overflow:hidden}
+    .import-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ea5e9,#2563eb);transition:width .25s ease}
+    .import-status{display:flex;align-items:center;gap:10px;margin-top:10px;color:#334155}
+    .import-spin{width:16px;height:16px;border-radius:999px;border:2px solid #93c5fd;border-top-color:#2563eb;animation:spin .8s linear infinite}
+    .import-percent{margin-left:auto;color:#0d6efd;font-weight:600}
+    .import-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+    .step{border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;font-size:12px;color:#475569;display:flex;align-items:center;gap:8px}
+    .step::before{content:'';width:8px;height:8px;border-radius:999px;background:#e2e8f0}
+    .step.active{border-color:#2563eb;color:#1e293b}
+    .step.active::before{background:#2563eb}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+  <div id="import-progress" class="import-overlay" hidden>
+    <div class="import-card" role="dialog" aria-live="polite" aria-label="Stato import">
+      <div class="import-head">
+        <div class="import-title" id="import-progress-title">Importazione partita</div>
+        <div class="import-sub" id="import-progress-sub">In corso…</div>
+      </div>
+      <div class="import-progress-wrap"><div class="import-progress-fill" id="import-progress-fill"></div></div>
+      <div class="import-status">
+        <div class="import-spin" id="import-spin"></div>
+        <div id="import-progress-text">Avvio</div>
+        <div class="import-percent" id="import-progress-percent">0%</div>
+      </div>
+      <div class="import-steps">
+        <div class="step" data-key="lettura">Lettura file</div>
+        <div class="step" data-key="elaborazione">Elaborazione</div>
+        <div class="step" data-key="analisi">Analisi fogli</div>
+        <div class="step" data-key="meta">Metadati e roster</div>
+        <div class="step" data-key="set">Import set</div>
+        <div class="step" data-key="riepilogo">Riepilogo</div>
+        <div class="step" data-key="completato">Completato</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function showImportProgress(title){ var el=document.getElementById('import-progress'); if(!el) return; el.hidden=false; var t=document.getElementById('import-progress-title'); if(t) t.textContent=title||'Importazione partita'; var sub=document.getElementById('import-progress-sub'); if(sub) sub.textContent='In corso…'; var f=document.getElementById('import-progress-fill'); if(f) f.style.width='0%'; var tx=document.getElementById('import-progress-text'); if(tx) tx.textContent='Avvio'; var pc=document.getElementById('import-progress-percent'); if(pc) pc.textContent='0%'; var spin=document.getElementById('import-spin'); if(spin) spin.style.visibility='visible'; document.querySelectorAll('.import-steps .step').forEach(function(s){ s.classList.remove('active'); }); }
+    function updateImportProgress(p,text){ var val=Math.max(0,Math.min(100,Math.round(p||0))); var f=document.getElementById('import-progress-fill'); if(f) f.style.width=(val+'%'); var pc=document.getElementById('import-progress-percent'); if(pc) pc.textContent=(val+'%'); var tx=document.getElementById('import-progress-text'); if(tx && text!=null) tx.textContent=String(text); var key=''; var s=String(text||'').toLowerCase(); if (s.includes('lettura')) key='lettura'; else if (s.includes('elaborazione')) key='elaborazione'; else if (s.includes('analisi')) key='analisi'; else if (s.includes('meta')) key='meta'; else if (s.startsWith('set')) key='set'; else if (s.includes('riepilogo')||s.includes('ricalcolo')) key='riepilogo'; else if (s.includes('completato')) key='completato'; if (key){ document.querySelectorAll('.import-steps .step').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-key')===key); }); } var spin=document.getElementById('import-spin'); if(spin) spin.style.visibility = (val>=100 ? 'hidden' : 'visible'); var sub=document.getElementById('import-progress-sub'); if(sub) sub.textContent = (val>=100 ? 'Fatto' : 'In corso…'); }
+    function hideImportProgress(){ var el=document.getElementById('import-progress'); if(el) el.hidden=true; }
+  </script>
+  <script>
+    async function showImportSummary(sessionData){ return new Promise((resolve) => { var dlg = document.getElementById('import-summary-dialog'); var list = document.getElementById('importSummaryList'); var ok = document.getElementById('importSummaryOk'); var closeBtn = document.getElementById('importSummaryClose'); if (!dlg || !list || !ok || !closeBtn) { resolve(); return; } list.innerHTML = ''; var dateVal = (sessionData && (sessionData.matchDate || sessionData.date)) ? String(sessionData.matchDate || sessionData.date).slice(0,10) : ''; var oppVal = sessionData && (sessionData.opponentTeam || sessionData.opponent) ? String(sessionData.opponentTeam || sessionData.opponent) : ''; var typeVal = (sessionData && (sessionData.matchType || sessionData.eventType)) ? String(sessionData.matchType || sessionData.eventType).toLowerCase() : ''; var haVal = (function(){ var hv = sessionData && sessionData.homeAway ? String(sessionData.homeAway) : ''; if (!hv && sessionData && sessionData.location) { var loc = String(sessionData.location).toLowerCase(); if (loc === 'casa') hv = 'home'; if (loc === 'trasferta') hv = 'away'; } return hv; })(); var form = document.createElement('div'); form.className = 'dialog-form'; form.innerHTML = ('<label><span>Data gara</span>'+'<div class="date-row">'+'<select id="is_day" aria-label="Giorno" class="input"></select>'+'<select id="is_month" aria-label="Mese" class="input"></select>'+'<input id="is_year" type="number" min="1900" max="2100" step="1" placeholder="Anno" class="input" />'+'</div>'+'<small id="is_date_preview" style="color:#6c757d;" aria-live="polite"></small>'+'</label>'+'<label><span>Avversario</span>'+'<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" class="input" />'+'</label>'+'<label><span>Tipo partita</span>'+'<select id="is_type" class="input">'+'<option value="">Seleziona</option>'+'<option value="campionato">Campionato</option>'+'<option value="coppa">Coppa</option>'+'<option value="pgs">PGS</option>'+'<option value="csi">CSI</option>'+'<option value="amichevole">Amichevole</option>'+'<option value="torneo">Torneo</option>'+'<option value="playoff">Playoff</option>'+'<option value="partita">Partita</option>'+'<option value="altro">Altro</option>'+'</select></label>'+'<label><span>Casa/Trasferta</span>'+'<select id="is_homeAway" class="input">'+'<option value="">Seleziona</option>'+'<option value="home">Casa</option>'+'<option value="away">Trasferta</option>'+'</select></label>'); list.appendChild(form); var selType = form.querySelector('#is_type'); var selHA = form.querySelector('#is_homeAway'); if (selType) selType.value = typeVal || ''; if (selHA) selHA.value = haVal || ''; (function(){ var daySel = form.querySelector('#is_day'); var monthSel = form.querySelector('#is_month'); var yearInp = form.querySelector('#is_year'); var prev = form.querySelector('#is_date_preview'); var MONTHS = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']; function pad2(n){ return String(n).padStart(2,'0'); } function setInitial(){ var dd = ''; var mm = ''; var yyyy = ''; var m = String(dateVal||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) { yyyy = m[1]; mm = m[2]; dd = m[3]; } daySel.innerHTML = Array.from({length:31}, (_,i)=>'<option value="'+pad2(i+1)+'">'+pad2(i+1)+'</option>').join(''); monthSel.innerHTML = Array.from({length:12}, (_,i)=>'<option value="'+pad2(i+1)+'">'+(MONTHS[i].charAt(0).toUpperCase()+MONTHS[i].slice(1))+'</option>').join(''); if (dd) daySel.value = String(dd); if (mm) monthSel.value = String(mm); if (yyyy) yearInp.value = String(yyyy); } function iso(){ var dd = String(daySel.value||''); var mm = String(monthSel.value||''); var yyyy = String(yearInp.value||''); if (!dd || !mm || !yyyy) return ''; return yyyy+'-'+mm+'-'+dd; } function update(){ var dd = String(daySel.value||''); var mm = String(monthSel.value||''); var yyyy = String(yearInp.value||''); var mIdx = mm ? (Number(mm)-1) : -1; var monthCap = mIdx>=0 ? (MONTHS[mIdx].charAt(0).toUpperCase()+MONTHS[mIdx].slice(1)) : ''; prev.textContent = (dd && mm && yyyy) ? (dd+'/'+mm+'/'+yyyy + ' — ' + Number(dd) + ' ' + monthCap + ' ' + yyyy) : ''; } setInitial(); update(); daySel.addEventListener('change', update); monthSel.addEventListener('change', update); yearInp.addEventListener('input', update); form._composeISO = iso; })(); for (var i=1; i<=6; i++){ var sum = sessionData && sessionData.setSummary ? sessionData.setSummary[i] : null; var meta = sessionData && sessionData.setMeta ? sessionData.setMeta[i] : null; var home = sum ? Number(sum.home||0) : (sessionData?.setStateBySet?.[i]?.homeScore||0); var away = sum ? Number(sum.away||0) : (sessionData?.setStateBySet?.[i]?.awayScore||0); var rot = (sum && sum.rotation) || (meta && meta.ourRotation) || 'P1'; var rotNum = String(rot).replace(/^P/i,''); var ph = (sum && sum.phase) || (meta && meta.phase) || 'servizio'; var phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio'; var row = document.createElement('div'); row.className = 'match-card'; row.innerHTML = 'Set ' + i + ' : ' + home + ' a ' + away + ', Inizio in p' + rotNum + ' in ' + phLbl; list.appendChild(row); } try { dlg.style.display = 'flex'; } catch(_){} function confirm(){ var daySel = document.getElementById('is_day'); var monthSel = document.getElementById('is_month'); var yearInp = document.getElementById('is_year'); var oppInput = document.getElementById('is_opp'); var typeInput = document.getElementById('is_type'); var haInput = document.getElementById('is_homeAway'); var d = (function(){ try { var fn = form && form._composeISO ? form._composeISO : null; return fn ? fn() : ''; } catch(_){ return ''; } })(); var o = oppInput ? String(oppInput.value||'').trim() : ''; var t = typeInput ? String(typeInput.value||'') : ''; var h = haInput ? String(haInput.value||'') : ''; if (!d || !o || !t || !h) { alert('Inserisci data, avversario, tipo e casa/trasferta'); return; } try { sessionData.matchDate = d; sessionData.opponentTeam = o; sessionData.matchType = t; sessionData.homeAway = h; sessionData.location = (h === 'home') ? 'casa' : 'trasferta'; localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_){ } try { dlg.style.display = 'none'; } catch(_){ } ok.removeEventListener('click', confirm); closeBtn.removeEventListener('click', cancel); resolve(); }
+          function cancel(){ try { dlg.style.display = 'none'; } catch(_){ } ok.removeEventListener('click', confirm); closeBtn.removeEventListener('click', cancel); resolve(); }
+          ok.addEventListener('click', confirm);
+          closeBtn.addEventListener('click', cancel);
+        }); }
+  </script>
+  <div id="import-summary-dialog" class="dialog" style="display:none;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="section-title rounded-title" style="text-align:center; text-transform:uppercase; margin:0;">Dati gara per set</h3>
+        <button class="close-btn" id="importSummaryClose" aria-label="Chiudi">×</button>
+      </div>
+      <div class="dialog-body">
+        <div id="importSummaryList" class="matches-list"></div>
+      </div>
+      <div class="dialog-footer">
+        <button class="export-btn" id="importSummaryOk" aria-label="OK">OK</button>
+      </div>
+    </div>
+  </div>
   <script>
     document.addEventListener('DOMContentLoaded', function(){ var c=document.querySelector('.container'); if(c) c.classList.add('page-slide-in'); });
   </script>
