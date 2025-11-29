@@ -1630,7 +1630,8 @@
         async function importActionsFromExcel(){
             try {
                 let file = null;
-                if (window.showOpenFilePicker) {
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (("ontouchstart" in window) && (navigator.maxTouchPoints||0) > 0);
+                if (window.showOpenFilePicker && !isMobile) {
                     try {
                         const [handle] = await window.showOpenFilePicker({
                             multiple: false,
@@ -1648,7 +1649,7 @@
                     // Fallback input file
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
+                    input.accept = '.xlsx,.xlsm,.xls,application/*,application/octet-stream,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
                     input.style.display = 'none';
                     document.body.appendChild(input);
                     const picked = await new Promise(resolve => {
@@ -1657,6 +1658,7 @@
                     });
                     document.body.removeChild(input);
                     file = picked;
+                    if (file && !/\.xlsm$|\.xlsx$|\.xls$/i.test(file.name||'')) { alert('Seleziona un file Excel (.xlsm, .xlsx, .xls)'); return; }
                 }
 
                 if (!file) { return; }
@@ -1665,7 +1667,10 @@
 
                 const data = await file.arrayBuffer();
                 try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
-                const wb = XLSX.read(data, { type: 'array' });
+                const readOpts = (function(){
+                    try { return { type: 'array', dense: true, sheetRows: 220, cellDates: true }; } catch(_) { return { type: 'array' }; }
+                })();
+                const wb = XLSX.read(data, readOpts);
                 try { updateImportProgress(50, 'Analisi foglio'); } catch(_) {}
                 const sheetName = wb.SheetNames && wb.SheetNames[0];
                 const ws = sheetName ? wb.Sheets[sheetName] : null;
