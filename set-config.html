@@ -544,12 +544,17 @@
             }
 
             // Controlla autenticazione
+            let __authRedirectTimer = null;
             window.authFunctions.onAuthStateChanged((user) => {
                 if (!user) {
-    window.location.href = '/auth-login.html';
+                    if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
+                    __authRedirectTimer = setTimeout(() => {
+                        const stillNull = !window.authFunctions.getCurrentUser();
+                        if (stillNull) window.location.href = '/auth-login.html';
+                    }, 600);
                     return;
                 }
-                
+                if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
                 currentUser = user;
                 if (accountEmail) accountEmail.textContent = user.email;
                 loadMatchData();

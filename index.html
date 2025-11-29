@@ -1785,15 +1785,18 @@
                     return;
                 }
 
+                let __authRedirectTimer = null;
                 window.authFunctions.onAuthStateChanged((user) => {
                     if (!user) {
-                        // Utente non autenticato: redirect immediato al login
-                        // Pulisce eventuale hash (es. #/set/1) per evitare URL come /auth-login#/set/1
                         try { window.location.hash = ''; } catch(_){}
-    window.location.href = '/auth-login.html';
+                        if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
+                        __authRedirectTimer = setTimeout(() => {
+                            const stillNull = !window.authFunctions.getCurrentUser();
+                            if (stillNull) window.location.href = '/auth-login.html';
+                        }, 600);
                         return;
                     }
-                    // Utente autenticato: se non c'è sessione attiva, porta all'elenco partite
+                    if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
                     checkScoutingSession();
                 });
             }
