@@ -111,34 +111,14 @@
                 setStatusPill(ok ? 'saved' : 'error', ok ? 'Salvato' : 'Errore');
             });
 
-            if (saveBtn && !saveBtn.dataset.bound) {
-                saveBtn.addEventListener('click', async function() {
-                    try {
-                        saveBtn.disabled = true;
-                        saveBtn.textContent = '💾 Salvataggio…';
-                        await window.saveCurrentMatch?.();
-                        alert('Partita salvata.');
-                    } catch (error) {
-                        console.error('Errore nel salvataggio partita:', error);
-                        alert('Errore nel salvataggio della partita.');
-                    } finally {
-                        saveBtn.disabled = false;
-                        saveBtn.textContent = '💾 Salva';
-                    }
-                });
-                saveBtn.dataset.bound = '1';
-            }
+            // Handler di salvataggio centralizzato in app.js; non aggiungere un secondo listener qui
 
             // Scorciatoia tastiera Ctrl+S / Cmd+S
             window.addEventListener('keydown', (e) => {
                 const isSaveShortcut = (e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's';
                 if (isSaveShortcut) {
                     e.preventDefault();
-                    if (saveBtn) {
-                        saveBtn.click();
-                    } else {
-                        try { window.saveCurrentMatch?.(); } catch(_){ /* noop */ }
-                    }
+                    try { window.saveCurrentMatch?.(); } catch(_){ /* noop */ }
                 }
             });
         });
@@ -188,13 +168,6 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Esporta Partita (Xls)</span>
-                        </button>
-                        <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
-                          <span class="menu-item-icon" aria-hidden="true">
-                            <!-- Import icon -->
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                          </span>
-                          <span>Importa Partita (Xls)</span>
                         </button>
                         <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
@@ -246,8 +219,8 @@
             <aside class="set-sidebar" aria-label="Selezione set">
               <div class="set-sidebar-header">Passa a:</div>
               <div id="setToolbar" class="set-list" role="list">
-                <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='set-config.html'; } })()">Dati Gara</button>
-                <button class="set-item" role="listitem" onclick="location.href='match-roster.html'">El. gioc.</button>
+                <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='riepilogo-gara.html'; } })()">Riepilogo Gara</button>
+                <button class="set-item" role="listitem" onclick="location.href='elenco-player.html'">Elenco Player</button>
                 <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
                 <button class="set-item" data-set="2" role="listitem">Set 2</button>
                 <button class="set-item" data-set="3" role="listitem">Set 3</button>
@@ -592,8 +565,26 @@
                     </div>
                 </div>
                 <div class="dialog-footer">
-                    <button class="export-btn" onclick="exportActionsToExcel()" aria-label="Esporta">Esporta</button>
-                    <button class="export-btn" onclick="importActionsFromExcel()" aria-label="Importa">Importa</button>
+                    <button class="icon-btn save-btn" onclick="saveAllActions()" title="Salva modifiche" aria-label="Salva">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn export-btn" onclick="exportActionsToExcel()" title="Esporta" aria-label="Esporta">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn import-btn" onclick="importActionsFromExcel()" title="Importa" aria-label="Importa">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M16 15l-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -643,20 +634,85 @@
             </div>
         </div>
 
-        <div id="import-summary-dialog" class="dialog">
+        <div id="end-set-dialog" class="dialog" style="display:none;">
             <div class="dialog-content">
                 <div class="dialog-header">
-                    <h3>Dati gara per set</h3>
-                    <button class="close-btn" id="importSummaryClose" aria-label="Chiudi">×</button>
+                    <h3 id="end-set-title">Fine Set</h3>
+                    <button class="close-btn" onclick="closeEndSetDialog()" aria-label="Chiudi">×</button>
                 </div>
                 <div class="dialog-body">
-                    <div id="importSummaryList" class="matches-list"></div>
+                    <div class="dialog-form">
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <div><strong>Risultato</strong></div>
+                            <div id="end-set-score"></div>
+                        </div>
+                        <div style="margin-top:8px; display:flex; gap:12px; align-items:center;">
+                            <div><strong>Esito</strong></div>
+                            <div id="end-set-outcome"></div>
+                        </div>
+                        <div style="margin-top:16px; display:flex; gap:8px; align-items:center;">
+                            <input type="checkbox" id="endSetAskAgain" checked />
+                            <label for="endSetAskAgain">Chiedimelo ancora</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="dialog-footer">
-                    <button class="export-btn" id="importSummaryOk" aria-label="OK">OK</button>
+                    <button class="primary-btn" id="endSetProceedBtn">Passa al set successivo</button>
+                    <button class="secondary-btn" id="endSetStayBtn">Rimani su questo set</button>
                 </div>
             </div>
         </div>
+
+        <div id="quartet-start-dialog" class="dialog" style="display:none;">
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3>Inizio azione</h3>
+                    <button class="close-btn" onclick="closeQuartetStartDialog()" aria-label="Chiudi">×</button>
+                </div>
+                <div class="dialog-body">
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="color:#374151;">La prima quartina può iniziare solo con:</div>
+                        <ul style="margin-left:18px; color:#374151;">
+                            <li>Servizio (b)</li>
+                            <li>Ricezione (r)</li>
+                            <li>Errore Avversario (avv)</li>
+                        </ul>
+                        <div style="color:#64748b;">Seleziona come iniziare l'azione.</div>
+                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="primary-btn" id="qsStartService">Servizio (b)</button>
+                    <button class="primary-btn" id="qsStartReception">Ricezione (r)</button>
+                    <button class="secondary-btn" id="qsStartOpponentError">Errore Avversario (avv)</button>
+                    <button class="secondary-btn" id="qsStartCancel">Annulla</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="edit-action-dialog" class="dialog" style="display:none;">
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3 id="edit-action-title">Modifica azione</h3>
+                    <button class="close-btn" onclick="closeEditActionDialog()" aria-label="Chiudi">×</button>
+                </div>
+                <div class="dialog-body">
+                    <div id="edit-quartets-list" class="edit-quartets-list"></div>
+                    <div class="edit-controls">
+                        <button class="secondary-btn" type="button" onclick="addEditQuartetRow()">Aggiungi quartina</button>
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" id="edit-action-avv" />
+                            <span>Errore Avversario (avv)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="primary-btn" type="button" onclick="saveEditActionFromDialog()">Salva</button>
+                    <button class="secondary-btn" type="button" onclick="closeEditActionDialog()">Annulla</button>
+                </div>
+            </div>
+        </div>
+
+        
 
         <!-- Dialog richiesta dati per nome file export -->
         <dialog id="export-filename-dialog" style="border:1px solid #e9ecef;border-radius:12px;padding:0;max-width:480px;width:92%;">
@@ -721,14 +777,35 @@
         function closeActionsDialog() {
             const dialog = document.getElementById('actions-dialog');
             if (dialog) {
-                // Se l'ultima riga è stata editata e salvata, ricalcola stato al momento della chiusura
                 try {
-                    if (window.__actionsDialogLastRowEdited) {
-                        window.recomputeFromActionsLog?.();
-                        window.__actionsDialogLastRowEdited = false;
-                    }
+                    window.__actionsDialogLastRowEdited = false;
+                    const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+                    const setNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+                    const abSet = sessionData && sessionData.actionsBySet ? sessionData.actionsBySet : {};
+                    const prev = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
+                    if (window.appState) window.appState.actionsLog = prev.slice();
+                    window.recomputeFromActionsLog?.();
                 } catch(_) {}
                 dialog.style.display = 'none';
+            }
+        }
+
+        function saveAllActions() {
+            try {
+                if (typeof window.saveCurrentMatch === 'function') {
+                    window.saveCurrentMatch();
+                } else {
+                    const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+                    const setNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+                    const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+                    sessionData.actionsBySet = sessionData.actionsBySet || {};
+                    sessionData.actionsBySet[setNum] = actions;
+                    localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+                }
+                window.recomputeFromActionsLog?.();
+                alert('Modifiche salvate con successo');
+            } catch (err) {
+                alert('Errore salvataggio modifiche: ' + (err && err.message ? err.message : String(err)));
             }
         }
 
@@ -749,66 +826,204 @@
                 return;
             }
             
-            // Crea lista editabile: una riga per azione → "#N" + input quartine + pulsanti
             const actionsHTML = actions.map((log, index) => {
                 const actionDisplay = (log && log.action) ? String(log.action) : '';
-                const rotText = log && log.rotation ? ` <span class="rotation-pill">${log.rotation}</span>` : '';
+                const safeText = actionDisplay.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const rot = (log && log.rotation) ? String(log.rotation) : 'P1';
                 return `
-                    <div class="action-line" data-index="${index}" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                        <span class="action-number" style="min-width:40px;opacity:.8;">#${index + 1}</span>
-                        <input class="action-input" data-index="${index}" type="text" value="${actionDisplay.replace(/"/g,'&quot;')}" 
-                               style="flex:1;padding:8px;border:1px solid #cbd5e1;border-radius:8px;" 
-                               placeholder="es. 07r3 10a5" 
-                               onkeydown="if(event.key==='Enter'){saveEditedAction(${index});}" />
-                        ${rotText}
-                        <button class="secondary-btn action-save" onclick="saveEditedAction(${index})" title="Salva">Salva</button>
-                        <button class="secondary-btn action-reset" onclick="resetEditedAction(${index})" title="Ripristina">↺</button>
+                    <div class="action-list-card" data-index="${index}">
+                        <button type="button" class="action-number" onclick="openEditActionDialog(${index})">#${index + 1}</button>
+                        <button type="button" class="action-text" onclick="openEditActionDialog(${index})">${safeText || '&nbsp;'}</button>
+                        <button type="button" class="rotation-pill rotation-btn" onclick="openRotationSelect(${index}, this)">${rot}</button>
+                        <button type="button" class="delete-action-btn" title="Elimina" aria-label="Elimina" onclick="deleteActionFromList(${index})">🗑️</button>
                     </div>`;
             }).join('');
-
+            
             actionsListContainer.innerHTML = actionsHTML;
         }
 
-        // Salva modifica della riga nel dialog azioni
-        function saveEditedAction(index){
+        function openEditActionDialog(index){
+            const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : null;
+            if (!actions || !actions[index]) return;
+            window.__editingActionIndex = index;
+            const raw = String(actions[index].action||'').trim();
+            const tokens = raw ? raw.split(/\s+/).filter(Boolean) : [];
+            const hasAvv = tokens.length>0 && /^avv$/i.test(tokens[tokens.length-1]);
+            const quartets = hasAvv ? tokens.slice(0,-1) : tokens;
+            const data = quartets.map(t => ({
+                jersey: t.substring(0,2),
+                fund: t.charAt(2).toLowerCase(),
+                eval: t.charAt(3)
+            }));
+            window.__editingActionData = data;
+            const title = document.getElementById('edit-action-title');
+            if (title) title.textContent = `Modifica azione #${index+1}`;
+            const avv = document.getElementById('edit-action-avv');
+            if (avv) avv.checked = !!hasAvv;
+            renderEditActionRows();
+            const dlg = document.getElementById('edit-action-dialog');
+            if (dlg) dlg.style.display = 'flex';
+        }
+        function closeEditActionDialog(){ const dlg = document.getElementById('edit-action-dialog'); if (dlg) dlg.style.display = 'none'; }
+        function renderEditActionRows(){
+            const list = document.getElementById('edit-quartets-list');
+            const data = Array.isArray(window.__editingActionData) ? window.__editingActionData : [];
+            const optionsFund = ['b','r','a','d','m'].map(f => `<option value="${f}">${f.toUpperCase()}</option>`).join('');
+            const optionsEval = ['1','2','3','4','5'].map(e => `<option value="${e}">${e}</option>`).join('');
+            const roster = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+            const jerseyOptions = Array.isArray(roster) && roster.length
+                ? roster.filter(p => p && (p.number || p.nickname || p.name || p.surname)).map(p => {
+                    const nn = String(p.number||'').replace(/\D/g,'').padStart(2,'0').slice(-2);
+                    const nick = (p.nickname && String(p.nickname).trim()) || `${p.name||''} ${p.surname||''}`.trim();
+                    return `<option value="${nn}">${nn} — ${nick || 'Giocatore'}</option>`;
+                }).join('')
+                : '';
+            const html = data.map((q,i) => `
+                <div class="edit-quartet-row" data-i="${i}">
+                    ${jerseyOptions ? (`<select class="edit-jersey">${jerseyOptions}</select>`) : (`<input type="text" class="edit-jersey" value="${q.jersey||''}" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="NN" />`)}
+                    <span class="edit-role-pill"></span>
+                    <select class="edit-fund">${optionsFund}</select>
+                    <select class="edit-eval">${optionsEval}</select>
+                    <button type="button" class="secondary-btn edit-remove" title="Rimuovi" onclick="removeEditQuartetRow(${i})" aria-label="Rimuovi">🗑️</button>
+                </div>`).join('');
+            if (list) list.innerHTML = html || '';
+            const rows = list ? list.querySelectorAll('.edit-quartet-row') : [];
+            rows.forEach((row,i) => {
+                const fSel = row.querySelector('.edit-fund');
+                const eSel = row.querySelector('.edit-eval');
+                if (fSel) fSel.value = String(data[i]?.fund||'b');
+                if (eSel) eSel.value = String(data[i]?.eval||'1');
+                const jerseyEl = row.querySelector('.edit-jersey');
+                const roleEl = row.querySelector('.edit-role-pill');
+                const resolveRole = (nn) => {
+                    try {
+                        const roster = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+                        const found = roster.find(p => String(p.number).padStart(2,'0') === String(nn||'').padStart(2,'0'));
+                        if (!found) return '';
+                        const initial = (function(raw){
+                            const s = String(raw||'').trim();
+                            if (!s) return '';
+                            const low = s.toLowerCase();
+                            if (/^p$/.test(s)) return 'P';
+                            if (/^s$/.test(s)) return 'S';
+                            if (/^c$/.test(s)) return 'C';
+                            if (/^o$/.test(s)) return 'O';
+                            if (/^l$/.test(s)) return 'L';
+                            if (/palleggiator|alzator/.test(low)) return 'P';
+                            if (/schiacciator|banda|posto\s*4/.test(low)) return 'S';
+                            if (/central/.test(low)) return 'C';
+                            if (/oppost/.test(low)) return 'O';
+                            if (/liber/.test(low)) return 'L';
+                            return s.charAt(0).toUpperCase();
+                        })(found.role);
+                        return initial || '';
+                    } catch(_) { return ''; }
+                };
+                if (jerseyEl && roleEl) {
+                    // Set initial selection/value
+                    const current = String(data[i]?.jersey||'').padStart(2,'0');
+                    if (jerseyEl.tagName === 'SELECT') {
+                        jerseyEl.value = current || jerseyEl.value;
+                    } else {
+                        jerseyEl.value = current || '';
+                    }
+                    roleEl.textContent = resolveRole(jerseyEl.value);
+                    jerseyEl.addEventListener('change', () => { roleEl.textContent = resolveRole(jerseyEl.value); });
+                    jerseyEl.addEventListener('input', () => { roleEl.textContent = resolveRole(jerseyEl.value); });
+                }
+            });
+        }
+        function addEditQuartetRow(){
+            const data = Array.isArray(window.__editingActionData) ? window.__editingActionData : [];
+            data.push({ jersey:'', fund:'b', eval:'3' });
+            window.__editingActionData = data;
+            renderEditActionRows();
+        }
+        function removeEditQuartetRow(i){
+            const data = Array.isArray(window.__editingActionData) ? window.__editingActionData : [];
+            window.__editingActionData = data.filter((_,idx) => idx !== i);
+            renderEditActionRows();
+        }
+        function saveEditActionFromDialog(){
+            const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : null;
+            const index = window.__editingActionIndex;
+            if (!actions || index==null || !actions[index]) return;
+            const rows = Array.from(document.querySelectorAll('#edit-quartets-list .edit-quartet-row'));
+            const avv = document.getElementById('edit-action-avv');
+            const hasAvv = !!(avv && avv.checked);
+            const quartets = rows.map(r => {
+                const nn = String(r.querySelector('.edit-jersey')?.value||'').replace(/\D/g,'').padStart(2,'0').slice(-2);
+                const f = String(r.querySelector('.edit-fund')?.value||'').toLowerCase();
+                const e = String(r.querySelector('.edit-eval')?.value||'').replace(/\D/g,'');
+                return { nn, f, e };
+            }).filter(q => q.nn && q.f && q.e);
+            if (quartets.length === 0 && !hasAvv) { alert('Azione vuota'); return; }
+            if (quartets.length > 0) {
+                const f0 = String(quartets[0].f).toLowerCase();
+                if (f0 !== 'b' && f0 !== 'r') { alert('La prima quartina deve essere Servizio (b) o Ricezione (r)'); return; }
+            }
+            const tokens = quartets.map(q => `${q.nn}${q.f}${q.e}`);
+            const newVal = tokens.join(' ') + (hasAvv ? (tokens.length? ' avv':'avv') : '');
+            actions[index].action = newVal.trim();
+            try { window.recomputeFromActionsLog?.(); } catch(_) {}
+            try { window.updateActionsLog?.(); } catch(_) {}
+            try { window.updateNextFundamental?.(); } catch(_) {}
+            try { window.updateDescriptiveQuartet?.(); } catch(_) {}
+            try { window.scheduleAutosave?.(800); } catch(_) {}
+            populateActionsDialog();
+            closeEditActionDialog();
+        }
+
+        function openRotationSelect(index, btn){
+            try {
+                const dlg = document.getElementById('actions-dialog');
+                if (!dlg) return;
+                let pop = document.getElementById('rotation-popover');
+                if (!pop) {
+                    pop = document.createElement('div');
+                    pop.id = 'rotation-popover';
+                    pop.className = 'rotation-popover';
+                    dlg.appendChild(pop);
+                }
+                window.applyRotationChoice = function(i, r){
+                    try {
+                        const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : null;
+                        if (!actions || !actions[i]) return;
+                        const val = String(r).startsWith('P') ? String(r) : ('P'+String(r));
+                        actions[i].rotation = val;
+                        try { window.scheduleAutosave?.(600); } catch(_) {}
+                        try { window.updateActionsLog?.(); } catch(_) {}
+                        populateActionsDialog();
+                    } finally {
+                        const p = document.getElementById('rotation-popover');
+                        if (p) p.style.display = 'none';
+                    }
+                };
+                const choices = ['P1','P2','P3','P4','P5','P6']
+                    .map(function(r){ return '<button type="button" class="rotation-choice" onclick="applyRotationChoice(' + index + ', \'' + r + '\')">' + r + '</button>'; })
+                    .join('');
+                pop.innerHTML = choices;
+                const rect = btn.getBoundingClientRect();
+                const dlgRect = dlg.getBoundingClientRect();
+                pop.style.display = 'block';
+                pop.style.left = (rect.left - dlgRect.left) + 'px';
+                pop.style.top = (rect.bottom - dlgRect.top + 6) + 'px';
+            } catch(_) {}
+        }
+
+        function deleteActionFromList(index){
             try {
                 const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : null;
                 if (!actions || !actions[index]) return;
-                const input = document.querySelector(`.action-input[data-index="${index}"]`);
-                if (!input) return;
-                const newVal = String(input.value || '').trim();
-                if (newVal === '') { alert('La riga non può essere vuota'); return; }
-                // Validazione blanda: quartine separate da spazio (opzionale)
-                const tokens = newVal.split(/\s+/).filter(Boolean);
-                const looksLikeQuartets = tokens.every(t => /^(\d{2}[abrdm]\d|avv)$/i.test(t));
-                if (!looksLikeQuartets) {
-                    if (!confirm('Formato non riconosciuto come quartine. Vuoi salvare comunque?')) return;
-                }
-                // Aggiorna l'azione nel log
-                actions[index].action = newVal;
-                // Se è l'ultima riga, marca per ricalcolo alla chiusura del dialog
-                if (index === actions.length - 1) {
-                    window.__actionsDialogLastRowEdited = true;
-                    // Esegui subito il ricalcolo per aggiornare l'interfaccia anche senza chiudere
-                    try { window.recomputeFromActionsLog?.(); } catch(_) {}
-                }
-                // UI: aggiorna log nella pagina principale e ricalcola il prossimo fondamentale basandosi sull’ultima quartina
+                actions.splice(index, 1);
+                try { window.recomputeFromActionsLog?.(); } catch(_) {}
                 try { window.updateActionsLog?.(); } catch(_) {}
                 try { window.updateNextFundamental?.(); } catch(_) {}
-                try { window.updateDescriptiveQuartet?.(); } catch(_) {}
-                try { window.scheduleAutosave?.(800); } catch(_) {}
-                // Rinfresca il dialog per mostrare il valore aggiornato
+                try { window.scheduleAutosave?.(600); } catch(_) {}
                 populateActionsDialog();
             } catch (err) {
-                alert('Errore salvataggio riga: ' + (err && err.message ? err.message : String(err)));
+                alert('Errore eliminazione azione: ' + (err && err.message ? err.message : String(err)));
             }
-        }
-
-        // Ripristina il contenuto originale della riga (dallo stato corrente)
-        function resetEditedAction(index){
-            const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
-            const input = document.querySelector(`.action-input[data-index="${index}"]`);
-            if (input && actions[index]) input.value = String(actions[index].action || '');
         }
 
         // Helper: mapping e normalizzazioni per export/import
@@ -860,7 +1075,16 @@
         function getRosterForExport(){
             try {
                 // Priorità: appState.currentRoster → teamsModule.getCurrentTeam().players → localStorage volleyTeams
-                let players = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+                let players = [];
+                try {
+                    const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+                    if (Array.isArray(sessionData.roster) && sessionData.roster.length) {
+                        players = sessionData.roster;
+                    }
+                } catch(_){}
+                if (!players.length) {
+                    players = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+                }
                 if (!players.length && window.teamsModule?.getCurrentTeam){
                     const team = window.teamsModule.getCurrentTeam();
                     if (team && Array.isArray(team.players)) players = team.players;
@@ -871,14 +1095,37 @@
                         const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
                         const team = selId ? storedTeams.find(t => String(t.id) === String(selId)) : null;
                         if (team && Array.isArray(team.players)) players = team.players;
-                    } catch(_){}
+                    } catch(_){}}
+                if (!players.length){
+                    try {
+                        const sess = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+                        const matchId = sess.id || localStorage.getItem('selectedMatchId') || '';
+                        const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                        const found = matchId ? local.find(m => String(m.id) === String(matchId)) : null;
+                        const rosterArr = found ? (Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])) : [];
+                        if (Array.isArray(rosterArr) && rosterArr.length) players = rosterArr;
+                    } catch(_){ }
+                }
+                if (!players.length){
+                    try {
+                        const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+                        let best = null, bestScore = -1;
+                        saved.forEach(item => {
+                            const rr = Array.isArray(item?.roster) ? item.roster : (Array.isArray(item?.players) ? item.players : []);
+                            if (Array.isArray(rr) && rr.length){
+                                const s = rr.reduce((acc,p)=> acc + ((p && (p.name||p.surname||p.firstName||p.lastName)) ? 1 : 0), 0);
+                                if (s > bestScore){ bestScore = s; best = rr; }
+                            }
+                        });
+                        if (best) players = best;
+                    } catch(_){ }
                 }
                 const valid = players.filter(p => p && (p.number || p.surname || p.name || p.nickname || p.role));
                 // Normalizza e limita soprannome se molto lungo; ruoli a iniziale; numero a due cifre
                 const normalized = valid.map(p => ({
                     number: ensureTwoDigits(p.number != null ? String(p.number).trim() : ''),
-                    surname: (p.surname != null ? String(p.surname).trim() : ''),
-                    name: (p.name != null ? String(p.name).trim() : ''),
+                    surname: (p.surname != null ? String(p.surname).trim() : (p.lastName != null ? String(p.lastName).trim() : '')),
+                    name: (p.name != null ? String(p.name).trim() : (p.firstName != null ? String(p.firstName).trim() : '')),
                     nickname: (p.nickname != null ? String(p.nickname).trim() : ''),
                     role: roleToInitial(p.role != null ? String(p.role).trim() : '')
                 }));
@@ -957,6 +1204,69 @@
             XLSX.utils.sheet_add_aoa(ws, [[meta.eventType]], { origin: 'D22' });
             XLSX.utils.sheet_add_aoa(ws, [[meta.locationLabel]], { origin: 'D23' });
             XLSX.utils.sheet_add_aoa(ws, [[meta.notes]], { origin: 'D24' });
+            try {
+                const sess = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
+                const finalResult = String(sess.finalResult || window.appState?.currentMatch?.finalResult || '');
+                const matchOutcome = String(sess.matchOutcome || window.appState?.currentMatch?.matchOutcome || '');
+                XLSX.utils.sheet_add_aoa(ws, [[ 'Risultato Finale' ]], { origin: 'C25' });
+                XLSX.utils.sheet_add_aoa(ws, [[ 'Esito' ]], { origin: 'C26' });
+                XLSX.utils.sheet_add_aoa(ws, [[ finalResult ]], { origin: 'D25' });
+                XLSX.utils.sheet_add_aoa(ws, [[ matchOutcome ]], { origin: 'D26' });
+
+                try {
+                    const homeAway = (window.appState?.currentMatch?.homeAway || sess.homeAway || '').toString().toLowerCase();
+                    const setMeta = sess.setMeta || {};
+                    const setState = sess.setStateBySet || {};
+                    const setSummary = sess.setSummary || {};
+                    const scoreHistoryBySet = sess.scoreHistoryBySet || {};
+                    const labelBase = 'Punteggio Set_';
+
+                    function computeSetScore(n){
+                        let home = 0, away = 0;
+                        const st = setState[n] || {};
+                        if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number'){
+                            home = Number(st.homeScore||0);
+                            away = Number(st.awayScore||0);
+                        } else {
+                            const sum = setSummary[n] || {};
+                            if (typeof sum.home === 'number' || typeof sum.away === 'number'){
+                                home = Number(sum.home||0);
+                                away = Number(sum.away||0);
+                            } else {
+                                const hist = Array.isArray(scoreHistoryBySet[n]) ? scoreHistoryBySet[n] : [];
+                                if (hist.length){
+                                    const last = hist[hist.length-1];
+                                    home = Number(last?.homeScore||0);
+                                    away = Number(last?.awayScore||0);
+                                }
+                            }
+                        }
+                        return { home, away };
+                    }
+
+                    for (let i = 1; i <= 6; i++){
+                        const row = 26 + i; // 27..32
+                        const label = `${labelBase}${i}`;
+                        const { home, away } = computeSetScore(i);
+                        // Esito: considera direttamente home (nostri) vs away (avversari)
+                        let outcome = '';
+                        if (home || away){ outcome = home > away ? 'Vinto' : (away > home ? 'Perso' : ''); }
+                        const value = (home || away) ? `${outcome ? outcome + ' ' : ''}${home} a ${away}` : '';
+                        XLSX.utils.sheet_add_aoa(ws, [[ label ]], { origin: `C${row}` });
+                        XLSX.utils.sheet_add_aoa(ws, [[ value ]], { origin: `D${row}` });
+                    }
+                    let ourWins = 0, oppWins = 0;
+                    for (let i = 1; i <= 6; i++){
+                        const { home, away } = computeSetScore(i);
+                        if (!home && !away) continue;
+                        if (home > away) ourWins++; else if (away > home) oppWins++;
+                    }
+                    const finalStr = `${ourWins} a ${oppWins}`;
+                    const outcomeStr = ourWins > oppWins ? 'Vinto' : (oppWins > ourWins ? 'Perso' : '');
+                    XLSX.utils.sheet_add_aoa(ws, [[ finalStr ]], { origin: 'D25' });
+                    XLSX.utils.sheet_add_aoa(ws, [[ outcomeStr ]], { origin: 'D26' });
+                } catch(_) {}
+            } catch(_) {}
             // Pulizia esplicita: le celle D17..D19 non devono contenere dati
             try {
                 delete ws['D17'];
@@ -1172,6 +1482,20 @@
                     XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Avversaria' ]], { origin: 'B6' });
                     XLSX.utils.sheet_add_aoa(ws, [[initialRotation]], { origin: 'A7' });
                     XLSX.utils.sheet_add_aoa(ws, [[ 'Rotazione Nostra Iniziale' ]], { origin: 'B7' });
+                    let __home = 0, __away = 0;
+                    try {
+                        const sum = sessionData.setSummary?.[setNum] || {};
+                        const st = sessionData.setStateBySet?.[setNum] || {};
+                        if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                            __home = Number(st.homeScore||0);
+                            __away = Number(st.awayScore||0);
+                        } else {
+                            __home = Number(sum.home||0);
+                            __away = Number(sum.away||0);
+                        }
+                    } catch(_) {}
+                    XLSX.utils.sheet_add_aoa(ws, [[__home]], { origin: 'C12' });
+                    XLSX.utils.sheet_add_aoa(ws, [[__away]], { origin: 'E12' });
                     const startRow = 18;
                     const aoa = actions.map(log => [ String(log && log.action ? log.action : '') ]);
                     if (aoa.length) {
@@ -1204,7 +1528,7 @@
             }
         }
         
-        // Importa una partita completa da Excel: 6 fogli "Set N" con A3 rotazione, fase iniziale e B18.. quartine
+        
         // Helper: legge foglio "El. Gioc." se presente per roster e metadati
         function readElGiocSheet(wb){
             const res = { roster: [], meta: {} };
@@ -1248,384 +1572,18 @@
                 const eventType = ws['D22'] && ws['D22'].v != null ? String(ws['D22'].v).trim() : '';
                 const locLabel = ws['D23'] && ws['D23'].v != null ? String(ws['D23'].v).trim().toLowerCase() : '';
                 const notes = ws['D24'] && ws['D24'].v != null ? String(ws['D24'].v).trim() : '';
+                const finalResult = ws['D25'] && ws['D25'].v != null ? String(ws['D25'].v).trim() : '';
+                const matchOutcome = ws['D26'] && ws['D26'].v != null ? String(ws['D26'].v).trim() : '';
                 const homeAway = (locLabel === 'casa') ? 'home' : (locLabel === 'trasferta' ? 'away' : '');
-                res.meta = { opponent, matchDate, eventType, homeAway, location: locLabel, description: notes };
+                res.meta = { opponent, matchDate, eventType, homeAway, location: locLabel, description: notes, finalResult, matchOutcome };
             } catch(_) {}
             return res;
-        }
-        async function importMatchFromExcel(){
-            try {
-                // Chiede file
-                let file = null;
-                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (('ontouchstart' in window) && (navigator.maxTouchPoints||0) > 0);
-                if (window.showOpenFilePicker && !isMobile) {
-                    try {
-                        const [handle] = await window.showOpenFilePicker({
-                            multiple: false,
-                            types: [{
-                                description: 'Excel Workbook',
-                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'], 'application/vnd.ms-excel': ['.xls','.xlsm'], 'application/*': ['.xlsx','.xlsm','.xls'] }
-                            }]
-                        });
-                        file = await handle.getFile();
-                    } catch (err) {
-                        if (err && err.name === 'AbortError') return; // annullato
-                        throw err;
-                    }
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.xlsx,.xlsm,.xls,application/*,application/octet-stream,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel';
-                    input.style.display = 'none';
-                    document.body.appendChild(input);
-                    const picked = await new Promise(resolve => {
-                        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
-                        input.click();
-                    });
-                    document.body.removeChild(input);
-                    file = picked;
-                    if (file && !/\.xlsm$|\.xlsx$|\.xls$/i.test(file.name||'')) { alert('Seleziona un file Excel (.xlsm, .xlsx, .xls)'); return; }
-                }
-
-                if (!file) return;
-                try { showImportProgress('Importazione partita'); } catch(_) {}
-                try { updateImportProgress(10, 'Lettura file'); } catch(_) {}
-
-                const data = await file.arrayBuffer();
-                try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
-                const readOpts = (function(){
-                    try { return { type: 'array', dense: true, sheetRows: 220, cellDates: true }; } catch(_) { return { type: 'array' }; }
-                })();
-                const wb = XLSX.read(data, readOpts);
-                try { updateImportProgress(40, 'Analisi fogli'); } catch(_) {}
-
-                // Carica sessione esistente
-                const sessionData = (() => {
-                    try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; }
-                })();
-                sessionData.fileName = file && file.name ? String(file.name) : (sessionData.fileName || '');
-                sessionData.actionsBySet = sessionData.actionsBySet || {};
-                sessionData.setMeta = sessionData.setMeta || {};
-                sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
-                sessionData.setStateBySet = sessionData.setStateBySet || {};
-
-                // Leggi "El. Gioc." per roster e metadati
-                try {
-                    const { roster, meta } = readElGiocSheet(wb);
-                    if (Array.isArray(roster) && roster.length) {
-                        // imposta roster importato in appState per uso immediato (export e UI)
-                        if (window.appState) window.appState.currentRoster = roster;
-                        // memorizza anche nella sessione corrente per utilizzo cross-pagina
-                        sessionData.roster = roster;
-                        try { localStorage.setItem('importedRoster', JSON.stringify(roster)); } catch(_) {}
-                    }
-                    if (meta) {
-                        if (meta.opponent) sessionData.opponentTeam = meta.opponent;
-                        if (meta.matchDate) sessionData.matchDate = meta.matchDate;
-                        if (meta.eventType) sessionData.matchType = meta.eventType;
-                        if (meta.homeAway) sessionData.homeAway = meta.homeAway;
-                        if (meta.location && !meta.homeAway) sessionData.location = meta.location;
-                        if (meta.description) sessionData.description = meta.description;
-                    }
-                } catch(_) {}
-                try { updateImportProgress(55, 'Metadati e roster'); } catch(_) {}
-
-                let totalActions = 0;
-                let importedSets = 0;
-
-                // Helper: deduce fase iniziale dal terzo carattere della prima quartina (B18)
-                function deduceInitialPhaseFromB18(ws){
-                    try {
-                        const b18 = ws['B18'];
-                        const val = String(b18 && b18.v != null ? b18.v : '').trim();
-                        if (!val || val.length < 3) return 'servizio';
-                        const ch = String(val.charAt(2)).toLowerCase();
-                        if (ch === 'b') return 'servizio';
-                        if (ch === 'r') return 'ricezione';
-                        return 'servizio';
-                    } catch(_) { return 'servizio'; }
-                }
-
-                const setSheets = (function(){
-                    const names = wb.SheetNames||[];
-                    const pairs = names.map(n => { const m = /set\s*(\d+)/i.exec(String(n||'')); return m ? { n, i: parseInt(m[1],10) } : null; }).filter(Boolean);
-                    pairs.sort((a,b) => a.i - b.i);
-                    return pairs.map(p => ({ num: p.i, ws: wb.Sheets[p.n] })).filter(s => s.ws);
-                })();
-                for (const entry of setSheets) {
-                    const setNum = entry.num;
-                    const ws = entry.ws;
-
-                    let initialRotation = '';
-                    try {
-                        const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';
-                        if (a7) initialRotation = `P${String(a7).replace(/^P/i,'')}`;
-                    } catch(_) {}
-                    let opponentRotation = null;
-                    try {
-                        const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : '';
-                        if (a6) opponentRotation = `P${String(a6).replace(/^P/i,'')}`;
-                    } catch(_) {}
-
-                    // Fase iniziale dedotta dal terzo carattere della prima quartina in B18
-                    const initialPhase = deduceInitialPhaseFromB18(ws);
-
-                    // Azioni da colonna B, riga 18 in poi
-                    const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
-                    const startRow = 18; // 1-indexed
-                    const quartets = [];
-                    for (let r = startRow; r <= (range.e.r + 1); r++) {
-                        const cell = ws[`B${r}`];
-                        if (!cell) continue;
-                        const val = String(cell.v == null ? '' : cell.v).trim();
-                        if (!val) continue;
-                        quartets.push(val);
-                    }
-
-                    let homeScore = 0;
-                    let awayScore = 0;
-                    try {
-                        const c12 = ws['C12'] && ws['C12'].v != null ? ws['C12'].v : null;
-                        const e12 = ws['E12'] && ws['E12'].v != null ? ws['E12'].v : null;
-                        homeScore = Number(c12 || 0) || 0;
-                        awayScore = Number(e12 || 0) || 0;
-                    } catch(_) {}
-
-                    // Aggiorna struttura sessione
-                    sessionData.actionsBySet[setNum] = quartets.map(q => ({ action: q }));
-                    sessionData.setMeta[setNum] = sessionData.setMeta[setNum] || {};
-                    sessionData.setMeta[setNum].ourRotation = initialRotation || sessionData.setMeta[setNum].ourRotation || 'P1';
-                    sessionData.setMeta[setNum].phase = initialPhase;
-                    if (opponentRotation) sessionData.setMeta[setNum].opponentRotation = opponentRotation;
-                    sessionData.setSummary = sessionData.setSummary || {};
-                    sessionData.setSummary[setNum] = { home: homeScore, away: awayScore, rotation: initialRotation || 'P1', phase: initialPhase };
-
-                    totalActions += quartets.length;
-                    importedSets++;
-                    try { updateImportProgress(55 + Math.round((setNum/6)*35), 'Set ' + setNum); } catch(_) {}
-                }
-
-                // Dopo aver popolato meta e azioni, ricalcola stato/punteggi per ogni set importato
-                try {
-                    try { updateImportProgress(92, 'Ricalcolo punteggi'); } catch(_) {}
-                    const originalSet = window.appState?.currentSet || 1;
-                    if (window.appState) window.appState.suppressSetPrompts = true;
-                    function isSetFinished(state, setNum){
-                        if (!state) return false;
-                        const isSetFive = setNum === 5;
-                        const minScore = isSetFive ? 15 : 25;
-                        const h = Number(state.homeScore||0), a = Number(state.awayScore||0);
-                        return ((h >= minScore || a >= minScore) && Math.abs(h - a) >= 2);
-                    }
-                    let targetSet = 1;
-                    let lastWithActions = 1;
-                    for (let setNum = 1; setNum <= 6; setNum++) {
-                        const logs = Array.isArray(sessionData.actionsBySet?.[setNum]) ? sessionData.actionsBySet[setNum].map(x => x.action) : null;
-                        if (!logs || !logs.length) continue;
-                        // Prepara appState per ricalcolo di questo set
-                        if (window.appState) {
-                            window.appState.currentSet = setNum;
-                            window.appState.homeScore = 0;
-                            window.appState.awayScore = 0;
-                            window.appState.actionsLog = logs.map(a => ({ action: a }));
-                            window.appState.scoreHistory = [];
-                            window.appState.currentSequence = [];
-                            window.appState.justClosedAction = false;
-                            window.appState.currentRotation = sessionData.setMeta?.[setNum]?.ourRotation || 'P1';
-                            window.appState.currentPhase = sessionData.setMeta?.[setNum]?.phase || 'servizio';
-                            try { window.recomputeFromActionsLog?.(); } catch(_) {}
-                            // Copia risultati calcolati nella sessione
-                            sessionData.actionsBySet[setNum] = Array.isArray(window.appState.actionsLog) ? window.appState.actionsLog : sessionData.actionsBySet[setNum];
-                            sessionData.scoreHistoryBySet[setNum] = Array.isArray(window.appState.scoreHistory) ? window.appState.scoreHistory : [];
-                            sessionData.setStateBySet[setNum] = {
-                                homeScore: window.appState.homeScore || 0,
-                                awayScore: window.appState.awayScore || 0,
-                                currentPhase: window.appState.currentPhase || (sessionData.setMeta?.[setNum]?.phase || 'servizio'),
-                                currentRotation: window.appState.currentRotation || (sessionData.setMeta?.[setNum]?.ourRotation || 'P1'),
-                                setStarted: !!window.appState.setStarted
-                            };
-                            lastWithActions = setNum;
-                            // Se il set è concluso, punta al successivo; altrimenti questo è quello da mostrare
-                            if (isSetFinished(sessionData.setStateBySet[setNum], setNum)) {
-                                targetSet = setNum + 1;
-                            } else {
-                                targetSet = setNum;
-                                // primo non concluso: interrompi
-                                break;
-                            }
-                        }
-                    }
-                    // Se tutti i set con azioni sono conclusi, riposizionati sull'ultimo con azioni
-                    if (targetSet > 6) targetSet = lastWithActions || originalSet || 1;
-                    // Posiziona la UI sul set target e reidrata
-                    if (window.appState) {
-                        window.appState.currentSet = targetSet;
-                        try { window.recomputeFromActionsLog?.(); } catch(_) {}
-                        // Riattiva i prompt per utilizzo normale dopo import
-                        window.appState.suppressSetPrompts = false;
-                        // Allinea router/hash al set posizionato
-                        try {
-                            const newHash = `#/set/${Number(targetSet)}`;
-                            if (location.hash !== newHash) location.hash = newHash;
-                        } catch(_) {}
-                        // Memorizza il set corrente nella sessione
-                        try {
-                            const raw = localStorage.getItem('currentScoutingSession');
-                            const sess = raw ? JSON.parse(raw) : {};
-                            sess.setConfig = sess.setConfig || {};
-                            sess.setConfig.set = Number(targetSet);
-                            localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
-                        } catch(_) {}
-                    }
-                } catch(_) {}
-
-                // Imposta configurazione globale del set (usa meta del Set 1)
-                try {
-                    const meta1 = sessionData.setMeta?.[1];
-                    if (meta1 && meta1.ourRotation && meta1.phase) {
-                        sessionData.setConfig = sessionData.setConfig || {};
-                        sessionData.setConfig.ourRotation = meta1.ourRotation;
-                        sessionData.setConfig.phase = meta1.phase;
-                        if (meta1.opponentRotation) sessionData.setConfig.opponentRotation = meta1.opponentRotation;
-                    }
-                } catch(_) {}
-
-                // Persisti sessione aggiornata
-                localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
-
-                await showImportSummary(sessionData);
-
-                
-                try {
-                    const teamId = localStorage.getItem('selectedTeamId') || null;
-                    const matchId = `m_${Date.now()}`;
-                    
-                    function __getSetDataSnapshotFromSession(session, setNum){
-                        let actions = [];
-                        let home = 0, away = 0;
-                        let started = false;
-                        try {
-                            const abSet = session.actionsBySet || {};
-                            const stBySet = session.setStateBySet || {};
-                            const shBySet = session.scoreHistoryBySet || {};
-                            const sumBySet = session.setSummary || {};
-                            actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
-                            const st = stBySet[setNum] || {};
-                            if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
-                                home = Number(st.homeScore||0);
-                                away = Number(st.awayScore||0);
-                            } else {
-                                const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
-                                const last = arr.length ? arr[arr.length - 1] : null;
-                                home = Number(last?.homeScore||0);
-                                away = Number(last?.awayScore||0);
-                                if (!home && !away) {
-                                    const sum = sumBySet[setNum] || {};
-                                    home = Number(sum.home||0);
-                                    away = Number(sum.away||0);
-                                }
-                            }
-                            started = !!st.setStarted;
-                        } catch(_) {}
-                        return { actions, home, away, started };
-                    }
-                    function __isSetCompletedFromScores(setNum, home, away){
-                        const isSetFive = Number(setNum) === 5;
-                        const minScore = isSetFive ? 15 : 25;
-                        return ((home >= minScore || away >= minScore) && Math.abs(home - away) >= 2);
-                    }
-                    function __computeSetStatusFromSession(session, setNum){
-                        const snap = __getSetDataSnapshotFromSession(session, setNum);
-                        const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
-                        const completed = __isSetCompletedFromScores(setNum, snap.home, snap.away);
-                        if (completed) return 'completed';
-                        if (hasQuartine || snap.started) return 'partial';
-                        return 'none';
-                    }
-                    function __computeMatchStatusLabel(session){
-                        let completed = 0; let partial = false;
-                        for (let i = 1; i <= 6; i++) {
-                            const s = __computeSetStatusFromSession(session, i);
-                            if (s === 'completed') completed++;
-                            else if (s === 'partial') partial = true;
-                        }
-                        if (completed >= 3) return 'Ultimato';
-                        if (partial) return 'parziale';
-                        return 'inizializzato';
-                    }
-                    function __mapMatchStatusCode(label){
-                        if (label === 'Ultimato') return 'completed';
-                        if (label === 'parziale') return 'in_progress';
-                        return 'initialized';
-                    }
-
-                    const __label = __computeMatchStatusLabel(sessionData);
-                    const __code = __mapMatchStatusCode(__label);
-                    const match = {
-                        id: matchId,
-                        teamId,
-                        opponentTeam: sessionData.opponentTeam || sessionData.opponent || 'Avversario',
-                        matchDate: sessionData.matchDate || new Date().toISOString().slice(0,10),
-                        matchType: sessionData.matchType || sessionData.eventType || 'partita',
-                        homeAway: sessionData.homeAway || (sessionData.location === 'casa' ? 'home' : (sessionData.location === 'trasferta' ? 'away' : null)),
-                        description: sessionData.description || '',
-                        actionsBySet: sessionData.actionsBySet || {},
-                        setMeta: sessionData.setMeta || {},
-                        setStateBySet: sessionData.setStateBySet || {},
-                        scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
-                        roster: Array.isArray(sessionData.roster) ? sessionData.roster : (function(){ try { return JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_) { return []; } })(),
-                        createdAt: new Date().toISOString(),
-                        status: __code,
-                        statusLabel: __label
-                    };
-                    const local = (() => { try { return JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { return []; } })();
-                    local.unshift(match);
-                    localStorage.setItem('volleyMatches', JSON.stringify(local));
-                    try { updateImportProgress(100, 'Completato'); } catch(_) {}
-                    try { setTimeout(() => hideImportProgress(), 500); } catch(_) {}
-                    window.location.href = 'matches.html';
-                    return;
-                } catch(_) {}
-
-                // Se siamo nella pagina scouting, ricarica set corrente con nuovi dati
-                try {
-                    if (window.appState) {
-                        const cs = window.appState.currentSet || 1;
-                        const logs = Array.isArray(sessionData.actionsBySet?.[cs]) ? sessionData.actionsBySet[cs].map(x => x.action) : [];
-                        window.appState.homeScore = 0;
-                        window.appState.awayScore = 0;
-                        window.appState.actionsLog = [];
-                        window.appState.scoreHistory = [];
-                        window.appState.currentSequence = [];
-                        window.appState.justClosedAction = false;
-                        // imposta rotazione e fase da meta
-                        const rot = sessionData.setMeta?.[cs]?.ourRotation || 'P1';
-                        const ph = sessionData.setMeta?.[cs]?.phase || 'servizio';
-                        window.appState.currentRotation = rot;
-                        window.appState.currentPhase = ph;
-                        for (const actionString of logs) {
-                            const result = parseAction(actionString);
-                            processActionResult(result);
-                            const score = `${window.appState.homeScore}-${window.appState.awayScore}`;
-                            window.appState.actionsLog.push({ action: actionString, result, score, guided: false, imported: true });
-                        }
-                        updateActionsLog?.();
-                        updateScoutingUI?.();
-                        updateScoreHistoryDisplay?.();
-                        updateNextFundamental?.();
-                    }
-                } catch(_) {}
-
-                alert(`Import partita completato: ${totalActions} azioni su ${importedSets} set.`);
-            } catch (error) {
-                alert('Errore nell\'import partita: ' + (error && error.message ? error.message : String(error)));
-            }
         }
 
         // Esponi funzioni in window
         window.exportAllSetsToExcel = exportAllSetsToExcel;
         window.importActionsFromExcel = importActionsFromExcel;
-        window.importMatchFromExcel = importMatchFromExcel;
+        
         // Importa azioni da Excel: legge A3 (rotazione iniziale) e B18.. (quartine)
         async function importActionsFromExcel(){
             try {
@@ -1763,7 +1721,6 @@
 
         // Funzione per aggiornare i valori del game status nel dialog
         function updateGameStatusInDialog() {
-            // Non è più necessario copiare i valori poiché ora usiamo gli stessi elementi
         }
 
         // Chiudi il dialog cliccando fuori dal contenuto
@@ -1868,6 +1825,58 @@
           if (setDisplay) setDisplay.textContent = String(targetSet);
         }
 
+        function updateSetSidebarColors(){
+          try {
+            const raw = localStorage.getItem('currentScoutingSession');
+            const session = raw ? JSON.parse(raw) : {};
+            const setState = session.setStateBySet || {};
+            const setSummary = session.setSummary || {};
+            const scoreHistoryBySet = session.scoreHistoryBySet || {};
+            const actionsBySet = session.actionsBySet || {};
+            for (let i = 1; i <= 6; i++){
+              const btn = list.querySelector(`.set-item[data-set="${i}"]`);
+              if (!btn) continue;
+              // Rimuovi status precedenti
+              btn.classList.remove('status-completed','status-partial');
+
+              // Determina punteggio finale del set i
+              let home = 0, away = 0;
+              const st = setState[i] || {};
+              if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number'){
+                home = Number(st.homeScore||0);
+                away = Number(st.awayScore||0);
+              } else if (setSummary[i]){
+                home = Number(setSummary[i].home||0);
+                away = Number(setSummary[i].away||0);
+              } else {
+                const hist = Array.isArray(scoreHistoryBySet[i]) ? scoreHistoryBySet[i] : [];
+                if (hist.length){
+                  const last = hist[hist.length-1];
+                  home = Number(last?.homeScore||0);
+                  away = Number(last?.awayScore||0);
+                }
+              }
+
+              // Regole completamento set
+              const isSetFive = i === 5;
+              const minScore = isSetFive ? 15 : 25;
+              const completed = (home >= minScore || away >= minScore) && Math.abs(home - away) >= 2;
+
+              // Dati parziali: azioni, punteggio, meta presenti
+              const hasActions = Array.isArray(actionsBySet[i]) && actionsBySet[i].length > 0;
+              const hasScore = (home + away) > 0 || (Array.isArray(scoreHistoryBySet[i]) && scoreHistoryBySet[i].length > 0);
+              const hasMeta = !!(session.setMeta && session.setMeta[i] && (session.setMeta[i].ourRotation && session.setMeta[i].phase));
+
+              if (completed) {
+                btn.classList.add('status-completed');
+              } else if (hasActions || hasScore || hasMeta) {
+                btn.classList.add('status-partial');
+              }
+            }
+          } catch(_){ }
+        }
+        window.updateSetSidebarColors = updateSetSidebarColors;
+
         // Stato interno per dialog
         let pendingSetSelection = null;
 
@@ -1887,7 +1896,20 @@
             const rotVal = (meta?.ourRotation || cfg?.ourRotation || 'P1');
             const numericRot = String(rotVal).startsWith('P') ? String(rotVal).slice(1) : String(rotVal);
             if (rotSel) rotSel.value = numericRot || '1';
-            if (phaseSel) phaseSel.value = (meta?.phase || cfg?.phase || 'servizio');
+            // Fase di default con alternanza: basa su fase del Set 1
+            let defaultPhase = 'servizio';
+            try {
+              const basePhase = (session?.setMeta?.[1]?.phase || cfg?.phase || 'servizio');
+              const s = pendingSetSelection;
+              if (s === 5 || s === 6) {
+                defaultPhase = 'servizio';
+              } else if (s >= 2 && s <= 4) {
+                defaultPhase = (s % 2 === 1) ? basePhase : (basePhase === 'servizio' ? 'ricezione' : 'servizio');
+              } else {
+                defaultPhase = basePhase;
+              }
+            } catch(_) { defaultPhase = (cfg?.phase || 'servizio'); }
+            if (phaseSel) phaseSel.value = (meta?.phase || defaultPhase);
             if (oppSel) oppSel.value = (meta?.opponentRotation || cfg?.opponentRotation || '');
           } catch(_){}
           if (dlg) dlg.style.display = 'flex';
@@ -1946,6 +1968,70 @@
           updateActiveSetUI(targetSet);
         }
         window.saveSetMetaAndContinue = saveSetMetaAndContinue;
+
+        function openEndSetDialog(setNum, winnerKey, homeScore, awayScore){
+          const dlg = document.getElementById('end-set-dialog');
+          const title = document.getElementById('end-set-title');
+          const scoreEl = document.getElementById('end-set-score');
+          const outcomeEl = document.getElementById('end-set-outcome');
+          const proceedBtn = document.getElementById('endSetProceedBtn');
+          const stayBtn = document.getElementById('endSetStayBtn');
+          const askAgain = document.getElementById('endSetAskAgain');
+          const nextSet = Number(setNum) + 1;
+          if (title) title.textContent = `Set ${setNum} terminato`;
+          try {
+            const session = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+            const ha = String(session.homeAway||'').toLowerCase();
+            const ourScore = (ha === 'home' || ha === 'casa') ? Number(homeScore||0) : Number(awayScore||0);
+            const oppScore = (ha === 'home' || ha === 'casa') ? Number(awayScore||0) : Number(homeScore||0);
+            if (scoreEl) scoreEl.textContent = `${ourScore} a ${oppScore}`;
+            let outcome = '';
+            if ((ourScore || oppScore)) {
+              outcome = ourScore > oppScore ? 'Vinto' : (oppScore > ourScore ? 'Perso' : '');
+            }
+            if (outcomeEl) outcomeEl.textContent = outcome;
+            try { if (typeof window.updateSetSidebarColors === 'function') window.updateSetSidebarColors(); } catch(_) {}
+          } catch(_){ if (scoreEl) scoreEl.textContent = `${homeScore} a ${awayScore}`; if (outcomeEl) outcomeEl.textContent = ''; }
+          if (proceedBtn) {
+            proceedBtn.textContent = (setNum>=6) ? 'Partita terminata' : `Passa al Set ${nextSet}`;
+            proceedBtn.disabled = (setNum>=6);
+            proceedBtn.onclick = () => {
+              try { closeEndSetDialog(); } catch(_){}
+              try { if (window.cancelAutosave) window.cancelAutosave(); } catch(_){}
+              try { if (window.saveCurrentMatch) window.saveCurrentMatch(); } catch(_){}
+              try { if (window.appState) window.appState.currentSet = nextSet; } catch(_){}
+              try { openSetMetaDialog(nextSet); } catch(_){}
+            };
+          }
+          if (stayBtn) {
+            stayBtn.onclick = () => {
+              try { closeEndSetDialog(); } catch(_){}
+              const ask = !!(askAgain && askAgain.checked);
+              try { if (!ask && window.appState) window.appState.suppressSetPrompts = true; } catch(_){}
+            };
+          }
+          if (dlg) dlg.style.display = 'flex';
+        }
+        function closeEndSetDialog(){ const dlg = document.getElementById('end-set-dialog'); if (dlg) dlg.style.display = 'none'; }
+        window.openEndSetDialog = openEndSetDialog;
+        window.closeEndSetDialog = closeEndSetDialog;
+
+        function openQuartetStartDialog(){
+          const dlg = document.getElementById('quartet-start-dialog');
+          const sBtn = document.getElementById('qsStartService');
+          const rBtn = document.getElementById('qsStartReception');
+          const vBtn = document.getElementById('qsStartOpponentError');
+          const cBtn = document.getElementById('qsStartCancel');
+          const invoke = (val) => { try { if (window.__quartetStartAction) window.__quartetStartAction(val); } catch(_){} closeQuartetStartDialog(); };
+          if (sBtn) sBtn.onclick = () => invoke('b');
+          if (rBtn) rBtn.onclick = () => invoke('r');
+          if (vBtn) vBtn.onclick = () => invoke('avv');
+          if (cBtn) cBtn.onclick = () => closeQuartetStartDialog();
+          if (dlg) dlg.style.display = 'flex';
+        }
+        function closeQuartetStartDialog(){ const dlg = document.getElementById('quartet-start-dialog'); if (dlg) dlg.style.display = 'none'; }
+        window.openQuartetStartDialog = openQuartetStartDialog;
+        window.closeQuartetStartDialog = closeQuartetStartDialog;
 
         async function changeSet(targetSet){
           // Ignora richieste non valide (es. click su pulsanti nav senza data-set)
@@ -2327,165 +2413,7 @@
       }
     </script>
     <script>
-      async function showImportSummary(sessionData){
-        return new Promise((resolve) => {
-          var dlg = document.getElementById('import-summary-dialog');
-          var list = document.getElementById('importSummaryList');
-          var ok = document.getElementById('importSummaryOk');
-          var closeBtn = document.getElementById('importSummaryClose');
-          if (!dlg || !list || !ok || !closeBtn) { resolve(); return; }
-          list.innerHTML = '';
-          var dateVal = (sessionData && (sessionData.matchDate || sessionData.date)) ? String(sessionData.matchDate || sessionData.date).slice(0,10) : '';
-          var oppVal = sessionData && (sessionData.opponentTeam || sessionData.opponent) ? String(sessionData.opponentTeam || sessionData.opponent) : '';
-          var typeVal = (sessionData && (sessionData.matchType || sessionData.eventType)) ? String(sessionData.matchType || sessionData.eventType).toLowerCase() : '';
-          var haVal = (function(){
-            var hv = sessionData && sessionData.homeAway ? String(sessionData.homeAway) : '';
-            if (!hv && sessionData && sessionData.location) {
-              var loc = String(sessionData.location).toLowerCase();
-              if (loc === 'casa') hv = 'home';
-              if (loc === 'trasferta') hv = 'away';
-            }
-            return hv;
-          })();
-          var form = document.createElement('div');
-          form.className = 'dialog-form';
-          var dateIt = (function(){
-            try {
-              if (dateVal) {
-                var d = new Date(dateVal);
-                if (d instanceof Date && !isNaN(d)) {
-                  var dd = String(d.getDate()).padStart(2,'0');
-                  var mm = String(d.getMonth()+1).padStart(2,'0');
-                  var yyyy = d.getFullYear();
-                  return dd+'/'+mm+'/'+yyyy;
-                }
-              }
-            } catch(_) {}
-            return '';
-          })();
-          form.innerHTML = (
-            '<label><strong>Data gara</strong></label>'+
-            '<div class="date-row" style="display:flex;gap:8px;">'+
-              '<select id="is_day" aria-label="Giorno"></select>'+
-              '<select id="is_month" aria-label="Mese"></select>'+
-              '<input id="is_year" type="number" min="1900" max="2100" step="1" placeholder="Anno" />'+
-            '</div>'+
-            '<small id="is_date_preview" style="color:#6c757d;" aria-live="polite"></small>'+
-            '<label><strong>Avversario</strong></label>'+
-            '<input id="is_opp" type="text" value="'+(oppVal||'')+'" placeholder="Nome avversario" />'+
-            '<label><strong>Tipo partita</strong></label>'+
-            '<select id="is_type">'+
-              '<option value="">Seleziona</option>'+
-              '<option value="campionato">Campionato</option>'+
-              '<option value="coppa">Coppa</option>'+
-              '<option value="pgs">PGS</option>'+
-              '<option value="csi">CSI</option>'+
-              '<option value="amichevole">Amichevole</option>'+
-              '<option value="torneo">Torneo</option>'+
-              '<option value="playoff">Playoff</option>'+
-              '<option value="partita">Partita</option>'+
-              '<option value="altro">Altro</option>'+
-            '</select>'+
-            '<label><strong>Casa/Trasferta</strong></label>'+
-            '<select id="is_homeAway">'+
-              '<option value="">Seleziona</option>'+
-              '<option value="home">Casa</option>'+
-              '<option value="away">Trasferta</option>'+
-            '</select>'
-          );
-          list.appendChild(form);
-          var selType = form.querySelector('#is_type');
-          var selHA = form.querySelector('#is_homeAway');
-          if (selType) selType.value = typeVal || '';
-          if (selHA) selHA.value = haVal || '';
-          (function(){
-            var daySel = form.querySelector('#is_day');
-            var monthSel = form.querySelector('#is_month');
-            var yearInp = form.querySelector('#is_year');
-            var prev = form.querySelector('#is_date_preview');
-            var MONTHS = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-            function pad2(n){ return String(n).padStart(2,'0'); }
-            function setInitial(){
-              var dd = '';
-              var mm = '';
-              var yyyy = '';
-              var m = String(dateVal||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-              if (m) { yyyy = m[1]; mm = m[2]; dd = m[3]; }
-              daySel.innerHTML = Array.from({length:31}, (_,i)=>'<option value="'+pad2(i+1)+'">'+pad2(i+1)+'</option>').join('');
-              monthSel.innerHTML = Array.from({length:12}, (_,i)=>'<option value="'+pad2(i+1)+'">'+(MONTHS[i].charAt(0).toUpperCase()+MONTHS[i].slice(1))+'</option>').join('');
-              if (dd) daySel.value = String(dd);
-              if (mm) monthSel.value = String(mm);
-              if (yyyy) yearInp.value = String(yyyy);
-            }
-            function iso(){
-              var dd = String(daySel.value||'');
-              var mm = String(monthSel.value||'');
-              var yyyy = String(yearInp.value||'');
-              if (!dd || !mm || !yyyy) return '';
-              return yyyy+'-'+mm+'-'+dd;
-            }
-            function update(){
-              var dd = String(daySel.value||'');
-              var mm = String(monthSel.value||'');
-              var yyyy = String(yearInp.value||'');
-              var mIdx = mm ? (Number(mm)-1) : -1;
-              var monthCap = mIdx>=0 ? (MONTHS[mIdx].charAt(0).toUpperCase()+MONTHS[mIdx].slice(1)) : '';
-              prev.textContent = (dd && mm && yyyy) ? (dd+'/'+mm+'/'+yyyy + ' — ' + Number(dd) + ' ' + monthCap + ' ' + yyyy) : '';
-            }
-            setInitial();
-            update();
-            daySel.addEventListener('change', update);
-            monthSel.addEventListener('change', update);
-            yearInp.addEventListener('input', update);
-            form._composeISO = iso;
-          })();
-          for (var i=1; i<=6; i++){
-            var sum = sessionData && sessionData.setSummary ? sessionData.setSummary[i] : null;
-            var meta = sessionData && sessionData.setMeta ? sessionData.setMeta[i] : null;
-            var home = sum ? Number(sum.home||0) : (sessionData?.setStateBySet?.[i]?.homeScore||0);
-            var away = sum ? Number(sum.away||0) : (sessionData?.setStateBySet?.[i]?.awayScore||0);
-            var rot = (sum && sum.rotation) || (meta && meta.ourRotation) || 'P1';
-            var rotNum = String(rot).replace(/^P/i,'');
-            var ph = (sum && sum.phase) || (meta && meta.phase) || 'servizio';
-            var phLbl = ph === 'ricezione' ? 'Ricezione' : 'Servizio';
-            var row = document.createElement('div');
-            row.className = 'match-card';
-            row.innerHTML = 'Set ' + i + ' : ' + home + ' a ' + away + ', Inizio in p' + rotNum + ' in ' + phLbl;
-            list.appendChild(row);
-          }
-          try { if (typeof openDialog === 'function') openDialog('import-summary-dialog'); } catch(_){ }
-          if (dlg) { dlg.style.display = 'flex'; }
-          function confirm(){
-            var daySel = document.getElementById('is_day');
-            var monthSel = document.getElementById('is_month');
-            var yearInp = document.getElementById('is_year');
-            var oppInput = document.getElementById('is_opp');
-            var typeInput = document.getElementById('is_type');
-            var haInput = document.getElementById('is_homeAway');
-            var d = (function(){ try { var fn = form && form._composeISO ? form._composeISO : null; return fn ? fn() : ''; } catch(_){ return ''; } })();
-            var o = oppInput ? String(oppInput.value||'').trim() : '';
-            var t = typeInput ? String(typeInput.value||'') : '';
-            var h = haInput ? String(haInput.value||'') : '';
-            if (!d || !o || !t || !h) { alert('Inserisci data, avversario, tipo e casa/trasferta'); return; }
-            try {
-              sessionData.matchDate = d;
-              sessionData.opponentTeam = o;
-              sessionData.matchType = t;
-              sessionData.homeAway = h;
-              sessionData.location = (h === 'home') ? 'casa' : 'trasferta';
-              localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
-            } catch(_){ }
-            try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ }
-            if (dlg) { dlg.style.display = 'none'; }
-            ok.removeEventListener('click', confirm);
-            closeBtn.removeEventListener('click', cancel);
-            resolve();
-          }
-          function cancel(){ try { if (typeof closeDialog === 'function') closeDialog('import-summary-dialog'); } catch(_){ } if (dlg) { dlg.style.display = 'none'; } ok.removeEventListener('click', confirm); closeBtn.removeEventListener('click', cancel); resolve(); }
-          ok.addEventListener('click', confirm);
-          closeBtn.addEventListener('click', cancel);
-        });
-      }
+      
     </script>
   <script>
     (function(){

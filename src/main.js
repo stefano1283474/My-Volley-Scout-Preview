@@ -764,6 +764,17 @@ class VolleyScoutApp {
             date: document.getElementById('matchDate').value,
             description: document.getElementById('description').value.trim()
         };
+        try {
+            const selId = localStorage.getItem('selectedMatchId');
+            if (!selId) {
+                this.showNotification('ID partita mancante. Usa il pulsante "+" in Elenco Partite.', 'error');
+                return;
+            }
+            matchData.id = String(selId);
+        } catch(_){
+            this.showNotification('Errore lettura ID partita', 'error');
+            return;
+        }
         
         // Determina squadra casa e trasferta
         matchData.homeTeam = matchData.homeAway === 'home' ? matchData.myTeam : matchData.opponentTeam;

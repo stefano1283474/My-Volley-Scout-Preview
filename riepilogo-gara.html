@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Riepilogo Gara</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
+      .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+    </style>
+  </head>
+<body>
+  <header class="topappbar">
+    <div class="topappbar-content">
+      <div class="topappbar-left">
+        <a href="javascript:void(0)" class="back-btn" aria-label="Indietro" title="Indietro" onclick="history.back()" style="text-decoration:none;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+      <div class="topappbar-center">
+        <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+      </div>
+      <div class="topappbar-right">
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-title">Account</div>
+          <div class="menu-divider"></div>
+          <button id="goToMatchesBtnMobile" class="menu-item" type="button">Vai a Elenco Partite</button>
+          <button id="goToTeamsBtnMobile" class="menu-item" type="button">Vai a Elenco Squadre</button>
+          <button id="exitToWelcomeBtnMobile" class="menu-item" type="button">Esci</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="riepilogo-gara">
+    <section class="section-panel">
+      <h2 class="section-title">Riepilogo Gara</h2>
+      <div id="matchMeta" class="matches-list"></div>
+    </section>
+
+    <section class="section-panel">
+      <h3 class="section-title">Set</h3>
+      <div id="setsSummary" class="matches-list"></div>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      function getSession(){ try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_){ return {}; } }
+      function normalizeHA(val){ const v=String(val||'').toLowerCase(); if(v==='casa'||v==='home') return 'home'; if(v==='trasferta'||v==='away') return 'away'; return ''; }
+      function isValidScore(h,a){ const hv = Number(h||0), av = Number(a||0); const bothZero = (hv===0 && av===0); const bothBlank = (String(h||'').trim()==='' && String(a||'').trim()===''); return !(bothZero || bothBlank); }
+      function computeSetOutcome(h,a){ if(!isValidScore(h,a)) return ''; return (Number(h)>Number(a)) ? 'Vinto' : (Number(a)>Number(h) ? 'Perso' : ''); }
+      function computeOverallOutcome(sess){ let my=0, opp=0; const sum = sess.setSummary || {}; const st = sess.setStateBySet || {}; for(let i=1;i<=6;i++){ const s = sum[i] || {}; const si = st[i] || {}; let h = s.home!=null ? Number(s.home||0) : Number(si.homeScore||0); let a = s.away!=null ? Number(s.away||0) : Number(si.awayScore||0); if (!isValidScore(h,a)) continue; const myScore = h; const oppScore = a; if (myScore>oppScore) my++; else if (oppScore>myScore) opp++; }
+        const punteggio = `${my} a ${opp}`; const esito = my>opp ? 'Vinto' : (opp>my ? 'Perso' : ''); return { punteggio, esito };
+      }
+
+      function renderMeta(sess){ const target = document.getElementById('matchMeta'); if (!target) return; const opponent = sess.opponent || sess.opponentTeam || ''; const date = sess.matchDate || sess.date || ''; const type = sess.eventType || sess.matchType || ''; const location = (sess.location || (normalizeHA(sess.homeAway)==='home'?'casa':'trasferta')) || '';
+        const overall = computeOverallOutcome(sess);
+        const items = [
+          { label: 'Avversario', value: opponent },
+          { label: 'Data', value: date },
+          { label: 'Tipo Evento', value: type },
+          { label: 'Luogo', value: location },
+          { label: 'Punteggio', value: overall.punteggio },
+          { label: 'Esito', value: overall.esito }
+        ];
+        target.innerHTML = items.map(it => `<div class="match-item"><div class="match-title">${it.label}</div><div class="match-details">${it.value||'—'}</div></div>`).join('');
+      }
+
+      function renderSets(sess){ const target = document.getElementById('setsSummary'); if (!target) return; const sum = sess.setSummary || {}; const st = sess.setStateBySet || {};
+        function getScores(i){ const s = sum[i] || {}; const si = st[i] || {}; return { home: s.home!=null ? Number(s.home||0) : Number(si.homeScore||0), away: s.away!=null ? Number(s.away||0) : Number(si.awayScore||0) }; }
+        const rows = [];
+        for (let i=1;i<=6;i++){
+          const sc = getScores(i); const valid = isValidScore(sc.home, sc.away);
+          if (i>=4){ const prev = getScores(i-1); const prevValid = isValidScore(prev.home, prev.away); if (!prevValid) break; if (!valid) break; }
+          const my = sc.home; const opp = sc.away; const outcome = computeSetOutcome(my, opp);
+          const details = outcome ? `${outcome} ${my} a ${opp}` : `${my} a ${opp}`;
+          rows.push(`<div class="match-item"><div class="match-title">Set ${i}</div><div class="match-details">${details}</div></div>`);
+        }
+        target.innerHTML = rows.join('');
+      }
+
+      const session = getSession();
+      renderMeta(session);
+      renderSets(session);
+
+      (function(){
+        const toggle = document.getElementById('headerMenuToggle');
+        const menu = document.getElementById('headerMenu');
+        if (toggle && menu){
+          toggle.addEventListener('click', ()=>{
+            const hidden = menu.hasAttribute('hidden');
+            if (hidden) menu.removeAttribute('hidden'); else menu.setAttribute('hidden','');
+          });
+        }
+        const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
+        const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+        const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+        if (goToMatchesBtnMobile) goToMatchesBtnMobile.addEventListener('click', ()=>{ location.href='matches.html'; });
+        if (goToTeamsBtnMobile) goToTeamsBtnMobile.addEventListener('click', ()=>{ location.href='my-teams.html'; });
+        if (exitBtn) exitBtn.addEventListener('click', ()=>{ location.href='my-teams.html'; });
+      })();
+    })();
+  </script>
+</body>
+</html>

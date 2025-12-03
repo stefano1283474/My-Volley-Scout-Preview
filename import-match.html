@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importa Partita</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="animations.css">
+  <style>
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#fff;color:#333}
+    .container{max-width:1000px;margin:0 auto;padding:20px}
+    .header{background:#fff;border-radius:12px;padding:8px 12px;margin-bottom:16px;display:flex;justify-content:center;align-items:center;position:relative}
+    .logo-icon{width:100%;max-width:460px;height:96px;overflow:hidden;display:block;margin:0 auto}
+    .logo-icon img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;display:block}
+    .back-actions{position:absolute;top:8px;left:8px;display:flex;align-items:center;z-index:2}
+    .back-btn{background:#fff;color:#0d6efd;border:1px solid #e9ecef;padding:6px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center}
+    .stage-card{background:#fff;border:1px solid #e9ecef;border-radius:12px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .stage-name{font-weight:600}
+    .stage-status{color:#555}
+    .progress{height:8px;background:#e9ecef;border-radius:10px;overflow:hidden;margin:12px 0}
+    .progress-fill{height:100%;width:0;background:#0d6efd;transition:width .25s ease}
+    .panel{background:#fff;border:1px solid #0d6efd;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.1)}
+    .section-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .section-title{font-size:22px;font-weight:600;color:#333}
+    .title-actions{display:inline-flex;align-items:center;gap:8px}
+    .icon-button{background:#ffffff;color:#0d6efd;border:1px solid #e9ecef;padding:6px;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease,transform .15s ease}
+    .icon-button:hover{background:#f8f9fa;border-color:#dbe1e6;transform:translateY(-1px)}
+    .file-chip{background:#ffffff;color:#555;border:1px solid #e9ecef;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .input{width:100%;padding:10px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:15px}
+    .section-title{white-space:nowrap}
+    .section-title-row{flex-wrap:nowrap}
+    .file-row{margin:-4px 0 12px 0;display:flex;align-items:center;justify-content:flex-start}
+    .input-day{max-width:90px}
+    .input-month{max-width:200px}
+    .input-year{max-width:140px}
+    .date-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:nowrap}
+    .date-row .mini-field{display:flex;flex-direction:column;gap:6px}
+    .tabs{display:flex;gap:6px;margin:0 0 12px 0;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none;height:0}
+    .tab-button{background:transparent;border:1px solid #e9ecef;color:#111;padding:6px 10px;border-radius:10px;cursor:pointer;font-weight:600}
+    .tab-button.active{background:#0d6efd;color:#fff;border-color:#0d6efd}
+    .tab-panel{border:1px solid #e9ecef;border-radius:12px;padding:16px;background:#fff}
+    .input-day{max-width:90px}
+    .input-month{max-width:200px}
+    .input-year{max-width:140px}
+    .sets-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:12px}
+    .set-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:12px}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+    .btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:500}
+    .btn-primary{background:#0d6efd;color:#fff}
+    .btn-secondary{background:#fff;color:#0d6efd;border:1px solid #e9ecef}
+  </style>
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./src/modules/teams/teams.js"></script>
+  <script src="./src/modules/matches/matches.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-icon"><img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/Immagini/Scritta con Pallone.png" alt="Logo" onerror="this.onerror=null;this.src='Immagini/Scritta con Pallone.png'"/></div>
+      <div class="back-actions"><a href="matches.html" class="back-btn" aria-label="Elenco Partite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+    </div>
+
+    <div id="stagesPanel" class="panel" aria-live="polite">
+      <div class="stage-card"><span class="stage-name">Analisi file</span><span class="stage-status" id="s1">In attesa</span></div>
+      <div class="stage-card"><span class="stage-name">Import metadati gara</span><span class="stage-status" id="s2">In attesa</span></div>
+      <div class="stage-card"><span class="stage-name">Import roster</span><span class="stage-status" id="s3">In attesa</span></div>
+      <div class="stage-card"><span class="stage-name">Import set 1–6</span><span class="stage-status" id="s4">In attesa</span></div>
+      <div class="stage-card"><span class="stage-name">Validazione</span><span class="stage-status" id="s5">In attesa</span></div>
+      <div class="progress"><div id="progressFill" class="progress-fill"></div></div>
+    </div>
+
+    <div id="summaryPanel" class="panel" style="display:none;">
+      <div class="section-title-row">
+        <h2 class="section-title">Dati Gara</h2>
+        <div class="title-actions">
+          <button id="titleCancelBtn" class="icon-button" aria-label="Annulla" title="Annulla">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button id="titleConfirmBtn" class="icon-button" aria-label="Conferma" title="Conferma">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="file-row"><span id="sourceFileNameLabel" class="file-chip" title="File selezionato"></span></div>
+      <div class="grid">
+        <div class="field"><label>Avversario</label><input id="f_opponent" class="input" type="text"></div>
+        <div class="field" style="grid-column:1/-1">
+          <div class="date-row">
+            <div class="mini-field"><label>Giorno</label><input id="f_day" class="input input-day" type="number" min="1" max="31" inputmode="numeric"></div>
+            <div class="mini-field"><label>Mese</label><select id="f_month" class="input input-month"><option value="1">Gennaio</option><option value="2">Febbraio</option><option value="3">Marzo</option><option value="4">Aprile</option><option value="5">Maggio</option><option value="6">Giugno</option><option value="7">Luglio</option><option value="8">Agosto</option><option value="9">Settembre</option><option value="10">Ottobre</option><option value="11">Novembre</option><option value="12">Dicembre</option></select></div>
+            <div class="mini-field"><label>Anno</label><input id="f_year" class="input input-year" type="number" min="1900" max="2100" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div class="field"><label>Data</label><input id="f_date" class="input" type="date" title="Seleziona data"></div>
+        <div class="field"><label>Tipo partita</label><select id="f_type" class="input"><option value="campionato">Campionato</option><option value="coppa">Coppa</option><option value="pgs">PGS</option><option value="csi">CSI</option><option value="amichevole">Amichevole</option><option value="torneo">Torneo</option><option value="partita">Partita</option></select></div>
+        <div class="field"><label>Casa/Trasferta</label><select id="f_homeaway" class="input"><option value="home">Casa</option><option value="away">Trasferta</option></select></div>
+        <div class="field" style="grid-column:1/-1"><label>Descrizione</label><textarea id="f_desc" class="input" rows="3"></textarea></div>
+        <div class="field"><label>Risultato Finale</label><input id="f_final" class="input" type="text"></div>
+        <div class="field"><label>Esito</label><input id="f_outcome" class="input" type="text"></div>
+      </div>
+    </div>
+
+    <div id="setsPanel" class="panel" style="display:block; margin-top:12px;">
+      <div class="section-title-row" style="margin-bottom:8px;">
+        <h2 class="section-title">Dati Set</h2>
+        <div class="title-actions"></div>
+      </div>
+      <div id="setsTabs" class="tabs"></div>
+      <div id="setDetailPanel" class="tab-panel"></div>
+      
+    </div>
+  </div>
+
+  <script>
+    function setText(id,t){var el=document.getElementById(id);if(el)el.textContent=String(t)}
+    function setStatus(id,t){var el=document.getElementById(id);if(el)el.textContent=t}
+    function setProgress(p){var f=document.getElementById('progressFill');if(f)f.style.width=Math.max(0,Math.min(100,Math.round(p)))+'%'}
+    function iso(d){if(!d)return'';var s=String(d);var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return s.slice(0,10);try{var dt=new Date(s);if(!isNaN(dt))return dt.toISOString().slice(0,10)}catch(e){}return ''}
+    function pad2(n){n=Number(n)||0;return(n<10?'0':'')+n}
+    function setDateFieldsFromISO(s){var d=document.getElementById('f_day');var m=document.getElementById('f_month');var y=document.getElementById('f_year');var mm=s&&s.slice(5,7);var dd=s&&s.slice(8,10);var yy=s&&s.slice(0,4);if(d)d.value=dd||'';if(m)m.value=mm?String(Number(mm)):'';if(y)y.value=yy||''}
+    function updateISOFromFields(){var d=document.getElementById('f_day');var m=document.getElementById('f_month');var y=document.getElementById('f_year');var f=document.getElementById('f_date');var dd=d?Number(d.value):0;var mm=m?Number(m.value):0;var yy=y?Number(y.value):0;var ok=yy>=1900&&yy<=2100&&mm>=1&&mm<=12&&dd>=1&&dd<=31;if(f&&ok){f.value=String(yy)+'-'+pad2(mm)+'-'+pad2(dd)}}
+    function showSet(n,match){var p=document.getElementById('setDetailPanel');if(!p)return;var ha=String(match.homeAway||(match.location==='casa'?'home':(match.location==='trasferta'?'away':''))||'home').toLowerCase();var st=(match.setStateBySet||{})[n]||{};var sum=(match.setSummary||{})[n]||{};var meta=(match.setMeta||{})[n]||{};var ab=(match.actionsBySet||{})[n]||[];var rotA=String(meta.opponentRotation||'');var rotO=String(meta.ourRotation||'');var h=(st.homeScore!=null?Number(st.homeScore):Number(sum.home||0))||0;var a=(st.awayScore!=null?Number(st.awayScore):Number(sum.away||0))||0;var my=ha==='away'?a:h;var opp=ha==='away'?h:a;var played=((my+opp)>0);var outcome=played?(my>opp?'Vinto':(opp>my?'Perso':'')):'Non disputato';var act=Array.isArray(ab)?ab.length:0;p.innerHTML='<div style="font-weight:700;margin-bottom:6px;">Set '+n+'</div><div>Rot. Avv: '+rotA+' • Rot. Nostra: '+rotO+'</div><div>Punteggio: '+my+'-'+opp+'</div><div>Esito: '+outcome+'</div><div>Azioni: '+act+'</div>'}
+    function renderSetTabs(match){var t=document.getElementById('setsTabs');if(!t)return;t.innerHTML='';for(var i=1;i<=6;i++){var b=document.createElement('button');b.className='tab-button';b.textContent='Set '+i;b.setAttribute('data-set',String(i));b.onclick=function(){var all=t.querySelectorAll('.tab-button');all.forEach(function(x){x.classList.remove('active')});this.classList.add('active');var n=Number(this.getAttribute('data-set'));showSet(n,match)};t.appendChild(b)}var first=t.querySelector('.tab-button');if(first){first.classList.add('active');showSet(1,match)}}
+    function fillSummary(match){var opp=match.opponentTeam||match.opponent||'';var dt=iso(match.date||match.matchDate||new Date().toISOString().slice(0,10));var typ=(match.matchType||match.eventType||'partita');var ha=String(match.homeAway||(match.location==='casa'?'home':(match.location==='trasferta'?'away':''))||'home').toLowerCase();var desc=(match.description||'');var fin=(match.finalResult||'');var out=(match.matchOutcome||'');var ourWins=0,oppWins=0;for(var i=1;i<=6;i++){var st=(match.setStateBySet||{})[i]||{};var sum=(match.setSummary||{})[i]||{};var h=(st.homeScore!=null?Number(st.homeScore):Number(sum.home||0))||0;var a=(st.awayScore!=null?Number(st.awayScore):Number(sum.away||0))||0;var my=ha==='away'?a:h;var oppS=ha==='away'?h:a;if((my+oppS)>0){if(my>oppS)ourWins++;else if(oppS>my)oppWins++;}}var f1=document.getElementById('f_opponent');var f2=document.getElementById('f_date');var f3=document.getElementById('f_type');var f4=document.getElementById('f_homeaway');var f5=document.getElementById('f_desc');var f6=document.getElementById('f_final');var f7=document.getElementById('f_outcome');if(f1)f1.value=opp;if(f2){f2.value=dt;setDateFieldsFromISO(dt)}if(f3)f3.value=typ.toLowerCase();if(f4)f4.value=ha==='away'?'away':'home';if(f5)f5.value=desc;if(f6&&(!fin||!fin.trim()))f6.value=ourWins+'-'+oppWins;else if(f6)f6.value=fin;if(f7&&(!out||!out.trim()))f7.value=(ourWins>oppWins?'Vinto':(oppWins>ourWins?'Perso':''));else if(f7)f7.value=out}
+    function buildMatchFromForm(draft){var f1=document.getElementById('f_opponent');var f2=document.getElementById('f_date');var f3=document.getElementById('f_type');var f4=document.getElementById('f_homeaway');var f5=document.getElementById('f_desc');var f6=document.getElementById('f_final');var f7=document.getElementById('f_outcome');var opp=f1?f1.value.trim():'';var dt=f2?f2.value:'';if(!dt){var fd=document.getElementById('f_day');var fm=document.getElementById('f_month');var fy=document.getElementById('f_year');var dd=fd?Number(fd.value):0;var mm=fm?Number(fm.value):0;var yy=fy?Number(fy.value):0;if(yy&&mm&&dd)dt=String(yy)+'-'+pad2(mm)+'-'+pad2(dd)}var typ=f3?f3.value:'partita';var ha=f4?f4.value:'home';var desc=f5?f5.value:'';var fin=f6?f6.value:'';var out=f7?f7.value:'';var my=draft.myTeam||draft.homeTeam||'';var isHome=ha==='home';draft.opponentTeam=opp||draft.opponentTeam;draft.homeAway=isHome?'home':'away';draft.matchType=typ;draft.date=dt||draft.date;draft.description=desc;draft.finalResult=fin;draft.matchOutcome=out;draft.homeTeam=isHome?my:(opp||'Avversario');draft.awayTeam=isHome?(opp||'Avversario'):my;draft.updatedAt=new Date().toISOString();return draft}
+    async function run(){var raw=null;try{raw=sessionStorage.getItem('pendingImportMatch')}catch(e){}if(!raw){window.location.href='matches.html';return}var payload={};try{payload=JSON.parse(raw)}catch(e){}var draft=payload.matchDraft||{};var name=(payload.sourceFileName||'').toString();var label=document.getElementById('sourceFileNameLabel');if(label){label.textContent=name?('File: '+name):'File: —';label.setAttribute('title',name||'File selezionato')}setStatus('s1','In corso');setProgress(10);await new Promise(r=>setTimeout(r,200));setStatus('s1','Completato');setStatus('s2','In corso');setProgress(30);await new Promise(r=>setTimeout(r,200));setStatus('s2','Completato');setStatus('s3','In corso');setProgress(50);await new Promise(r=>setTimeout(r,200));setStatus('s3','Completato');setStatus('s4','In corso');setProgress(75);await new Promise(r=>setTimeout(r,250));setStatus('s4','Completato');setStatus('s5','In corso');setProgress(90);await new Promise(r=>setTimeout(r,200));setStatus('s5','Completato');setProgress(100);var sp=document.getElementById('stagesPanel');var sm=document.getElementById('summaryPanel');if(sp)sp.style.display='none';if(sm)sm.style.display='block';fillSummary(draft);renderSetTabs(draft);var f2=document.getElementById('f_date');var fd=document.getElementById('f_day');var fm=document.getElementById('f_month');var fy=document.getElementById('f_year');if(f2){f2.addEventListener('input',function(){setDateFieldsFromISO(iso(this.value))})}if(fd)fd.addEventListener('input',updateISOFromFields);if(fm)fm.addEventListener('change',updateISOFromFields);if(fy)fy.addEventListener('input',updateISOFromFields);var cancel=document.getElementById('titleCancelBtn');var confirm=document.getElementById('titleConfirmBtn');if(cancel)cancel.onclick=function(){try{sessionStorage.removeItem('pendingImportMatch')}catch(e){}window.location.href='matches.html'};if(confirm)confirm.onclick=async function(){var match=buildMatchFromForm(draft);if(window.matchesModule&&window.matchesModule.saveMatch){var res=await window.matchesModule.saveMatch(match);if(res&&res.success){try{sessionStorage.removeItem('pendingImportMatch')}catch(e){}window.location.href='matches.html'}else{alert('Errore salvataggio import')}}else{alert('Modulo partite non disponibile')}} }
+    document.addEventListener('DOMContentLoaded',run)
+  </script>
+</body>
+</html>

@@ -45,8 +45,7 @@ body {
 .topappbar .topbar-title #current-set-display { color: #111; }
 .topappbar-right { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .app-logo { width: 64px; height: 64px; border-radius: 4px; display: block; object-fit: contain; }
-/* In top app bar, logo should fill the bar's height */
-.topappbar .app-logo { height: 100%; width: auto; }
+.topappbar .app-logo { height: 64%; width: auto; }
 .app-title { font-size: 1rem; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Pulsante account e menu a discesa (riusa la logica esistente headerMenuToggle/headerMenu) */
@@ -242,6 +241,57 @@ body {
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Generic Dialog Overlay + Card */
+.dialog {
+  position: fixed;
+  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0,0,0,0.25);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 1001;
+}
+.dialog[style*="display: flex"],
+.dialog.is-open { display: flex; align-items: center; justify-content: center; }
+.dialog .dialog-content {
+  width: min(92vw, 720px);
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+  padding: clamp(12px, 2.5vw, 20px);
+}
+.dialog .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e3f2fd; }
+.dialog .dialog-header h3 { font-size: clamp(1.1rem, 2.4vw, 1.4rem); font-weight: 700; color: #1f2937; }
+.dialog .close-btn { border: 1px solid #e5e7eb; background: #fff; color: #374151; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.dialog .close-btn:hover { background: #f8fafc; }
+.dialog .dialog-body { padding-top: 10px; display: grid; gap: 10px; }
+.dialog .dialog-footer { display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+.dialog .dialog-footer .primary-btn,
+.dialog .dialog-footer .secondary-btn { flex: 1 1 160px; min-width: 140px; padding: clamp(10px, 2.8vw, 14px); border-radius: 10px; }
+.icon-btn { width: 40px; height: 40px; border: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; transition: background-color .2s ease; }
+.icon-btn:hover { background-color: #f8fafc; }
+.icon-btn svg { display: block; }
+.dialog .dialog-footer .icon-btn { border: 1px solid #e5e7eb; color: #2563eb; }
+
+/* End-Set dialog specifics */
+#end-set-dialog .dialog-content { width: min(92vw, 560px); }
+#end-set-title { font-weight: 700; color: #111827; }
+#end-set-score { font-size: clamp(1rem, 2.6vw, 1.25rem); font-weight: 700; color: #2563eb; }
+#end-set-outcome { font-size: clamp(1rem, 2.6vw, 1.2rem); font-weight: 600; color: #374151; }
+#endSetAskAgain { width: 18px; height: 18px; }
+
+@media (max-width: 600px) {
+  .dialog .dialog-content { width: 100%; height: auto; max-height: 85vh; border-radius: 12px; }
+  .dialog .dialog-body { overflow-y: auto; }
+  .dialog .dialog-footer { position: sticky; bottom: 0; background: #fff; padding-bottom: 10px; }
 }
 
 .btn-primary {
@@ -891,6 +941,51 @@ body {
 }
 .roster-top-actions .btn {
   flex: 0 0 auto;
+}
+
+/* Action list cards */
+.action-list-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.action-list-card:hover { background: #f8fafc; border-color: #dbeafe; }
+.action-list-card .action-number { min-width: 40px; opacity: .8; font-weight: 600; color: #374151; background: transparent; border: none; cursor: pointer; }
+.action-list-card .action-text { flex: 1; color: #0f172a; background: transparent; border: none; text-align: left; cursor: pointer; }
+.rotation-pill { border: 1px solid #93c5fd; color: #1f2937; background: #e8f0ff; border-radius: 999px; padding: 2px 8px; font-size: 12px; }
+.rotation-btn { cursor: pointer; }
+.delete-action-btn { width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #374151; }
+.delete-action-btn:hover { background: #f8fafc; }
+
+.rotation-popover { position: absolute; display: none; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 18px rgba(0,0,0,0.12); padding: 6px; z-index: 2000; }
+.rotation-popover .rotation-choice { border: 1px solid #e5e7eb; background: #f8fafc; color: #1f2937; border-radius: 999px; padding: 4px 8px; font-size: 12px; margin: 2px; cursor: pointer; }
+.rotation-popover .rotation-choice:hover { background: #e8f0ff; }
+
+/* Edit action dialog */
+#edit-action-dialog .dialog-content { width: min(92vw, 640px); }
+.edit-quartets-list { display: grid; gap: 8px; }
+.edit-quartet-row { display: grid; grid-template-columns: minmax(150px, 2fr) 32px minmax(80px, 1fr) minmax(64px, 1fr) 36px; gap: 6px; align-items: center; }
+.edit-quartet-row .edit-jersey { padding: 6px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+.edit-quartet-row .edit-fund, .edit-quartet-row .edit-eval { padding: 6px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+.edit-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Numero + nickname inline */
+.edit-jersey-wrap { display: flex; align-items: center; gap: 8px; }
+.edit-jersey-name { color: #64748b; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.edit-role-pill { border: 1px solid #e5e7eb; background: #f8fafc; color: #1f2937; border-radius: 999px; padding: 2px 6px; font-size: 12px; font-weight: 700; min-width: 26px; text-align: center; }
+.edit-remove { width: 36px; height: 36px; padding: 0; border-radius: 10px; }
+
+@media (max-width: 600px) {
+  .edit-quartet-row { grid-template-columns: minmax(120px, 2fr) 28px minmax(72px, 1fr) minmax(52px, .8fr) 32px; gap: 6px; }
 }
 
 /* Dialog roster */
@@ -2833,6 +2928,23 @@ body {
   font-size: clamp(0.55rem, 2.0vw, 0.95rem);
 }
 
+#end-set-dialog .dialog-footer .primary-btn,
+#end-set-dialog .dialog-footer .secondary-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid #2563eb;
+  border-radius: 12px;
+}
+#end-set-dialog .dialog-footer .primary-btn:hover,
+#end-set-dialog .dialog-footer .secondary-btn:hover {
+  background: #f5f9ff;
+}
+
+#end-set-dialog .dialog-header {
+  background-color: #edf2ff;
+  border-bottom: 1px solid #d7e2ff;
+}
+
 /* Specific override inside scouting dialog: beat the ellipsis rule */
 #scouting-dialog .opponent-error-btn .player-line1 .player-name,
 #scouting-dialog .opponent-error-btn .player-line2 .player-name {
@@ -3070,8 +3182,8 @@ body {
   transform: translateY(1px);
 }
 
-/* Bottone Esporta nel dialog header */
-.export-btn {
+/* Bottone Esporta nel dialog header (scoped) */
+#actions-dialog .dialog-header .export-btn {
     background-color: #1976d2;
     color: #fff;
     border: none;
@@ -3081,7 +3193,7 @@ body {
     cursor: pointer;
 }
 
-.export-btn:hover {
+#actions-dialog .dialog-header .export-btn:hover {
     background-color: #1565c0;
 }
 
@@ -3661,4 +3773,38 @@ body.page-report #punteggio-section { display: none !important; }
 @media (max-width: 480px) {
   #import-summary-dialog .dialog-content { width: 100vw; max-width: 100vw; max-height: 96vh; border-radius: 0; }
   #import-summary-dialog .dialog-body { padding: 12px; }
+}
+/* Riepilogo Gara: stile moderno, minimale, elegante */
+#riepilogo-gara .section-panel {
+  background: #ffffff;
+  border: 1px solid #d7e2ff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(13,71,161,0.08);
+  padding: 12px 14px;
+}
+#riepilogo-gara .section-title {
+  margin: 0 0 10px;
+  color: #0d47a1;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+#riepilogo-gara .matches-list {
+  display: grid;
+  gap: 10px;
+}
+#riepilogo-gara .match-item {
+  background: #f8fafc;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+#riepilogo-gara .match-title {
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+#riepilogo-gara .match-details {
+  color: #111827;
+  font-weight: 600;
+  font-size: 1rem;
 }

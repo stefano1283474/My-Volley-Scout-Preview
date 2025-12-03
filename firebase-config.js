@@ -29,7 +29,7 @@ if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp
     db.settings(Object.assign({
       cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
       ignoreUndefinedProperties: true
-    }, isLocal ? { experimentalAutoDetectLongPolling: true } : {}));
+    }, isLocal ? { experimentalAutoDetectLongPolling: true, experimentalForceLongPolling: true } : {}));
   } catch(_) {}
   if (!isLocal) {
     try {
@@ -43,7 +43,7 @@ if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp
       console.error = function(){
         try {
           const msg = arguments && String(arguments[0]||'');
-          const suppress = (msg.indexOf('google.firestore.v1.Firestore/Listen/channel')>=0) || (msg.indexOf('securetoken.googleapis.com')>=0);
+          const suppress = (msg.indexOf('google.firestore.v1.Firestore/Listen/channel')>=0) || (msg.indexOf('google.firestore.v1.Firestore/Write/channel')>=0) || (msg.indexOf('securetoken.googleapis.com')>=0);
           if (suppress) return;
         } catch(_){ }
         return originalError.apply(console, arguments);

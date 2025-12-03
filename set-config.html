@@ -379,15 +379,9 @@
                     <span class="menu-item-icon" aria-hidden="true">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                     </span>
-                    <span>Esporta Partita (Xls)</span>
-                  </button>
-                  <button id="importMatchBtnMobile" class="menu-item" aria-label="Importa Partita (Xls)" type="button">
-                    <span class="menu-item-icon" aria-hidden="true">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 17l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 3h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    </span>
-                    <span>Importa Partita (Xls)</span>
-                  </button>
-                  <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+                  <span>Esporta Partita (Xls)</span>
+                </button>
+                <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
                     <span class="menu-item-icon" aria-hidden="true">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
                     </span>
@@ -435,7 +429,7 @@
 
         <!-- Configuration Section -->
         <div class="config-section">
-            <h2 class="section-title">Setup Set:</h2>
+            <h2 class="section-title">Setup Set 1:</h2>
 
             
 
@@ -709,14 +703,12 @@
                 headerMenuToggle.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
                 document.addEventListener('click', function(){ if (open) setOpen(false); });
                 const exportBtn = document.getElementById('exportSetsBtnMobile');
-                const importBtn = document.getElementById('importMatchBtnMobile');
                 const saveBtn = document.getElementById('save-match-btn');
                 const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
                 const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
                 const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
                 const signOutBtn = document.getElementById('signOutBtnMobile');
                 if (exportBtn) exportBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.exportAllSetsToExcel==='function'){ await window.exportAllSetsToExcel(); } else { alert('Esporta non disponibile su questa pagina'); } } finally { setOpen(false); } });
-                if (importBtn) importBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.importMatchFromExcel==='function'){ await window.importMatchFromExcel(); } else if (typeof window.importMatchFromExcelOnMatches==='function'){ await window.importMatchFromExcelOnMatches(); } else { location.href='matches.html'; } } finally { setOpen(false); } });
                 if (saveBtn) saveBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (typeof window.saveCurrentMatch==='function'){ await window.saveCurrentMatch(); alert('Dati salvati'); } else { alert('Salvataggio non disponibile su questa pagina'); } } finally { setOpen(false); } });
                 if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='matches.html'; });
                 if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='my-teams.html'; });
@@ -794,7 +786,47 @@
 
             if (missing.length) { showError(missing); return; }
 
-            const fullConfig = { ...matchData, teamId, matchId, setConfig: { ...setConfig, set: 1 }, startTime: new Date().toISOString() };
+            // Preserva/recupera il roster per la sessione
+            let existing = {};
+            try { existing = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_){ existing = {}; }
+            let existingRoster = Array.isArray(existing.roster) ? existing.roster : [];
+            if (!existingRoster.length) {
+                try {
+                    const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}');
+                    const rr = Array.isArray(setup?.roster) ? setup.roster : [];
+                    if (rr.length) existingRoster = rr;
+                } catch(_){}
+            }
+            if (!existingRoster.length) {
+                try {
+                    const fromApp = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+                    if (fromApp.length) existingRoster = fromApp;
+                } catch(_){ }
+            }
+            if (!existingRoster.length) {
+                try {
+                    const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                    const found = local.find(m => String(m.id) === String(matchId));
+                    const rr = found ? (Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])) : [];
+                    if (rr.length) existingRoster = rr;
+                } catch(_){}
+            }
+            if (!existingRoster.length) {
+                try {
+                    const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+                    let best = null, bestScore = -1;
+                    saved.forEach(item => {
+                        const rr = Array.isArray(item?.roster) ? item.roster : (Array.isArray(item?.players) ? item.players : []);
+                        if (Array.isArray(rr) && rr.length){
+                            const s = rr.reduce((acc,p)=> acc + ((p && (p.name||p.surname||p.firstName||p.lastName)) ? 1 : 0), 0);
+                            if (s > bestScore){ bestScore = s; best = rr; }
+                        }
+                    });
+                    if (best) existingRoster = best;
+                } catch(_){}
+            }
+
+            const fullConfig = { ...existing, ...matchData, teamId, matchId, setConfig: { ...setConfig, set: 1 }, startTime: new Date().toISOString(), roster: existingRoster };
             localStorage.setItem('currentScoutingSession', JSON.stringify(fullConfig));
             localStorage.setItem('allowScoutingEntry','1');
             window.location.href = 'index.html';

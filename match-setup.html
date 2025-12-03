@@ -579,9 +579,9 @@
             submitBtn.textContent = 'Salvataggio...';
 
             try {
-                // Genera ID partita e arricchisci con info squadra
-                const matchId = 'match_' + Date.now();
-                matchData.id = matchId;
+                const matchId = (localStorage.getItem('selectedMatchId') || (new URLSearchParams(window.location.search).get('match')) || null);
+                if (!matchId) { showError('ID partita mancante. Torna a Elenco Partite e premi "+".'); return; }
+                matchData.id = String(matchId);
                 const currentTeam = window.teamsModule?.getCurrentTeam?.();
                 let selectedTeamId = matchData.teamId || localStorage.getItem('selectedTeamId') || (currentTeam?.id || currentTeam?.teamId) || null;
                 if (selectedTeamId) { try { localStorage.setItem('selectedTeamId', String(selectedTeamId)); } catch(_){} }
@@ -595,7 +595,7 @@
 
                 // Prepara payload coerente con uso generale
                 const payload = {
-                    id: matchId,
+                    id: String(matchId),
                     teamId: selectedTeamId,
                     myTeam: myTeamName,
                     myClub: myClubName || null,

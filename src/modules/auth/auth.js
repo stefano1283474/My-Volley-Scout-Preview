@@ -79,8 +79,12 @@ class AuthModule {
                     // Inizializza i servizi utente
                     await this.initializeUserServices(user);
                     
-                    // Mostra la schermata di benvenuto
-                    this.showWelcomeScreen();
+                    // Reindirizza alla pagina "My Teams" dopo autenticazione
+                    try {
+                        window.location.replace('/my-teams.html');
+                    } catch (_) {
+                        window.location.href = '/my-teams.html';
+                    }
                 } else {
                     console.log('Utente non autenticato');
                     

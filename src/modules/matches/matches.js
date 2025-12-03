@@ -143,8 +143,11 @@ class MatchesModule {
                 throw new Error(validation.errors.join(', '));
             }
             
+            if (!matchData.id) {
+                throw new Error('ID partita mancante');
+            }
             const match = {
-                id: Date.now(),
+                id: String(matchData.id),
                 homeTeam: matchData.homeTeam.trim(),
                 awayTeam: matchData.awayTeam.trim(),
                 myTeam: matchData.myTeam.trim(),
@@ -591,6 +594,17 @@ class MatchesModule {
             date: formData.get('match-date'),
             description: formData.get('match-description')
         };
+        try {
+            const selId = localStorage.getItem('selectedMatchId');
+            if (!selId) {
+                this.showError('ID partita mancante. Usa il pulsante "+" in Elenco Partite.');
+                return;
+            }
+            matchData.id = String(selId);
+        } catch(_){
+            this.showError('Errore lettura ID partita');
+            return;
+        }
         
         // Determina home e away team
         if (matchData.homeAway === 'home') {

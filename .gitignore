@@ -1,1 +1,10 @@
 .vercel
+node_modules/
+extracted_excel/
+*.log
+*.tmp
+*.cache
+dist/
+build/
+.DS_Store
+Thumbs.db
