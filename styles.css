@@ -374,7 +374,6 @@ body {
   width: var(--sidebar-width); 
   position: sticky; 
 }
-.set-sidebar { position: relative; }
 .sidebar-resizer { position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; border-right: 2px solid rgba(37,99,235,0.35); }
 .sidebar-resizer:hover { border-right-color: rgba(37,99,235,0.6); }
 .set-sidebar-header { 

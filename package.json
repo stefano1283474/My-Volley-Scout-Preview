@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "serve": "^14.2.5"
+    "serve": "^14.2.5",
+    "xlsx": "^0.18.5"
   }
 }

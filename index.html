@@ -6,7 +6,7 @@
     <title>MyVolleyScout</title>
     <!-- Avvio standard: carica index e lascia che la logica di autenticazione reindirizzi verso login o welcome -->
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     <link rel="stylesheet" href="animations.css?v=1">
     <meta name="theme-color" content="#2563eb">
     <link rel="icon" type="image/png" href="Copilot_20251105_011636.png">
@@ -231,7 +231,6 @@
               <div class="sidebar-resizer" aria-hidden="true"></div>
               <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
               <div class="set-list" role="list">
-                <button class="set-item nav-btn" data-page="report" role="listitem" title="Vai a Report">Report</button>
                 <button class="set-item" role="listitem" title="Vai a Riepilogo All" onclick="location.href='report-riepilogo-all.html'">Riepilogo</button>
               </div>
             </aside>
@@ -1708,6 +1707,7 @@
                 try { updateActionsLog && updateActionsLog(); } catch(_) {}
                 try { updateScoutingUI && updateScoutingUI(); } catch(_) {}
                 try { updateScoreHistoryDisplay && updateScoreHistoryDisplay(); } catch(_) {}
+                try { window.recomputeFromActionsLog && window.recomputeFromActionsLog(); } catch(_) {}
                 try { window.saveCurrentMatch && window.saveCurrentMatch(); } catch(_) {}
                 try { populateActionsDialog && populateActionsDialog(); } catch(_) {}
 
@@ -1760,8 +1760,38 @@
 
             function checkScoutingSession() {
                 const currentSession = localStorage.getItem('currentScoutingSession');
-                // Se non c'è una sessione, reindirizza subito all'elenco partite
-                if (!currentSession) { window.location.replace('matches.html'); return; }
+                if (!currentSession) {
+                    try {
+                        const matchId = localStorage.getItem('selectedMatchId') || '';
+                        const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                        const found = matchId ? localMatches.find(m => String(m.id) === String(matchId)) : null;
+                        if (found) {
+                            const sessionData = {
+                                id: found.id || '',
+                                myTeam: found.myTeam || found.homeTeam || '',
+                                opponentTeam: found.opponentTeam || found.awayTeam || '',
+                                homeAway: (found.homeAway || '').toString().toLowerCase() || 'home',
+                                matchType: found.matchType || found.eventType || '',
+                                matchDate: found.date || found.matchDate || '',
+                                description: found.description || '',
+                                finalResult: found.finalResult || '',
+                                matchOutcome: found.matchOutcome || '',
+                                setSummary: found.setSummary || {},
+                                setMeta: found.setMeta || {},
+                                setStateBySet: found.setStateBySet || {},
+                                actionsBySet: found.actionsBySet || {},
+                                roster: Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])
+                            };
+                            localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+                        } else {
+                            window.location.replace('matches.html');
+                            return;
+                        }
+                    } catch(_) {
+                        window.location.replace('matches.html');
+                        return;
+                    }
+                }
                 
                 try {
                     const sessionData = JSON.parse(currentSession);
@@ -1769,6 +1799,7 @@
                     
                     if (window.loadScoutingSession) {
                         window.loadScoutingSession(sessionData);
+                        try { if (typeof switchPage === 'function') switchPage('scouting'); } catch(_) {}
                         // Se presente un roster importato, adottalo come roster corrente
                         try {
                             const rawImp = localStorage.getItem('importedRoster');
@@ -1795,10 +1826,37 @@
                         console.error('Funzione loadScoutingSession non disponibile');
                     }
                 } catch (error) {
-                    console.error('Errore nel parsing della sessione:', error);
-                    localStorage.removeItem('currentScoutingSession');
-                    alert('Sessione di scouting corrotta. Torno a Elenco Partite.');
-                    window.location.replace('matches.html');
+                    try {
+                        const matchId = localStorage.getItem('selectedMatchId') || '';
+                        const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                        const found = matchId ? localMatches.find(m => String(m.id) === String(matchId)) : null;
+                        if (found) {
+                            const sessionData = {
+                                id: found.id || '',
+                                myTeam: found.myTeam || found.homeTeam || '',
+                                opponentTeam: found.opponentTeam || found.awayTeam || '',
+                                homeAway: (found.homeAway || '').toString().toLowerCase() || 'home',
+                                matchType: found.matchType || found.eventType || '',
+                                matchDate: found.date || found.matchDate || '',
+                                description: found.description || '',
+                                finalResult: found.finalResult || '',
+                                matchOutcome: found.matchOutcome || '',
+                                setSummary: found.setSummary || {},
+                                setMeta: found.setMeta || {},
+                                setStateBySet: found.setStateBySet || {},
+                                actionsBySet: found.actionsBySet || {},
+                                roster: Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])
+                            };
+                            localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+                            if (window.loadScoutingSession) window.loadScoutingSession(sessionData);
+                        } else {
+                            alert('Sessione di scouting non disponibile. Torno a Elenco Partite.');
+                            window.location.replace('matches.html');
+                        }
+                    } catch(_) {
+                        alert('Sessione di scouting non disponibile. Torno a Elenco Partite.');
+                        window.location.replace('matches.html');
+                    }
                 }
             }
         });

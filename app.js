@@ -51,6 +51,15 @@ function normalizeRotation(rot) {
   return `P${valid}`;
 }
 
+function cancelAutosave() {
+    try {
+        if (__autosaveTimerId) {
+            clearTimeout(__autosaveTimerId);
+            __autosaveTimerId = null;
+        }
+    } catch (_) {}
+}
+
 // Esporta stato su window per compatibilità tra script
 window.appState = appState;
 
@@ -87,7 +96,7 @@ window.loadScoutingSession = function(sessionData) {
         const awayTeam = homeAway === 'home' ? opponentName : myTeamName;
 
         appState.currentMatch = {
-            id: md.id || md.matchId || 'match_' + Date.now(),
+            id: md.id || md.matchId || 'm_' + Date.now(),
             myTeam: myTeamName,
             opponentTeam: opponentName,
             homeTeam,
@@ -110,6 +119,13 @@ window.loadScoutingSession = function(sessionData) {
             if (Array.isArray(md.roster) && md.roster.length) {
                 loadedRoster = md.roster;
             }
+            if (!loadedRoster.length) {
+                try {
+                    const setup = JSON.parse(localStorage.getItem('currentMatchSetup') || '{}');
+                    const rr = Array.isArray(setup?.roster) ? setup.roster : [];
+                    if (rr.length) loadedRoster = rr;
+                } catch(_) {}
+            }
             if (!loadedRoster.length && window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') {
                 const team = window.teamsModule.getCurrentTeam();
                 if (team && Array.isArray(team.players)) loadedRoster = team.players;
@@ -120,6 +136,15 @@ window.loadScoutingSession = function(sessionData) {
                     const team = window.teamsModule.getTeamById(selId);
                     if (team && Array.isArray(team.players)) loadedRoster = team.players;
                 }
+            }
+            if (!loadedRoster.length) {
+                try {
+                    const matchId = md.id || md.matchId || localStorage.getItem('selectedMatchId') || null;
+                    const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                    const found = matchId ? local.find(m => String(m.id) === String(matchId)) : null;
+                    const rr = found ? (Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])) : [];
+                    if (rr.length) loadedRoster = rr;
+                } catch(_) {}
             }
             if (!loadedRoster.length) {
                 const selId = localStorage.getItem('selectedTeamId');
@@ -138,18 +163,16 @@ window.loadScoutingSession = function(sessionData) {
             }
             if (!Array.isArray(loadedRoster) || !loadedRoster.length) {
                 try {
-                    let candidateName = md.myTeam || md.teamName || '';
-                    const selId = localStorage.getItem('selectedTeamId');
-                    if (selId && window.teamsModule && typeof window.teamsModule.getTeamById === 'function') {
-                        const tt = window.teamsModule.getTeamById(selId);
-                        if (tt && tt.name) candidateName = tt.name;
-                    }
                     const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
-                    const key = String(candidateName||'').toLowerCase();
-                    const found = list.find(r => String(r.name||'').toLowerCase() === key);
-                    if (found && Array.isArray(found.players) && found.players.length) {
-                        loadedRoster = found.players;
-                    }
+                    let best = null, bestScore = -1;
+                    list.forEach(item => {
+                        const rr = Array.isArray(item?.roster) ? item.roster : (Array.isArray(item?.players) ? item.players : []);
+                        if (Array.isArray(rr) && rr.length) {
+                            const s = rr.reduce((acc,p)=> acc + ((p && (p.name||p.surname||p.firstName||p.lastName)) ? 1 : 0), 0);
+                            if (s > bestScore) { bestScore = s; best = rr; }
+                        }
+                    });
+                    if (best) loadedRoster = best;
                 } catch(_) {}
             }
         } catch(_) {}
@@ -501,10 +524,18 @@ function renderReportRiepilogoAll() {
             const selectedTeamId = appState?.myTeam?.id || appState?.selectedTeamId || null;
             const teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
             const team = teams.find(t => String(t.id) === String(selectedTeamId));
-            if (team && Array.isArray(team.roster)) {
-                roster = team.roster;
+            if (team) {
+                const cand = Array.isArray(team.roster) ? team.roster : (Array.isArray(team.players) ? team.players : []);
+                if (Array.isArray(cand) && cand.length) roster = cand;
             }
         } catch(_) {}
+        if (!roster || roster.length === 0) {
+            try {
+                const sessionData = sessionDataCache || JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+                const sr = Array.isArray(sessionData.roster) ? sessionData.roster : [];
+                if (sr && sr.length) roster = sr;
+            } catch(_) {}
+        }
     }
 
     // Per ogni fondamentale, costruisci tabella in base al filtro set selezionato
@@ -942,7 +973,6 @@ function initializeApp() {
         const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
         const exitToWelcomeBtnMobile = document.getElementById('exitToWelcomeBtnMobile');
         const exportSetsBtnMobile = document.getElementById('exportSetsBtnMobile');
-        const importMatchBtnMobile = document.getElementById('importMatchBtnMobile');
         const signOutBtnMobile = document.getElementById('signOutBtnMobile');
         const saveMatchBtn = document.getElementById('save-match-btn');
         if (headerMenuToggle && headerMenu) {
@@ -976,6 +1006,7 @@ function initializeApp() {
                     saveMatchBtn.disabled = true;
                     const originalText = saveMatchBtn.textContent;
                     try { saveMatchBtn.textContent = '💾 Salvataggio…'; } catch(_){}
+                    cancelAutosave();
                     await saveCurrentMatch();
                     alert('Partita salvata.');
                     try { saveMatchBtn.textContent = originalText || '💾 Salva'; } catch(_){}
@@ -995,7 +1026,7 @@ function initializeApp() {
                 e.stopPropagation();
                 try {
                     // Salvataggio non bloccante (se fallisce, ignora)
-                    try { saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
                     window.location.href = 'matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1008,7 +1039,7 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
                     window.location.href = 'my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1022,7 +1053,7 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
                     window.location.href = 'src/index.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1036,29 +1067,11 @@ function initializeApp() {
                 e.stopPropagation();
                 try {
                     // Salvataggio non bloccante del set corrente
-                    try { await saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); await saveCurrentMatch(); } catch(_){ }
                     if (typeof window.exportAllSetsToExcel === 'function') {
                         await window.exportAllSetsToExcel();
                     } else {
                         alert('Funzione di esportazione non disponibile su questa pagina. Apri la pagina principale per esportare.');
-                    }
-                } finally {
-                    if (headerMenu) headerMenu.setAttribute('hidden', '');
-                    if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
-                }
-            });
-        }
-        if (importMatchBtnMobile) {
-            importMatchBtnMobile.addEventListener('click', async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                try {
-                    // Salva la sessione corrente prima di importare
-                    try { await saveCurrentMatch(); } catch(_){}
-                    if (typeof window.importMatchFromExcel === 'function') {
-                        await window.importMatchFromExcel();
-                    } else {
-                        alert('Funzione di importazione non disponibile su questa pagina. Apri la pagina principale per importare.');
                     }
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1071,7 +1084,7 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { await saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); await saveCurrentMatch(); } catch(_){}
                     if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
                         await window.authFunctions.signOut();
                     }
@@ -1175,10 +1188,38 @@ async function saveCurrentMatch() {
             localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
         } catch (e) { console.warn('Aggiornamento dati per set fallito:', e); }
 
+        let matchId = sessionData.id;
+        if (!matchId) {
+            try {
+                const sel = localStorage.getItem('selectedMatchId');
+                if (sel) matchId = sel;
+            } catch(_) {}
+            if (!matchId) {
+                try { matchId = window.appState?.currentMatch?.id || null; } catch(_) {}
+            }
+            if (!matchId) {
+                console.warn('ID partita mancante, salvataggio ignorato');
+                return;
+            }
+            sessionData.id = matchId;
+            try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+        }
+
+        // Migrazione ID: se esiste selectedMatchId e differisce, allinea la sessione e lo stato
+        try {
+            const selectedId = localStorage.getItem('selectedMatchId');
+            if (selectedId && selectedId !== matchId) {
+                matchId = selectedId;
+                sessionData.id = selectedId;
+                try { if (window.appState?.currentMatch) window.appState.currentMatch.id = selectedId; } catch(_) {}
+                try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+            }
+        } catch(_) {}
+
         const __label = __computeMatchStatusLabel(sessionData);
         const __code = __mapMatchStatusCode(__label);
         const payload = {
-            id: sessionData.id || ('match_' + Date.now()),
+            id: matchId,
             teamId: selectedTeamId || null,
             myTeam: currentTeam?.name || null,
             opponentTeam: sessionData.opponent || sessionData.opponentTeam || 'Sconosciuta',
@@ -1226,7 +1267,45 @@ async function saveCurrentMatch() {
             const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
             const idx = local.findIndex(m => m.id === payload.id);
             if (idx >= 0) local[idx] = payload; else local.unshift(payload);
-            localStorage.setItem('volleyMatches', JSON.stringify(local));
+
+            // 1) Deduplica PRIMARIA per id partita
+            const scoreOf = (m) => {
+                try { return Object.keys(m.setStateBySet || {}).length; } catch(_) { return 0; }
+            };
+            const byId = new Map();
+            local.forEach(m => {
+                if (!m || !m.id) return;
+                const prev = byId.get(m.id);
+                if (!prev) { byId.set(m.id, m); return; }
+                const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
+                const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
+                const better = (m.id === matchId ? 1 : 0) - (prev.id === matchId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                if (better > 0) byId.set(m.id, m);
+            });
+            let merged = Array.from(byId.values());
+
+            // 2) Deduplica SECONDARIA per contenuto se esistono entry senza id coerente
+            const keyOf = (m) => {
+                const teamIdK = String(m.teamId||'').toLowerCase();
+                const my = String(m.myTeam || m.teamName || '').toLowerCase();
+                const opp = String(m.opponentTeam || m.opponent || '').toLowerCase();
+                const date = String(m.matchDate || m.date || '').slice(0,10);
+                const type = String(m.matchType || m.eventType || m.type || '').toLowerCase();
+                const ha = String(m.homeAway || m.location || '').toLowerCase();
+                return [teamIdK,my,opp,date,type,ha].join('|');
+            };
+            const byContent = new Map();
+            merged.forEach(m => {
+                const k = keyOf(m);
+                const prev = byContent.get(k);
+                if (!prev) { byContent.set(k, m); return; }
+                const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
+                const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
+                const better = (m.id === matchId ? 1 : 0) - (prev.id === matchId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                if (better > 0) byContent.set(k, m);
+            });
+            const deduped = Array.from(byContent.values());
+            localStorage.setItem('volleyMatches', JSON.stringify(deduped));
         } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
 
         // Salvataggio su Firestore (se disponibile)
@@ -2019,18 +2098,23 @@ function updatePlayersGrid() {
         });
     });
 
-    // Listener per pulsanti speciali
-    // Errore Avversario
     container.querySelectorAll('.opponent-error-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             submitOpponentError();
         });
     });
-    // MURO override
     container.querySelectorAll('.muro-override-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            activateMuroOverride();
-        });
+        const isFirstQuartet = !(appState.currentSequence && appState.currentSequence.length);
+        const nextFundamental = appState.calculatedFundamental || predictNextFundamental();
+        const shouldDisable = isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r');
+        if (shouldDisable) {
+            try { btn.setAttribute('disabled', 'true'); } catch(_){ }
+            try { btn.classList.add('disabled'); } catch(_){ }
+            try { btn.title = 'Muro non disponibile all\'inizio'; } catch(_){ }
+            btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+        } else {
+            btn.addEventListener('click', () => { activateMuroOverride(); });
+        }
     });
 
 }
@@ -2425,6 +2509,62 @@ function submitGuidedAction() {
     }
     
     const fundamental = appState.calculatedFundamental || predictNextFundamental();
+    if (!appState.currentSequence || appState.currentSequence.length === 0) {
+        const f0 = String(fundamental).toLowerCase();
+        if (f0 !== 'b' && f0 !== 'r') {
+            window.__quartetStartAction = function(val){
+                if (val === 'avv') { try { submitOpponentError(); } catch(_) {} return; }
+                try {
+                    appState.overrideFundamental = val;
+                    appState.calculatedFundamental = val;
+                    const evaluation = appState.selectedEvaluation;
+                    const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${val}${evaluation}`;
+                    appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
+                    updateActionSummary();
+                    const tempResult = determineFinalResult(val, evaluation);
+                    const closes = tempResult === 'home_point' || tempResult === 'away_point';
+                    if (closes) {
+                        const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+                        const result = parseAction(actionString);
+                        result.playerName = appState.selectedPlayer.name;
+                        result.actionType = appState.selectedEvaluation === 5 ? 'Punto' : 'Errore';
+                        processActionResult(result);
+                        appState.actionsLog.push({
+                            action: actionString,
+                            result: result,
+                            score: `${appState.homeScore}-${appState.awayScore}`,
+                            guided: true,
+                            rotation: normalizeRotation(appState.currentRotation)
+                        });
+                        appState.currentSequence = [];
+                        updateActionSummary();
+                        const selectedPlayerText = document.getElementById('selected-player-text');
+                        const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+                        if (selectedPlayerText) { selectedPlayerText.textContent = '-'; }
+                        if (selectedEvaluationText) { selectedEvaluationText.textContent = '-'; }
+                        appState.justClosedAction = true;
+                        appState.nextFundamentalPreview = null;
+                        updateDescriptiveQuartet();
+                    }
+                    updateScoutingUI();
+                    updateActionsLog();
+                    updateNextFundamental();
+                    updatePlayersGrid();
+                    showScoutingStep('step-player');
+                    appState.selectedPlayer = null;
+                    appState.selectedEvaluation = null;
+                    appState.overrideFundamental = null;
+                    appState.calculatedFundamental = null;
+                    if (closes) checkSetEnd();
+                } catch (error) {
+                    alert(`Errore nell'azione: ${error.message}`);
+                    appState.currentSequence.pop();
+                }
+            };
+            try { if (typeof window.openQuartetStartDialog === 'function') window.openQuartetStartDialog(); } catch(_) {}
+            return;
+        }
+    }
     const evaluation = appState.selectedEvaluation;
     const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${fundamental}${evaluation}`;
     appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
@@ -3149,6 +3289,49 @@ function submitAction() {
         alert('Devi prima iniziare il set');
         return;
     }
+    try {
+        const m = actionString.match(/^\s*(avv|\d{2}[bramdBRAMD]\d)/);
+        if (m) {
+            const token = m[1] || m[0];
+            if (!/^avv$/i.test(token)) {
+                const f0 = token.charAt(2).toLowerCase();
+                if (appState.currentSequence && appState.currentSequence.length === 0 && f0 !== 'b' && f0 !== 'r') {
+                    window.__quartetStartAction = function(val){
+                        if (val === 'avv') { try { submitOpponentError(); } catch(_) {} return; }
+                        const fixedFirst = token.substring(0,2) + val + token.charAt(3);
+                        let fixedAction = '';
+                        if (actionString.includes(' ')) {
+                            const parts = actionString.trim().split(/\s+/);
+                            parts[0] = fixedFirst;
+                            fixedAction = parts.join(' ');
+                        } else {
+                            fixedAction = fixedFirst + actionString.slice(token.length);
+                        }
+                        try {
+                            const result = parseAction(fixedAction);
+                            result.playerName = 'Azione manuale';
+                            result.actionType = result.result === 'home_point' || result.result === 'away_point' ? 'Punto' : 'Azione';
+                            processActionResult(result);
+                            appState.actionsLog.push({
+                                action: fixedAction,
+                                result: result,
+                                timestamp: new Date().toLocaleTimeString('it-IT'),
+                                rotation: normalizeRotation(appState.currentRotation)
+                            });
+                            updateScoutingUI();
+                            updateActionsLog();
+                            if (inputEl) inputEl.value = '';
+                            checkSetEnd();
+                        } catch (error) {
+                            alert(`Errore nella stringa: ${error.message}`);
+                        }
+                    };
+                    try { if (typeof window.openQuartetStartDialog === 'function') window.openQuartetStartDialog(); } catch(_) {}
+                    return;
+                }
+            }
+        }
+    } catch(_) {}
     
     try {
         const result = parseAction(actionString);
@@ -3415,18 +3598,19 @@ function __getSetDataSnapshot(setNum){
             if ((!actions || actions.length === 0) && (!home && !away)) {
                 actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
                 const st = stBySet[setNum] || {};
-                if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
-                    home = Number(st.homeScore||0);
-                    away = Number(st.awayScore||0);
+                const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+                const last = arr.length ? arr[arr.length - 1] : null;
+                if (last && (typeof last.homeScore === 'number' || typeof last.awayScore === 'number')) {
+                    home = Number(last.homeScore||0);
+                    away = Number(last.awayScore||0);
                 } else {
-                    const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
-                    const last = arr.length ? arr[arr.length - 1] : null;
-                    home = Number(last?.homeScore||0);
-                    away = Number(last?.awayScore||0);
-                    if (!home && !away) {
-                        const sum = sumBySet[setNum] || {};
+                    const sum = sumBySet[setNum] || {};
+                    if (typeof sum.home === 'number' || typeof sum.away === 'number') {
                         home = Number(sum.home||0);
                         away = Number(sum.away||0);
+                    } else if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                        home = Number(st.homeScore||0);
+                        away = Number(st.awayScore||0);
                     }
                 }
                 started = !!st.setStarted;
@@ -3434,18 +3618,19 @@ function __getSetDataSnapshot(setNum){
         } else {
             actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
             const st = stBySet[setNum] || {};
-            if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
-                home = Number(st.homeScore||0);
-                away = Number(st.awayScore||0);
+            const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+            const last = arr.length ? arr[arr.length - 1] : null;
+            if (last && (typeof last.homeScore === 'number' || typeof last.awayScore === 'number')) {
+                home = Number(last.homeScore||0);
+                away = Number(last.awayScore||0);
             } else {
-                const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
-                const last = arr.length ? arr[arr.length - 1] : null;
-                home = Number(last?.homeScore||0);
-                away = Number(last?.awayScore||0);
-                if (!home && !away) {
-                    const sum = sumBySet[setNum] || {};
+                const sum = sumBySet[setNum] || {};
+                if (typeof sum.home === 'number' || typeof sum.away === 'number') {
                     home = Number(sum.home||0);
                     away = Number(sum.away||0);
+                } else if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                    home = Number(st.homeScore||0);
+                    away = Number(st.awayScore||0);
                 }
             }
             started = !!st.setStarted;
@@ -3506,18 +3691,19 @@ function __getSetDataSnapshotFromSession(session, setNum){
         const sumBySet = session.setSummary || {};
         actions = Array.isArray(abSet[setNum]) ? abSet[setNum] : [];
         const st = stBySet[setNum] || {};
-        if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
-            home = Number(st.homeScore||0);
-            away = Number(st.awayScore||0);
+        const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
+        const last = arr.length ? arr[arr.length - 1] : null;
+        if (last && (typeof last.homeScore === 'number' || typeof last.awayScore === 'number')) {
+            home = Number(last.homeScore||0);
+            away = Number(last.awayScore||0);
         } else {
-            const arr = Array.isArray(shBySet[setNum]) ? shBySet[setNum] : [];
-            const last = arr.length ? arr[arr.length - 1] : null;
-            home = Number(last?.homeScore||0);
-            away = Number(last?.awayScore||0);
-            if (!home && !away) {
-                const sum = sumBySet[setNum] || {};
+            const sum = sumBySet[setNum] || {};
+            if (typeof sum.home === 'number' || typeof sum.away === 'number') {
                 home = Number(sum.home||0);
                 away = Number(sum.away||0);
+            } else if (typeof st.homeScore === 'number' || typeof st.awayScore === 'number') {
+                home = Number(st.homeScore||0);
+                away = Number(st.awayScore||0);
             }
         }
         started = !!st.setStarted;
@@ -3588,42 +3774,11 @@ function checkSetEnd() {
     }
     
     if (setWinner) {
-        const winnerName = setWinner === 'home' ? 'La nostra squadra' : 'Squadra avversaria';
-        const finalScore = `${homeScore}-${awayScore}`;
-        
-        // Mostra messaggio di fine set
-        setTimeout(() => {
-            alert(`🏆 Set ${appState.currentSet} terminato!\n${winnerName} ha vinto ${finalScore}`);
-            
-            // Chiedi se iniziare il prossimo set
-            if (appState.currentSet < 5) {
-                const nextSet = confirm(`Vuoi iniziare il Set ${appState.currentSet + 1}?`);
-                if (nextSet) {
-                    // Persisti lo stato del set appena concluso
-                    try { saveCurrentMatch(); } catch(_) {}
-
-                    // Pulisci eventuale timer/animazione pendente
-                    try {
-                        if (appState.autoClosePending && appState.autoCloseTimerId) {
-                            clearTimeout(appState.autoCloseTimerId);
-                            appState.autoClosePending = false;
-                            appState.autoCloseTimerId = null;
-                            appState.autoClosePayload = null;
-                        }
-                        document.querySelectorAll('.eval-btn.timer-pending').forEach(btn => {
-                            btn.classList.remove('timer-pending');
-                            btn.style.removeProperty('--pulse-duration');
-                        });
-                    } catch(_) {}
-
-                    // Incrementa il set e avvia tramite startSet per separare lo storico
-                    appState.currentSet++;
-                    startSet();
-                }
-            } else {
-                alert('🎉 Partita terminata!');
+        try {
+            if (typeof window.openEndSetDialog === 'function') {
+                window.openEndSetDialog(appState.currentSet, setWinner, homeScore, awayScore);
             }
-        }, 100);
+        } catch(_) {}
     }
 }
 
@@ -3967,6 +4122,12 @@ function cancelReplacePlayerMode(){
 // Attiva l'override MURO per la singola azione corrente
 function activateMuroOverride() {
     try {
+        const isFirstQuartet = !(appState.currentSequence && appState.currentSequence.length);
+        const nextFundamental = appState.calculatedFundamental || predictNextFundamental();
+        if (isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r')) {
+            try { alert('Muro non disponibile all\'inizio dell\'azione'); } catch(_){ }
+            return;
+        }
         // Se era in corso un timer di auto-chiusura, interrompilo e rimuovi l'animazione
         if (appState.autoClosePending) {
             if (appState.autoCloseTimerId) {

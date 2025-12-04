@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elenco Player</title>
+    <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="animations.css" />
+    <style>
+      :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; }
+      body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
+      .container { max-width:920px; margin:0 auto; padding:16px; }
+      .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+      .header-card { position:relative; display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:16px; }
+      .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
+      .logo-icon img { width:100%; height:100%; object-fit:contain; }
+      .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; }
+      .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; }
+      .icon-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; background:#fff; border-radius:50%; width:36px; height:36px; cursor:pointer; }
+      .section-card { border:1px solid var(--blue); border-radius:16px; padding:16px; background:#fff; margin-top:0; }
+      .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+      .section-title { font-size: 20px; font-weight:600; color:#0f172a; }
+      .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+      .btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-weight:600; }
+      .btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+      .players-table { width:100%; border-collapse: collapse; }
+      .players-table th, .players-table td { border:1px solid #e9ecef; padding:8px; text-align:left; }
+      .players-table th { background:#f8fafc; font-weight:600; }
+      .empty-note { color:#64748b; text-align:center; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
+      <div class="card header-card">
+        <div class="back-actions">
+          <a href="javascript:void(0)" class="icon-button" title="Indietro" aria-label="Indietro" id="backBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+        <div class="logo-icon" aria-hidden="true">
+          <img src="./LOGO_APP.png" alt="Logo My Volley Scout">
+        </div>
+        <div class="account-actions">
+          <button id="exportXlsBtn" class="btn btn-primary">Esporta Partita (Xls)</button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title-row">
+          <h3 class="section-title rounded-title" style="font-weight:400;">Elenco Player</h3>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="saveRosterBtn" class="btn">Salva in Partita</button>
+          </div>
+        </div>
+
+        <div id="playersPanel"></div>
+      </div>
+    </div>
+
+    <script>
+      function ensureTwoDigits(v){var d=String(v||'').replace(/\D/g,'');if(!d)return'';return d.padStart(2,'0').slice(-2);}function roleToInitial(role){var s=String(role||'').trim();if(!s)return'';var low=s.toLowerCase();if(/^p$/.test(s))return'P';if(/^s$/.test(s))return'S';if(/^c$/.test(s))return'C';if(/^o$/.test(s))return'O';if(/^l$/.test(s))return'L';if(/palleggiator|alzator/.test(low))return'P';if(/schiacciator|banda|posto\s*4/.test(low))return'S';if(/central/.test(low))return'C';if(/oppost/.test(low))return'O';if(/liber/.test(low))return'L';return s.charAt(0).toUpperCase();}
+      function getMatchRoster(){try{function pick(rosters){var scored=rosters.filter(function(r){return Array.isArray(r)&&r.length;}).map(function(r){var score=r.reduce(function(acc,p){return acc+((p&&((p.name&&p.name.trim())||(p.surname&&p.surname.trim())||(p.firstName&&String(p.firstName).trim())||(p.lastName&&String(p.lastName).trim())))?1:0);},0);return{r:r,s:score};});if(!scored.length)return[];scored.sort(function(a,b){return b.s-a.s;});return scored[0].r;}var candidates=[];try{var sessRaw=localStorage.getItem('currentScoutingSession');var sess=sessRaw?JSON.parse(sessRaw):{};if(Array.isArray(sess.roster)&&sess.roster.length){candidates.push(sess.roster);}}catch(_){ }try{var arr=Array.isArray(window.appState?.currentRoster)?window.appState.currentRoster:[];if(Array.isArray(arr)&&arr.length)candidates.push(arr);}catch(_){ }try{var sess2=JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');var matchId=sess2.id||localStorage.getItem('selectedMatchId')||'';var localMatches=JSON.parse(localStorage.getItem('volleyMatches')||'[]');var found=matchId?localMatches.find(function(m){return String(m.id)===String(matchId);}):null;var rosterArr=found?(Array.isArray(found.roster)?found.roster:(Array.isArray(found.players)?found.players:[])):[];if(Array.isArray(rosterArr)&&rosterArr.length)candidates.push(rosterArr);}catch(_){ }try{var saved=JSON.parse(localStorage.getItem('savedRosters')||'[]');var bestSaved=null;var bestScore=-1;saved.forEach(function(item){var rr=Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]);if(Array.isArray(rr)&&rr.length){var s=rr.reduce(function(acc,p){return acc+((p&&(p.name||p.surname||p.firstName||p.lastName))?1:0);},0);if(s>bestScore){bestScore=s;bestSaved=rr;}}});if(bestSaved)candidates.push(bestSaved);}catch(_){ }try{var selId=localStorage.getItem('selectedTeamId');var storedTeams=JSON.parse(localStorage.getItem('volleyTeams')||'[]');var team=selId?storedTeams.find(function(t){return String(t.id)===String(selId);}):null;var teamPlayers=Array.isArray(team?.players)?team.players:[];if(Array.isArray(teamPlayers)&&teamPlayers.length)candidates.push(teamPlayers);}catch(_){ }var players=pick(candidates);var valid=(players||[]).filter(function(p){return p&&(p.number||p.surname||p.lastName||p.name||p.firstName||p.nickname||p.role);});var normalized=valid.map(function(p){return{number:ensureTwoDigits(p.number!=null?String(p.number).trim():''),surname:(p.surname!=null?String(p.surname).trim():(p.lastName!=null?String(p.lastName).trim():'')),name:(p.name!=null?String(p.name).trim():(p.firstName!=null?String(p.firstName).trim():'')),nickname:(p.nickname!=null?String(p.nickname).trim():''),role:roleToInitial(p.role!=null?String(p.role).trim():'')}});normalized.sort(function(a,b){var w={P:1,S:2,C:3,O:4,L:5};var rw=(w[a.role]||99)-(w[b.role]||99);if(rw!==0)return rw;return Number(a.number||0)-Number(b.number||0);});return normalized;}catch(_){return[]}}
+      function renderPlayers(){var panel=document.getElementById('playersPanel');var players=getMatchRoster();if(!panel)return; if(!players.length){panel.innerHTML='<div class="empty-note">Nessun giocatore presente per questa partita</div>';return;}var rows=players.map(function(p){var nn=p.number?"'"+p.number:'';return'<tr><td>'+nn+'</td><td>'+ (p.name||'') +'</td><td>'+ (p.surname||'') +'</td><td>'+ (p.nickname||'') +'</td><td>'+ (p.role||'') +'</td></tr>';}).join('');panel.innerHTML='<table class="players-table"><thead><tr><th>N°</th><th>Nome</th><th>Cognome</th><th>Nick</th><th>Ruolo</th></tr></thead><tbody>'+rows+'</tbody></table>'}
+      function savePlayersToSession(){try{var sessRaw=localStorage.getItem('currentScoutingSession');var sess=sessRaw?JSON.parse(sessRaw):{};sess.roster=getMatchRoster();localStorage.setItem('currentScoutingSession',JSON.stringify(sess));alert('Elenco player salvato nella partita');}catch(_){alert('Errore salvataggio elenco player')}}
+      document.addEventListener('DOMContentLoaded',function(){renderPlayers();var save=document.getElementById('saveRosterBtn');if(save)save.addEventListener('click',savePlayersToSession);var exp=document.getElementById('exportXlsBtn');if(exp)exp.addEventListener('click',async function(){try{if(typeof window.exportAllSetsToExcel==='function'){await window.exportAllSetsToExcel();}else{alert('Esporta non disponibile su questa pagina');}}catch(_){}});var back=document.getElementById('backBtn');if(back)back.addEventListener('click',function(e){e.preventDefault();try{if(window.history&&history.length>1){history.back();}else{location.href='index.html';}}catch(_){location.href='index.html';}});});
+    </script>
+  </body>
+</html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Volley Scout - Gestione Partite</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     <link rel="stylesheet" href="animations.css?v=1">
     <style>
         * {
@@ -514,6 +514,64 @@
             <p>Caricamento...</p>
         </div>
     </div>
+    <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
+        <div style="width: 92%; max-width: 600px;">
+            <div style="background:#fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+                    <div style="font-size:18px; font-weight:600; color:#333;">Importazione Partita</div>
+                    <div id="importStageFile" style="font-size:12px; color:#555; max-width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"></div>
+                </div>
+                <div style="padding:10px 12px; border:1px solid #e9ecef; border-radius:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:600;">Analisi file</span>
+                        <span id="is_s1" style="color:#555;">In attesa</span>
+                    </div>
+                    <div style="height:6px; background:#f1f3f5; border-radius:10px; overflow:hidden; margin-top:8px;">
+                        <div id="is_p1" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px; border:1px solid #e9ecef; border-radius:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:600;">Import metadati gara</span>
+                        <span id="is_s2" style="color:#555;">In attesa</span>
+                    </div>
+                    <div style="height:6px; background:#f1f3f5; border-radius:10px; overflow:hidden; margin-top:8px;">
+                        <div id="is_p2" style="height:100%; width:0; background:#20c997; transition:width .25s ease"></div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px; border:1px solid #e9ecef; border-radius:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:600;">Import roster</span>
+                        <span id="is_s3" style="color:#555;">In attesa</span>
+                    </div>
+                    <div style="height:6px; background:#f1f3f5; border-radius:10px; overflow:hidden; margin-top:8px;">
+                        <div id="is_p3" style="height:100%; width:0; background:#ffc107; transition:width .25s ease"></div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px; border:1px solid #e9ecef; border-radius:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:600;">Import set 1–6</span>
+                        <span id="is_s4" style="color:#555;">In attesa</span>
+                    </div>
+                    <div style="height:6px; background:#f1f3f5; border-radius:10px; overflow:hidden; margin-top:8px;">
+                        <div id="is_p4" style="height:100%; width:0; background:#fd7e14; transition:width .25s ease"></div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px; border:1px solid #e9ecef; border-radius:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:600;">Validazione</span>
+                        <span id="is_s5" style="color:#555;">In attesa</span>
+                    </div>
+                    <div style="height:6px; background:#f1f3f5; border-radius:10px; overflow:hidden; margin-top:8px;">
+                        <div id="is_p5" style="height:100%; width:0; background:#6610f2; transition:width .25s ease"></div>
+                    </div>
+                </div>
+                <div style="height:8px; background:#e9ecef; border-radius:10px; overflow:hidden; margin:12px 0;">
+                    <div id="is_progressFill" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <style>
         @keyframes spin {
@@ -555,6 +613,7 @@
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
         const loadingScreen = document.getElementById('loadingScreen');
+        const importStageOverlay = document.getElementById('importStageOverlay');
         const tabNew = document.getElementById('tabNew');
         const tabList = document.getElementById('tabList');
         const newMatchSection = document.getElementById('newMatchSection');
@@ -563,6 +622,42 @@
         const inlineMatchForm = document.getElementById('inlineMatchForm');
         const newMatchBtn = document.getElementById('newMatchBtn');
         const sortByDateBtn = document.getElementById('sortByDateBtn');
+
+        function showImportStages(fileName){
+            if (importStageOverlay) importStageOverlay.style.display = 'flex';
+            const label = document.getElementById('importStageFile');
+            if (label) label.textContent = fileName ? ('File: ' + String(fileName)) : '';
+            const s1 = document.getElementById('is_s1'); if (s1) s1.textContent = 'In attesa';
+            const s2 = document.getElementById('is_s2'); if (s2) s2.textContent = 'In attesa';
+            const s3 = document.getElementById('is_s3'); if (s3) s3.textContent = 'In attesa';
+            const s4 = document.getElementById('is_s4'); if (s4) s4.textContent = 'In attesa';
+            const s5 = document.getElementById('is_s5'); if (s5) s5.textContent = 'In attesa';
+            const p1 = document.getElementById('is_p1'); if (p1) p1.style.width = '0%';
+            const p2 = document.getElementById('is_p2'); if (p2) p2.style.width = '0%';
+            const p3 = document.getElementById('is_p3'); if (p3) p3.style.width = '0%';
+            const p4 = document.getElementById('is_p4'); if (p4) p4.style.width = '0%';
+            const p5 = document.getElementById('is_p5'); if (p5) p5.style.width = '0%';
+            const pf = document.getElementById('is_progressFill'); if (pf) pf.style.width = '0%';
+        }
+
+        function setImportStatus(id, text){
+            const el = document.getElementById(id);
+            if (el) el.textContent = String(text);
+        }
+
+        function setImportProgress(p){
+            const pf = document.getElementById('is_progressFill');
+            if (pf) pf.style.width = Math.max(0, Math.min(100, Math.round(p))) + '%';
+        }
+
+        function setImportStageProgress(fillId, p){
+            const el = document.getElementById(fillId);
+            if (el) el.style.width = Math.max(0, Math.min(100, Math.round(p))) + '%';
+        }
+
+        function hideImportStages(){
+            if (importStageOverlay) importStageOverlay.style.display = 'none';
+        }
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -1069,24 +1164,15 @@
             try {
                 const sum = match.setSummary || {};
                 const st = match.setStateBySet || {};
-                const ha = String(match.homeAway || (match.location === 'casa' ? 'home' : (match.location === 'trasferta' ? 'away' : '')) || '').toLowerCase();
                 let my = 0, opp = 0;
                 for (let i = 1; i <= 6; i++) {
-                    let myPts = null, oppPts = null;
-                    const state = st && st[i] ? st[i] : null;
-                    if (state && ((Number(state.homeScore||0) + Number(state.awayScore||0)) > 0)) {
-                        const h = Number(state.homeScore||0);
-                        const a = Number(state.awayScore||0);
-                        if (ha === 'away') { myPts = a; oppPts = h; } else { myPts = h; oppPts = a; }
-                    } else if (sum && sum[i]) {
-                        const h = Number(sum[i].home || 0);
-                        const a = Number(sum[i].away || 0);
-                        if (ha === 'away') { myPts = a; oppPts = h; } else { myPts = h; oppPts = a; }
-                    } else {
-                        continue;
-                    }
-                    if ((myPts || 0) === 0 && (oppPts || 0) === 0) continue;
-                    if (myPts > oppPts) my++; else if (oppPts > myPts) opp++;
+                    let h = null, a = null;
+                    const s = sum[i] || {};
+                    const si = st[i] || {};
+                    h = s.home != null ? Number(s.home || 0) : Number(si.homeScore || 0);
+                    a = s.away != null ? Number(s.away || 0) : Number(si.awayScore || 0);
+                    if (!((h || 0) || (a || 0))) continue;
+                    if (h > a) my++; else if (a > h) opp++;
                 }
                 if ((my + opp) === 0) return { label: '', outcome: '' };
                 const outcome = my > opp ? 'Vinto' : 'Perso';
@@ -1137,6 +1223,30 @@
             const typeLabel = typeMap[typeKey] || (rawType.charAt(0).toUpperCase() + rawType.slice(1));
             const res = computeMatchOutcome(match);
 
+            function computeMatchStatusCode(m){
+                if (isMatchCompleted(m)) return 'completed';
+                const abSet = m.actionsBySet || {};
+                const stBySet = m.setStateBySet || {};
+                const sumBySet = m.setSummary || {};
+                const hasAb = Object.keys(abSet).some(k => Array.isArray(abSet[k]) && abSet[k].length > 0);
+                const hasSt = Object.keys(stBySet).some(k => { const st = stBySet[k] || {}; return !!(st.setStarted) || (((Number(st.homeScore)||0) + (Number(st.awayScore)||0)) > 0); });
+                const hasSum = Object.keys(sumBySet).some(k => { const s = sumBySet[k] || {}; return ((Number(s.home)||0) + (Number(s.away)||0)) > 0; });
+                const hasProgress = (m.status === 'in_progress') || (Array.isArray(m.actions) && m.actions.length > 0) || (Array.isArray(m.scoreHistory) && m.scoreHistory.length > 0) || hasAb || hasSt || hasSum;
+                return hasProgress ? 'in_progress' : 'initialized';
+            }
+
+            const statusCode = computeMatchStatusCode(match);
+            const statusLabel = statusCode === 'completed' ? 'Partita completata' : (statusCode === 'in_progress' ? 'Partita con progressi' : 'Partita senza progressi');
+            const statusIcon = (function(){
+                if (statusCode === 'completed') {
+                    return '<span class="status-icon" title="'+statusLabel+'" aria-label="'+statusLabel+'" style="display:inline-flex;align-items:center;margin-right:6px;color:#22c55e;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M7 12l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+                }
+                if (statusCode === 'in_progress') {
+                    return '<span class="status-icon" title="'+statusLabel+'" aria-label="'+statusLabel+'" style="display:inline-flex;align-items:center;margin-right:6px;color:#f59e0b;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4V8z" fill="currentColor"/></svg></span>';
+                }
+                return '<span class="status-icon" title="'+statusLabel+'" aria-label="'+statusLabel+'" style="display:inline-flex;align-items:center;margin-right:6px;color:#9ca3af;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>';
+            })();
+
             // Riga con azioni a sinistra + testo
             card.innerHTML = `
               <div class="match-row">
@@ -1156,7 +1266,7 @@
                     </svg>
                   </button>
                 </div>
-                <div class="match-line">${dateLabel} • ${typeLabel} • ${opp}${res.label ? ` • ${res.label} ${res.outcome}` : ''}</div>
+                <div class="match-line">${statusIcon}${dateLabel} • ${typeLabel} • ${opp}${res.label ? ` • ${res.label} ${res.outcome}` : ''}</div>
               </div>`;
             card.style.cursor = 'pointer';
             // Apri configurazione set cliccando la card
@@ -1168,7 +1278,17 @@
             if (editBtn) {
                 editBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    openEditMatchDialog(match.id);
+                    try {
+                        localStorage.setItem('selectedMatchId', String(match.id));
+                        const teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
+                        if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
+                        const qs = new URLSearchParams();
+                        if (teamId) qs.set('team', String(teamId));
+                        qs.set('match', String(match.id));
+                        location.href = 'riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
+                    } catch(_) {
+                        location.href = 'riepilogo-gara.html';
+                    }
                 });
             }
             if (delBtn) {
@@ -1367,10 +1487,35 @@
                         setConfig: { set: resumeSet },
                         roster: rosterArr
                     };
+                    // Assicura meta minimi per il set da riprendere
+                    try {
+                        sess.setMeta = sess.setMeta || {};
+                        sess.setMeta[resumeSet] = sess.setMeta[resumeSet] || {};
+                        if (!sess.setMeta[resumeSet].ourRotation) sess.setMeta[resumeSet].ourRotation = 'P1';
+                        if (!sess.setMeta[resumeSet].phase) sess.setMeta[resumeSet].phase = 'servizio';
+                        // Per Set 1 consenti anche meta globale
+                        if (Number(resumeSet) === 1) {
+                            sess.setConfig.ourRotation = sess.setMeta[1].ourRotation;
+                            sess.setConfig.phase = sess.setMeta[1].phase;
+                        }
+                    } catch(_) {}
                     localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
                     localStorage.setItem('selectedMatchId', String(match.id));
+                    // Garantisci selectedTeamId se disponibile
+                    try {
+                        let teamId = localStorage.getItem('selectedTeamId');
+                        if (!teamId && match.teamId) {
+                            teamId = String(match.teamId);
+                            localStorage.setItem('selectedTeamId', teamId);
+                        }
+                    } catch(_) {}
                     if (window.appState) window.appState.currentRoster = Array.isArray(sess.roster) ? sess.roster : [];
-                    window.location.href = 'index.html';
+                    try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
+                    try {
+                        window.location.href = `index.html#/set/${Number(resumeSet)}`;
+                    } catch(_) {
+                        window.location.href = 'index.html';
+                    }
                     return;
                 }
 
@@ -1618,7 +1763,7 @@
                         }]
                     });
                     const file = await handle.getFile();
-                    try { if (loadingScreen) { loadingScreen.style.display = 'flex'; var t = loadingScreen.querySelector('p'); if (t) t.textContent = 'Import in corso…'; } } catch(_){}
+                    showImportStages(file && file.name);
                     await importMatchFromExcelFile(file);
                     return;
                 } catch(_){}
@@ -1628,7 +1773,7 @@
             inp.accept = '.xls,.xlsx,.xlsm';
             inp.onchange = async (e) => {
                 const f = e.target.files && e.target.files[0];
-                if (f) { try { if (loadingScreen) { loadingScreen.style.display = 'flex'; var t = loadingScreen.querySelector('p'); if (t) t.textContent = 'Import in corso…'; } } catch(_){}; await importMatchFromExcelFile(f); }
+                if (f) { showImportStages(f && f.name); await importMatchFromExcelFile(f); }
             };
             inp.click();
         }
@@ -1639,14 +1784,23 @@
                     alert('Seleziona una squadra prima di importare una partita');
                     return;
                 }
-                try { if (loadingScreen) { loadingScreen.style.display = 'flex'; var t = loadingScreen.querySelector('p'); if (t) t.textContent = 'Import in corso…'; } } catch(_){}
+                setImportStatus('is_s1','In corso');
+                setImportProgress(10);
+                setImportStageProgress('is_p1', 10);
                 const ab = await file.arrayBuffer();
+                setImportStageProgress('is_p1', 100);
+                setImportStatus('is_s1','Completato');
+                setImportStatus('is_s2','In corso');
+                setImportProgress(30);
+                setImportStageProgress('is_p2', 20);
                 const wb = XLSX.read(ab, { type: 'array', cellDates: true });
                 const rosterWs = wb.Sheets['El. Gioc.'] || wb.Sheets[(wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')))];
                 const meta = { opponent: '', matchDate: '', eventType: '', location: '', description: '', finalResult: '', matchOutcome: '' };
                 const importedRoster = [];
                 if (rosterWs){
                     const range = rosterWs['!ref'] ? XLSX.utils.decode_range(rosterWs['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                    setImportStatus('is_s3','In corso');
+                    setImportStageProgress('is_p3', 0);
                     for (let r = 3; r <= (range.e.r + 1); r++) {
                         const b = rosterWs['B'+r];
                         const rawB = b && b.v != null ? String(b.v).trim() : '';
@@ -1661,6 +1815,8 @@
                         const role = normalizeRoleImport(f && f.v != null ? String(f.v).trim() : '');
                         if (!number && !surname && !name && !nick && !role) continue;
                         importedRoster.push({ number, surname, name, nickname: nick, role });
+                        const prog = Math.min(100, Math.round(((r - 3) / Math.max(1, (range.e.r + 1) - 3)) * 100));
+                        setImportStageProgress('is_p3', prog);
                     }
                     meta.opponent = rosterWs['D20'] && rosterWs['D20'].v != null ? String(rosterWs['D20'].v).trim() : '';
                     let matchDate = rosterWs['D21'] && rosterWs['D21'].v != null ? rosterWs['D21'].v : '';
@@ -1677,7 +1833,14 @@
                     meta.description = rosterWs['D24'] && rosterWs['D24'].v != null ? String(rosterWs['D24'].v).trim() : '';
                     meta.finalResult = rosterWs['D25'] && rosterWs['D25'].v != null ? String(rosterWs['D25'].v).trim() : '';
                     meta.matchOutcome = rosterWs['D26'] && rosterWs['D26'].v != null ? String(rosterWs['D26'].v).trim() : '';
+                    setImportStageProgress('is_p2', 100);
+                    setImportStageProgress('is_p3', 100);
                 }
+                setImportStatus('is_s2','Completato');
+                setImportStatus('is_s3','Completato');
+                setImportProgress(45);
+                setImportStatus('is_s4','In corso (0/6)');
+                setImportStageProgress('is_p4', 0);
                 const actionsBySet = {};
                 const setMeta = {};
                 const setStateBySet = {};
@@ -1694,15 +1857,20 @@
                     const away = ws['E12'] && ws['E12'].v != null ? Number(ws['E12'].v) : 0;
                     setStateBySet[i] = { homeScore: home, awayScore: away };
                     const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 300, c: 20 } };
-                    const tokens = [];
+                    const rows = [];
                     for (let r = 18; r <= (range.e.r + 1); r++){
                         const cell = ws['B'+r];
                         const v = cell && cell.v != null ? String(cell.v).trim() : '';
                         if (!v) continue;
-                        v.split(/\s+/).forEach(t => { if (/^\d{2}[a-z]\d$/i.test(t)) tokens.push(t); });
+                        rows.push(v);
                     }
-                    actionsBySet[i] = tokens.map(x => ({ action: x }));
+                    actionsBySet[i] = rows.map(x => ({ action: x }));
+                    setImportStatus('is_s4','In corso ('+i+'/6)');
+                    setImportStageProgress('is_p4', Math.round((i/6)*100));
+                    setImportProgress(55 + Math.min(6*i, 36));
                 }
+                setImportStatus('is_s4','Completato');
+                setImportStageProgress('is_p4', 100);
                 const myTeamName = selectedTeam?.name || '';
                 const opponentName = meta.opponent || '';
                 const isHome = meta.location === 'casa' ? true : (meta.location === 'trasferta' ? false : true);
@@ -1730,11 +1898,17 @@
                 };
                 const payload = { matchDraft: match, roster: importedRoster, sourceFileName: file.name || '' };
                 try { sessionStorage.setItem('pendingImportMatch', JSON.stringify(payload)); } catch(_){}
+                setImportStatus('is_s5','In corso');
+                setImportStageProgress('is_p5', 60);
+                setImportProgress(95);
+                setImportStatus('is_s5','Completato');
+                setImportStageProgress('is_p5', 100);
+                setImportProgress(100);
                 window.location.href = 'import-match.html';
             } catch (e){
                 console.error(e);
                 alert('Errore durante l\'import della partita');
-                try { if (loadingScreen) loadingScreen.style.display = 'none'; } catch(_){}
+                hideImportStages();
             }
         }
     </script>
