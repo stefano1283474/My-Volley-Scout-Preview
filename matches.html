@@ -441,7 +441,7 @@
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
-                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.0.1</div>
+                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.0.2</div>
                 </div>
             </div>
         </div>
@@ -1793,7 +1793,8 @@
                 setImportStatus('is_s2','In corso');
                 setImportProgress(30);
                 setImportStageProgress('is_p2', 20);
-                const wb = XLSX.read(ab, { type: 'array', cellDates: true });
+                const wb = XLSX.read(ab, { type: 'array', cellDates: true, dense: true, raw: true, sheetRows: 5000 });
+                await new Promise(r => setTimeout(r, 0));
                 const rosterWs = wb.Sheets['El. Gioc.'] || wb.Sheets[(wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')))];
                 const meta = { opponent: '', matchDate: '', eventType: '', location: '', description: '', finalResult: '', matchOutcome: '' };
                 const importedRoster = [];
@@ -1868,6 +1869,7 @@
                     setImportStatus('is_s4','In corso ('+i+'/6)');
                     setImportStageProgress('is_p4', Math.round((i/6)*100));
                     setImportProgress(55 + Math.min(6*i, 36));
+                    await new Promise(r => setTimeout(r, 0));
                 }
                 setImportStatus('is_s4','Completato');
                 setImportStageProgress('is_p4', 100);
