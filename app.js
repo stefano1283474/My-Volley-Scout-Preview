@@ -4154,7 +4154,7 @@ function activateMuroOverride() {
     } catch (_) {}
 }
 try {
-  window.appBuild = { version: '4.0.1', commit: '0888b3d' };
+  window.appBuild = { version: '4.1.1', commit: '' };
   function renderAppVersion(){
     try {
       var els = document.querySelectorAll('.app-version');
