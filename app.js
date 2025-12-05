@@ -1971,6 +1971,7 @@ function updatePlayersGrid() {
                 if (s === 'P' || s.startsWith('PAL')) return 'Palleggiatore';
                 if (s === 'O' || s.startsWith('OPP')) return 'Opposto';
                 if (s === 'S' || s.startsWith('SCH')) return 'Schiacciatore';
+                if (s === 'M' || s.startsWith('MAR')) return 'Schiacciatore';
                 if (s === 'C' || s.startsWith('CEN')) return 'Centrale';
                 if (s === 'L' || s.startsWith('LIB')) return 'Libero';
                 return '';

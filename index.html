@@ -1625,7 +1625,7 @@
                 const data = await file.arrayBuffer();
                 try { updateImportProgress(30, 'Elaborazione file'); } catch(_) {}
                 const readOpts = (function(){
-                    try { return { type: 'array', dense: true, sheetRows: 220, cellDates: true }; } catch(_) { return { type: 'array' }; }
+                    try { return { type: 'array', sheetRows: 220, cellDates: true }; } catch(_) { return { type: 'array' }; }
                 })();
                 const wb = XLSX.read(data, readOpts);
                 try { updateImportProgress(50, 'Analisi foglio'); } catch(_) {}
@@ -1634,8 +1634,8 @@
                 if (!ws) { alert('File Excel non valido: nessun foglio trovato.'); return; }
 
                 try {
-                    const a7 = ws['A7'] && ws['A7'].v != null ? String(ws['A7'].v).trim() : '';
-                    const a6 = ws['A6'] && ws['A6'].v != null ? String(ws['A6'].v).trim() : '';
+                    const a7 = ws['A7'] && (ws['A7'].v != null ? String(ws['A7'].v).trim() : (ws['A7'].w ? String(ws['A7'].w).trim() : ''));
+                    const a6 = ws['A6'] && (ws['A6'].v != null ? String(ws['A6'].v).trim() : (ws['A6'].w ? String(ws['A6'].w).trim() : ''));
                     const rotNum = a7 ? a7.replace(/^P/i, '') : '';
                     const oppNum = a6 ? a6.replace(/^P/i, '') : '';
                     const setNumber = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
@@ -1655,15 +1655,15 @@
                 } catch (_) {}
 
                 // Rileva intervallo foglio e raccogli B18.. contenenti le quartine
-                const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
+                const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 220, c: 10 } };
                 const startRow = 18; // 1-indexed
                 const imported = [];
                 for (let r = startRow; r <= (range.e.r + 1); r++) {
                     const addr = `B${r}`;
                     const cell = ws[addr];
-                    if (!cell) continue;
-                    const val = String(cell.v == null ? '' : cell.v).trim();
-                    if (!val) continue;
+                    if (!cell) break;
+                    const val = String(cell.v == null ? (cell.w || '') : cell.v).trim();
+                    if (!val) break;
                     imported.push(val);
                 }
 
