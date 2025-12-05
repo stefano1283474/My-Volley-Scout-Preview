@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Report – Match-Stats</title>
+    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="animations.css" />
+    <style>
+      body { background-color: #ffffff !important; }
+      .main { padding: 2px !important; overflow-y: auto !important; }
+      .section { padding: 2px !important; margin: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+      .panel { padding: 2px !important; border: 0 !important; border-radius: 0 !important; }
+      .section-header { margin: 4px 0 !important; }
+      .panel-title { margin-bottom: 4px !important; }
+      .report-row, .panel, .placeholder-area { min-width: 0 !important; }
+      .placeholder-area { padding: 2px !important; overflow-x: visible !important; overflow-y: visible !important; width: 100% !important; max-width: 100% !important; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior: contain; }
+      .set-filter { position: sticky; top: var(--sticky-filter-top, 56px); z-index: 5; background: #ffffff; padding: 4px 0; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+      .set-filter .filter-btn { margin-right: 6px; }
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .simple-table { border-collapse: separate; border-spacing: 0; min-width: 840px; width: max-content; table-layout: auto; display: inline-table; }
+      .simple-table th, .simple-table td { white-space: nowrap; }
+      .simple-table th:first-child,
+      .simple-table td:first-child { position: sticky; left: 0; z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
+      .simple-table th:nth-child(2),
+      .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 56px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
+      .simple-table tr.total-row td { text-align: center; }
+      .simple-table tr.total-row td[colspan="2"] { text-align: left; }
+    </style>
+  </head>
+  <body class="page-report">
+    <header class="topappbar">
+      <div class="topappbar-content">
+        <div class="topappbar-left">
+          <button id="toggleSetSidebar" class="topbar-toggle" aria-controls="setToolbar" aria-expanded="false" title="Mostra/Nascondi Set" type="button">
+            <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+          </button>
+        </div>
+        <div class="topappbar-center">
+          <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+        </div>
+        <div class="topappbar-right">
+          <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button">
+            <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </button>
+          <div id="headerMenu" class="top-account-menu" hidden>
+            <div class="menu-title">Account</div>
+            <div class="menu-divider"></div>
+            <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              <span>Esporta Partita (Xls)</span>
+            </button>
+            <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+              </span>
+              <span>Salva</span>
+            </button>
+            <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              <span>Vai a Elenco Partite</span>
+            </button>
+            <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span>Vai a Elenco Squadre</span>
+            </button>
+            <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/><path d="M15 12H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span>Esci</span>
+            </button>
+            <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+              <span class="menu-item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/><path d="M15 12H3m4-4-4 4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span>Logout</span>
+            </button>
+            <div class="menu-divider"></div>
+            <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.0.2</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main with-sidebar">
+      <aside class="set-sidebar" aria-label="Selezione set">
+        <div class="set-sidebar-header">Passa a:</div>
+        <div id="setToolbar" class="set-list" role="list">
+          <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='riepilogo-gara.html'; } })()">Riepilogo Gara</button>
+          <button class="set-item" role="listitem" onclick="location.href='elenco-player.html'">Elenco Player</button>
+          <button class="set-item" data-set="1" role="listitem">Set 1</button>
+          <button class="set-item" data-set="2" role="listitem">Set 2</button>
+          <button class="set-item" data-set="3" role="listitem">Set 3</button>
+          <button class="set-item" data-set="4" role="listitem">Set 4</button>
+          <button class="set-item" data-set="5" role="listitem">Set 5</button>
+          <button class="set-item" data-set="6" role="listitem">Set 6</button>
+        </div>
+        <div class="sidebar-resizer" aria-hidden="true"></div>
+        <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
+        <div class="set-list" role="list">
+          <button id="sidebar-match-stats-btn" class="set-item" role="listitem" title="Vai a Match-Stats" onclick="location.href='match-stats.html'">Match-Stats</button>
+        </div>
+      </aside>
+      <div class="section" id="match-stats" style="display:block;">
+        <div class="section-header">
+          <h3>Report – Match-Stats</h3>
+        </div>
+        <div class="report-content">
+          <div class="report-row">
+            <div class="panel">
+              <div class="panel-title">Attacco – per Giocatore (All Set)</div>
+              <div class="placeholder-area" id="all-attacco">Tabella Attacco</div>
+            </div>
+          </div>
+          <div class="report-row">
+            <div class="panel">
+              <div class="panel-title">Battuta – per Giocatore (All Set)</div>
+              <div class="placeholder-area" id="all-battuta">Tabella Battuta</div>
+            </div>
+          </div>
+          <div class="report-row">
+            <div class="panel">
+              <div class="panel-title">Muro – per Giocatore (All Set)</div>
+              <div class="placeholder-area" id="all-muro">Tabella Muro</div>
+            </div>
+          </div>
+          <div class="report-row">
+            <div class="panel">
+              <div class="panel-title">Ricezione – per Giocatore (All Set)</div>
+              <div class="placeholder-area" id="all-ricezione">Tabella Ricezione</div>
+            </div>
+          </div>
+          <div class="report-row">
+            <div class="panel">
+              <div class="panel-title">Difesa – per Giocatore (All Set)</div>
+              <div class="placeholder-area" id="all-difesa">Tabella Difesa</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  <script src="app.js?v=9"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+        if (sessionData && Object.keys(sessionData).length > 0 && typeof window.loadScoutingSession === 'function') {
+          window.loadScoutingSession(sessionData);
+        }
+      } catch(_) {}
+      try { switchPage('match-stats'); } catch (_) {}
+      try {
+        const toggle = document.getElementById('headerMenuToggle');
+        const menu = document.getElementById('headerMenu');
+        function closeMenu(){ if (menu){ menu.hidden = true; } if (toggle){ toggle.setAttribute('aria-expanded','false'); } }
+        function openMenu(){ if (menu){ menu.hidden = false; } if (toggle){ toggle.setAttribute('aria-expanded','true'); } }
+        if (toggle && menu){
+          toggle.addEventListener('click', (e)=>{ e.preventDefault(); const expanded = toggle.getAttribute('aria-expanded') === 'true'; if (expanded) closeMenu(); else openMenu(); });
+          document.addEventListener('click', (e)=>{ if (!menu.hidden && !menu.contains(e.target) && !toggle.contains(e.target)){ closeMenu(); } });
+          document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeMenu(); } });
+        }
+        const toMatches = document.getElementById('goToMatchesBtnMobile');
+        const toTeams = document.getElementById('goToTeamsBtnMobile');
+        const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+        const logoutBtn = document.getElementById('signOutBtnMobile');
+        if (toMatches){ toMatches.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='matches.html'; }); }
+        if (toTeams){ toTeams.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
+        if (exitBtn){ exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
+        if (logoutBtn){ logoutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } localStorage.removeItem('selectedTeamId'); } finally { closeMenu(); location.href='/auth-login.html'; } }); }
+      } catch(_) {}
+      function computeStickyOffsets(){
+        try {
+          document.querySelectorAll('#match-stats .simple-table').forEach(tbl => {
+            const firstCell = tbl.querySelector('tbody tr td:first-child') || tbl.querySelector('thead tr th:first-child');
+            if (!firstCell) return;
+            const w = Math.round(firstCell.getBoundingClientRect().width);
+            tbl.style.setProperty('--sticky-left-2', (w || 56) + 'px');
+          });
+        } catch(_) {}
+      }
+      function setStickyFilterTop(){
+        try {
+          const header = document.querySelector('.topappbar');
+          const h = header ? Math.round(header.getBoundingClientRect().height) : 56;
+          document.documentElement.style.setProperty('--sticky-filter-top', (h + 4) + 'px');
+        } catch(_) {}
+      }
+      computeStickyOffsets();
+      setStickyFilterTop();
+      window.addEventListener('resize', computeStickyOffsets);
+      window.addEventListener('resize', setStickyFilterTop);
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.matches('[data-set-filter]')) {
+          setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50);
+        }
+      });
+      try {
+        const list = document.getElementById('setToolbar');
+        if (list) {
+          list.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.set-item, .set-pill');
+            if (!btn) return;
+            const setNum = parseInt(btn.dataset.set, 10);
+            if (Number.isInteger(setNum) && setNum >= 1 && setNum <= 6) {
+              try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
+              location.href = `index.html#/set/${setNum}`;
+            }
+          });
+        }
+      } catch(_) {}
+      try {
+        const setList = document.getElementById('setToolbar');
+        if (setList) {
+          setList.querySelectorAll('.set-item').forEach(btn => {
+            if (btn.dataset.set) { btn.classList.remove('active'); btn.removeAttribute('aria-current'); }
+          });
+        }
+        const msBtn = document.getElementById('sidebar-match-stats-btn');
+        if (msBtn) {
+          msBtn.classList.add('active');
+          msBtn.setAttribute('aria-current','true');
+        }
+        try { if (window.updateSetSidebarColors) window.updateSetSidebarColors(); } catch(_) {}
+      } catch(_) {}
+    });
+  </script>
+  </body>
+</html>

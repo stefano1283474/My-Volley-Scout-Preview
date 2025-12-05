@@ -1406,7 +1406,7 @@
                 if (!match) return alert('Partita non trovata');
                 if (match.status === 'completed' || isMatchCompleted(match)) {
                     localStorage.setItem('selectedMatchId', match.id);
-                    window.location.href = 'report-riepilogo-all.html';
+                    window.location.href = 'match-stats.html';
                     return;
                 }
 
@@ -1425,7 +1425,7 @@
                     }
                     if (complete) {
                         localStorage.setItem('selectedMatchId', match.id);
-                        window.location.href = 'report-riepilogo-all.html';
+                        window.location.href = 'match-stats.html';
                         return;
                     }
                 } catch(_) {}

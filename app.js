@@ -300,7 +300,7 @@ function switchPage(pageId) {
     const reportAttacco = document.getElementById('report-attacco');
     const reportGiriRice = document.getElementById('report-giri-rice');
     const reportRiepilogoSet = document.getElementById('report-riepilogo-set');
-    const reportRiepilogoAll = document.getElementById('report-riepilogo-all');
+    const reportRiepilogoAll = document.getElementById('match-stats');
 
     // Nascondi tutto
     if (scoutingSection) scoutingSection.style.display = 'none';
@@ -329,7 +329,7 @@ function switchPage(pageId) {
     if (pageId === 'report-attacco' && reportAttacco) reportAttacco.style.display = 'block';
     if (pageId === 'report-giri-rice' && reportGiriRice) reportGiriRice.style.display = 'block';
     if (pageId === 'report-riepilogo-set' && reportRiepilogoSet) reportRiepilogoSet.style.display = 'block';
-    if (pageId === 'report-riepilogo-all' && reportRiepilogoAll) reportRiepilogoAll.style.display = 'block';
+    if (pageId === 'match-stats' && reportRiepilogoAll) reportRiepilogoAll.style.display = 'block';
 
     // Inizializza/aggiorna la pagina specifica se necessario
     try {
@@ -350,8 +350,8 @@ function switchPage(pageId) {
         // Iniezione contenuti dinamici per i report
         if (pageId === 'report-riepilogo') {
             try { renderReportRiepilogo(); } catch (e) { console.warn('Riepilogo render error:', e); }
-        } else if (pageId === 'report-riepilogo-all') {
-            try { renderReportRiepilogoAll(); } catch (e) { console.warn('Riepilogo All render error:', e); }
+        } else if (pageId === 'match-stats') {
+            try { renderMatchStats(); } catch (e) { console.warn('Match-Stats render error:', e); }
         }
     }
     } catch (e) {
@@ -475,7 +475,7 @@ function renderReportRiepilogo() {
 // =========================
 // Report: Riepilogo All (per-player su tutta la gara)
 // =========================
-function renderReportRiepilogoAll() {
+function renderMatchStats() {
     const ids = {
         'Attacco': 'all-attacco',
         'Servizio': 'all-battuta',
@@ -4154,7 +4154,7 @@ function activateMuroOverride() {
     } catch (_) {}
 }
 try {
-  window.appBuild = { version: '4.1.1', commit: '' };
+  window.appBuild = { version: '4.1.2', commit: '' };
   function renderAppVersion(){
     try {
       var els = document.querySelectorAll('.app-version');
