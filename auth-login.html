@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Volley Scout - Accesso</title>
-    <link rel="stylesheet" href="animations.css?v=1">
+    <link rel="stylesheet" href="/animations.css?v=1">
     <style>
         * {
             margin: 0;
@@ -17,16 +17,16 @@
             background: #ffffff;
             min-height: 100vh;
             display: flex;
-            align-items: flex-start; /* porta la card verso il margine superiore */
+            align-items: flex-start;
             justify-content: center;
             color: #1a1a1a;
-            padding-top: 12px; /* piccolo offset per evitare attaccamento al bordo */
+            padding-top: 12px;
         }
 
         .auth-container {
             width: 100%;
-            max-width: 520px; /* +30% rispetto a 400px */
-            padding: 12px 30px; /* ulteriore riduzione dello spazio verticale */
+            max-width: 520px;
+            padding: 12px 30px;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -35,23 +35,23 @@
 
         .logo {
             text-align: center;
-            margin-bottom: 4px; /* -75% di spazio sotto il blocco logo */
+            margin-bottom: 4px;
         }
 
-        /* Slot logo: grande ma senza spazi superflui, con ritaglio verticale */
+        
         .logo-icon {
-            width: 100%;       /* occupa tutta la card, massimo 576px */
+            width: 100%;
             max-width: 576px;
-            height: 180px;     /* +25% spazio verticale per mostrare più logo */
-            overflow: hidden;  /* ritaglia l'eventuale trasparenza del PNG */
+            height: 180px;
+            overflow: hidden;
             display: block;
-            margin: 0 auto 0;  /* nessun padding, nessun margine inferiore extra */
+            margin: 0 auto 0;
         }
         .logo-icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;       /* riempie e taglia il vuoto ai bordi */
-            object-position: 50% 40%; /* sposta l'inquadratura 10% verso l'alto */
+            object-fit: cover;
+            object-position: 50% 40%;
             display: block;
         }
 
@@ -59,7 +59,7 @@
             font-size: 24px;
             font-weight: 600;
             color: #1a1a1a;
-            margin-bottom: 4px; /* -50% per avvicinare il titolo al logo */
+            margin-bottom: 4px;
         }
 
         .logo-subtitle {
@@ -209,21 +209,20 @@
 
         @media (max-width: 480px) {
             .auth-container {
-                margin: 8px; /* meno distanza dai bordi su mobile */
-                padding: 16px 20px; /* compatta lo spazio verticale */
+                margin: 8px;
+                padding: 16px 20px;
             }
         }
     </style>
 </head>
 <body>
     <script>
-      // Rimuove qualsiasi hash dalla URL (es. #/set/1) per evitare confusioni di routing
       try { if (location.hash) { history.replaceState(null, '', location.pathname); } } catch(_){}
     </script>
     <div class="auth-container">
         <div class="logo">
             <div class="logo-icon">
-                <img src="./LOGO_APP.png" alt="Logo My Volley Scout">
+                <img src="/LOGO_APP.png" alt="Logo My Volley Scout">
             </div>
             <div class="logo-text">My Volley Scout</div>
             <div class="logo-subtitle">Accedi al tuo account</div>
@@ -266,7 +265,7 @@
         </button>
 
         <div class="auth-switch">
-            Non hai un account? <a href="auth-register.html">Registrati</a>
+            Non hai un account? <a href="/auth-register.html">Registrati</a>
         </div>
     </div>
 
@@ -276,12 +275,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <!-- App Scripts -->
-    <script src="./connection-manager.js"></script>
-    <script src="./firebase-config.js"></script>
-    <script src="./firestore-service.js"></script>
+    <script src="/connection-manager.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/firestore-service.js"></script>
 
     <script>
-        // Elementi DOM
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
@@ -289,7 +287,6 @@
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
 
-        // Funzioni di utilità
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
@@ -317,7 +314,6 @@
             loginBtn.disabled = false;
         }
 
-        // Messaggi di errore localizzati
         function getErrorMessage(errorCode) {
             const messages = {
                 'auth/user-not-found': 'Utente non trovato',
@@ -336,8 +332,42 @@
             return messages[errorCode] || `Errore durante l\'autenticazione (${errorCode})`;
         }
 
-        // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
+            if (!window.__authListenersAttached) {
+                window.__authListenersAttached = true;
+                if (loginForm) {
+                    loginForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        hideMessages();
+                        showLoading();
+                        const email = document.getElementById('email').value.trim();
+                        const password = document.getElementById('password').value;
+                        if (typeof window.authFunctions === 'undefined') {
+                            showError('Firebase non disponibile');
+                            hideLoading();
+                            return;
+                        }
+                    });
+                }
+                if (googleLoginBtn) {
+                    googleLoginBtn.addEventListener('click', async () => {
+                        hideMessages();
+                        showLoading();
+                        if (typeof window.authFunctions === 'undefined') {
+                            showError(getErrorMessage('auth/unauthorized-domain'));
+                            hideLoading();
+                            return;
+                        }
+                    });
+                }
+            }
+            try {
+                if ('serviceWorker' in navigator && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+                    navigator.serviceWorker.getRegistrations().then((regs)=>{ regs.forEach(r=> r.unregister()); });
+                    if ('caches' in window) { caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))); }
+                }
+            } catch(_){}
+            setTimeout(() => { if (typeof window.authFunctions === 'undefined') { showError('Firebase non disponibile'); } }, 2500);
             initializeAuth();
         });
 
@@ -347,14 +377,12 @@
                 return;
             }
 
-            // Controlla se l'utente è già autenticato
             window.authFunctions.onAuthStateChanged((user) => {
                 if (user) {
-                    window.location.href = 'my-teams.html';
+                    window.location.href = '/my-teams.html';
                 }
             });
 
-            // Login con email/password
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 hideMessages();
@@ -375,11 +403,15 @@
                         showSuccess('Accesso effettuato con successo!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = 'my-teams.html';
+                            window.location.href = '/my-teams.html';
                         }, 1500);
                     } else {
-                        const msg = result?.error || 'Errore durante l\'autenticazione';
-                        showError(getErrorMessage(msg));
+                        let errorCode = result?.code || null;
+                        if (!errorCode && typeof result?.error === 'string') {
+                            const m = result.error.match(/\(auth\/([^)]+)\)/);
+                            if (m) errorCode = `auth/${m[1]}`;
+                        }
+                        showError(getErrorMessage(errorCode || 'unknown'));
                     }
                 } catch (error) {
                     showError('Errore di connessione. Riprova.');
@@ -388,7 +420,6 @@
                 }
             });
 
-            // Login con Google
             googleLoginBtn.addEventListener('click', async () => {
                 hideMessages();
                 showLoading();
@@ -399,7 +430,7 @@
                         showSuccess('Accesso con Google effettuato!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = 'my-teams.html';
+                            window.location.href = '/my-teams.html';
                         }, 1500);
                     } else {
                         const errorCode = result?.code || 'unknown';
@@ -414,7 +445,6 @@
             });
         }
 
-        // Funzione per creare la collection dell'utente
         async function createUserCollection(email) {
             if (typeof window.firestoreService === 'undefined') {
                 console.warn('Firestore service non disponibile');

@@ -267,10 +267,7 @@ class VolleyScoutApp {
      * Mostra la selezione delle squadre
      */
     showTeamSelection() {
-        console.log('Mostra selezione squadre');
-        
-        // Crea e mostra l'UI per la selezione squadre
-        this.createTeamSelectionUI();
+        window.location.href = '/my-teams.html';
     }
 
     /**
@@ -330,54 +327,7 @@ class VolleyScoutApp {
      * Crea l'UI per la selezione squadre
      */
     createTeamSelectionUI() {
-        const teams = this.state.modules.teams.getTeams();
-        
-        if (teams.length === 0) {
-            this.showNotification('Nessuna squadra disponibile. Crea prima una squadra.', 'warning');
-            this.showCreateTeamForm();
-            return;
-        }
-        
-        // Crea l'HTML per la selezione squadre
-        const html = `
-            <div class="screen" id="team-selection-screen">
-                <div class="container">
-                    <header class="screen-header">
-                        <button class="btn btn-outline" onclick="app.showWelcomeScreen()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Indietro
-                        </button>
-                        <h1>Seleziona Squadra</h1>
-                        <div></div>
-                    </header>
-                    
-                    <main class="screen-content">
-                        <div class="teams-grid">
-                            ${teams.map(team => `
-                                <div class="team-card" onclick="app.selectTeam(${team.id})">
-                                    <div class="team-icon">
-                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </div>
-                                    <h3>${team.name}</h3>
-                                    <p>${team.players?.length || 0} giocatori</p>
-                                    <p class="team-date">${new Date(team.createdAt || team.date).toLocaleDateString('it-IT')}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </main>
-                </div>
-            </div>
-        `;
-        
-        this.showDynamicScreen(html);
+        window.location.href = '/my-teams.html';
     }
 
     /**

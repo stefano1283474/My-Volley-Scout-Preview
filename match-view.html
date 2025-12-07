@@ -11,7 +11,7 @@
   <header class="topappbar" style="--topbar-h:81px;">
     <div class="topappbar-content">
       <div class="topappbar-left">
-        <a href="index.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
+        <a href="matches.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
             <path d="M15.5 19a1 1 0 0 1-.71-.29l-6-6a1 1 0 0 1 0-1.42l6-6a1 1 0 0 1 1.42 1.42L10.92 12l5.29 5.29A1 1 0 0 1 15.5 19z"/>
           </svg>
@@ -59,7 +59,7 @@
     <section class="section">
       <div class="section-header">
         <h3>Riepilogo Set</h3>
-        <button type="button" class="btn" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=localStorage.getItem('selectedMatchId')||''; var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='set-config.html'; } })()">Configura Set</button>
+        <button type="button" class="btn" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=localStorage.getItem('selectedMatchId')||''; var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/set-config.html'; } })()">Configura Set</button>
       </div>
       <div id="setSummaryList"></div>
     </section>
@@ -139,11 +139,11 @@
     function init(){
       if (typeof window.authFunctions === 'undefined'){ setTimeout(init, 200); return; }
       window.authFunctions.onAuthStateChanged((user) => {
-        if (!user){ window.location.href = '/auth-login.html'; return; }
+        if (!user){ try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html'; return; }
         loadMatchData();
       });
       const accountBtn = document.getElementById('accountBtn');
-      if (accountBtn) accountBtn.addEventListener('click', () => { window.location.href = '/auth-login.html'; });
+      if (accountBtn) accountBtn.addEventListener('click', () => { try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html'; });
     }
     document.addEventListener('DOMContentLoaded', init);
   </script>

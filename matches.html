@@ -441,7 +441,7 @@
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
-                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.0.2</div>
+                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.2.1</div>
                 </div>
             </div>
         </div>
@@ -709,7 +709,7 @@
                 accountExit.addEventListener('click', (e) => {
                     e.preventDefault(); e.stopPropagation();
                     try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
-                    window.location.href = 'my-teams.html';
+                    window.location.href = '/my-teams.html';
                 });
             }
             if (accountLogout){ accountLogout.addEventListener('click', handleLogout); }
@@ -718,7 +718,7 @@
                 goToTeamsBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = 'my-teams.html';
+                    window.location.href = '/my-teams.html';
                 });
             }
             const goToMatchesBtn = document.getElementById('goToMatchesBtn');
@@ -726,7 +726,7 @@
                 goToMatchesBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = 'matches.html';
+                    window.location.href = '/matches.html';
                 });
             }
             const backBtn = document.getElementById('backBtn');
@@ -736,7 +736,7 @@
                     if (window.history.length > 1){
                         window.history.back();
                     } else {
-                        window.location.href = 'my-teams.html';
+                        window.location.href = '/my-teams.html';
                     }
                 });
             }
@@ -1068,7 +1068,7 @@
             try {
                 if (!selectedTeam) {
                     alert('Seleziona una squadra dall’elenco prima di creare una partita');
-                    window.location.href = 'my-teams.html';
+                    window.location.href = '/my-teams.html';
                     return;
                 }
                 const base = String(selectedTeam?.id || 'team');
@@ -1085,7 +1085,7 @@
                 qp.set('match', String(matchId));
                 window.location.href = 'match-setup.html?' + qp.toString();
             } catch(_) {
-                window.location.href = 'match-setup.html';
+                window.location.href = '/match-setup.html';
             }
         }
 
@@ -1286,9 +1286,9 @@
                         const qs = new URLSearchParams();
                         if (teamId) qs.set('team', String(teamId));
                         qs.set('match', String(match.id));
-                        location.href = 'riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
+                        location.href = '/riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
                     } catch(_) {
-                        location.href = 'riepilogo-gara.html';
+                        location.href = '/riepilogo-gara.html';
                     }
                 });
             }
@@ -1394,7 +1394,7 @@
         // Funzioni partite
         function viewMatch(matchId) {
             localStorage.setItem('selectedMatchId', matchId);
-            window.location.href = 'match-view.html';
+            window.location.href = '/match-view.html';
         }
 
         // Modifica partita: non più usata in questa vista
@@ -1406,7 +1406,7 @@
                 if (!match) return alert('Partita non trovata');
                 if (match.status === 'completed' || isMatchCompleted(match)) {
                     localStorage.setItem('selectedMatchId', match.id);
-                    window.location.href = 'match-stats.html';
+                    window.location.href = '/match-stats.html';
                     return;
                 }
 
@@ -1425,7 +1425,7 @@
                     }
                     if (complete) {
                         localStorage.setItem('selectedMatchId', match.id);
-                        window.location.href = 'match-stats.html';
+                        window.location.href = '/match-stats.html';
                         return;
                     }
                 } catch(_) {}
@@ -1500,7 +1500,7 @@
                             sess.setConfig.phase = sess.setMeta[1].phase;
                         }
                     } catch(_) {}
-                    localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+                    try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } catch(_) { localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); }
                     localStorage.setItem('selectedMatchId', String(match.id));
                     // Garantisci selectedTeamId se disponibile
                     try {
@@ -1513,9 +1513,9 @@
                     if (window.appState) window.appState.currentRoster = Array.isArray(sess.roster) ? sess.roster : [];
                     try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
                     try {
-                        window.location.href = `index.html#/set/${Number(resumeSet)}`;
+                        window.location.href = `scouting.html#/set/${Number(resumeSet)}`;
                     } catch(_) {
-                        window.location.href = 'index.html';
+                        window.location.href = '/scouting.html';
                     }
                     return;
                 }
@@ -1547,7 +1547,7 @@
                     localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
                     localStorage.setItem('selectedMatchId', String(match.id));
                 } catch(_) {}
-                window.location.href = 'set-config.html?' + qp.toString();
+                window.location.href = '/set-config.html?' + qp.toString();
             } catch (e) {
                 console.error('Errore nell\'avvio scouting:', e);
                 alert('Impossibile avviare scouting per questa partita');
@@ -1560,7 +1560,7 @@
              try {
                  await window.authFunctions.signOut();
                  localStorage.removeItem('selectedTeamId');
-    window.location.href = '/auth-login.html';
+      try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html';
              } catch (error) {
                  console.error('Errore durante il logout:', error);
                  alert('Errore durante il logout');
@@ -1572,7 +1572,7 @@
          function openRosterDialog() {
              if (!selectedTeam) {
                  const go = confirm('Non hai ancora selezionato una squadra. Vuoi andare alla schermata "Squadre" per crearla o importarla?');
-                 if (go) window.location.href = 'welcome.html';
+                if (go) window.location.href = '/my-teams.html';
                  return;
              }
              rosterDialogTitle.textContent = `Gestisci Roster — ${selectedTeam.name}`;
@@ -1907,7 +1907,7 @@
                 setImportStatus('is_s5','Completato');
                 setImportStageProgress('is_p5', 100);
                 setImportProgress(100);
-                window.location.href = 'import-match.html';
+                window.location.href = '/import-match.html';
             } catch (e){
                 console.error(e);
                 alert('Errore durante l\'import della partita');

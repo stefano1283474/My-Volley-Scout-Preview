@@ -84,7 +84,7 @@
         <!-- Header coerente con matches.html -->
         <header class="header">
             <div class="back-actions">
-                <a href="matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">
+                <a href="/matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -134,7 +134,7 @@
               exitBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = 'my-teams.html';
+                window.location.href = '/my-teams.html';
                 closeMenu();
               });
             }
@@ -146,13 +146,13 @@
             const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
             const signOutBtnMobile = document.getElementById('signOutBtnMobile');
             if (goToMatchesBtnMobile) {
-              goToMatchesBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='matches.html'; });
+              goToMatchesBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/matches.html'; });
             }
             if (goToTeamsBtnMobile) {
-              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='my-teams.html'; });
+              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
             }
             if (signOutBtnMobile && window.authFunctions?.signOut) {
-              signOutBtnMobile.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); window.location.href='/auth-login.html'; } catch(_){} });
+              signOutBtnMobile.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } catch(_){} });
             }
           })();
         </script>
@@ -297,7 +297,7 @@
             // Controlla autenticazione
             window.authFunctions.onAuthStateChanged((user) => {
                 if (!user) {
-    window.location.href = '/auth-login.html';
+    try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html';
                     return;
                 }
                 
@@ -851,7 +851,7 @@
         (function(){
             const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
             if (goToTeamsBtnMobile){
-              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='my-teams.html'; });
+              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
             }
         })();
         function confirmCurrentRoster(){

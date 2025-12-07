@@ -121,7 +121,7 @@
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci tutto</button>
           <button class="menu-item" id="accountExit">Esci</button>
           <button class="menu-item" id="accountLogout">Logout</button>
-          <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.0.2</div>
+          <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers. 4.2.1</div>
         </div>
       </div>
     </div>
@@ -236,9 +236,9 @@
           return teamIdMatch || (selName && (my === selName || home === selName || away === selName));
         }).length : 0;
         return `
-          <div class="card">
+          <div class="card" data-action="select" data-id="${t.id}" style="cursor:pointer;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <div class="team-name-click" data-action="select" data-id="${t.id}" style="font-weight:700;color:#0f172a;cursor:pointer;">${t.name}</div>
+              <div class="team-name-click" style="font-weight:700;color:#0f172a;">${t.name}</div>
               <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-id="${t.id}" title="Elimina" aria-label="Elimina">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -264,8 +264,8 @@
       if (action === 'select') {
         const res = window.teamsModule?.selectTeam?.(id);
         if (res?.success) {
-          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
-          window.location.href = 'matches.html';
+          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){ }
+          window.location.href = '/matches.html';
         }
       } else if (action === 'delete') {
         window.teamsModule?.deleteTeam?.(id).then(() => renderTeamsList());
@@ -292,8 +292,10 @@
         } catch(_) {}
         try { if (window.authFunctions && typeof window.authFunctions.signOut === 'function') { await window.authFunctions.signOut(); } } catch(_) {}
         alert('Pulizia completata');
+        try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ }
         location.href = '/auth-login.html';
       } catch(_) {
+        try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ }
         location.href = '/auth-login.html';
       }
     }
@@ -377,12 +379,12 @@
         });
       }
       const goToTeamsBtn = document.getElementById('goToTeamsBtn');
-      if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'my-teams.html'; }); }
+      if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/my-teams.html'; }); }
       const goToMatchesBtn = document.getElementById('goToMatchesBtn');
-      if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = 'matches.html'; }); }
+      if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/matches.html'; }); }
       const accountExit = document.getElementById('accountExit');
-      if (accountExit){ accountExit.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){} window.location.href = 'my-teams.html'; }); }
-      if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){} window.location.href='/auth-login.html'; } }); }
+      if (accountExit){ accountExit.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } window.location.href = '/my-teams.html'; }); }
+      if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } }); }
 
       renderTeamsList();
       if (infoBtn && infoDialog) { infoBtn.addEventListener('click', (e)=>{ e.preventDefault(); infoDialog.showModal(); }); }

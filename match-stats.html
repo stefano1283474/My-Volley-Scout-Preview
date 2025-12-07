@@ -87,7 +87,7 @@
               <span>Logout</span>
             </button>
             <div class="menu-divider"></div>
-            <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.0.2</div>
+            <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.2.1</div>
           </div>
         </div>
       </div>
@@ -97,8 +97,8 @@
       <aside class="set-sidebar" aria-label="Selezione set">
         <div class="set-sidebar-header">Passa a:</div>
         <div id="setToolbar" class="set-list" role="list">
-          <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='riepilogo-gara.html'; } })()">Riepilogo Gara</button>
-          <button class="set-item" role="listitem" onclick="location.href='elenco-player.html'">Elenco Player</button>
+          <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/riepilogo-gara.html'; } })()">Riepilogo Gara</button>
+          <button class="set-item" role="listitem" onclick="location.href='/elenco-player.html'">Elenco Player</button>
           <button class="set-item" data-set="1" role="listitem">Set 1</button>
           <button class="set-item" data-set="2" role="listitem">Set 2</button>
           <button class="set-item" data-set="3" role="listitem">Set 3</button>
@@ -109,7 +109,7 @@
         <div class="sidebar-resizer" aria-hidden="true"></div>
         <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
         <div class="set-list" role="list">
-          <button id="sidebar-match-stats-btn" class="set-item" role="listitem" title="Vai a Match-Stats" onclick="location.href='match-stats.html'">Match-Stats</button>
+          <button id="sidebar-match-stats-btn" class="set-item" role="listitem" title="Vai a Match-Stats" onclick="location.href='/match-stats.html'">Match-Stats</button>
         </div>
       </aside>
       <div class="section" id="match-stats" style="display:block;">
@@ -175,10 +175,10 @@
         const toTeams = document.getElementById('goToTeamsBtnMobile');
         const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
         const logoutBtn = document.getElementById('signOutBtnMobile');
-        if (toMatches){ toMatches.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='matches.html'; }); }
-        if (toTeams){ toTeams.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
-        if (exitBtn){ exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='my-teams.html'; }); }
-        if (logoutBtn){ logoutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } localStorage.removeItem('selectedTeamId'); } finally { closeMenu(); location.href='/auth-login.html'; } }); }
+        if (toMatches){ toMatches.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='/matches.html'; }); }
+        if (toTeams){ toTeams.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='/my-teams.html'; }); }
+        if (exitBtn){ exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); closeMenu(); location.href='/my-teams.html'; }); }
+        if (logoutBtn){ logoutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } localStorage.removeItem('selectedTeamId'); } finally { closeMenu(); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html'; } }); }
       } catch(_) {}
       function computeStickyOffsets(){
         try {
@@ -215,7 +215,7 @@
             const setNum = parseInt(btn.dataset.set, 10);
             if (Number.isInteger(setNum) && setNum >= 1 && setNum <= 6) {
               try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
-              location.href = `index.html#/set/${setNum}`;
+              location.href = `scouting.html#/set/${setNum}`;
             }
           });
         }

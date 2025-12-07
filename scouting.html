@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>MyVolleyScout - Set</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="animations.css?v=1">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" type="image/png" href="Copilot_20251105_011636.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" sizes="180x180" href="./LOGO_APP.png">
+    <link rel="apple-touch-startup-image" href="./LOGO_APP.png">
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const saveStatus = document.getElementById('save-status-pill');
+        function setStatusPill(state, msg) {
+          if (!saveStatus) return;
+          saveStatus.style.display = 'inline-flex';
+          saveStatus.dataset.state = state;
+          saveStatus.textContent = msg || (state === 'saving' ? 'Salvataggio…' : state === 'saved' ? 'Salvato' : 'Errore');
+          if (state === 'saved') {
+            setTimeout(() => { saveStatus.style.display = 'none'; }, 2500);
+          }
+        }
+        window.addEventListener('save:started', () => setStatusPill('saving', 'Salvataggio…'));
+        window.addEventListener('save:completed', (e) => {
+          const ok = !!e.detail?.ok;
+          setStatusPill(ok ? 'saved' : 'error', ok ? 'Salvato' : 'Errore');
+        });
+
+        try {
+          const s = sessionStorage.getItem('currentScoutingSession');
+          if (s) { localStorage.setItem('currentScoutingSession', s); }
+        } catch(_) {}
+      });
+    </script>
+    <script src="./src/modules/teams/teams.js"></script>
+  </head>
+  <body>
+    <div id="save-status-pill" class="save-status-pill" style="display:none;">Salvataggio…</div>
+    <div id="app" style="display:block;">
+        <header class="topappbar">
+            <div class="topappbar-content">
+                <div class="topappbar-left">
+                    <button id="toggleSetSidebar" class="topbar-toggle" aria-controls="setToolbar" aria-expanded="false" title="Mostra/Nascondi Set" type="button">
+                      <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                      </span>
+                    </button>
+                </div>
+                <div class="topappbar-center">
+                    <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+                </div>
+                <div class="topappbar-right">
+                    <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account">
+                        <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                    </button>
+                    <div id="headerMenu" class="top-account-menu" hidden>
+                        <div class="menu-title">Account</div>
+                        <div class="menu-divider"></div>
+                        <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Esporta Partita (Xls)</span>
+                        </button>
+                        <button id="save-match-btn" class="menu-item" title="Salva dati scout" aria-label="Salva" type="button">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7a3 3 0 0 1 3-3h8l5 5v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7z" stroke="currentColor" stroke-width="2"/><path d="M9 7h6v4H9V7z" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span>Salva</span>
+                        </button>
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button" onclick="location.href='/matches.html'">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Vai a Elenco Partite</span>
+                        </button>
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button" onclick="location.href='/my-teams.html'">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span>Vai a Elenco Squadre</span>
+                        </button>
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button" onclick="location.href='/my-teams.html'">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Esci</span>
+                        </button>
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button" onclick="(async function(){try{if(window.authFunctions&&window.authFunctions.signOut){await window.authFunctions.signOut();}}catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html';})()">
+                          <span class="menu-item-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                          </span>
+                          <span>Logout</span>
+                        </button>
+                        <div class="menu-divider"></div>
+                        <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.2.1</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main with-sidebar">
+            <aside class="set-sidebar" aria-label="Selezione set">
+              <div class="set-sidebar-header">Passa a:</div>
+              <div id="setToolbar" class="set-list" role="list">
+                <button class="set-item" role="listitem" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/riepilogo-gara.html'; } })()">Riepilogo Gara</button>
+                <button class="set-item" role="listitem" onclick="location.href='/elenco-player.html'">Elenco Player</button>
+                <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
+                <button class="set-item" data-set="2" role="listitem">Set 2</button>
+                <button class="set-item" data-set="3" role="listitem">Set 3</button>
+                <button class="set-item" data-set="4" role="listitem">Set 4</button>
+                <button class="set-item" data-set="5" role="listitem">Set 5</button>
+                <button class="set-item" data-set="6" role="listitem">Set 6</button>
+              </div>
+              <div class="sidebar-resizer" aria-hidden="true"></div>
+              <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
+              <div class="set-list" role="list">
+                <button class="set-item" role="listitem" title="Vai a Match-Stats" onclick="location.href='/match-stats.html'">Match-Stats</button>
+              </div>
+            </aside>
+
+            <div class="section-panel" id="punteggio-section">
+              <div class="score-current">
+                <span class="team-name team-my" id="score-team-my">-</span>
+                <span class="score-values"><span id="score-home">0</span><span class="score-separator">:</span><span id="score-away">0</span></span>
+                <span class="team-name team-opponent" id="score-team-opponent">-</span>
+              </div>
+            </div>
+
+            <div id="scouting-dialog" class="embedded">
+              <div class="scaffold">
+                <div class="section-panel">
+                  <h4 class="players-title"><span id="current-fundamental" class="fundamental-inline">Servizio</span></h4>
+                  <div id="players-grid" class="players-grid"></div>
+                </div>
+
+                <div class="section-panel">
+                  <h4>Valutazione</h4>
+                  <div class="evaluation-buttons">
+                    <button class="eval-btn" data-eval="1" onclick="selectEvaluation(1)">=</button>
+                    <button class="eval-btn" data-eval="2" onclick="selectEvaluation(2)">-</button>
+                    <button class="eval-btn" data-eval="3" onclick="selectEvaluation(3)">/</button>
+                    <button class="eval-btn" data-eval="4" onclick="selectEvaluation(4)">+</button>
+                    <button class="eval-btn" data-eval="5" onclick="selectEvaluation(5)">#</button>
+                  </div>
+                </div>
+
+                <div class="next-fundamental-info">
+                  <strong><span id="next-fundamental">Servizio (b)</span></strong>
+                  <div class="layout-switch">
+                    <label class="switch-inline">
+                      <input type="checkbox" id="multi-line-toggle" />
+                      <span>Plus</span>
+                    </label>
+                  </div>
+                  <div id="selected-info" class="selected-info">
+                    <span id="pressed-buttons-log"> </span>
+                    <span id="selected-player-text" style="display:none">-</span>
+                    <span id="selected-evaluation-text" style="display:none">-</span>
+                  </div>
+                </div>
+
+                <div class="score-display">
+                  <div class="score-header">
+                    <h4>Progr. Punti</h4>
+                    <button id="view-actions-btn" class="secondary-btn" onclick="openActionsDialog()">📋 Vis. Azioni</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="./app.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        try {
+          var s = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+          if (s && Object.keys(s).length > 0 && typeof window.loadScoutingSession === 'function') {
+            window.loadScoutingSession(s);
+          }
+        } catch(_) {}
+        try { switchPage('scouting'); } catch(_) {}
+      });
+    </script>
+    <script>
+      (function(){
+        try {
+          var toggleBtn = document.getElementById('headerMenuToggle');
+          var menu = document.getElementById('headerMenu');
+          if (toggleBtn && menu) {
+            var open = false;
+            function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); menu.style.zIndex = '1001'; } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+            toggleBtn.addEventListener('click', function(e){ e.stopPropagation(); setOpen(!open); });
+            document.addEventListener('click', function(){ if (open) setOpen(false); });
+          }
+        } catch(_) {}
+      })();
+    </script>
+  </body>
+</html>

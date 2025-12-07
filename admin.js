@@ -167,7 +167,7 @@ class AdminManager {
     }
 
     goBack() {
-        window.location.href = 'index.html';
+        window.location.href = '/my-teams.html';
     }
 }
 

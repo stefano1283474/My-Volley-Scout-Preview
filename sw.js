@@ -1,44 +1,54 @@
 // Service Worker per My Volley Scout PWA
+const IS_LOCAL = (self && self.location && (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'));
 const CACHE_NAME = 'my-volley-scout-v4';
 const urlsToCache = [
-  // Precache solo asset statici necessari e sicuri
   '/manifest.json',
   '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/index.html' // per fallback offline su navigazioni
+  '/icon-512x512.png'
 ];
 
  // Installazione Service Worker
- self.addEventListener('install', (event) => {
-   event.waitUntil(
-     caches.open(CACHE_NAME)
-       .then((cache) => {
-         console.log('Cache aperto');
-         return cache.addAll(urlsToCache);
-       })
-   );
- });
+self.addEventListener('install', (event) => {
+  if (IS_LOCAL) {
+    event.waitUntil(Promise.resolve());
+    return;
+  }
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Cache aperto');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
 
  // Attivazione Service Worker
- self.addEventListener('activate', (event) => {
-   event.waitUntil(
-     caches.keys().then((cacheNames) => {
-       return Promise.all(
-         cacheNames.map((cacheName) => {
-           if (cacheName !== CACHE_NAME) {
-             console.log('Cache vecchia rimossa:', cacheName);
-             return caches.delete(cacheName);
-           }
-         })
-       );
-     })
-   );
- });
+self.addEventListener('activate', (event) => {
+  if (IS_LOCAL) {
+    event.waitUntil(Promise.resolve());
+    return;
+  }
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Cache vecchia rimossa:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
 
  // Intercettazione richieste
- self.addEventListener('fetch', (event) => {
-   const req = event.request;
-   const url = new URL(req.url);
+self.addEventListener('fetch', (event) => {
+  if (IS_LOCAL) {
+    return; // Non intercettare nulla in locale
+  }
+  const req = event.request;
+  const url = new URL(req.url);
 
    // Evita di interferire con eventuali endpoint HMR/dev server (es. Vite)
    if (url.pathname.startsWith('/@vite')) return;
@@ -52,8 +62,7 @@ const urlsToCache = [
          })
          .catch(async () => {
            const cached = await caches.match(req);
-           // Fallback: prova la cache, altrimenti una index di root se presente
-           return cached || caches.match('/index.html');
+           return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
          })
      );
      return;
@@ -76,8 +85,8 @@ const urlsToCache = [
  });
 
  // Gestione messaggi per sincronizzazione offline
- self.addEventListener('message', (event) => {
-   if (event.data && event.data.type === 'SKIP_WAITING') {
-     self.skipWaiting();
-   }
- });
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});

@@ -2,7 +2,7 @@
   "name": "MyVolleyScout",
   "short_name": "MyVolleyScout",
   "description": "Applicazione PWA per lo scouting nel volley",
-  "start_url": "/splash.html",
+  "start_url": "/my-teams.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",

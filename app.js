@@ -1,5 +1,5 @@
 // Stato globale dell'applicazione
-const appState = {
+if (!window.appState) { window.appState = {
     currentPage: 'match-data',
     currentMatch: null,
     currentRoster: [],
@@ -35,9 +35,11 @@ const appState = {
         'Ricezione': ['ALL'],
         'Difesa': ['ALL']
     }
-};
+}; }
+var appState = window.appState;
 
-const rotationSequence = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+window.rotationSequence = window.rotationSequence || ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+var rotationSequence = window.rotationSequence;
 
 // Normalizza una rotazione in formato coerente "P1".."P6"
 function normalizeRotation(rot) {
@@ -1027,7 +1029,7 @@ function initializeApp() {
                 try {
                     // Salvataggio non bloccante (se fallisce, ignora)
                     try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'matches.html';
+                    window.location.href = '/matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -1040,7 +1042,7 @@ function initializeApp() {
                 e.stopPropagation();
                 try {
                     try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'my-teams.html';
+                    window.location.href = '/my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -1054,7 +1056,7 @@ function initializeApp() {
                 e.stopPropagation();
                 try {
                     try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
-                    window.location.href = 'src/index.html';
+                    window.location.href = '/my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');
@@ -1088,7 +1090,7 @@ function initializeApp() {
                     if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
                         await window.authFunctions.signOut();
                     }
-                    window.location.href = 'src/index.html';
+                    window.location.href = '/auth-login.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
                     if (headerMenuToggle) headerMenuToggle.setAttribute('aria-expanded', 'false');

@@ -1,4 +1,4 @@
-const firebaseConfig = {
+window.firebaseConfig = window.firebaseConfig || {
   apiKey: "AIzaSyADkMksRlaVVcsLIhV2XucfEt5Y-ELzUMA",
   authDomain: "volley-data-studio.firebaseapp.com",
   projectId: "volley-data-studio",
@@ -8,35 +8,35 @@ const firebaseConfig = {
   measurementId: "G-GFHR0LSQPR"
 };
 
-let app = null;
-let analytics = null;
-let auth = null;
-let db = null;
-let googleProvider = null;
+window.app = window.app || null;
+window.analytics = window.analytics || null;
+window.auth = window.auth || null;
+window.db = window.db || null;
+window.googleProvider = window.googleProvider || null;
 const isLocal = (typeof location !== 'undefined') && (location.hostname === 'localhost');
 
 if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp === 'function') {
-  app = firebase.initializeApp(firebaseConfig);
-  analytics = null;
-  auth = firebase.auth();
-  db = firebase.firestore();
+  window.app = window.app || firebase.initializeApp(window.firebaseConfig);
+  window.analytics = null;
+  window.auth = window.auth || firebase.auth();
+  window.db = window.db || firebase.firestore();
   if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
     firebase.firestore.setLogLevel('silent');
   }
-  googleProvider = new firebase.auth.GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: 'select_account' });
+  window.googleProvider = window.googleProvider || new firebase.auth.GoogleAuthProvider();
+  window.googleProvider.setCustomParameters({ prompt: 'select_account' });
   try {
-    db.settings(Object.assign({
+    window.db.settings(Object.assign({
       cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
       ignoreUndefinedProperties: true
     }, isLocal ? { experimentalAutoDetectLongPolling: true, experimentalForceLongPolling: true } : {}));
   } catch(_) {}
   if (!isLocal) {
     try {
-      db.enablePersistence({ synchronizeTabs: true }).catch(function(){ });
+      window.db.enablePersistence({ synchronizeTabs: true }).catch(function(){ });
     } catch(_) {}
   }
-  try { if (isLocal && firebase && firebase.auth) { auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function(){ }); } } catch(_) {}
+  try { if (isLocal && firebase && firebase.auth) { window.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function(){ }); } } catch(_) {}
   try {
     if (isLocal) {
       const originalError = console.error;
@@ -53,22 +53,22 @@ if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp
 }
 
 const authFunctions = (function(){
-  if (auth && typeof auth === 'object') {
+  if (window.auth && typeof window.auth === 'object') {
     return {
       signUp: async (email, password) => {
-        try { const userCredential = await auth.createUserWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message }; }
+        try { const userCredential = await window.auth.createUserWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       signIn: async (email, password) => {
-        try { const userCredential = await auth.signInWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message }; }
+        try { const userCredential = await window.auth.signInWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       signInWithGoogle: async () => {
-        try { const result = await auth.signInWithPopup(googleProvider); return { success: true, user: result.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+        try { const result = await window.auth.signInWithPopup(window.googleProvider); return { success: true, user: result.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       signOut: async () => {
-        try { await auth.signOut(); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+        try { await window.auth.signOut(); return { success: true }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
-      getCurrentUser: () => { return auth.currentUser; },
-      onAuthStateChanged: (callback) => { return auth.onAuthStateChanged(callback); }
+      getCurrentUser: () => { return window.auth.currentUser; },
+      onAuthStateChanged: (callback) => { return window.auth.onAuthStateChanged(callback); }
     };
   }
   return {
@@ -82,19 +82,19 @@ const authFunctions = (function(){
 })();
 
 const firestoreFunctions = (function(){
-  if (db && typeof db === 'object') {
+  if (window.db && typeof window.db === 'object') {
     return {
       addDocument: async (collectionName, data) => {
-        try { const docRef = await db.collection(collectionName).add(Object.assign({}, data, { createdAt: new Date(), userId: authFunctions.getCurrentUser()?.uid })); return { success: true, id: docRef.id }; } catch (error) { return { success: false, error: error.message }; }
+        try { const docRef = await window.db.collection(collectionName).add(Object.assign({}, data, { createdAt: new Date(), userId: authFunctions.getCurrentUser()?.uid })); return { success: true, id: docRef.id }; } catch (error) { return { success: false, error: error.message }; }
       },
       getDocuments: async (collectionName, userId = null) => {
-        try { const query = userId ? db.collection(collectionName).where('userId','==',userId).orderBy('createdAt','desc') : db.collection(collectionName).orderBy('createdAt','desc'); const qs = await query.get(); const documents = []; qs.forEach(doc=> documents.push(Object.assign({ id: doc.id }, doc.data()))); return { success: true, documents }; } catch (error) { return { success: false, error: error.message }; }
+        try { const query = userId ? window.db.collection(collectionName).where('userId','==',userId).orderBy('createdAt','desc') : window.db.collection(collectionName).orderBy('createdAt','desc'); const qs = await query.get(); const documents = []; qs.forEach(doc=> documents.push(Object.assign({ id: doc.id }, doc.data()))); return { success: true, documents }; } catch (error) { return { success: false, error: error.message }; }
       },
       updateDocument: async (collectionName, docId, data) => {
-        try { await db.collection(collectionName).doc(docId).update(Object.assign({}, data, { updatedAt: new Date() })); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+        try { await window.db.collection(collectionName).doc(docId).update(Object.assign({}, data, { updatedAt: new Date() })); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
       },
       deleteDocument: async (collectionName, docId) => {
-        try { await db.collection(collectionName).doc(docId).delete(); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
+        try { await window.db.collection(collectionName).doc(docId).delete(); return { success: true }; } catch (error) { return { success: false, error: error.message }; }
       },
       saveMatch: async (matchData) => { return await firestoreFunctions.addDocument('matches', matchData); },
       getUserMatches: async () => { const userId = authFunctions.getCurrentUser()?.uid; if (!userId) return { success: false, error: 'User not authenticated' }; return await firestoreFunctions.getDocuments('matches', userId); },
@@ -116,7 +116,3 @@ const firestoreFunctions = (function(){
 
 window.authFunctions = authFunctions;
 window.firestoreFunctions = firestoreFunctions;
-window.app = app;
-window.auth = auth;
-window.db = db;
-window.analytics = analytics;

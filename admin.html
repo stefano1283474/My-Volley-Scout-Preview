@@ -9,12 +9,15 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <script>
-        // Registra il Service Worker per PWA
+        // Registra il Service Worker solo in produzione (non su localhost)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => console.log('Service Worker registrato:', registration))
-                    .catch(error => console.log('Registrazione Service Worker fallita:', error));
+                const host = location.hostname;
+                if (host !== 'localhost' && host !== '127.0.0.1') {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => console.log('Service Worker registrato:', registration))
+                        .catch(error => console.log('Registrazione Service Worker fallita:', error));
+                }
             });
         }
     </script>
