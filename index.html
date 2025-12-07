@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Volley Scout</title>
+</head>
+<body>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="/connection-manager.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+    (function(){
+      function go(){
+        try{
+          window.authFunctions.onAuthStateChanged(function(user){
+            if (user) {
+              location.replace('/my-teams.html');
+            } else {
+              location.replace('/auth-login.html');
+            }
+          });
+        }catch(_){ setTimeout(go,200); }
+      }
+      go();
+      setTimeout(function(){ if (!window.authFunctions) location.replace('/auth-login.html'); }, 2000);
+    })();
+  </script>
+</body>
+</html>
