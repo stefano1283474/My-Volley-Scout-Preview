@@ -1810,9 +1810,10 @@ function recomputeFromActionsLog() {
                     playerName: computedName,
                     actionType: computedType
                 };
-                // Salva rotazione di riferimento per la riga
                 log.rotation = rotationBefore;
+                log.phase = appState.rallyStartPhase;
                 processActionResult(result);
+                log.score = String(appState.homeScore||0) + '-' + String(appState.awayScore||0);
             } catch (e) {
                 console.warn('Errore di parsing nel ricalcolo azione', i + 1, e);
             }
@@ -3567,6 +3568,644 @@ function addLongPressListener(el, holdMs, onTrigger) {
     ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => el.addEventListener(evt, cancel));
 }
 
+window.openActionsDialog = function(){
+    try {
+        var dlg = document.getElementById('actions-dialog');
+        var logs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+        if (!dlg) {
+            dlg = document.createElement('div');
+            dlg.id = 'actions-dialog';
+            dlg.className = 'dialog is-open';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.zIndex = '1002';
+            var panel = document.createElement('div');
+            panel.className = 'dialog-panel';
+            panel.style.maxWidth = '640px';
+            panel.style.width = 'min(640px, calc(100% - 16px))';
+            panel.style.margin = '12px auto';
+            panel.style.background = '#fff';
+            panel.style.borderRadius = '12px';
+            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
+            panel.style.display = 'flex';
+            panel.style.flexDirection = 'column';
+            panel.style.maxHeight = '80vh';
+            panel.style.overflow = 'hidden';
+            var header = document.createElement('div');
+            header.className = 'dialog-header';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 16px';
+            header.style.position = 'sticky';
+            header.style.top = '0';
+            header.style.background = '#fff';
+            header.style.zIndex = '1';
+            var title = document.createElement('div');
+            title.style.display = 'flex';
+            title.style.alignItems = 'center';
+            title.style.gap = '8px';
+            var h3 = document.createElement('h3');
+            h3.textContent = 'Progr. Azioni';
+            h3.style.margin = '0';
+            var total = document.createElement('span');
+            total.id = 'actions-total';
+            total.style.color = '#64748b';
+            title.appendChild(h3);
+            title.appendChild(total);
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Chiudi';
+            close.className = '';
+            close.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
+            header.appendChild(title);
+            header.appendChild(close);
+            var body = document.createElement('div');
+            body.className = 'dialog-body';
+            body.style.padding = '8px 12px';
+            body.style.flex = '1 1 auto';
+            body.style.overflowY = 'auto';
+            var list = document.createElement('div');
+            list.id = 'actions-list-container';
+            list.style.minHeight = '0';
+            body.appendChild(list);
+            var footer = document.createElement('div');
+            footer.className = 'dialog-footer';
+            footer.style.display = 'flex';
+            footer.style.flexWrap = 'wrap';
+            footer.style.justifyContent = 'flex-end';
+            footer.style.gap = '8px';
+            footer.style.padding = '10px 12px';
+            footer.style.position = 'sticky';
+            footer.style.bottom = '0';
+            footer.style.background = '#fff';
+            var cancelBtn = document.createElement('button');
+            cancelBtn.className = '';
+            cancelBtn.textContent = 'Annulla';
+            cancelBtn.addEventListener('click', function(){ try{ dlg.remove(); }catch(_){} });
+            try{ cancelBtn.style.background='#fff'; cancelBtn.style.color='#0d6efd'; cancelBtn.style.border='1px solid #0d6efd'; cancelBtn.style.borderRadius='10px'; cancelBtn.style.padding='6px 10px'; cancelBtn.style.fontWeight='600'; }catch(_){}
+            var saveBtn = document.createElement('button');
+            saveBtn.className = '';
+            saveBtn.textContent = 'Salva';
+            saveBtn.addEventListener('click', function(){ try{ recomputeFromActionsLog(); dlg.remove(); }catch(_){} });
+            try{ saveBtn.style.background='#fff'; saveBtn.style.color='#0d6efd'; saveBtn.style.border='1px solid #0d6efd'; saveBtn.style.borderRadius='10px'; saveBtn.style.padding='6px 10px'; saveBtn.style.fontWeight='600'; }catch(_){}
+            footer.appendChild(cancelBtn);
+            footer.appendChild(saveBtn);
+            panel.appendChild(header);
+            panel.appendChild(body);
+            panel.appendChild(footer);
+            dlg.appendChild(panel);
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            document.body.appendChild(dlg);
+            try{ document.body.style.overflow='hidden'; }catch(_){ }
+        }
+        var totalEl = document.getElementById('actions-total');
+        if (totalEl) totalEl.textContent = 'Totale azioni: ' + String(logs.length);
+        var container = document.getElementById('actions-list-container');
+        if (container) {
+            container.innerHTML = '';
+            if (!logs.length) {
+                var empty = document.createElement('div');
+                empty.style.padding = '8px';
+                empty.textContent = 'Nessuna azione';
+                container.appendChild(empty);
+            } else {
+                logs.forEach(function(item, idx){
+                    var card = document.createElement('div');
+                    card.style.display = 'grid';
+                    card.style.gridTemplateColumns = 'max-content 1fr max-content';
+                    card.style.alignItems = 'center';
+                    card.style.gap = '8px';
+                    card.style.border = '1px solid #e9ecef';
+                    card.style.borderRadius = '10px';
+                    card.style.padding = '8px 10px';
+                    card.style.marginBottom = '8px';
+                    card.style.cursor = 'pointer';
+                    var meta = document.createElement('div');
+                    var score = String(item.score || '0-0');
+                    var phase = String(item.phase || appState.currentPhase || '');
+                    var rot = String(item.rotation || '');
+                    var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
+                    meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot;
+                    meta.style.fontWeight = '600';
+                    meta.style.color = '#0d6efd';
+                    var actionText = document.createElement('div');
+                    actionText.textContent = String(item.action || '');
+                    actionText.style.fontFamily = 'monospace';
+                    actionText.style.whiteSpace = 'nowrap';
+                    actionText.style.overflowX = 'auto';
+                    actionText.style.display = 'block';
+                    actionText.style.width = '100%';
+                    var actions = document.createElement('div');
+                    actions.style.display = 'flex';
+                    actions.style.gap = '8px';
+                    var editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = '';
+                    editBtn.textContent = '✎';
+                    editBtn.addEventListener('click', function(ev){ ev.stopPropagation(); window.openActionEditor(idx); });
+                    try{
+                        editBtn.style.background='transparent';
+                        editBtn.style.color='#0d6efd';
+                        editBtn.style.border='none';
+                        editBtn.style.borderRadius='999px';
+                        editBtn.style.padding='4px 8px';
+                        editBtn.style.fontWeight='600';
+                        editBtn.style.minWidth='40px';
+                        editBtn.style.display='inline-flex';
+                        editBtn.style.alignItems='center';
+                        editBtn.style.justifyContent='center';
+                        editBtn.style.outline='none';
+                        editBtn.style.boxShadow='none';
+                        editBtn.style.webkitAppearance='none';
+                        editBtn.style.MozAppearance='none';
+                        editBtn.style.appearance='none';
+                    }catch(_){ }
+                    var delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = '';
+                    delBtn.textContent = '🗑';
+                    delBtn.addEventListener('click', function(ev){ ev.stopPropagation(); try { appState.actionsLog.splice(idx, 1); recomputeFromActionsLog(); openActionsDialog(); } catch(_){} });
+                    try{
+                        delBtn.style.background='transparent';
+                        delBtn.style.color='#0d6efd';
+                        delBtn.style.border='none';
+                        delBtn.style.borderRadius='999px';
+                        delBtn.style.padding='4px 8px';
+                        delBtn.style.fontWeight='600';
+                        delBtn.style.minWidth='40px';
+                        delBtn.style.display='inline-flex';
+                        delBtn.style.alignItems='center';
+                        delBtn.style.justifyContent='center';
+                        delBtn.style.outline='none';
+                        delBtn.style.boxShadow='none';
+                        delBtn.style.webkitAppearance='none';
+                        delBtn.style.MozAppearance='none';
+                        delBtn.style.appearance='none';
+                    }catch(_){ }
+                    actions.appendChild(editBtn);
+                    actions.appendChild(delBtn);
+                    card.appendChild(meta);
+                    card.appendChild(actionText);
+                    card.appendChild(actions);
+                    card.addEventListener('click', function(){ window.openActionViewer(idx); });
+                    container.appendChild(card);
+                });
+            }
+        }
+    } catch(_) {}
+};
+
+window.openActionViewer = function(index){
+    try {
+        var logs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+        var item = logs[index] || {};
+        var dlg = document.getElementById('action-viewer-dialog');
+        if (!dlg) {
+            dlg = document.createElement('div');
+            dlg.id = 'action-viewer-dialog';
+            dlg.className = 'dialog is-open';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.zIndex = '1003';
+            var panel = document.createElement('div');
+            panel.className = 'dialog-panel';
+            panel.style.maxWidth = '700px';
+            panel.style.width = 'min(700px, calc(100% - 16px))';
+            panel.style.margin = '12px auto';
+            panel.style.background = '#fff';
+            panel.style.borderRadius = '12px';
+            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
+            panel.style.display = 'flex';
+            panel.style.flexDirection = 'column';
+            panel.style.maxHeight = '80vh';
+            panel.style.overflow = 'hidden';
+            var header = document.createElement('div');
+            header.className = 'dialog-header';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 16px';
+            header.style.position = 'sticky';
+            header.style.top = '0';
+            header.style.background = '#fff';
+            header.style.zIndex = '1';
+            var h3 = document.createElement('h3');
+            h3.textContent = 'Dettaglio Azione';
+            h3.style.margin = '0';
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Chiudi';
+            close.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
+            header.appendChild(h3);
+            header.appendChild(close);
+            var body = document.createElement('div');
+            body.className = 'dialog-body';
+            body.style.padding = '12px 16px';
+            body.style.flex = '1 1 auto';
+            body.style.overflowX = 'auto';
+            body.style.whiteSpace = 'nowrap';
+            var meta = document.createElement('div');
+            var score = String(item.score || '0-0');
+            var phase = String(item.phase || appState.currentPhase || '');
+            var rot = String(item.rotation || '');
+            var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
+            meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot + '  '; // extra spacing before action
+            meta.style.fontWeight = '700';
+            meta.style.color = '#0d6efd';
+            var action = document.createElement('span');
+            action.textContent = String(item.action || '');
+            action.style.fontFamily = 'monospace';
+            action.style.whiteSpace = 'nowrap';
+            body.appendChild(meta);
+            body.appendChild(action);
+            var footer = document.createElement('div');
+            footer.className = 'dialog-footer';
+            footer.style.display = 'flex';
+            footer.style.justifyContent = 'flex-end';
+            footer.style.gap = '8px';
+            footer.style.padding = '10px 12px';
+            footer.style.position = 'sticky';
+            footer.style.bottom = '0';
+            footer.style.background = '#fff';
+            var close2 = document.createElement('button');
+            close2.type = 'button';
+            close2.textContent = 'Chiudi';
+            close2.addEventListener('click', function(){ try{ dlg.remove(); }catch(_){} });
+            try{ close2.style.background='#fff'; close2.style.color='#0d6efd'; close2.style.border='1px solid #0d6efd'; close2.style.borderRadius='10px'; close2.style.padding='6px 10px'; close2.style.fontWeight='600'; }catch(_){}
+            footer.appendChild(close2);
+            panel.appendChild(header);
+            panel.appendChild(body);
+            panel.appendChild(footer);
+            dlg.appendChild(panel);
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            document.body.appendChild(dlg);
+            try{ document.body.style.overflow='hidden'; }catch(_){ }
+        } else {
+            // if dialog exists, just update contents
+            var body = dlg.querySelector('.dialog-body');
+            if (body) {
+                body.innerHTML = '';
+                body.style.overflowX = 'auto';
+                body.style.whiteSpace = 'nowrap';
+                var meta = document.createElement('div');
+                var score = String(item.score || '0-0');
+                var phase = String(item.phase || appState.currentPhase || '');
+                var rot = String(item.rotation || '');
+                var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
+                meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot + '  ';
+                meta.style.fontWeight = '700';
+                meta.style.color = '#0d6efd';
+                var action = document.createElement('span');
+                action.textContent = String(item.action || '');
+                action.style.fontFamily = 'monospace';
+                action.style.whiteSpace = 'nowrap';
+                body.appendChild(meta);
+                body.appendChild(action);
+            }
+        }
+    } catch(_){}
+};
+
+window.openActionEditor = function(index){
+    try {
+        var logs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+        var item = logs[index] || {};
+        var actionStr = String(item.action || '');
+        var parsed = parseAction(actionStr);
+        var hasAvv = /(^|\s)avv(\s|$)/i.test(actionStr);
+        var dlg = document.getElementById('action-editor-dialog');
+        if (!dlg) {
+            dlg = document.createElement('div');
+            dlg.id = 'action-editor-dialog';
+            dlg.className = 'dialog is-open';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.zIndex = '1003';
+            var panel = document.createElement('div');
+            panel.className = 'dialog-panel';
+            panel.style.maxWidth = '700px';
+            panel.style.width = 'min(700px, calc(100% - 16px))';
+            panel.style.margin = '12px auto';
+            panel.style.background = '#fff';
+            panel.style.borderRadius = '12px';
+            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
+            panel.style.display = 'flex';
+            panel.style.flexDirection = 'column';
+            panel.style.maxHeight = '80vh';
+            panel.style.overflow = 'hidden';
+            var header = document.createElement('div');
+            header.className = 'dialog-header';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 16px';
+            header.style.position = 'sticky';
+            header.style.top = '0';
+            header.style.background = '#fff';
+            header.style.zIndex = '1';
+            var h3 = document.createElement('h3');
+            h3.textContent = 'Editor Quartine';
+            h3.style.margin = '0';
+            header.appendChild(h3);
+            var headerActions = document.createElement('div');
+            headerActions.style.display = 'flex';
+            headerActions.style.gap = '8px';
+            var cancelIcon = document.createElement('button');
+            cancelIcon.type = 'button';
+            cancelIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18 6L6 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M6 6L18 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
+            cancelIcon.title = 'Annulla';
+            cancelIcon.setAttribute('aria-label','Annulla');
+            cancelIcon.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            try{
+                cancelIcon.style.background='#fff';
+                cancelIcon.style.color='#0d6efd';
+                cancelIcon.style.border='1px solid #e9ecef';
+                cancelIcon.style.borderRadius='8px';
+                cancelIcon.style.padding='6px';
+                cancelIcon.style.fontWeight='700';
+                cancelIcon.style.display='inline-flex';
+                cancelIcon.style.alignItems='center';
+                cancelIcon.style.justifyContent='center';
+                cancelIcon.style.outline='none';
+                cancelIcon.style.boxShadow='none';
+                cancelIcon.style.webkitAppearance='none';
+                cancelIcon.style.MozAppearance='none';
+                cancelIcon.style.appearance='none';
+            }catch(_){ }
+            var confirmIcon = document.createElement('button');
+            confirmIcon.type = 'button';
+            confirmIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="#0d6efd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            confirmIcon.title = 'Conferma';
+            confirmIcon.setAttribute('aria-label','Conferma');
+            confirmIcon.addEventListener('click', function(){
+                try {
+                    var rowEls = Array.from(rows.querySelectorAll('.quartine-row'));
+                    var parts = [];
+                    var invalid = false;
+                    rowEls.forEach(function(r, i){
+                        if (r.classList.contains('avv-row')) return;
+                        var numEl = r.querySelector('.q-player');
+                        var fundEl = r.querySelector('.q-fund');
+                        var evalEl = r.querySelector('.q-eval');
+                        var num = numEl.value;
+                        var fund = fundEl.value;
+                        var evalv = evalEl.value;
+                        var ok = (num && fund && evalv);
+                        try{
+                            numEl.style.borderColor = ok ? '' : '#ef4444';
+                            fundEl.style.borderColor = ok ? '' : '#ef4444';
+                            evalEl.style.borderColor = ok ? '' : '#ef4444';
+                        }catch(_){}
+                        if (!ok) { invalid = true; return; }
+                        if (i === 0 && fund !== 'b' && fund !== 'r') fund = 'b';
+                        var token = String(num).padStart(2,'0') + fund + String(evalv);
+                        parts.push(token);
+                    });
+                    if (invalid) { try{ alert('Compila tutti i campi prima di confermare.'); }catch(_){} return; }
+                    if (hasAvv) parts.push('avv');
+                    var updated = parts.join(' ');
+                    if (logs[index]) logs[index].action = updated;
+                    recomputeFromActionsLog();
+                    try { dlg.remove(); } catch(_){}
+                    openActionsDialog();
+                } catch(_){}
+            });
+            try{
+                confirmIcon.style.background='#fff';
+                confirmIcon.style.color='#0d6efd';
+                confirmIcon.style.border='1px solid #e9ecef';
+                confirmIcon.style.borderRadius='8px';
+                confirmIcon.style.padding='6px';
+                confirmIcon.style.fontWeight='700';
+                confirmIcon.style.display='inline-flex';
+                confirmIcon.style.alignItems='center';
+                confirmIcon.style.justifyContent='center';
+                confirmIcon.style.outline='none';
+                confirmIcon.style.boxShadow='none';
+                confirmIcon.style.webkitAppearance='none';
+                confirmIcon.style.MozAppearance='none';
+                confirmIcon.style.appearance='none';
+            }catch(_){ }
+            headerActions.appendChild(cancelIcon);
+            headerActions.appendChild(confirmIcon);
+            header.appendChild(headerActions);
+            var body = document.createElement('div');
+            body.className = 'dialog-body';
+            body.style.padding = '8px 12px';
+            body.style.flex = '1 1 auto';
+            body.style.overflowY = 'auto';
+            var rows = document.createElement('div');
+            rows.id = 'quartine-editor-rows';
+            body.appendChild(rows);
+            var footer = document.createElement('div');
+            footer.className = 'dialog-footer';
+            footer.style.display = 'flex';
+            footer.style.flexWrap = 'wrap';
+            footer.style.justifyContent = 'space-between';
+            footer.style.gap = '8px';
+            footer.style.padding = '10px 12px';
+            footer.style.position = 'sticky';
+            footer.style.bottom = '0';
+            footer.style.background = '#fff';
+            var left = document.createElement('div');
+            var avvBtn = document.createElement('button');
+            avvBtn.type = 'button';
+            avvBtn.className = '';
+            avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
+            avvBtn.addEventListener('click', function(){
+                hasAvv = !hasAvv;
+                avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
+                if (hasAvv) { appendAvvRow(); ensureAvvRowPosition(); } else { var r = rowsEl.querySelector('.avv-row'); if (r) r.remove(); }
+            });
+            try{ avvBtn.style.background='#fff'; avvBtn.style.color='#0d6efd'; avvBtn.style.border='1px solid #0d6efd'; avvBtn.style.borderRadius='10px'; avvBtn.style.padding='6px 10px'; avvBtn.style.fontWeight='600'; }catch(_){ }
+            left.appendChild(avvBtn);
+            footer.appendChild(left);
+            panel.appendChild(header);
+            panel.appendChild(body);
+            panel.appendChild(footer);
+            dlg.appendChild(panel);
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            document.body.appendChild(dlg);
+            try{ document.body.style.overflow='hidden'; }catch(_){ }
+        }
+        var rowsEl = document.getElementById('quartine-editor-rows');
+        if (rowsEl) {
+            rowsEl.innerHTML = '';
+            var roster = Array.isArray(appState.currentRoster) ? appState.currentRoster : [];
+            var options = [];
+            if (roster.length) {
+                roster.forEach(function(p){
+                    var label = String(p.number).padStart(2,'0') + ' - ' + String(p.nickname || ((p.name||'') + ' ' + (p.surname||''))).trim();
+                    options.push({ value: String(p.number).padStart(2,'0'), label: label });
+                });
+            } else {
+                for (var n=1;n<=20;n++){ options.push({ value: String(n).padStart(2,'0'), label: String(n).padStart(2,'0') }); }
+            }
+            var evalOptions = [
+                { value: '1', label: '1' },
+                { value: '2', label: '2' },
+                { value: '3', label: '3' },
+                { value: '4', label: '4' },
+                { value: '5', label: '5' }
+            ];
+            var fundsAll = ['b','r','a','d','m'];
+            function refreshFundOptions(){
+                try {
+                    var allRows = Array.from(rowsEl.querySelectorAll('.quartine-row'));
+                    allRows.forEach(function(r, i){
+                        var selFund = r.querySelector('.q-fund');
+                        var current = selFund ? String(selFund.value) : '';
+                        var allowed = (i === 0) ? ['b','r'] : fundsAll;
+                        if (selFund) {
+                            selFund.innerHTML = '';
+                            var ph = document.createElement('option'); ph.value = ''; ph.textContent = 'Seleziona'; ph.disabled = true; selFund.appendChild(ph);
+                            allowed.forEach(function(f){
+                                var o = document.createElement('option'); o.value = f; o.textContent = f; selFund.appendChild(o);
+                            });
+                            if (allowed.includes(current)) selFund.value = current; else if (current === '') selFund.value = ''; else selFund.value = allowed[0];
+                        }
+                    });
+                } catch(_){ }
+            }
+
+            function appendAvvRow(){
+                var existing = rowsEl.querySelector('.avv-row');
+                if (existing) return existing;
+                var row = document.createElement('div');
+                row.className = 'quartine-row avv-row';
+                row.style.display = 'grid';
+                row.style.gridTemplateColumns = 'max-content';
+                row.style.gap = '8px';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '8px';
+                var avvField = document.createElement('select');
+                avvField.className = 'form-select q-avv';
+                avvField.style.minWidth = '80px';
+                var opt = document.createElement('option'); opt.value = 'avv'; opt.textContent = 'avv'; avvField.appendChild(opt);
+                avvField.value = 'avv';
+                avvField.disabled = true;
+                row.appendChild(avvField);
+                rowsEl.appendChild(row);
+                return row;
+            }
+
+            function ensureAvvRowPosition(){
+                var avv = rowsEl.querySelector('.avv-row');
+                if (avv) rowsEl.appendChild(avv);
+            }
+
+            function appendRow(q, idx){
+                var row = document.createElement('div');
+                row.className = 'quartine-row';
+                row.style.display = 'grid';
+                row.style.gridTemplateColumns = 'max-content max-content max-content max-content';
+                row.style.gap = '8px';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '8px';
+                var selNum = document.createElement('select');
+                selNum.className = 'form-select q-player';
+                selNum.style.width = 'auto';
+                selNum.style.minWidth = '140px';
+                selNum.style.whiteSpace = 'nowrap';
+                var phNum = document.createElement('option'); phNum.value = ''; phNum.textContent = 'Seleziona'; phNum.disabled = true; selNum.appendChild(phNum);
+                options.forEach(function(opt){
+                    var o = document.createElement('option'); o.value = opt.value; o.textContent = opt.label; selNum.appendChild(o);
+                });
+                selNum.value = q && q.player ? String(q.player) : '';
+                var selFund = document.createElement('select');
+                selFund.className = 'form-select q-fund';
+                selFund.style.width = '3ch';
+                selFund.style.minWidth = '40px';
+                selFund.style.whiteSpace = 'nowrap';
+                var funds = (idx===0) ? ['b','r'] : fundsAll;
+                var phFund = document.createElement('option'); phFund.value = ''; phFund.textContent = 'Seleziona'; phFund.disabled = true; selFund.appendChild(phFund);
+                funds.forEach(function(f){ var o = document.createElement('option'); o.value = f; o.textContent = f; selFund.appendChild(o); });
+                selFund.value = q && q.fundamental ? String(q.fundamental) : '';
+                var selEval = document.createElement('select');
+                selEval.className = 'form-select q-eval';
+                selEval.style.width = '4ch';
+                selEval.style.minWidth = '48px';
+                selEval.style.whiteSpace = 'nowrap';
+                var phEval = document.createElement('option'); phEval.value = ''; phEval.textContent = 'Seleziona'; phEval.disabled = true; selEval.appendChild(phEval);
+                evalOptions.forEach(function(ev){ var o = document.createElement('option'); o.value = ev.value; o.textContent = ev.label; selEval.appendChild(o); });
+                selEval.value = q && q.evaluation ? String(q.evaluation) : '';
+                var actions = document.createElement('div');
+                actions.style.display = 'flex';
+                actions.style.gap = '6px';
+                var addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = '';
+                addBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 5v14" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M5 12h14" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
+                try{
+                    addBtn.style.background='#fff';
+                    addBtn.style.color='#0d6efd';
+                    addBtn.style.border='1px solid #e9ecef';
+                    addBtn.style.borderRadius='8px';
+                    addBtn.style.padding='6px';
+                    addBtn.style.display='inline-flex';
+                    addBtn.style.alignItems='center';
+                    addBtn.style.justifyContent='center';
+                }catch(_){ }
+                addBtn.title = 'Aggiungi quartina';
+                addBtn.addEventListener('click', function(){
+                    try {
+                        var newRow = appendRow({ player: '', fundamental: '', evaluation: '' }, (rowsEl.querySelectorAll('.quartine-row').length));
+                        rowsEl.insertBefore(newRow, row.nextSibling);
+                        refreshFundOptions();
+                        ensureAvvRowPosition();
+                    } catch(_){ }
+                });
+                var delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = '';
+                delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 6h18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M8 6v-2h8v2" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M14 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
+                try{
+                    delBtn.style.background='#fff';
+                    delBtn.style.color='#0d6efd';
+                    delBtn.style.border='1px solid #e9ecef';
+                    delBtn.style.borderRadius='8px';
+                    delBtn.style.padding='6px';
+                    delBtn.style.display='inline-flex';
+                    delBtn.style.alignItems='center';
+                    delBtn.style.justifyContent='center';
+                }catch(_){ }
+                delBtn.title = 'Elimina quartina';
+                delBtn.addEventListener('click', function(){
+                    try {
+                        var count = rowsEl.querySelectorAll('.quartine-row').length;
+                        if (count <= 1) return; // almeno una quartina
+                        row.remove();
+                        refreshFundOptions();
+                        ensureAvvRowPosition();
+                    } catch(_){ }
+                });
+                actions.appendChild(addBtn);
+                actions.appendChild(delBtn);
+                row.appendChild(selNum);
+                row.appendChild(selFund);
+                row.appendChild(selEval);
+                row.appendChild(actions);
+                rowsEl.appendChild(row);
+                return row;
+            }
+            var rowsData = Array.isArray(parsed.actions) ? parsed.actions : [];
+            if (!rowsData.length) rowsData = [{ player:'01', fundamental:'b', evaluation:3 }];
+            rowsData.forEach(function(q, idx){ appendRow(q, idx); });
+            refreshFundOptions();
+            if (hasAvv) { appendAvvRow(); ensureAvvRowPosition(); }
+        }
+    } catch(_) {}
+};
+
 // Calcolo stato dei set e aggiornamento colori nella sidebar
 function __getSetMetaPresence(setNum){
     try {
@@ -4172,3 +4811,38 @@ try {
     renderAppVersion();
   }
 } catch(_){}
+                try{ confirmBtn.style.background='#fff'; confirmBtn.style.color='#0d6efd'; confirmBtn.style.border='1px solid #0d6efd'; confirmBtn.style.borderRadius='10px'; confirmBtn.style.padding='6px 10px'; confirmBtn.style.fontWeight='600'; }catch(_){}
+                try{
+                    addBtn.style.background='transparent';
+                    addBtn.style.color='#0d6efd';
+                    addBtn.style.border='none';
+                    addBtn.style.borderRadius='999px';
+                    addBtn.style.padding='4px 8px';
+                    addBtn.style.fontWeight='600';
+                    addBtn.style.minWidth='40px';
+                    addBtn.style.display='inline-flex';
+                    addBtn.style.alignItems='center';
+                    addBtn.style.justifyContent='center';
+                    addBtn.style.outline='none';
+                    addBtn.style.boxShadow='none';
+                    addBtn.style.webkitAppearance='none';
+                    addBtn.style.MozAppearance='none';
+                    addBtn.style.appearance='none';
+                }catch(_){ }
+                try{
+                    delBtn.style.background='transparent';
+                    delBtn.style.color='#0d6efd';
+                    delBtn.style.border='none';
+                    delBtn.style.borderRadius='999px';
+                    delBtn.style.padding='4px 8px';
+                    delBtn.style.fontWeight='600';
+                    delBtn.style.minWidth='40px';
+                    delBtn.style.display='inline-flex';
+                    delBtn.style.alignItems='center';
+                    delBtn.style.justifyContent='center';
+                    delBtn.style.outline='none';
+                    delBtn.style.boxShadow='none';
+                    delBtn.style.webkitAppearance='none';
+                    delBtn.style.MozAppearance='none';
+                    delBtn.style.appearance='none';
+                }catch(_){ }

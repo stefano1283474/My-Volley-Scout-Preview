@@ -545,7 +545,7 @@
                     if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
                     __authRedirectTimer = setTimeout(() => {
                         const stillNull = !window.authFunctions.getCurrentUser();
-                        if (stillNull) window.location.href = '/auth-login.html';
+                        if (stillNull) window.location.href = '/auth-login/';
                     }, 600);
                     return;
                 }
@@ -714,7 +714,7 @@
                 if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/matches.html'; });
                 if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/my-teams.html'; });
                 if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/my-teams.html'; });
-                if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html'; } });
+                if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login/'; } });
             }
             // Navigazione menu account
             if (goToMatchesBtn){
