@@ -1086,7 +1086,7 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { cancelAutosave(); await saveCurrentMatch(); } catch(_){}
+                    try { cancelAutosave(); await saveCurrentMatch(); } catch(_){ }
                     if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
                         await window.authFunctions.signOut();
                     }
@@ -1097,6 +1097,44 @@ function initializeApp() {
                 }
             });
         }
+
+        const toggleSetSidebarBtn = document.getElementById('toggleSetSidebar');
+        const sidebarMain = document.querySelector('.main.with-sidebar');
+        function __getSidebarOpen(){ return !!(sidebarMain && sidebarMain.classList.contains('sidebar-open')); }
+        function setSidebarOpen(v){
+            if (!sidebarMain) return;
+            if (v) sidebarMain.classList.add('sidebar-open'); else sidebarMain.classList.remove('sidebar-open');
+            if (toggleSetSidebarBtn) toggleSetSidebarBtn.setAttribute('aria-expanded', v ? 'true' : 'false');
+        }
+        window.setSidebarOpen = setSidebarOpen;
+        if (toggleSetSidebarBtn) {
+            toggleSetSidebarBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSidebarOpen(!__getSidebarOpen());
+            });
+        }
+        document.addEventListener('click', (e) => {
+            const onToggle = !!e.target.closest('#toggleSetSidebar');
+            const insideSidebar = !!e.target.closest('.set-sidebar');
+            if (__getSidebarOpen() && !onToggle && !insideSidebar) setSidebarOpen(false);
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && __getSidebarOpen()) setSidebarOpen(false); });
+
+        try {
+            const setList = document.getElementById('setToolbar');
+            if (setList) {
+                setList.addEventListener('click', (ev) => {
+                    const btn = ev.target.closest('.set-item, .set-pill');
+                    if (!btn) return;
+                    const n = parseInt(btn.dataset.set, 10);
+                    if (Number.isInteger(n) && n >= 1 && n <= 6) {
+                        try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
+                        location.href = `scouting.html#/set/${n}`;
+                    }
+                });
+            }
+        } catch(_) {}
 
         // Toggle layout "a riga multipla" nella sezione selezionato
         try {
@@ -3580,11 +3618,14 @@ window.openActionsDialog = function(){
             dlg.style.inset = '0';
             dlg.style.background = 'rgba(0,0,0,0.35)';
             dlg.style.zIndex = '1002';
+            dlg.style.display = 'flex';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
             var panel = document.createElement('div');
             panel.className = 'dialog-panel';
             panel.style.maxWidth = '640px';
             panel.style.width = 'min(640px, calc(100% - 16px))';
-            panel.style.margin = '12px auto';
+            panel.style.margin = '0 12px';
             panel.style.background = '#fff';
             panel.style.borderRadius = '12px';
             panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
@@ -3772,11 +3813,17 @@ window.openActionViewer = function(index){
             dlg.style.inset = '0';
             dlg.style.background = 'rgba(0,0,0,0.35)';
             dlg.style.zIndex = '1003';
+            dlg.style.display = 'flex';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.display = 'flex';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
             var panel = document.createElement('div');
             panel.className = 'dialog-panel';
             panel.style.maxWidth = '700px';
             panel.style.width = 'min(700px, calc(100% - 16px))';
-            panel.style.margin = '12px auto';
+            panel.style.margin = '0 12px';
             panel.style.background = '#fff';
             panel.style.borderRadius = '12px';
             panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
@@ -3893,7 +3940,7 @@ window.openActionEditor = function(index){
             panel.className = 'dialog-panel';
             panel.style.maxWidth = '700px';
             panel.style.width = 'min(700px, calc(100% - 16px))';
-            panel.style.margin = '12px auto';
+            panel.style.margin = '0 12px';
             panel.style.background = '#fff';
             panel.style.borderRadius = '12px';
             panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
@@ -4424,6 +4471,235 @@ function checkSetEnd() {
     }
 }
 
+function openEndSetDialog(setNumber, winner, homeScore, awayScore){
+    var dlg = document.getElementById('end-set-dialog');
+    if (!dlg) {
+        dlg = document.createElement('div');
+        dlg.id = 'end-set-dialog';
+        dlg.className = 'dialog is-open';
+        var panel = document.createElement('div');
+        panel.className = 'dialog-panel';
+        panel.style.maxWidth = '420px';
+        panel.style.width = '92%';
+        panel.style.border = '1px solid #e5e7eb';
+        panel.style.borderRadius = '12px';
+        panel.style.background = '#fff';
+        var header = document.createElement('div');
+        header.className = 'dialog-header';
+        header.style.display = 'grid';
+        header.style.gridTemplateColumns = '1fr auto';
+        header.style.alignItems = 'center';
+        header.style.columnGap = '8px';
+        header.style.padding = '10px 12px';
+        var h3 = document.createElement('h3');
+        h3.textContent = 'Set ' + String(setNumber) + ' concluso';
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = '✕';
+        close.addEventListener('click', function(){ closeDialog('end-set-dialog'); });
+        header.appendChild(h3);
+        header.appendChild(close);
+        var body = document.createElement('div');
+        body.className = 'dialog-body';
+        body.style.padding = '12px 16px';
+        var p = document.createElement('p');
+        var winLabel = winner === 'home' ? 'Vittoria' : 'Sconfitta';
+        p.textContent = winLabel + ' ' + String(homeScore) + ' - ' + String(awayScore);
+        body.appendChild(p);
+        var footer = document.createElement('div');
+        footer.className = 'dialog-footer';
+        footer.style.display = 'flex';
+        footer.style.justifyContent = 'flex-end';
+        footer.style.gap = '8px';
+        var btnClose = document.createElement('button');
+        btnClose.type = 'button';
+        btnClose.textContent = 'Chiudi';
+        btnClose.className = 'btn';
+        try{ btnClose.style.background='#fff'; btnClose.style.color='#0d6efd'; btnClose.style.border='1px solid #0d6efd'; btnClose.style.borderRadius='10px'; btnClose.style.padding='6px 10px'; btnClose.style.fontWeight='600'; }catch(_){ }
+        btnClose.addEventListener('click', function(){ closeDialog('end-set-dialog'); });
+        var nextSetNum = Math.min(6, Number(setNumber) + 1);
+        var btnNext = document.createElement('button');
+        btnNext.type = 'button';
+        btnNext.textContent = (setNumber >= 6) ? 'Vai a Report' : ('Passa al Set ' + String(nextSetNum));
+        btnNext.className = 'btn';
+        try{ btnNext.style.background='#fff'; btnNext.style.color='#0d6efd'; btnNext.style.border='1px solid #0d6efd'; btnNext.style.borderRadius='10px'; btnNext.style.padding='6px 10px'; btnNext.style.fontWeight='600'; }catch(_){ }
+        btnNext.addEventListener('click', function(){
+            if (setNumber >= 6) { try { window.location.href = '/match-stats.html'; } catch(_) {} closeDialog('end-set-dialog'); return; }
+            appState.currentSet = nextSetNum;
+            try { updateSetSidebarColors(); } catch(_) {}
+            try { resetCurrentSet(); } catch(_) {}
+            try { openSetMetaDialog(nextSetNum); } catch(_) {}
+            closeDialog('end-set-dialog');
+        });
+        footer.appendChild(btnClose);
+        footer.appendChild(btnNext);
+        panel.appendChild(header);
+        panel.appendChild(body);
+        panel.appendChild(footer);
+        dlg.appendChild(panel);
+        document.body.appendChild(dlg);
+    } else {
+        var body = dlg.querySelector('.dialog-body');
+        var p = body ? body.querySelector('p') : null;
+        if (p) {
+            var winLabel = winner === 'home' ? 'Vittoria' : 'Sconfitta';
+            p.textContent = winLabel + ' ' + String(homeScore) + ' - ' + String(awayScore);
+        }
+        var h3 = dlg.querySelector('.dialog-header h3');
+        if (h3) h3.textContent = 'Set ' + String(setNumber) + ' concluso';
+        var btnNext = dlg.querySelector('.dialog-footer .btn:last-child');
+        if (btnNext) {
+            var nextSetNum = Math.min(6, Number(setNumber) + 1);
+            btnNext.textContent = (setNumber >= 6) ? 'Vai a Report' : ('Passa al Set ' + String(nextSetNum));
+            btnNext.onclick = function(){
+                if (setNumber >= 6) { try { window.location.href = '/match-stats.html'; } catch(_) {} closeDialog('end-set-dialog'); return; }
+                appState.currentSet = nextSetNum;
+                try { updateSetSidebarColors(); } catch(_) {}
+                try { resetCurrentSet(); } catch(_) {}
+                try { openSetMetaDialog(nextSetNum); } catch(_) {}
+                closeDialog('end-set-dialog');
+            };
+        }
+    }
+    openDialog('end-set-dialog');
+}
+
+function openSetMetaDialog(setNumber){
+    var dlg = document.getElementById('set-meta-dialog');
+    if (!dlg) {
+        dlg = document.createElement('div');
+        dlg.id = 'set-meta-dialog';
+        dlg.className = 'dialog is-open';
+        var panel = document.createElement('div');
+        panel.className = 'dialog-panel';
+        panel.style.maxWidth = '460px';
+        panel.style.width = '92%';
+        panel.style.border = '1px solid #e5e7eb';
+        panel.style.borderRadius = '12px';
+        panel.style.background = '#fff';
+        var header = document.createElement('div');
+        header.className = 'dialog-header';
+        header.style.display = 'grid';
+        header.style.gridTemplateColumns = '1fr auto';
+        header.style.alignItems = 'center';
+        header.style.columnGap = '8px';
+        header.style.padding = '10px 12px';
+        var h3 = document.createElement('h3');
+        h3.textContent = 'Dati Set ' + String(setNumber);
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = '✕';
+        close.addEventListener('click', function(){ closeDialog('set-meta-dialog'); });
+        header.appendChild(h3);
+        header.appendChild(close);
+        var body = document.createElement('div');
+        body.className = 'dialog-body';
+        body.style.padding = '12px 16px';
+        var rowPhase = document.createElement('div');
+        rowPhase.style.display = 'grid';
+        rowPhase.style.gridTemplateColumns = '1fr 1fr';
+        rowPhase.style.gap = '8px';
+        var labelPhase = document.createElement('label');
+        labelPhase.textContent = 'Fase';
+        var selPhase = document.createElement('select');
+        selPhase.id = 'set-meta-phase';
+        ['servizio','ricezione'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v.charAt(0).toUpperCase()+v.slice(1); selPhase.appendChild(o); });
+        var labelRot = document.createElement('label');
+        labelRot.textContent = 'Rotazione Ns.';
+        var selRot = document.createElement('select');
+        selRot.id = 'set-meta-our-rotation';
+        ['P1','P2','P3','P4','P5','P6'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v; selRot.appendChild(o); });
+        var labelOpp = document.createElement('label');
+        labelOpp.textContent = 'Rotazione Avv. (opz.)';
+        var selOpp = document.createElement('select');
+        selOpp.id = 'set-meta-opponent-rotation';
+        var empty = document.createElement('option'); empty.value=''; empty.textContent='—'; selOpp.appendChild(empty);
+        ['P1','P2','P3','P4','P5','P6'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v; selOpp.appendChild(o); });
+        rowPhase.appendChild(labelPhase);
+        rowPhase.appendChild(selPhase);
+        var rowRot = document.createElement('div');
+        rowRot.style.display = 'grid';
+        rowRot.style.gridTemplateColumns = '1fr 1fr';
+        rowRot.style.gap = '8px';
+        rowRot.appendChild(labelRot);
+        rowRot.appendChild(selRot);
+        var rowOpp = document.createElement('div');
+        rowOpp.style.display = 'grid';
+        rowOpp.style.gridTemplateColumns = '1fr 1fr';
+        rowOpp.style.gap = '8px';
+        rowOpp.appendChild(labelOpp);
+        rowOpp.appendChild(selOpp);
+        body.appendChild(rowPhase);
+        body.appendChild(rowRot);
+        body.appendChild(rowOpp);
+        var footer = document.createElement('div');
+        footer.className = 'dialog-footer';
+        footer.style.display = 'flex';
+        footer.style.justifyContent = 'flex-end';
+        footer.style.gap = '8px';
+        var btnCancel = document.createElement('button');
+        btnCancel.type = 'button';
+        btnCancel.textContent = 'Annulla';
+        btnCancel.className = 'btn';
+        try{ btnCancel.style.background='#fff'; btnCancel.style.color='#0d6efd'; btnCancel.style.border='1px solid #0d6efd'; btnCancel.style.borderRadius='10px'; btnCancel.style.padding='6px 10px'; btnCancel.style.fontWeight='600'; }catch(_){ }
+        btnCancel.addEventListener('click', function(){ closeDialog('set-meta-dialog'); });
+        var btnStart = document.createElement('button');
+        btnStart.type = 'button';
+        btnStart.textContent = 'Avvia Set';
+        btnStart.className = 'btn';
+        try{ btnStart.style.background='#fff'; btnStart.style.color='#0d6efd'; btnStart.style.border='1px solid #0d6efd'; btnStart.style.borderRadius='10px'; btnStart.style.padding='6px 10px'; btnStart.style.fontWeight='600'; }catch(_){ }
+        btnStart.addEventListener('click', function(){
+            var phase = selPhase.value || 'servizio';
+            var ourRot = selRot.value || 'P1';
+            var oppRot = selOpp.value || '';
+            try {
+                var sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+                sessionData.setMeta = sessionData.setMeta || {};
+                sessionData.setMeta[setNumber] = { ourRotation: ourRot, phase: phase, opponentRotation: oppRot || null };
+                localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+            } catch(_){ }
+            try { appState.currentSet = setNumber; } catch(_){ }
+            try { startSet(); } catch(_){ }
+            try { updateSetSidebarColors(); } catch(_){ }
+            try {
+                var list = document.getElementById('setToolbar');
+                if (list) {
+                    list.querySelectorAll('.set-item').forEach(function(b){ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+                    var btn = list.querySelector('.set-item[data-set="'+ String(setNumber) +'"]');
+                    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-current','true'); }
+                }
+            } catch(_){ }
+            closeDialog('set-meta-dialog');
+        });
+        footer.appendChild(btnCancel);
+        footer.appendChild(btnStart);
+        panel.appendChild(header);
+        panel.appendChild(body);
+        panel.appendChild(footer);
+        dlg.appendChild(panel);
+        document.body.appendChild(dlg);
+    }
+    try {
+        var sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
+        var sm = sessionData.setMeta && sessionData.setMeta[setNumber];
+        var phase = sm && sm.phase ? sm.phase : (sessionData.setConfig && sessionData.setConfig.phase ? sessionData.setConfig.phase : 'servizio');
+        var ourRot = sm && sm.ourRotation ? sm.ourRotation : (sessionData.setConfig && sessionData.setConfig.ourRotation ? String(sessionData.setConfig.ourRotation).startsWith('P') ? sessionData.setConfig.ourRotation : 'P'+sessionData.setConfig.ourRotation : 'P1');
+        var oppRot = sm && sm.opponentRotation ? sm.opponentRotation : (sessionData.setConfig && sessionData.setConfig.opponentRotation ? sessionData.setConfig.opponentRotation : '');
+        var phaseSel = dlg.querySelector('#set-meta-phase');
+        var ourSel = dlg.querySelector('#set-meta-our-rotation');
+        var oppSel = dlg.querySelector('#set-meta-opponent-rotation');
+        if (phaseSel) phaseSel.value = phase;
+        if (ourSel) ourSel.value = ourRot;
+        if (oppSel) oppSel.value = oppRot || '';
+        var titleEl = dlg.querySelector('.dialog-header h3');
+        if (titleEl) titleEl.textContent = 'Dati Set ' + String(setNumber);
+    } catch(_){ }
+    openDialog('set-meta-dialog');
+}
+
+window.openEndSetDialog = openEndSetDialog;
+window.openSetMetaDialog = openSetMetaDialog;
+
 function rotateTeam() {
     // Usa rotazione normalizzata per garantire l'indice corretto
     const current = normalizeRotation(appState.currentRotation);
@@ -4795,7 +5071,7 @@ function activateMuroOverride() {
     } catch (_) {}
 }
 try {
-  window.appBuild = { version: '4.2.2', commit: '' };
+  window.appBuild = { version: '4.3.1', commit: '' };
   function renderAppVersion(){
     try {
       var els = document.querySelectorAll('.app-version');

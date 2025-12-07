@@ -412,7 +412,7 @@
                     <span>Logout</span>
                   </button>
                   <div class="menu-divider"></div>
-                  <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.2.2</div>
+                  <div class="menu-title app-version" style="text-align:right;">MyVolleyScout Vers. 4.3.1</div>
                 </div>
             </div>
         </div>
@@ -827,9 +827,39 @@
                 } catch(_){}
             }
 
-            const fullConfig = { ...existing, ...matchData, teamId, matchId, setConfig: { ...setConfig, set: 1 }, startTime: new Date().toISOString(), roster: existingRoster };
-            localStorage.setItem('currentScoutingSession', JSON.stringify(fullConfig));
-            localStorage.setItem('allowScoutingEntry','1');
+            try {
+                const ourRotNorm = String(setConfig.ourRotation||'1').trim();
+                const ourRotP = ourRotNorm.startsWith('P') ? ourRotNorm.toUpperCase() : ('P' + ourRotNorm).toUpperCase();
+                const oppRotNorm = setConfig.opponentRotation ? String(setConfig.opponentRotation).trim() : '';
+                const oppRotP = oppRotNorm ? (oppRotNorm.startsWith('P') ? oppRotNorm.toUpperCase() : ('P' + oppRotNorm).toUpperCase()) : '';
+
+                const freshSession = {
+                    id: matchId,
+                    teamId,
+                    opponent: matchData?.opponent || matchData?.opponentTeam || '',
+                    matchDate: matchData?.matchDate || matchData?.date || '',
+                    eventType: matchData?.eventType || matchData?.matchType || '',
+                    location: matchData?.location || '',
+                    myTeam: matchData?.myTeam || matchData?.teamName || '',
+                    description: matchData?.description || '',
+                    roster: existingRoster,
+                    setConfig: { set: 1, phase: setConfig.phase, ourRotation: ourRotP, opponentRotation: oppRotP || null },
+                    setMeta: { 1: { phase: setConfig.phase, ourRotation: ourRotP, opponentRotation: oppRotP || null } },
+                    actions: [],
+                    scoreHistory: [],
+                    actionsBySet: {},
+                    scoreHistoryBySet: {},
+                    setStateBySet: {},
+                    startTime: new Date().toISOString()
+                };
+
+                // Persisti sessione pulita e contesto selezione
+                localStorage.setItem('currentScoutingSession', JSON.stringify(freshSession));
+                localStorage.setItem('allowScoutingEntry','1');
+                if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
+                if (matchId) localStorage.setItem('selectedMatchId', String(matchId));
+                try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(freshSession)); } catch(_){ }
+            } catch(_){ }
             window.location.href = '/scouting.html#/set/1';
         }
 
