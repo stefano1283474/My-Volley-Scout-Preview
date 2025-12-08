@@ -79,7 +79,8 @@ class MatchesModule {
             // Carica da Firestore per la squadra corrente (struttura ad albero users→teams→matches)
             const currentTeam = window.teamsModule?.getCurrentTeam?.();
             let teamMatches = [];
-            if (currentTeam?.id && window.authModule?.isAuthenticated() && window.firestoreService?.loadTeamMatches) {
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (currentTeam?.id && isAuthed && window.firestoreService?.loadTeamMatches) {
                 const resTeam = await window.firestoreService.loadTeamMatches(currentTeam.id);
                 if (resTeam?.success) teamMatches = resTeam.documents;
             }
@@ -87,6 +88,35 @@ class MatchesModule {
             const localMatches = this.getLocalMatches();
             const merged = this.deduplicateMatches([].concat(localMatches, teamMatches));
             this.state.matches = merged;
+            try {
+                let all = [];
+                try { all = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { all = []; }
+                const selId = currentTeam?.id != null ? String(currentTeam.id) : null;
+                const selName = currentTeam?.name || '';
+                const others = (Array.isArray(all) ? all : []).filter(m => {
+                    const teamIdMatch = m.teamId != null && selId ? String(m.teamId) !== selId : true;
+                    const my = m.myTeam || m.teamName;
+                    const home = m.homeTeam;
+                    const away = m.awayTeam;
+                    const nameMatch = selName && (my === selName || home === selName || away === selName);
+                    return teamIdMatch && !nameMatch;
+                });
+                const updated = others.concat(merged);
+                localStorage.setItem('volleyMatches', JSON.stringify(updated));
+                if (currentTeam?.id && isAuthed && window.firestoreService?.saveMatchTree) {
+                    const fsIds = new Set(teamMatches.map(m => String(m.id)));
+                    for (const m of merged) {
+                        if (!fsIds.has(String(m.id))) {
+                            try {
+                                await window.firestoreService.saveMatchTree(currentTeam.id, m);
+                                if (Array.isArray(m.roster) && window.firestoreService?.saveMatchRosterTree) {
+                                    try { await window.firestoreService.saveMatchRosterTree(currentTeam.id, m.id, m.roster); } catch(_) {}
+                                }
+                            } catch(_) {}
+                        }
+                    }
+                }
+            } catch(_) {}
             
             this.notifyMatchesUpdate();
             
@@ -122,13 +152,12 @@ class MatchesModule {
      */
     deduplicateMatches(matches) {
         const seen = new Map();
-        
         matches.forEach(match => {
-            if (!seen.has(match.id) || match.source === 'firestore') {
+            const isFirestore = typeof match.source === 'string' && match.source.toLowerCase().startsWith('firestore');
+            if (!seen.has(match.id) || isFirestore) {
                 seen.set(match.id, match);
             }
         });
-        
         return Array.from(seen.values());
     }
 
@@ -233,6 +262,20 @@ class MatchesModule {
                     const currentTeam = window.teamsModule?.getCurrentTeam?.();
                     if (currentTeam?.id) {
                         await window.firestoreService.saveMatchTree(currentTeam.id, match);
+                        if (Array.isArray(match.roster) && window.firestoreService?.saveMatchRosterTree) {
+                            try { await window.firestoreService.saveMatchRosterTree(currentTeam.id, match.id, match.roster); } catch(_) {}
+                        }
+                        if (window.firestoreService?.saveMatchDetailsTree) {
+                            try {
+                                await window.firestoreService.saveMatchDetailsTree(currentTeam.id, match.id, {
+                                    actionsBySet: match.actionsBySet || {},
+                                    setMeta: match.setMeta || {},
+                                    setStateBySet: match.setStateBySet || {},
+                                    setSummary: match.setSummary || {},
+                                    scoreHistoryBySet: match.scoreHistoryBySet || {}
+                                });
+                            } catch(_) {}
+                        }
                     }
                 } catch (firestoreError) {
                     console.warn('Errore nel salvataggio su Firestore:', firestoreError);
@@ -261,16 +304,15 @@ class MatchesModule {
      * Salva la partita nel localStorage
      */
     async saveMatchLocally(match) {
-        const matches = this.getLocalMatches();
-        const existingIndex = matches.findIndex(m => m.id === match.id);
-        
+        let all = [];
+        try { all = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { all = []; }
+        const existingIndex = all.findIndex(m => m.id === match.id);
         if (existingIndex >= 0) {
-            matches[existingIndex] = match;
+            all[existingIndex] = match;
         } else {
-            matches.unshift(match);
+            all.unshift(match);
         }
-        
-        localStorage.setItem('volleyMatches', JSON.stringify(matches));
+        localStorage.setItem('volleyMatches', JSON.stringify(all));
     }
 
     /**

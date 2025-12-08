@@ -11,6 +11,7 @@ class TeamsModule {
             isLoading: false,
             error: null
         };
+        this._retryTeamsFetch = 0;
         
         this.callbacks = {
             onTeamChange: [],
@@ -81,33 +82,69 @@ class TeamsModule {
             
             // Carica da Firestore se disponibile
             let firestoreTeams = [];
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.loadUserTeams) {
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (isAuthed && window.firestoreService?.loadUserTeams) {
                 const result = await window.firestoreService.loadUserTeams();
                 if (result.success) {
-                    firestoreTeams = result.documents.map(doc => ({
-                        id: doc.id,
-                        name: doc.name,
-                        teamName: doc.teamName,
-                        clubName: doc.clubName,
-                        players: doc.players || [],
-                        createdAt: doc.createdAt,
-                        updatedAt: doc.updatedAt,
-                        source: 'firestore'
-                    }));
+                    firestoreTeams = result.documents.map(doc => {
+                        const idStr = String(doc.id || '');
+                        const hasDash = idStr.includes(' - ');
+                        const parts = hasDash ? idStr.split(' - ') : [];
+                        const clubFromId = hasDash ? parts[0] : '';
+                        const teamFromId = hasDash ? parts.slice(1).join(' - ') : '';
+                        const canonicalName = ((doc.teamName || teamFromId || '').trim()) + (((doc.clubName || clubFromId || '').trim()) ? ` - ${(doc.clubName || clubFromId || '').trim()}` : '');
+                        return {
+                            id: idStr,
+                            name: canonicalName,
+                            teamName: (doc.teamName || teamFromId || '').trim(),
+                            clubName: (doc.clubName || clubFromId || '').trim(),
+                            players: Array.isArray(doc.players) ? doc.players : [],
+                            createdAt: doc.createdAt,
+                            updatedAt: doc.updatedAt,
+                            source: 'firestore'
+                        };
+                    });
+                } else {
+                    this.state.error = result.error || 'Errore fetch teams';
                 }
             }
             
             // Combina e deduplica
             const allTeams = [...localTeams, ...firestoreTeams];
             this.state.teams = this.deduplicateTeams(allTeams);
+
+            try {
+                const firestoreIds = new Set(firestoreTeams.map(t => String(t.id)));
+                const toStore = this.state.teams.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    teamName: t.teamName,
+                    clubName: t.clubName,
+                    players: Array.isArray(t.players) ? t.players : []
+                }));
+                localStorage.setItem('volleyTeams', JSON.stringify(toStore));
+                if (isAuthed && window.firestoreService?.saveTeam) {
+                    for (const t of this.state.teams) {
+                        const isFs = String(t.source||'').toLowerCase()==='firestore';
+                        if (!firestoreIds.has(String(t.id)) && !isFs) {
+                            try { await window.firestoreService.saveTeam(t); } catch(_) {}
+                        }
+                    }
+                }
+            } catch(_) {}
             
             this.notifyTeamsUpdate();
-            
+
         } catch (error) {
             console.error('Errore nel caricamento squadre:', error);
             this.handleError(error);
+            if (this._retryTeamsFetch < 5) {
+                this._retryTeamsFetch++;
+                setTimeout(() => { try { this.loadTeams(); } catch(_){} }, Math.min(1000 * this._retryTeamsFetch, 5000));
+            }
         } finally {
             this.state.isLoading = false;
+            if (this.state.teams && this.state.teams.length) this._retryTeamsFetch = 0;
         }
     }
 
@@ -288,15 +325,14 @@ class TeamsModule {
                 this.notifyTeamChange(null);
             }
 
-            // Tenta eliminazione su Firestore (best-effort, non blocca)
-            if (teamName && window.authModule?.isAuthenticated() && window.firestoreService?.deleteRostersByName) {
+            // Eliminazione su Firestore del documento squadra e partite collegate
+            if (window.authModule?.isAuthenticated() && window.firestoreService?.deleteTeamByIdOrName) {
                 cloudAttempted = true;
                 try {
-                    const res = await window.firestoreService.deleteRostersByName(teamName);
+                    const res = await window.firestoreService.deleteTeamByIdOrName(idStr, teamName);
                     cloudSuccess = !!res?.success;
                     cloudDeleted = res?.deleted || 0;
                 } catch (firestoreError) {
-                    console.warn('Eliminazione su Firestore non riuscita o non disponibile:', firestoreError);
                     cloudSuccess = false;
                 }
             }

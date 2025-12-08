@@ -155,6 +155,10 @@
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       try {
+        try {
+          const s = sessionStorage.getItem('currentScoutingSession');
+          if (s) { localStorage.setItem('currentScoutingSession', s); }
+        } catch(_) {}
         const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
         if (sessionData && Object.keys(sessionData).length > 0 && typeof window.loadScoutingSession === 'function') {
           window.loadScoutingSession(sessionData);
@@ -202,9 +206,30 @@
       window.addEventListener('resize', computeStickyOffsets);
       window.addEventListener('resize', setStickyFilterTop);
       document.addEventListener('click', (e) => {
-        if (e.target && e.target.matches('[data-set-filter]')) {
-          setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50);
-        }
+        const btn = e.target && e.target.closest('[data-set-filter]');
+        if (!btn) return;
+        const fund = btn.getAttribute('data-fund');
+        const setLabel = btn.getAttribute('data-set');
+        if (!fund || !setLabel) { setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50); return; }
+        try {
+          const map = window.appState && window.appState.allSetFilterByFundamental ? window.appState.allSetFilterByFundamental : {};
+          let selected = Array.isArray(map[fund]) ? map[fund].map(String) : ['ALL'];
+          if (setLabel === 'ALL') {
+            selected = ['ALL'];
+          } else {
+            selected = selected.filter(s => s !== 'ALL');
+            const has = selected.includes(String(setLabel));
+            if (has) {
+              selected = selected.filter(s => s !== String(setLabel));
+            } else {
+              selected = selected.concat([String(setLabel)]);
+            }
+            if (selected.length === 0) selected = ['ALL'];
+          }
+          if (window.appState) window.appState.allSetFilterByFundamental[fund] = selected;
+          try { renderMatchStats(); } catch(_) {}
+        } catch(_) {}
+        setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50);
       });
       try {
         const list = document.getElementById('setToolbar');

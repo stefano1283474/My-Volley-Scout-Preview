@@ -11,6 +11,162 @@ const firestoreService = {
             role: String(p.role||'').trim().toUpperCase()
         })).filter(p=>p.number||p.nickname||p.role);
     },
+
+    syncLocalTeamsToFirestore: async () => {
+        try {
+            const isAuthed = !!authFunctions.getCurrentUser();
+            if (!isAuthed) return { success: false, error: 'Utente non autenticato' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const teamsRef = userRef.collection('teams');
+            let local = [];
+            try { local = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); } catch(_){ local = []; }
+            if (!Array.isArray(local) || !local.length) return { success: true, synced: 0 };
+            let synced = 0;
+            for (const t of local) {
+                const club = String(t.clubName||'').trim();
+                const squad = String(t.teamName||t.name||'').trim();
+                const combined = (squad ? squad : '').trim() + (club ? ` - ${club}` : '');
+                const id = combined || String(t.id||Date.now());
+                const docRef = teamsRef.doc(id);
+                const data = {
+                    id,
+                    name: combined,
+                    teamName: squad,
+                    clubName: club,
+                    players: Array.isArray(t.players) ? t.players : [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                try { await docRef.set(data, { merge: true }); synced++; } catch(_){ }
+            }
+            return { success: true, synced };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    syncLocalMatchesToFirestore: async () => {
+        try {
+            const isAuthed = !!authFunctions.getCurrentUser();
+            if (!isAuthed) return { success: false, error: 'Utente non autenticato' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            // Mappa dei team locali: name -> docId
+            let localTeams = [];
+            try { localTeams = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); } catch(_){ localTeams = []; }
+            const teamMap = new Map();
+            (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
+                const club = String(t.clubName||'').trim();
+                const squad = String(t.teamName||t.name||'').trim();
+                const docId = (club || squad) ? `${club} - ${squad}`.trim() : String(t.id||'');
+                const nameCombined = (squad + (club ? ` - ${club}` : '')).trim();
+                if (docId) {
+                    teamMap.set(nameCombined, docId);
+                    teamMap.set(String(t.name||'').trim(), docId);
+                }
+            });
+
+            let localMatches = [];
+            try { localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_){ localMatches = []; }
+            if (!Array.isArray(localMatches) || !localMatches.length) return { success: true, synced: 0 };
+
+            let synced = 0;
+            for (const m of localMatches) {
+                let teamId = null;
+                try { if (m.teamId) teamId = String(m.teamId); } catch(_){}
+                if (!teamId) {
+                    const my = String(m.myTeam||m.teamName||'').trim();
+                    const home = String(m.homeTeam||'').trim();
+                    const away = String(m.awayTeam||'').trim();
+                    teamId = teamMap.get(my) || teamMap.get(home) || null;
+                }
+                if (!teamId) continue;
+                try {
+                    await firestoreService.saveMatchTree(teamId, m);
+                    // Salva roster se presente
+                    const rosterArr = Array.isArray(m.roster) ? m.roster : (Array.isArray(m.players) ? m.players : []);
+                    if (Array.isArray(rosterArr) && rosterArr.length) {
+                        await firestoreService.saveMatchRosterTree(teamId, String(m.id), rosterArr);
+                    }
+                    synced++;
+                } catch(_){ }
+            }
+            return { success: true, synced };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    deleteTeamByIdOrName: async (teamId, teamName) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const idStr = String(teamId||'').trim();
+            const nameStr = String(teamName||'').trim();
+            const tryIds = [];
+            if (idStr) tryIds.push(idStr);
+            if (nameStr && !tryIds.includes(nameStr)) tryIds.push(nameStr);
+            let deleted = 0;
+            for (const dId of tryIds) {
+                const teamRef = userRef.collection('teams').doc(dId);
+                const snap = await teamRef.get();
+                if (snap.exists) {
+                    try {
+                        const qs = await teamRef.collection('matches').get();
+                        const dels = [];
+                        qs.forEach(doc => { dels.push(teamRef.collection('matches').doc(doc.id).delete().catch(()=>{})); });
+                        await Promise.all(dels);
+                    } catch(_) {}
+                    await teamRef.delete();
+                    deleted++;
+                } else {
+                    await teamRef.delete().catch(()=>{});
+                }
+            }
+            if (!deleted && nameStr) {
+                const parts = nameStr.split(' - ');
+                const teamNm = parts[0] || '';
+                const clubNm = parts.slice(1).join(' - ');
+                if (teamNm) {
+                    const qs = await userRef.collection('teams')
+                        .where('teamName','==',teamNm)
+                        .where('clubName','==',clubNm)
+                        .get();
+                    const dels = [];
+                    qs.forEach(doc => {
+                        const tRef = userRef.collection('teams').doc(doc.id);
+                        dels.push((async () => {
+                            try {
+                                const ms = await tRef.collection('matches').get();
+                                const mDels = [];
+                                ms.forEach(m => { mDels.push(tRef.collection('matches').doc(m.id).delete().catch(()=>{})); });
+                                await Promise.all(mDels);
+                            } catch(_) {}
+                            await tRef.delete();
+                        })());
+                    });
+                    await Promise.all(dels);
+                    deleted += dels.length;
+                }
+                // Prova anche la variante invertita "Società - Squadra"
+                const rev = nameStr.includes(' - ') ? (parts.slice(1).join(' - ') + ' - ' + parts[0]) : '';
+                if (rev) {
+                    const rs = await userRef.collection('teams').doc(rev).get();
+                    if (rs.exists) {
+                        try {
+                            const ms = await userRef.collection('teams').doc(rev).collection('matches').get();
+                            const mDels = [];
+                            ms.forEach(m => { mDels.push(userRef.collection('teams').doc(rev).collection('matches').doc(m.id).delete().catch(()=>{})); });
+                            await Promise.all(mDels);
+                        } catch(_) {}
+                        await userRef.collection('teams').doc(rev).delete();
+                        deleted++;
+                    }
+                }
+            }
+            return { success: true, deleted };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
     _sanitizeMatchMeta: (match) => ({
         id: String(match.id||Date.now()),
         myTeam: match.myTeam||match.homeTeam||'',
@@ -55,13 +211,16 @@ const firestoreService = {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
             const teamsRef = userRef.collection('teams');
-            const id = String(team.id || Date.now());
+            const club = String(team.clubName || '').trim();
+            const squad = String(team.teamName || team.name || '').trim();
+            const combined = (squad ? squad : '').trim() + (club ? ` - ${club}` : '');
+            const id = combined || String(team.id || Date.now());
             const docRef = teamsRef.doc(id);
             const data = {
                 id,
-                name: team.name,
-                teamName: team.teamName || team.name,
-                clubName: team.clubName || '',
+                name: combined,
+                teamName: squad,
+                clubName: club,
                 players: Array.isArray(team.players) ? team.players : [],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -76,7 +235,7 @@ const firestoreService = {
     loadUserTeams: async () => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
-            const snap = await userRef.collection('teams').orderBy('createdAt', 'desc').get();
+            const snap = await userRef.collection('teams').get();
             const teams = [];
             snap.forEach(d => teams.push({ id: d.id, ...d.data() }));
             return { success: true, documents: teams };
@@ -106,6 +265,26 @@ const firestoreService = {
                 ts: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             return { success: true, id: meta.id };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    saveMatchDetailsTree: async (teamId, matchId, details) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const subRef = matchDoc.collection('match_data').doc('main');
+            const payload = {
+                actionsBySet: details?.actionsBySet || {},
+                setMeta: details?.setMeta || {},
+                setStateBySet: details?.setStateBySet || {},
+                setSummary: details?.setSummary || {},
+                scoreHistoryBySet: details?.scoreHistoryBySet || {},
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await subRef.set(payload, { merge: true });
+            return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }

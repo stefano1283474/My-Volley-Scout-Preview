@@ -1404,8 +1404,85 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
+                try {
+                    const team = window.teamsModule?.getCurrentTeam?.();
+                    if (team?.id && window.authModule?.isAuthenticated() && window.firestoreService?.getMatchData) {
+                        const res = await window.firestoreService.getMatchData(team.id, match.id);
+                        if (res?.success) {
+                            if (res.roster && Array.isArray(res.roster) && !Array.isArray(match.roster)) match.roster = res.roster;
+                            if (res.details) {
+                                match.actionsBySet = res.details.actionsBySet || match.actionsBySet || {};
+                                match.setMeta = res.details.setMeta || match.setMeta || {};
+                                match.setStateBySet = res.details.setStateBySet || match.setStateBySet || {};
+                                match.setSummary = res.details.setSummary || match.setSummary || {};
+                                match.scoreHistoryBySet = res.details.scoreHistoryBySet || match.scoreHistoryBySet || {};
+                            }
+                        }
+                    }
+                } catch(_) {}
                 if (match.status === 'completed' || isMatchCompleted(match)) {
-                    localStorage.setItem('selectedMatchId', match.id);
+                    try {
+                        const abSet = match.actionsBySet || {};
+                        const stBySet = match.setStateBySet || {};
+                        const sumBySet = match.setSummary || {};
+                        function pickResumeSet(){
+                            let last = 1;
+                            try {
+                                const keys = Object.keys(abSet).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                                for (const k of keys) { if (Array.isArray(abSet[k]) && abSet[k].length) last = k; }
+                                const stKeys = Object.keys(stBySet).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                                for (const k of stKeys) {
+                                    const st = stBySet[k] || {};
+                                    const hasData = !!(st.setStarted) || (((Number(st.homeScore)||0) + (Number(st.awayScore)||0)) > 0);
+                                    if (hasData) last = Math.max(last, k);
+                                }
+                                const sumKeys = Object.keys(sumBySet).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                                for (const k of sumKeys) {
+                                    const s = sumBySet[k] || {};
+                                    const hasSum = ((Number(s.home)||0) + (Number(s.away)||0)) > 0;
+                                    if (hasSum) last = Math.max(last, k);
+                                }
+                            } catch(_) {}
+                            return last;
+                        }
+                        const resumeSet = pickResumeSet();
+                        const rosterArr = Array.isArray(match.roster) ? match.roster : [];
+                        const opp = match.opponentTeam || match.opponent || '';
+                        const sess = {
+                            id: match.id,
+                            opponentTeam: opp,
+                            matchDate: match.matchDate || match.date || new Date().toISOString().slice(0,10),
+                            matchType: match.matchType || match.eventType || '',
+                            homeAway: match.homeAway || null,
+                            description: match.description || '',
+                            actionsBySet: abSet,
+                            setMeta: match.setMeta || {},
+                            setStateBySet: stBySet,
+                            scoreHistoryBySet: match.scoreHistoryBySet || {},
+                            setSummary: sumBySet,
+                            setConfig: { set: resumeSet },
+                            roster: rosterArr
+                        };
+                        try {
+                            sess.setMeta = sess.setMeta || {};
+                            sess.setMeta[resumeSet] = sess.setMeta[resumeSet] || {};
+                            if (!sess.setMeta[resumeSet].ourRotation) sess.setMeta[resumeSet].ourRotation = 'P1';
+                            if (!sess.setMeta[resumeSet].phase) sess.setMeta[resumeSet].phase = 'servizio';
+                            if (Number(resumeSet) === 1) {
+                                sess.setConfig.ourRotation = sess.setMeta[1].ourRotation;
+                                sess.setConfig.phase = sess.setMeta[1].phase;
+                            }
+                        } catch(_) {}
+                        try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } catch(_) { localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); }
+                        localStorage.setItem('selectedMatchId', String(match.id));
+                        try {
+                            let teamId = localStorage.getItem('selectedTeamId');
+                            if (!teamId && match.teamId) {
+                                teamId = String(match.teamId);
+                                localStorage.setItem('selectedTeamId', teamId);
+                            }
+                        } catch(_) {}
+                    } catch(_){ }
                     window.location.href = '/match-stats.html';
                     return;
                 }
