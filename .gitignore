@@ -6,5 +6,8 @@ extracted_excel/
 *.cache
 dist/
 build/
+Scout/
+*.xlsm
+*.xlsx
 .DS_Store
 Thumbs.db
