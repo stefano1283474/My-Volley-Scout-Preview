@@ -1288,13 +1288,13 @@ async function saveCurrentMatch() {
 
         try {
             const userEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
-            const userKey = String(userEmail).trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
-            if (userKey && (selectedTeamId || currentTeam?.id)) {
+            const teamIdRef = selectedTeamId || currentTeam?.id;
+            if (userEmail && teamIdRef) {
                 payload.cloudRef = {
-                    userKey,
-                    teamId: selectedTeamId || currentTeam?.id,
+                    userEmail,
+                    teamId: teamIdRef,
                     matchId: payload.id,
-                    path: `users/${userKey}/teams/${selectedTeamId || currentTeam?.id}/matches/${payload.id}`
+                    path: `users/${userEmail}/teams/${teamIdRef}/matches/${payload.id}`
                 };
             }
         } catch(_) {}
@@ -1348,14 +1348,30 @@ async function saveCurrentMatch() {
             localStorage.setItem('volleyMatches', JSON.stringify(deduped));
         } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
 
-        // Salvataggio su Firestore (se disponibile)
         try {
-            if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree) {
+            if (window.authFunctions?.getCurrentUser && window.firestoreService) {
                 const user = window.authFunctions.getCurrentUser();
                 if (user) {
                     const teamId = selectedTeamId || currentTeam?.id || null;
                     if (teamId) {
-                        await window.firestoreService.saveMatchTree(teamId, payload);
+                        if (typeof window.firestoreService.saveMatchTree === 'function') {
+                            await window.firestoreService.saveMatchTree(teamId, payload);
+                        }
+                        if (typeof window.firestoreService.saveMatchDetailsTree === 'function') {
+                            await window.firestoreService.saveMatchDetailsTree(teamId, payload.id, {
+                                actionsBySet: payload.actionsBySet || {},
+                                setMeta: payload.setMeta || {},
+                                setStateBySet: payload.setStateBySet || {},
+                                setSummary: payload.setSummary || {},
+                                scoreHistoryBySet: payload.scoreHistoryBySet || {}
+                            });
+                        }
+                        if (typeof window.firestoreService.saveMatchRosterTree === 'function') {
+                            const rr = Array.isArray(payload.roster) ? payload.roster : [];
+                            if (rr.length) {
+                                await window.firestoreService.saveMatchRosterTree(teamId, payload.id, rr);
+                            }
+                        }
                     }
                 }
             }
@@ -1368,6 +1384,164 @@ async function saveCurrentMatch() {
         try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: false, error } })); } catch(_) {}
     }
 }
+
+async function exportAllSetsToExcel() {
+    try {
+        async function ensureXlsxLoaded() {
+            if (window.XLSX && window.XLSX.utils && typeof window.XLSX.writeFile === 'function') return window.XLSX;
+            try {
+                const existing = Array.from(document.querySelectorAll('script')).find(s => String(s.src || '').includes('xlsx.full.min.js'));
+                if (existing) {
+                    const start = Date.now();
+                    while (!(window.XLSX && window.XLSX.utils && typeof window.XLSX.writeFile === 'function')) {
+                        if ((Date.now() - start) > 8000) break;
+                        await new Promise(r => setTimeout(r, 50));
+                    }
+                    if (window.XLSX && window.XLSX.utils && typeof window.XLSX.writeFile === 'function') return window.XLSX;
+                }
+            } catch (_) {}
+            await new Promise((resolve, reject) => {
+                try {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+                    s.async = true;
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('Impossibile caricare la libreria XLSX'));
+                    document.head.appendChild(s);
+                } catch (e) { reject(e); }
+            });
+            return window.XLSX;
+        }
+
+        function safeJsonParse(raw, fallback) {
+            try { return raw ? JSON.parse(raw) : fallback; } catch (_) { return fallback; }
+        }
+
+        function setCell(ws, addr, value) {
+            if (value === undefined || value === null) return;
+            if (typeof value === 'number' && Number.isFinite(value)) ws[addr] = { t: 'n', v: value };
+            else ws[addr] = { t: 's', v: String(value) };
+        }
+
+        function normalizeRotationToSheet(v) {
+            const s = String(v || '').trim();
+            if (!s) return '';
+            return s.replace(/^P/i, '');
+        }
+
+        function pickScoreFromActions(actions) {
+            try {
+                for (let i = (actions || []).length - 1; i >= 0; i--) {
+                    const sc = actions[i] && actions[i].score != null ? String(actions[i].score) : '';
+                    const m = sc.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+                    if (m) return { home: Number(m[1]) || 0, away: Number(m[2]) || 0 };
+                }
+            } catch (_) {}
+            return { home: 0, away: 0 };
+        }
+
+        function normalizeHomeAwayLabel(match, session) {
+            const ha = String(match?.homeAway || '').toLowerCase();
+            if (ha === 'away') return 'trasferta';
+            if (ha === 'home') return 'casa';
+            const loc = String(session?.location || '').toLowerCase();
+            if (loc === 'trasferta' || loc === 'away') return 'trasferta';
+            return 'casa';
+        }
+
+        const XLSX = await ensureXlsxLoaded();
+        if (!XLSX || !XLSX.utils) {
+            alert('Libreria XLSX non disponibile');
+            return;
+        }
+
+        const sessionData = safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
+        const currentMatch = (window.appState && window.appState.currentMatch) ? window.appState.currentMatch : null;
+        const bestLocal = (typeof getBestLocalMatch === 'function') ? getBestLocalMatch() : null;
+        const match = currentMatch || bestLocal || sessionData || {};
+
+        const actionsBySet = sessionData.actionsBySet || match.actionsBySet || {};
+        const setMeta = sessionData.setMeta || match.setMeta || {};
+        const setStateBySet = sessionData.setStateBySet || match.setStateBySet || {};
+
+        let roster = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
+        if (!roster.length) roster = Array.isArray(sessionData.roster) ? sessionData.roster : [];
+        if (!roster.length) roster = Array.isArray(match.roster) ? match.roster : [];
+
+        const opponent = sessionData.opponent || sessionData.opponentTeam || match.opponentTeam || match.opponent || match.awayTeam || 'Avversario';
+        const matchDate = sessionData.matchDate || match.matchDate || match.date || new Date().toISOString().slice(0, 10);
+        const eventType = sessionData.eventType || match.eventType || match.matchType || 'partita';
+        const location = normalizeHomeAwayLabel(match, sessionData);
+        const description = sessionData.description || match.description || '';
+        const finalResult = match.finalResult || sessionData.finalResult || '';
+        const matchOutcome = match.matchOutcome || sessionData.matchOutcome || '';
+
+        const wb = XLSX.utils.book_new();
+
+        const wsRoster = {};
+        wsRoster['!ref'] = 'A1:K220';
+        setCell(wsRoster, 'D20', opponent);
+        setCell(wsRoster, 'D21', String(matchDate || '').slice(0, 10));
+        setCell(wsRoster, 'D22', eventType);
+        setCell(wsRoster, 'D23', location);
+        setCell(wsRoster, 'D24', description);
+        setCell(wsRoster, 'D25', finalResult);
+        setCell(wsRoster, 'D26', matchOutcome);
+
+        const validPlayers = (roster || []).filter(p => p && (p.number != null || p.name || p.surname || p.nickname || p.role));
+        for (let i = 0; i < validPlayers.length; i++) {
+            const p = validPlayers[i] || {};
+            const row = 3 + i;
+            setCell(wsRoster, 'B' + row, formatJersey(p.number || p.num || p.jersey || p.maglia || ''));
+            setCell(wsRoster, 'C' + row, p.surname || p.cognome || '');
+            setCell(wsRoster, 'D' + row, p.name || p.nome || '');
+            setCell(wsRoster, 'E' + row, p.nickname || p.nick || p.soprannome || '');
+            setCell(wsRoster, 'F' + row, p.role || p.ruolo || '');
+        }
+        XLSX.utils.book_append_sheet(wb, wsRoster, 'El. Gioc.');
+
+        for (let setNum = 1; setNum <= 6; setNum++) {
+            const ws = {};
+            ws['!ref'] = 'A1:K220';
+
+            const meta = setMeta && setMeta[setNum] ? setMeta[setNum] : {};
+            const ourRot = meta.ourRotation || meta.ourRot || meta.rotation || '';
+            const oppRot = meta.opponentRotation || meta.oppRotation || meta.opponentRot || '';
+            setCell(ws, 'A6', normalizeRotationToSheet(oppRot));
+            setCell(ws, 'A7', normalizeRotationToSheet(ourRot));
+
+            const actions = Array.isArray(actionsBySet && actionsBySet[setNum]) ? actionsBySet[setNum] : [];
+            const state = setStateBySet && setStateBySet[setNum] ? setStateBySet[setNum] : null;
+            const fallbackScore = pickScoreFromActions(actions);
+            const homeScore = state && state.homeScore != null ? Number(state.homeScore) || 0 : fallbackScore.home;
+            const awayScore = state && state.awayScore != null ? Number(state.awayScore) || 0 : fallbackScore.away;
+            setCell(ws, 'C12', homeScore);
+            setCell(ws, 'E12', awayScore);
+
+            let row = 18;
+            for (let i = 0; i < actions.length; i++) {
+                const a = actions[i];
+                const s = typeof a === 'string' ? a : (a && (a.action || a.actionString || a.text));
+                const v = s != null ? String(s).trim() : '';
+                if (!v) continue;
+                setCell(ws, 'B' + row, v);
+                row++;
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Set ' + setNum);
+        }
+
+        const safeDate = String(matchDate || '').slice(0, 10).replace(/[^\d-]/g, '') || new Date().toISOString().slice(0, 10);
+        const safeOpp = String(opponent || 'Avversario').replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 32) || 'Avversario';
+        const fileName = `Partita_${safeDate}_vs_${safeOpp}.xlsx`;
+        XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+    } catch (e) {
+        console.error('Errore exportAllSetsToExcel:', e);
+        alert('Errore durante l\'esportazione della partita');
+    }
+}
+
+window.exportAllSetsToExcel = exportAllSetsToExcel;
 
 // Avvio automatico dopo il caricamento dello script
 if (document.readyState === 'loading') {
@@ -5071,7 +5245,7 @@ function activateMuroOverride() {
     } catch (_) {}
 }
 try {
-  window.appBuild = { version: '5.3.1', commit: '' };
+  window.appBuild = { version: '5.1.1', commit: '' };
   function renderAppVersion(){
     try {
       var els = document.querySelectorAll('.app-version');

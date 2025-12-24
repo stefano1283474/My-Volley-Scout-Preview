@@ -439,9 +439,11 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna da cloud</button>
+                    <button class="menu-item" id="syncDataBtn" type="button">Sincronizza dati</button>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
-                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers.</div>
+                    <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
                 </div>
             </div>
         </div>
@@ -611,6 +613,8 @@
         const accountEmail = document.getElementById('accountEmail');
         const accountExit = document.getElementById('accountExit');
         const accountLogout = document.getElementById('accountLogout');
+        const hydrateDataBtn = document.getElementById('hydrateDataBtn');
+        const syncDataBtn = document.getElementById('syncDataBtn');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -729,6 +733,74 @@
                     window.location.href = '/matches.html';
                 });
             }
+            if (hydrateDataBtn){
+                hydrateDataBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        hydrateDataBtn.disabled = true;
+                        hydrateDataBtn.textContent = 'Aggiorno...';
+                        const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
+                        try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+                        try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
+                        loadSelectedTeam();
+                        if (res?.success) alert('Aggiornamento completato');
+                        else alert(res?.error || 'Errore aggiornamento');
+                    } catch (err) {
+                        alert(err?.message || 'Errore aggiornamento');
+                    }
+                    finally {
+                        hydrateDataBtn.disabled = false;
+                        hydrateDataBtn.textContent = 'Aggiorna da cloud';
+                        try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
+                    }
+                });
+            }
+            if (syncDataBtn) {
+                syncDataBtn.addEventListener('click', async (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    try {
+                        syncDataBtn.disabled = true;
+                        syncDataBtn.textContent = 'Sincronizzo...';
+                        try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
+                        let tRes = null, mRes = null;
+                        
+                        if (window.firestoreService?.syncLocalTeamsToFirestore) { 
+                            try {
+                                tRes = await window.firestoreService.syncLocalTeamsToFirestore(); 
+                            } catch(e) { tRes = { success: false, error: e.message }; }
+                        }
+                        
+                        if (window.firestoreService?.syncLocalMatchesToFirestore) { 
+                            try {
+                                mRes = await window.firestoreService.syncLocalMatchesToFirestore(); 
+                            } catch(e) { mRes = { success: false, error: e.message }; }
+                        }
+                        
+                        try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+                        
+                        const errors = [];
+                        if (tRes && !tRes.success) errors.push('Squadre: ' + tRes.error);
+                        if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
+                        
+                        if (errors.length > 0) {
+                            alert('Errore durante la sincronizzazione:\n' + errors.join('\n'));
+                        } else {
+                            const tCount = tRes?.synced || 0;
+                            const mCount = mRes?.synced || 0;
+                            alert(`Sincronizzazione completata.\nSquadre inviate: ${tCount}\nPartite inviate: ${mCount}`);
+                        }
+                    } catch(err){ 
+                        console.error(err);
+                        alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
+                    }
+                    finally {
+                        syncDataBtn.disabled = false;
+                        syncDataBtn.textContent = 'Sincronizza dati';
+                        try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
+                    }
+                });
+            }
             const backBtn = document.getElementById('backBtn');
             if (backBtn){
                 backBtn.addEventListener('click', (e) => {
@@ -802,12 +874,13 @@
             const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
             const selName = selectedTeam?.name;
             const matchesCount = Array.isArray(matches) ? matches.filter(m => {
-                const my = m.myTeam || m.teamName;
-                const home = m.homeTeam;
-                const away = m.awayTeam;
-                const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
-                return (teamIdMatch) || (selName && (my === selName || home === selName || away === selName));
-            }).length : 0;
+            const tId = m.teamId != null ? String(m.teamId) : null;
+            if (tId) return tId === selId;
+            const my = m.myTeam || m.teamName;
+            const home = m.homeTeam;
+            const away = m.awayTeam;
+            return (selName && (my === selName || home === selName || away === selName));
+        }).length : 0;
             if (teamStats) {
                 teamStats.textContent = `${playerCount} giocatori • ${matchesCount} partite`;
             }
@@ -816,6 +889,16 @@
         async function loadMatches() {
             try {
                 if (window.matchesModule) {
+                    try {
+                        const tId = selectedTeam?.id != null ? String(selectedTeam.id) : '';
+                        const k = '__hydratedMatches_' + tId;
+                        if (tId && !window[k] && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
+                            window[k] = true;
+                            window.firestoreService.hydrateTeamMatchesFromFirestore(tId, { detailsMode: 'recent', maxDetails: 5 }).then(() => {
+                                try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
+                            }).catch(()=>{});
+                        }
+                    } catch(_){ }
                     matches = window.matchesModule.getMatches();
                     if (!window.__matchesSubscribed) {
                         window.__matchesSubscribed = true;
@@ -1095,7 +1178,22 @@
         }
         
         function renderMatches() {
-            const relevant = Array.isArray(matches) ? matches.slice() : [];
+            let relevant = Array.isArray(matches) ? matches.slice() : [];
+
+            // Filtra per squadra selezionata (come da logica backend Firestore: matches <-> team)
+            if (selectedTeam && selectedTeam.id) {
+                const selId = String(selectedTeam.id);
+                const selName = selectedTeam.name;
+                relevant = relevant.filter(m => {
+                    const tId = m.teamId != null ? String(m.teamId) : null;
+                    if (tId) return tId === selId;
+                    // Fallback per compatibilità
+                    const my = m.myTeam || m.teamName;
+                    const home = m.homeTeam;
+                    const away = m.awayTeam;
+                    return (selName && (my === selName || home === selName || away === selName));
+                });
+            }
 
             if (relevant.length === 0) {
                 showEmptyMatches();
@@ -1400,7 +1498,7 @@
         // Modifica partita: non più usata in questa vista
 
         // Avvia configurazione set per la partita selezionata
-        function scoutMatch(matchId) {
+        async function scoutMatch(matchId) {
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');

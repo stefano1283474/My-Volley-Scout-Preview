@@ -108,3 +108,19 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 };
 
 console.log('Connection Manager inizializzato');
+
+(function () {
+    const version = '5.3.2';
+    window.MVS_APP_VERSION = version;
+    function renderVersion() {
+        const nodes = document.querySelectorAll('.app-version');
+        if (!nodes || !nodes.length) return;
+        const text = 'MyVolleyScout Vers. ' + version;
+        nodes.forEach((el) => {
+            el.textContent = text;
+        });
+    }
+    window.updateAppVersionDisplay = renderVersion;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderVersion);
+    else renderVersion();
+})();

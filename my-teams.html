@@ -118,11 +118,12 @@
           <div class="menu-item" id="accountEmail">Caricamento...</div>
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+          <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna da cloud</button>
           <button class="menu-item" id="syncDataBtn" type="button">Sincronizza dati</button>
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci tutto</button>
           <button class="menu-item" id="accountExit">Esci</button>
           <button class="menu-item" id="accountLogout">Logout</button>
-          <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">MyVolleyScout Vers.</div>
+          <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
         </div>
       </div>
     </div>
@@ -218,6 +219,7 @@
     const accountEmail = document.getElementById('accountEmail');
     const accountLogout = document.getElementById('accountLogout');
     const syncDataBtn = document.getElementById('syncDataBtn');
+    const hydrateDataBtn = document.getElementById('hydrateDataBtn');
     const createTeamDialog = document.getElementById('createTeamDialog');
     const createTeamForm = document.getElementById('createTeamForm');
     const teamInput = document.getElementById('teamInput');
@@ -248,11 +250,13 @@
         const selId = t?.id != null ? String(t.id) : null;
         const selName = t?.name || '';
         const partiteCount = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
-          const teamIdMatch = m.teamId != null ? String(m.teamId) === selId : false;
+          const tId = m.teamId != null ? String(m.teamId) : null;
+          if (tId) return tId === selId;
+          // Fallback se id mancante
           const my = m.myTeam || m.teamName;
           const home = m.homeTeam;
           const away = m.awayTeam;
-          return teamIdMatch || (selName && (my === selName || home === selName || away === selName));
+          return (selName && (my === selName || home === selName || away === selName));
         }).length : 0;
         return `
           <div class="card" data-action="select" data-id="${t.id}" style="cursor:pointer;">
@@ -295,10 +299,11 @@
           try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) {}
           const count = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
             const tid = m.teamId != null ? String(m.teamId) : null;
+            if (tid) return tid === String(id);
             const my = m.myTeam || m.teamName;
             const home = m.homeTeam;
             const away = m.awayTeam;
-            return (tid && String(tid) === String(id)) || (name && (my === name || home === name || away === name));
+            return (name && (my === name || home === name || away === name));
           }).length : 0;
           pendingDeleteId = id;
           deleteConfirmText.textContent = `Eliminare "${name}"? Saranno rimossi anche i dati collegati su Firestore. Partite collegate rilevate: ${count}`;
@@ -391,6 +396,21 @@
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
           if (accountEmail) accountEmail.textContent = user.email;
+          try {
+            if (!window.__hydratedTeamsOnce && window.firestoreService?.hydrateTeamsFromFirestore) {
+              window.__hydratedTeamsOnce = true;
+              window.firestoreService.hydrateTeamsFromFirestore().then(() => {
+                try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+                try { renderTeamsList(); } catch(_){ }
+                try {
+                  const selId = localStorage.getItem('selectedTeamId');
+                  if (selId && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
+                    window.firestoreService.hydrateTeamMatchesFromFirestore(String(selId), { detailsMode: 'none', maxDetails: 0 }).catch(()=>{});
+                  }
+                } catch(_){ }
+              }).catch(()=>{});
+            }
+          } catch(_){ }
           try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
           try {
             const flag = localStorage.getItem('__teamsSyncedFs');
@@ -420,6 +440,25 @@
         });
         const purgeBtn = document.getElementById('purgeAllBtn');
         if (purgeBtn) purgeBtn.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); await purgeAll(); });
+        if (hydrateDataBtn) hydrateDataBtn.addEventListener('click', async (e) => {
+          e.preventDefault(); e.stopPropagation();
+          try {
+            hydrateDataBtn.disabled = true;
+            hydrateDataBtn.textContent = 'Aggiorno...';
+            const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
+            try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+            try { renderTeamsList(); } catch(_){ }
+            if (res?.success) alert('Aggiornamento completato');
+            else alert(res?.error || 'Errore aggiornamento');
+          } catch (err) {
+            alert(err?.message || 'Errore aggiornamento');
+          }
+          finally {
+            hydrateDataBtn.disabled = false;
+            hydrateDataBtn.textContent = 'Aggiorna da cloud';
+            try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
+          }
+        });
         if (syncDataBtn) syncDataBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
           try {
@@ -427,11 +466,36 @@
             syncDataBtn.textContent = 'Sincronizzo...';
             try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
             let tRes = null, mRes = null;
-            try { if (window.firestoreService?.syncLocalTeamsToFirestore) { tRes = await window.firestoreService.syncLocalTeamsToFirestore(); } } catch(_){}
-            try { if (window.firestoreService?.syncLocalMatchesToFirestore) { mRes = await window.firestoreService.syncLocalMatchesToFirestore(); } } catch(_){}
+            
+            if (window.firestoreService?.syncLocalTeamsToFirestore) { 
+                try {
+                    tRes = await window.firestoreService.syncLocalTeamsToFirestore(); 
+                } catch(e) { tRes = { success: false, error: e.message }; }
+            }
+            
+            if (window.firestoreService?.syncLocalMatchesToFirestore) { 
+                try {
+                    mRes = await window.firestoreService.syncLocalMatchesToFirestore(); 
+                } catch(e) { mRes = { success: false, error: e.message }; }
+            }
+            
             try { window.teamsModule?.loadTeams?.(); } catch(_){ }
-            alert('Sincronizzazione completata');
-          } catch(_){ alert('Errore sincronizzazione'); }
+            
+            const errors = [];
+            if (tRes && !tRes.success) errors.push('Squadre: ' + tRes.error);
+            if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
+            
+            if (errors.length > 0) {
+                alert('Errore durante la sincronizzazione:\n' + errors.join('\n'));
+            } else {
+                const tCount = tRes?.synced || 0;
+                const mCount = mRes?.synced || 0;
+                alert(`Sincronizzazione completata.\nSquadre inviate: ${tCount}\nPartite inviate: ${mCount}`);
+            }
+          } catch(err){ 
+            console.error(err);
+            alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
+          }
           finally {
             syncDataBtn.disabled = false;
             syncDataBtn.textContent = 'Sincronizza dati';
@@ -474,36 +538,79 @@
           if (!deleteConfirmDialog.open) return;
           deleteConfirmDialog.classList.add('closing');
           const card = deleteConfirmDialog.querySelector('.dialog-card');
-          if (card) {
-            const end = () => { deleteConfirmDialog.classList.remove('closing'); deleteConfirmDialog.close(); card.removeEventListener('animationend', end); };
-            card.addEventListener('animationend', end);
-          } else {
+          
+          const closeFn = () => {
             deleteConfirmDialog.classList.remove('closing');
             deleteConfirmDialog.close();
+            pendingDeleteId = null;
+          };
+
+          if (card) {
+            let ended = false;
+            const end = () => { 
+                if (ended) return;
+                ended = true;
+                card.removeEventListener('animationend', end);
+                closeFn();
+            };
+            card.addEventListener('animationend', end);
+            setTimeout(end, 250);
+          } else {
+            closeFn();
           }
-          pendingDeleteId = null;
         });
       }
       if (deleteConfirmOk && deleteConfirmDialog) {
         deleteConfirmOk.addEventListener('click', async () => {
           try {
+            console.log('Delete confirmed for ID:', pendingDeleteId);
             const id = pendingDeleteId;
-            pendingDeleteId = null;
+            if (!id) {
+              console.warn('No pending delete ID found');
+              return;
+            }
+            // pendingDeleteId = null; // Don't null it yet, wait for operation
             deleteConfirmOk.disabled = true;
-            await window.teamsModule?.deleteTeam?.(id);
+            deleteConfirmOk.textContent = 'Eliminazione...';
+            
+            if (window.teamsModule && typeof window.teamsModule.deleteTeam === 'function') {
+                await window.teamsModule.deleteTeam(id);
+                console.log('Team deleted via module');
+            } else {
+                console.error('Teams module or deleteTeam function missing');
+                alert('Errore interno: impossibile eliminare la squadra (modulo mancante)');
+            }
+            
+            pendingDeleteId = null;
             renderTeamsList();
-          } catch(_){}
+          } catch(err){
+            console.error('Error deleting team:', err);
+            alert('Errore durante l\'eliminazione: ' + (err.message || String(err)));
+          }
           finally {
             deleteConfirmOk.disabled = false;
+            deleteConfirmOk.textContent = 'Elimina';
             if (deleteConfirmDialog.open) {
               deleteConfirmDialog.classList.add('closing');
               const card = deleteConfirmDialog.querySelector('.dialog-card');
-              if (card) {
-                const end = () => { deleteConfirmDialog.classList.remove('closing'); deleteConfirmDialog.close(); card.removeEventListener('animationend', end); };
-                card.addEventListener('animationend', end);
-              } else {
+              const closeFn = () => {
                 deleteConfirmDialog.classList.remove('closing');
                 deleteConfirmDialog.close();
+              };
+              
+              if (card) {
+                let ended = false;
+                const end = () => { 
+                    if (ended) return;
+                    ended = true;
+                    card.removeEventListener('animationend', end);
+                    closeFn();
+                };
+                card.addEventListener('animationend', end);
+                // Fallback for no animation or stuck animation
+                setTimeout(end, 250);
+              } else {
+                closeFn();
               }
             }
           }
