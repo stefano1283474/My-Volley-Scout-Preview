@@ -2409,7 +2409,28 @@ function selectPlayer(number, name, btnEl) {
     const hadEvaluation = appState.selectedEvaluation != null;
     if (prevPlayer && hadEvaluation && !appState.autoClosePending) {
         try {
-            const fundamental = appState.calculatedFundamental || predictNextFundamental();
+            let fundamental = appState.calculatedFundamental || predictNextFundamental();
+            if (appState.currentSequence && appState.currentSequence.length === 0) {
+                const f0 = String(fundamental || '').toLowerCase();
+                if (f0 !== 'b' && f0 !== 'r') {
+                    window.__quartetStartAction = function(val) {
+                        if (val === 'avv') {
+                            appState.selectedPlayer = null;
+                            appState.selectedEvaluation = null;
+                            appState.calculatedFundamental = null;
+                            appState.overrideFundamental = null;
+                            try { submitOpponentError(); } catch(_) {}
+                            try { selectPlayer(number, name, btnEl); } catch(_) {}
+                            return;
+                        }
+                        appState.calculatedFundamental = val;
+                        appState.overrideFundamental = null;
+                        try { selectPlayer(number, name, btnEl); } catch(_) {}
+                    };
+                    openQuartetStartDialog(f0);
+                    return;
+                }
+            }
             const evaluation = appState.selectedEvaluation;
             const quartet = `${String(prevPlayer.number).padStart(2, '0')}${fundamental}${evaluation}`;
             appState.currentSequence.push({ quartet, playerName: prevPlayer.name });
@@ -2713,6 +2734,27 @@ function performAutoCloseAfterTimeout() {
     } catch(_) {}
 }
 
+function openQuartetStartDialog(invalidFundamental) {
+    const phase = String(appState.currentPhase || '').toLowerCase();
+    const suggested = phase === 'ricezione' ? 'r' : 'b';
+    const invalid = String(invalidFundamental || '').toLowerCase();
+    for (let i = 0; i < 3; i++) {
+        const input = window.prompt(
+            `ERRORE: prima quartina non valida (${invalid}).\nLa prima quartina deve essere:\n- b (servizio)\n- r (ricezione)\n- avv (errore avversario)\n\nInserisci b/r/avv:`,
+            suggested
+        );
+        if (input == null) return;
+        const val = String(input || '').trim().toLowerCase();
+        if (val === 'b' || val === 'r' || val === 'avv') {
+            if (typeof window.__quartetStartAction === 'function') {
+                try { window.__quartetStartAction(val); } catch(_) {}
+            }
+            return;
+        }
+        alert('Valore non valido. Inserisci b, r oppure avv.');
+    }
+}
+
 function submitGuidedAction() {
     if (!appState.selectedPlayer) {
         alert('Errore: nessun giocatore selezionato');
@@ -2726,58 +2768,22 @@ function submitGuidedAction() {
     
     const fundamental = appState.calculatedFundamental || predictNextFundamental();
     if (!appState.currentSequence || appState.currentSequence.length === 0) {
-        const f0 = String(fundamental).toLowerCase();
+        const f0 = String(fundamental || '').toLowerCase();
         if (f0 !== 'b' && f0 !== 'r') {
-            window.__quartetStartAction = function(val){
-                if (val === 'avv') { try { submitOpponentError(); } catch(_) {} return; }
-                try {
-                    appState.overrideFundamental = val;
-                    appState.calculatedFundamental = val;
-                    const evaluation = appState.selectedEvaluation;
-                    const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${val}${evaluation}`;
-                    appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
-                    updateActionSummary();
-                    const tempResult = determineFinalResult(val, evaluation);
-                    const closes = tempResult === 'home_point' || tempResult === 'away_point';
-                    if (closes) {
-                        const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
-                        const result = parseAction(actionString);
-                        result.playerName = appState.selectedPlayer.name;
-                        result.actionType = appState.selectedEvaluation === 5 ? 'Punto' : 'Errore';
-                        processActionResult(result);
-                        appState.actionsLog.push({
-                            action: actionString,
-                            result: result,
-                            score: `${appState.homeScore}-${appState.awayScore}`,
-                            guided: true,
-                            rotation: normalizeRotation(appState.currentRotation)
-                        });
-                        appState.currentSequence = [];
-                        updateActionSummary();
-                        const selectedPlayerText = document.getElementById('selected-player-text');
-                        const selectedEvaluationText = document.getElementById('selected-evaluation-text');
-                        if (selectedPlayerText) { selectedPlayerText.textContent = '-'; }
-                        if (selectedEvaluationText) { selectedEvaluationText.textContent = '-'; }
-                        appState.justClosedAction = true;
-                        appState.nextFundamentalPreview = null;
-                        updateDescriptiveQuartet();
-                    }
-                    updateScoutingUI();
-                    updateActionsLog();
-                    updateNextFundamental();
-                    updatePlayersGrid();
-                    showScoutingStep('step-player');
+            window.__quartetStartAction = function(val) {
+                if (val === 'avv') {
                     appState.selectedPlayer = null;
                     appState.selectedEvaluation = null;
-                    appState.overrideFundamental = null;
                     appState.calculatedFundamental = null;
-                    if (closes) checkSetEnd();
-                } catch (error) {
-                    alert(`Errore nell'azione: ${error.message}`);
-                    appState.currentSequence.pop();
+                    appState.overrideFundamental = null;
+                    try { submitOpponentError(); } catch(_) {}
+                    return;
                 }
+                appState.calculatedFundamental = val;
+                appState.overrideFundamental = null;
+                submitGuidedAction();
             };
-            try { if (typeof window.openQuartetStartDialog === 'function') window.openQuartetStartDialog(); } catch(_) {}
+            openQuartetStartDialog(f0);
             return;
         }
     }
@@ -2859,7 +2865,27 @@ function submitOpponentError() {
     // prima di aggiungere l'"avv" come esito immediato.
     if (!appState.currentSequence || appState.currentSequence.length === 0) {
         if (appState.selectedPlayer && appState.selectedEvaluation) {
-            const fundamental = appState.calculatedFundamental || predictNextFundamental();
+            let fundamental = appState.calculatedFundamental || predictNextFundamental();
+            if (!appState.currentSequence || appState.currentSequence.length === 0) {
+                const f0 = String(fundamental || '').toLowerCase();
+                if (f0 !== 'b' && f0 !== 'r') {
+                    window.__quartetStartAction = function(val) {
+                        if (val === 'avv') {
+                            appState.selectedPlayer = null;
+                            appState.selectedEvaluation = null;
+                            appState.calculatedFundamental = null;
+                            appState.overrideFundamental = null;
+                            submitOpponentError();
+                            return;
+                        }
+                        appState.calculatedFundamental = val;
+                        appState.overrideFundamental = null;
+                        submitOpponentError();
+                    };
+                    openQuartetStartDialog(f0);
+                    return;
+                }
+            }
             const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${fundamental}${appState.selectedEvaluation}`;
             appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
             updateActionSummary();
@@ -3511,10 +3537,15 @@ function submitAction() {
             const token = m[1] || m[0];
             if (!/^avv$/i.test(token)) {
                 const f0 = token.charAt(2).toLowerCase();
-                if (appState.currentSequence && appState.currentSequence.length === 0 && f0 !== 'b' && f0 !== 'r') {
-                    window.__quartetStartAction = function(val){
-                        if (val === 'avv') { try { submitOpponentError(); } catch(_) {} return; }
-                        const fixedFirst = token.substring(0,2) + val + token.charAt(3);
+                if (f0 !== 'b' && f0 !== 'r') {
+                    window.__quartetStartAction = function(val) {
+                        if (!inputEl) return;
+                        if (val === 'avv') {
+                            inputEl.value = 'avv';
+                            submitAction();
+                            return;
+                        }
+                        const fixedFirst = token.substring(0, 2) + val + token.charAt(3);
                         let fixedAction = '';
                         if (actionString.includes(' ')) {
                             const parts = actionString.trim().split(/\s+/);
@@ -3523,26 +3554,10 @@ function submitAction() {
                         } else {
                             fixedAction = fixedFirst + actionString.slice(token.length);
                         }
-                        try {
-                            const result = parseAction(fixedAction);
-                            result.playerName = 'Azione manuale';
-                            result.actionType = result.result === 'home_point' || result.result === 'away_point' ? 'Punto' : 'Azione';
-                            processActionResult(result);
-                            appState.actionsLog.push({
-                                action: fixedAction,
-                                result: result,
-                                timestamp: new Date().toLocaleTimeString('it-IT'),
-                                rotation: normalizeRotation(appState.currentRotation)
-                            });
-                            updateScoutingUI();
-                            updateActionsLog();
-                            if (inputEl) inputEl.value = '';
-                            checkSetEnd();
-                        } catch (error) {
-                            alert(`Errore nella stringa: ${error.message}`);
-                        }
+                        inputEl.value = fixedAction;
+                        submitAction();
                     };
-                    try { if (typeof window.openQuartetStartDialog === 'function') window.openQuartetStartDialog(); } catch(_) {}
+                    openQuartetStartDialog(f0);
                     return;
                 }
             }
