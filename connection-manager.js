@@ -31,7 +31,7 @@ class FirebaseConnectionManager {
             return false;
         }
         
-        if (!authFunctions.getCurrentUser()) {
+        if (!window.authFunctions || typeof window.authFunctions.getCurrentUser !== 'function' || !window.authFunctions.getCurrentUser()) {
             console.warn('Operazione Firestore saltata: utente non autenticato');
             return false;
         }
@@ -110,12 +110,13 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 console.log('Connection Manager inizializzato');
 
 (function () {
-    const version = '5.3.2';
-    window.MVS_APP_VERSION = version;
+    window.MVS_APP_VERSION = '5.3.2';
+    window.appBuild = window.appBuild || { version: '', commit: '' };
+    window.appBuild.version = String(window.MVS_APP_VERSION || '');
     function renderVersion() {
         const nodes = document.querySelectorAll('.app-version');
         if (!nodes || !nodes.length) return;
-        const text = 'MyVolleyScout Vers. ' + version;
+        const text = 'MyVolleyScout Vers. ' + String(window.MVS_APP_VERSION || '');
         nodes.forEach((el) => {
             el.textContent = text;
         });

@@ -5245,11 +5245,14 @@ function activateMuroOverride() {
     } catch (_) {}
 }
 try {
-  window.appBuild = { version: '5.1.1', commit: '' };
+  window.appBuild = window.appBuild || { version: '', commit: '' };
+  if (!window.appBuild.commit) window.appBuild.commit = '';
+  if (!window.appBuild.version && window.MVS_APP_VERSION) window.appBuild.version = String(window.MVS_APP_VERSION);
   function renderAppVersion(){
     try {
+      if (typeof window.updateAppVersionDisplay === 'function') { window.updateAppVersionDisplay(); return; }
       var els = document.querySelectorAll('.app-version');
-      var v = (window.appBuild && window.appBuild.version) ? String(window.appBuild.version) : '';
+      var v = window.MVS_APP_VERSION ? String(window.MVS_APP_VERSION) : ((window.appBuild && window.appBuild.version) ? String(window.appBuild.version) : '');
       var c = (window.appBuild && window.appBuild.commit) ? String(window.appBuild.commit) : '';
       var text = 'MyVolleyScout Vers. ' + v + (c ? (' (' + c + ')') : '');
       els.forEach(function(el){ el.textContent = text; });
