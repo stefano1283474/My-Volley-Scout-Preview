@@ -244,6 +244,254 @@ const firestoreService = {
         }
     },
 
+    hydrateTeamsFromFirestore: async () => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+
+            const res = await firestoreService.loadUserTeams();
+            if (!res?.success) return { success: false, error: res?.error || 'Errore caricamento squadre' };
+
+            let localTeams = [];
+            try { localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]'); } catch (_) { localTeams = []; }
+            if (!Array.isArray(localTeams)) localTeams = [];
+
+            const normalizeTeamFromFs = (doc) => {
+                const idStr = String(doc?.id || '').trim();
+                const hasDash = idStr.includes(' - ');
+                const parts = hasDash ? idStr.split(' - ') : [];
+                const clubFromId = hasDash ? String(parts[0] || '').trim() : '';
+                const teamFromId = hasDash ? String(parts.slice(1).join(' - ') || '').trim() : '';
+                const teamName = String(doc?.teamName || teamFromId || '').trim();
+                const clubName = String(doc?.clubName || clubFromId || '').trim();
+                const canonicalName = (teamName ? teamName : '').trim() + (clubName ? ` - ${clubName}` : '');
+                return {
+                    id: idStr || canonicalName || String(Date.now()),
+                    name: canonicalName || idStr,
+                    teamName,
+                    clubName,
+                    players: Array.isArray(doc?.players) ? doc.players : []
+                };
+            };
+
+            const byId = new Map();
+            for (const t of localTeams) {
+                const id = String(t?.id || '').trim();
+                if (id) byId.set(id, t);
+            }
+
+            let merged = 0;
+            for (const doc of (Array.isArray(res.documents) ? res.documents : [])) {
+                const fsTeam = normalizeTeamFromFs(doc);
+                const id = String(fsTeam.id || '').trim();
+                if (!id) continue;
+
+                const bySameId = byId.get(id);
+                const bySameName = !bySameId ? localTeams.find(t => String(t?.name || '').trim() && String(t?.name || '').trim() === String(fsTeam.name || '').trim()) : null;
+                const existing = bySameId || bySameName;
+                if (existing) {
+                    const mergedTeam = Object.assign({}, existing);
+                    mergedTeam.id = id;
+                    mergedTeam.teamName = String(existing.teamName || '').trim() || fsTeam.teamName;
+                    mergedTeam.clubName = String(existing.clubName || '').trim() || fsTeam.clubName;
+                    mergedTeam.name = (mergedTeam.teamName ? mergedTeam.teamName : '').trim() + ((mergedTeam.clubName ? ` - ${mergedTeam.clubName}` : ''));
+
+                    const localPlayers = Array.isArray(existing.players) ? existing.players : [];
+                    const fsPlayers = Array.isArray(fsTeam.players) ? fsTeam.players : [];
+                    mergedTeam.players = (localPlayers.length >= fsPlayers.length && localPlayers.length) ? localPlayers : fsPlayers;
+
+                    const existingId = String(existing?.id || '').trim();
+                    if (!bySameId && existingId && existingId !== id) byId.delete(existingId);
+                    byId.set(id, mergedTeam);
+                    merged++;
+                } else {
+                    byId.set(id, fsTeam);
+                    merged++;
+                }
+            }
+
+            const out = Array.from(byId.values()).map(t => ({
+                id: String(t.id || '').trim(),
+                name: String(t.name || '').trim(),
+                teamName: String(t.teamName || '').trim(),
+                clubName: String(t.clubName || '').trim(),
+                players: Array.isArray(t.players) ? t.players : []
+            })).filter(t => t.id || t.name);
+
+            localStorage.setItem('volleyTeams', JSON.stringify(out));
+            return { success: true, merged };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    hydrateTeamMatchesFromFirestore: async (teamId, options = {}) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+
+            const tId = String(teamId || '').trim();
+            if (!tId) return { success: false, error: 'teamId non valido' };
+
+            const res = await firestoreService.loadTeamMatches(tId);
+            if (!res?.success) return { success: false, error: res?.error || 'Errore caricamento partite squadra' };
+
+            let all = [];
+            try { all = JSON.parse(localStorage.getItem('volleyMatches') || '[]'); } catch (_) { all = []; }
+            if (!Array.isArray(all)) all = [];
+
+            let teamName = '';
+            try {
+                const teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                const found = Array.isArray(teams) ? teams.find(t => String(t?.id || '').trim() === tId) : null;
+                teamName = String(found?.name || '').trim();
+            } catch (_) { teamName = ''; }
+
+            const isMatchForTeam = (m) => {
+                const mid = String(m?.teamId || '').trim();
+                if (mid && mid === tId) return true;
+                if (!teamName) return false;
+                const my = String(m?.myTeam || m?.teamName || '').trim();
+                const home = String(m?.homeTeam || '').trim();
+                const away = String(m?.awayTeam || '').trim();
+                return (my && my === teamName) || (home && home === teamName) || (away && away === teamName);
+            };
+
+            const existingLocalTeamMatches = all.filter(isMatchForTeam);
+
+            const localById = new Map();
+            for (const m of existingLocalTeamMatches) {
+                const id = String(m?.id || '').trim();
+                if (id) localById.set(id, m);
+            }
+
+            const fsDocs = Array.isArray(res.documents) ? res.documents : [];
+            const fsById = new Map();
+            for (const d of fsDocs) {
+                const id = String(d?.id || '').trim();
+                if (!id) continue;
+                const dateStr = String(d?.date || d?.matchDate || '').trim();
+                const matchType = d?.matchType || d?.eventType || '';
+                const base = Object.assign({}, d);
+                base.id = id;
+                base.teamId = tId;
+                if (dateStr && !base.matchDate) base.matchDate = dateStr;
+                if (!base.date && dateStr) base.date = dateStr;
+                if (matchType && !base.eventType) base.eventType = matchType;
+                fsById.set(id, base);
+            }
+
+            const mergedTeam = [];
+            for (const [id, fsMatch] of fsById.entries()) {
+                const existing = localById.get(id);
+                if (existing) {
+                    const mergedMatch = Object.assign({}, fsMatch, existing);
+                    mergedMatch.id = id;
+                    mergedMatch.teamId = tId;
+                    mergedMatch.matchDate = mergedMatch.matchDate || mergedMatch.date || fsMatch.matchDate || fsMatch.date || '';
+                    mergedTeam.push(mergedMatch);
+                } else {
+                    mergedTeam.push(fsMatch);
+                }
+            }
+
+            const detailsMode = String(options?.detailsMode || 'none');
+            const maxDetails = Number(options?.maxDetails || 0);
+            const shouldLoadDetails = detailsMode === 'all' || (detailsMode === 'recent' && maxDetails > 0);
+            const idsForDetails = shouldLoadDetails
+                ? (detailsMode === 'all'
+                    ? mergedTeam.map(m => String(m?.id || '').trim()).filter(Boolean)
+                    : mergedTeam.slice(0, maxDetails).map(m => String(m?.id || '').trim()).filter(Boolean))
+                : [];
+
+            let detailsLoaded = 0;
+            for (const mId of idsForDetails) {
+                try {
+                    const r = await firestoreService.getMatchData(tId, mId);
+                    if (r?.success) {
+                        const idx = mergedTeam.findIndex(m => String(m?.id || '') === mId);
+                        if (idx >= 0) {
+                            const cur = mergedTeam[idx] || {};
+                            const roster = Array.isArray(r.roster) ? r.roster : [];
+                            const details = r.details || {};
+                            const updated = Object.assign({}, cur);
+                            if (roster.length && !(Array.isArray(updated.roster) && updated.roster.length)) updated.roster = roster;
+                            if (details && typeof details === 'object') {
+                                if (!updated.actionsBySet) updated.actionsBySet = details.actionsBySet || {};
+                                if (!updated.setMeta) updated.setMeta = details.setMeta || {};
+                                if (!updated.setStateBySet) updated.setStateBySet = details.setStateBySet || {};
+                                if (!updated.setSummary) updated.setSummary = details.setSummary || {};
+                                if (!updated.scoreHistoryBySet) updated.scoreHistoryBySet = details.scoreHistoryBySet || {};
+                            }
+                            mergedTeam[idx] = updated;
+                        }
+                        detailsLoaded++;
+                    }
+                } catch (_) { }
+            }
+
+            const mergedIds = new Set(mergedTeam.map(m => String(m?.id || '').trim()).filter(Boolean));
+            const localOnly = existingLocalTeamMatches.filter(m => {
+                const id = String(m?.id || '').trim();
+                return id && !mergedIds.has(id);
+            });
+
+            const others = all.filter(m => !isMatchForTeam(m));
+            const localOnlyWithTeam = localOnly.map(m => {
+                if (m && (!m.teamId || String(m.teamId).trim() !== tId)) return Object.assign({}, m, { teamId: tId });
+                return m;
+            });
+            const combinedTeam = mergedTeam.concat(localOnlyWithTeam);
+            combinedTeam.sort((a, b) => {
+                const da = String(a?.matchDate || a?.date || a?.updatedAt || a?.createdAt || '');
+                const db = String(b?.matchDate || b?.date || b?.updatedAt || b?.createdAt || '');
+                if (da === db) return 0;
+                return da < db ? 1 : -1;
+            });
+
+            const nextAll = others.concat(combinedTeam);
+            localStorage.setItem('volleyMatches', JSON.stringify(nextAll));
+
+            return { success: true, hydrated: mergedTeam.length, detailsLoaded };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    hydrateUserDataToLocal: async (options = {}) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+
+            const teamsRes = await firestoreService.hydrateTeamsFromFirestore();
+            if (!teamsRes?.success) return teamsRes;
+
+            const hydrateMatches = options?.hydrateMatches === true;
+            let matchesHydrated = 0;
+            let detailsLoaded = 0;
+
+            if (hydrateMatches) {
+                let teams = [];
+                try { teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]'); } catch (_) { teams = []; }
+                if (!Array.isArray(teams)) teams = [];
+
+                for (const t of teams) {
+                    const id = String(t?.id || '').trim();
+                    if (!id) continue;
+                    const r = await firestoreService.hydrateTeamMatchesFromFirestore(id, options);
+                    if (r?.success) {
+                        matchesHydrated += Number(r.hydrated || 0);
+                        detailsLoaded += Number(r.detailsLoaded || 0);
+                    }
+                }
+            }
+
+            return { success: true, teamsMerged: Number(teamsRes.merged || 0), matchesHydrated, detailsLoaded };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
     saveMatchTree: async (teamId, match) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();

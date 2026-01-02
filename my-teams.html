@@ -385,7 +385,7 @@
       async function initMyTeams() {
         if (typeof window.authFunctions === 'undefined') { setTimeout(initMyTeams, 200); return; }
         let __authRedirectTimer = null;
-        window.authFunctions.onAuthStateChanged((user) => {
+        window.authFunctions.onAuthStateChanged(async (user) => {
           if (!user) {
             if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
             __authRedirectTimer = setTimeout(() => {
@@ -399,33 +399,31 @@
           try {
             if (!window.__hydratedTeamsOnce && window.firestoreService?.hydrateTeamsFromFirestore) {
               window.__hydratedTeamsOnce = true;
-              window.firestoreService.hydrateTeamsFromFirestore().then(() => {
-                try { window.teamsModule?.loadTeams?.(); } catch(_){ }
-                try { renderTeamsList(); } catch(_){ }
-                try {
-                  const selId = localStorage.getItem('selectedTeamId');
-                  if (selId && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
-                    window.firestoreService.hydrateTeamMatchesFromFirestore(String(selId), { detailsMode: 'none', maxDetails: 0 }).catch(()=>{});
-                  }
-                } catch(_){ }
-              }).catch(()=>{});
+              await window.firestoreService.hydrateTeamsFromFirestore();
+              try {
+                const selId = localStorage.getItem('selectedTeamId');
+                if (selId && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
+                  window.firestoreService.hydrateTeamMatchesFromFirestore(String(selId), { detailsMode: 'none', maxDetails: 0 }).catch(()=>{});
+                }
+              } catch(_){ }
             }
           } catch(_){ }
-          try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
+
           try {
             const flag = localStorage.getItem('__teamsSyncedFs');
             if (!flag && window.firestoreService?.syncLocalTeamsToFirestore) {
               localStorage.setItem('__teamsSyncedFs','1');
-              window.firestoreService.syncLocalTeamsToFirestore().then(()=>{ try { window.teamsModule?.loadTeams?.(); } catch(_){ } });
+              await window.firestoreService.syncLocalTeamsToFirestore();
             }
           } catch(_){ }
           try {
             const mflag = localStorage.getItem('__matchesSyncedFs');
             if (!mflag && window.firestoreService?.syncLocalMatchesToFirestore) {
               localStorage.setItem('__matchesSyncedFs','1');
-              window.firestoreService.syncLocalMatchesToFirestore().then(()=>{ /* noop */ });
+              await window.firestoreService.syncLocalMatchesToFirestore();
             }
           } catch(_){ }
+          try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
           try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.((updated)=>{ renderTeamsList(); }); } } catch(_){ }
           renderTeamsList();
         });
@@ -574,7 +572,14 @@
             deleteConfirmOk.textContent = 'Eliminazione...';
             
             if (window.teamsModule && typeof window.teamsModule.deleteTeam === 'function') {
-                await window.teamsModule.deleteTeam(id);
+                const res = await window.teamsModule.deleteTeam(id);
+                const attempted = !!res?.cloud?.attempted;
+                const success = !!res?.cloud?.success;
+                if (!attempted) {
+                  alert('Squadra eliminata localmente, ma non su cloud (utente non autenticato o servizio non disponibile).');
+                } else if (!success) {
+                  alert('Squadra eliminata localmente, ma non su cloud (errore di rete o permessi).');
+                }
                 console.log('Team deleted via module');
             } else {
                 console.error('Teams module or deleteTeam function missing');

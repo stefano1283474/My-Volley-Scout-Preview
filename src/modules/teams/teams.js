@@ -229,7 +229,8 @@ class TeamsModule {
             await this.saveTeamLocally(team);
             
             // Salva su Firestore se disponibile
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.saveTeam) {
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (isAuthed && window.firestoreService?.saveTeam) {
                 try {
                     await window.firestoreService.saveTeam(team);
                 } catch (firestoreError) {
@@ -326,7 +327,8 @@ class TeamsModule {
             }
 
             // Eliminazione su Firestore del documento squadra e partite collegate
-            if (window.authModule?.isAuthenticated() && window.firestoreService?.deleteTeamByIdOrName) {
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (isAuthed && window.firestoreService?.deleteTeamByIdOrName) {
                 cloudAttempted = true;
                 try {
                     const res = await window.firestoreService.deleteTeamByIdOrName(idStr, teamName);

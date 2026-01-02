@@ -9,6 +9,7 @@
     <h1>Test Firebase Configuration</h1>
     <div id="status">Caricamento...</div>
     <button id="testGoogle" style="margin: 10px; padding: 10px;">Test Google Auth</button>
+    <button id="testFirestore" style="margin: 10px; padding: 10px;" disabled>Test Firestore R/W</button>
     <div id="logs" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap;"></div>
 
     <!-- Firebase SDK -->
@@ -18,11 +19,13 @@
     
     <!-- Firebase Config -->
     <script src="./firebase-config.js"></script>
+    <script src="./firestore-service.js"></script>
     
     <script>
         const statusDiv = document.getElementById('status');
         const logsDiv = document.getElementById('logs');
         const testBtn = document.getElementById('testGoogle');
+        const testFirestoreBtn = document.getElementById('testFirestore');
         
         function log(message) {
             console.log(message);
@@ -37,6 +40,10 @@
                 
                 if (typeof window.authFunctions === 'undefined') {
                     throw new Error('authFunctions non disponibile');
+                }
+
+                if (!window.db) {
+                    throw new Error('db (Firestore) non disponibile');
                 }
                 
                 log('✅ Firebase caricato correttamente');
@@ -53,6 +60,22 @@
                 statusDiv.textContent = 'Errore Firebase: ' + error.message;
                 statusDiv.style.color = 'red';
                 return false;
+            }
+        }
+
+        function wireAuthState() {
+            try {
+                window.authFunctions.onAuthStateChanged((user) => {
+                    if (user) {
+                        log('🔐 Auth state: autenticato come ' + user.email);
+                        testFirestoreBtn.disabled = false;
+                    } else {
+                        log('🔓 Auth state: non autenticato');
+                        testFirestoreBtn.disabled = true;
+                    }
+                });
+            } catch (e) {
+                log('❌ Impossibile agganciare onAuthStateChanged: ' + e.message);
             }
         }
         
@@ -75,12 +98,52 @@
                 testBtn.disabled = false;
             }
         });
+
+        testFirestoreBtn.addEventListener('click', async () => {
+            testFirestoreBtn.disabled = true;
+            log('🔄 Test Firestore: scrittura + lettura...');
+            try {
+                const user = window.authFunctions.getCurrentUser();
+                if (!user) throw new Error('Utente non autenticato');
+                if (!window.firestoreService) throw new Error('firestoreService non disponibile');
+
+                const ensureRes = await window.firestoreService.createUserCollection(user.email);
+                if (!ensureRes?.success) throw new Error(ensureRes?.error || 'createUserCollection fallita');
+
+                const pingRef = window.db
+                    .collection('users')
+                    .doc(String(user.email || '').trim())
+                    .collection('diagnostics')
+                    .doc('ping');
+
+                await pingRef.set({
+                    ok: true,
+                    uid: user.uid,
+                    email: user.email,
+                    href: String(location.href),
+                    ts: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                const snap = await pingRef.get();
+                if (!snap.exists) throw new Error('Documento ping non trovato dopo set()');
+                const data = snap.data() || {};
+
+                log('✅ Firestore OK: write+read riusciti');
+                log('📄 users/{email}/diagnostics/ping = ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                log('❌ Firestore FAIL: ' + error.message);
+            } finally {
+                const user = (window.authFunctions && window.authFunctions.getCurrentUser) ? window.authFunctions.getCurrentUser() : null;
+                testFirestoreBtn.disabled = !user;
+            }
+        });
         
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 if (checkFirebase()) {
                     log('🚀 Pronto per il test');
+                    wireAuthState();
                 }
             }, 1000);
         });
