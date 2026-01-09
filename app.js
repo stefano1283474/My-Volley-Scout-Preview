@@ -2442,6 +2442,9 @@ function selectPlayer(number, name, btnEl) {
             const evaluation = appState.selectedEvaluation;
             const quartet = `${String(prevPlayer.number).padStart(2, '0')}${fundamental}${evaluation}`;
             appState.currentSequence.push({ quartet, playerName: prevPlayer.name });
+            appState.overrideFundamental = null;
+            appState.calculatedFundamental = null;
+            appState.nextFundamentalPreview = null;
 
             updateActionSummary();
 
@@ -2897,6 +2900,9 @@ function submitOpponentError() {
             }
             const quartet = `${appState.selectedPlayer.number.padStart(2, '0')}${fundamental}${appState.selectedEvaluation}`;
             appState.currentSequence.push({quartet, playerName: appState.selectedPlayer.name});
+            appState.overrideFundamental = null;
+            appState.calculatedFundamental = null;
+            appState.nextFundamentalPreview = null;
             updateActionSummary();
         }
         // Nessun vincolo: se non c'è selezione, prosegui comunque
