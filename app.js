@@ -2322,7 +2322,8 @@ function updatePlayersGrid() {
     container.querySelectorAll('.muro-override-btn').forEach(btn => {
         const isFirstQuartet = !(appState.currentSequence && appState.currentSequence.length);
         const nextFundamental = appState.calculatedFundamental || predictNextFundamental();
-        const shouldDisable = isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r');
+        const hasCurrentCompleteQuartet = !!(appState.selectedPlayer && appState.selectedEvaluation != null);
+        const shouldDisable = !hasCurrentCompleteQuartet && isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r');
         if (shouldDisable) {
             try { btn.setAttribute('disabled', 'true'); } catch(_){ }
             try { btn.classList.add('disabled'); } catch(_){ }
@@ -2333,6 +2334,13 @@ function updatePlayersGrid() {
         }
     });
 
+    try {
+        const selNum = appState.selectedPlayer ? String(appState.selectedPlayer.number || '').trim() : '';
+        if (selNum) {
+            const selectedBtn = container.querySelector(`.player-btn[data-number="${selNum}"]`);
+            if (selectedBtn) selectedBtn.classList.add('selected');
+        }
+    } catch(_) {}
 }
 
 function selectPlayer(number, name, btnEl) {
@@ -2647,6 +2655,7 @@ function selectEvaluation(evaluation) {
         updateGamePhase(currentFundamental, evaluation);
         // Aggiorna subito il banner e l'etichetta "Elenco player per" con il fondamentale previsto successivo
         updateNextFundamental();
+        updatePlayersGrid();
     } catch (err) {
         console.warn('Aggiornamento live fondamentale/phase fallito:', err);
     }
@@ -5231,7 +5240,8 @@ function activateMuroOverride() {
     try {
         const isFirstQuartet = !(appState.currentSequence && appState.currentSequence.length);
         const nextFundamental = appState.calculatedFundamental || predictNextFundamental();
-        if (isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r')) {
+        const hasCurrentCompleteQuartet = !!(appState.selectedPlayer && appState.selectedEvaluation != null);
+        if (!hasCurrentCompleteQuartet && isFirstQuartet && (nextFundamental === 'b' || nextFundamental === 'r')) {
             try { alert('Muro non disponibile all\'inizio dell\'azione'); } catch(_){ }
             return;
         }
@@ -5248,10 +5258,70 @@ function activateMuroOverride() {
                 btn.style.removeProperty('--pulse-duration');
             });
         }
+
+        if (hasCurrentCompleteQuartet && !appState.autoClosePending) {
+            const prevPlayer = appState.selectedPlayer;
+            const evaluation = appState.selectedEvaluation;
+            try {
+                let fundamental = appState.calculatedFundamental || predictNextFundamental();
+                if (appState.currentSequence && appState.currentSequence.length === 0) {
+                    const f0 = String(fundamental || '').toLowerCase();
+                    if (f0 !== 'b' && f0 !== 'r') {
+                        window.__quartetStartAction = function(val) {
+                            if (val === 'avv') {
+                                appState.selectedPlayer = null;
+                                appState.selectedEvaluation = null;
+                                appState.calculatedFundamental = null;
+                                appState.overrideFundamental = null;
+                                try { submitOpponentError(); } catch(_) {}
+                                try { activateMuroOverride(); } catch(_) {}
+                                return;
+                            }
+                            appState.calculatedFundamental = val;
+                            appState.overrideFundamental = null;
+                            try { activateMuroOverride(); } catch(_) {}
+                        };
+                        openQuartetStartDialog(f0);
+                        return;
+                    }
+                }
+                const quartet = `${String(prevPlayer.number).padStart(2, '0')}${fundamental}${evaluation}`;
+                appState.currentSequence.push({ quartet, playerName: prevPlayer.name });
+                updateActionSummary();
+
+                const tempResult = determineFinalResult(fundamental, evaluation);
+                const isPoint = tempResult === 'home_point' || tempResult === 'away_point';
+                if (isPoint) {
+                    const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+                    const result = parseAction(actionString);
+                    result.playerName = prevPlayer.name;
+                    result.actionType = evaluation === 5 ? 'Punto' : 'Errore';
+                    processActionResult(result);
+
+                    appState.actionsLog.push({
+                        action: actionString,
+                        result: result,
+                        score: `${appState.homeScore}-${appState.awayScore}`,
+                        guided: true,
+                        rotation: normalizeRotation(appState.currentRotation)
+                    });
+
+                    appState.currentSequence = [];
+                    updateActionSummary();
+                }
+            } catch (_) {}
+
+            appState.selectedEvaluation = null;
+            try { document.querySelectorAll('.eval-btn').forEach(btn => btn.classList.remove('selected')); } catch(_) {}
+            appState.selectedPlayer = null;
+            try { document.querySelectorAll('.player-btn').forEach(btn => btn.classList.remove('selected')); } catch(_) {}
+        }
+
         appState.overrideFundamental = 'm';
         appState.calculatedFundamental = 'm';
         // Puliamo eventuale preview precedente per evitare che sovrascriva il banner
         appState.nextFundamentalPreview = null;
+        appState.justClosedAction = false;
         // Aggiorna banner e descrizione corrente
         updateNextFundamental();
         updateDescriptiveQuartet();
