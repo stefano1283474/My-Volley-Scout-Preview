@@ -396,18 +396,6 @@
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
           if (accountEmail) accountEmail.textContent = user.email;
-          try {
-            if (!window.__hydratedTeamsOnce && window.firestoreService?.hydrateTeamsFromFirestore) {
-              window.__hydratedTeamsOnce = true;
-              await window.firestoreService.hydrateTeamsFromFirestore();
-              try {
-                const selId = localStorage.getItem('selectedTeamId');
-                if (selId && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
-                  window.firestoreService.hydrateTeamMatchesFromFirestore(String(selId), { detailsMode: 'none', maxDetails: 0 }).catch(()=>{});
-                }
-              } catch(_){ }
-            }
-          } catch(_){ }
 
           try {
             const flag = localStorage.getItem('__teamsSyncedFs');

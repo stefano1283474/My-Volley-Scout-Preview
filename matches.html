@@ -890,14 +890,6 @@
             try {
                 if (window.matchesModule) {
                     try {
-                        const tId = selectedTeam?.id != null ? String(selectedTeam.id) : '';
-                        const k = '__hydratedMatches_' + tId;
-                        if (tId && !window[k] && window.firestoreService?.hydrateTeamMatchesFromFirestore) {
-                            window[k] = true;
-                            window.firestoreService.hydrateTeamMatchesFromFirestore(tId, { detailsMode: 'recent', maxDetails: 5 }).then(() => {
-                                try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
-                            }).catch(()=>{});
-                        }
                     } catch(_){ }
                     matches = window.matchesModule.getMatches();
                     if (!window.__matchesSubscribed) {

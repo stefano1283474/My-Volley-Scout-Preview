@@ -4,6 +4,33 @@ const authState = {
     isAuthenticated: false
 };
 
+function _emailSessionKey(email) {
+    try {
+        const safe = String(email || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        return `__mvs_cloud_hydrated_${safe || 'anon'}`;
+    } catch (_) {
+        return '__mvs_cloud_hydrated_anon';
+    }
+}
+
+function _isCloudHydratedThisSession(email) {
+    const k = _emailSessionKey(email);
+    try {
+        return sessionStorage.getItem(k) === '1';
+    } catch (_) {
+        return window.__mvsCloudHydratedSession === k;
+    }
+}
+
+function _markCloudHydratedThisSession(email) {
+    const k = _emailSessionKey(email);
+    try {
+        sessionStorage.setItem(k, '1');
+    } catch (_) {
+        window.__mvsCloudHydratedSession = k;
+    }
+}
+
 // Inizializza l'autenticazione
 function initializeAuth() {
     // Aspetta che firebase-config.js sia caricato
@@ -60,7 +87,10 @@ function initializeAuth() {
 
             try {
                 if (window.firestoreService && typeof window.firestoreService.hydrateUserDataToLocal === 'function') {
-                    await window.firestoreService.hydrateUserDataToLocal({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 20 });
+                    if (!_isCloudHydratedThisSession(user.email)) {
+                        _markCloudHydratedThisSession(user.email);
+                        await window.firestoreService.hydrateUserDataToLocal({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 20 });
+                    }
                 }
             } catch (e) {
                 console.error('Sync dati post-login fallito:', e);
