@@ -589,6 +589,40 @@ function __parseSetFromHash() {
     return null;
 }
 
+function __getActiveSetNumber() {
+    try {
+        const n = (window.appState && Number.isInteger(window.appState.currentSet)) ? window.appState.currentSet : null;
+        if (Number.isInteger(n) && n >= 1 && n <= 6) return n;
+    } catch (_) {}
+    return 1;
+}
+
+function __getActionsLogForSet(setNumber) {
+    const logs = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+    const hasTagged = logs.some(l => l && typeof l === 'object' && l.setNumber != null);
+    if (!hasTagged) return logs;
+    const sn = Number(setNumber);
+    return logs.filter(l => l && typeof l === 'object' && Number(l.setNumber) === sn);
+}
+
+function __removeLastActionForSet(setNumber) {
+    if (!window.appState || !Array.isArray(window.appState.actionsLog) || window.appState.actionsLog.length === 0) return;
+    const logs = window.appState.actionsLog;
+    const hasTagged = logs.some(l => l && typeof l === 'object' && l.setNumber != null);
+    if (!hasTagged) {
+        logs.pop();
+        return;
+    }
+    const sn = Number(setNumber);
+    for (let i = logs.length - 1; i >= 0; i--) {
+        const l = logs[i];
+        if (l && typeof l === 'object' && Number(l.setNumber) === sn) {
+            logs.splice(i, 1);
+            return;
+        }
+    }
+}
+
 function __setActiveSetButton(setNumber) {
     try {
         const list = document.getElementById('setToolbar');
@@ -660,7 +694,7 @@ function renderReportRiepilogo() {
       ? appState.currentSet
       : (currentMatch?.currentSet || 1);
     const actionsBySet = currentMatch?.actionsBySet || {};
-    const logs = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : (Array.isArray(appState.actionsLog) ? appState.actionsLog : []);
+    const logs = Array.isArray(actionsBySet[setNum]) ? actionsBySet[setNum] : [];
     const fundamentalStats = { b: { attempts: 0, eval: [0,0,0,0,0] }, r: { attempts: 0, eval: [0,0,0,0,0] }, a: { attempts: 0, eval: [0,0,0,0,0] }, d: { attempts: 0, eval: [0,0,0,0,0] }, m: { attempts: 0, eval: [0,0,0,0,0] } };
     let totalActions = 0;
     let homePoints = 0;
@@ -713,7 +747,7 @@ function renderReportRiepilogo() {
     const scoreHistoryBySet = currentMatch?.scoreHistoryBySet || {};
     const history = Array.isArray(scoreHistoryBySet[setNum]) && scoreHistoryBySet[setNum].length > 0
       ? scoreHistoryBySet[setNum]
-      : (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0 ? appState.scoreHistory : buildScoreHistoryFromLogs(logs));
+      : buildScoreHistoryFromLogs(logs);
     trendEl.innerHTML = history.length === 0
       ? '<div style="color:#64748b;">Nessun dato di punteggio</div>'
       : `<div style="display:grid;gap:6px;">${history.map(h => `<div> ${h.homeScore} - ${h.awayScore} <span style="color:#94a3b8">${h.timestamp||''}</span></div>`).join('')}</div>`;
@@ -1412,7 +1446,13 @@ function initializeApp() {
                         try {
                             const isScoutingPage = /scouting\.html$/i.test(String(location.pathname || '')) || !!document.getElementById('players-grid');
                             if (isScoutingPage && typeof window.goToSet === 'function') {
-                                window.goToSet(n);
+                                let ok = false;
+                                try {
+                                    window.goToSet(n);
+                                    ok = true;
+                                } finally {
+                                    if (ok) setSidebarOpen(false);
+                                }
                             } else {
                                 location.href = `scouting.html#/set/${n}`;
                             }
@@ -2769,6 +2809,7 @@ function selectPlayer(number, name, btnEl) {
                 appState.actionsLog.push({
                     action: actionString,
                     result: result,
+                    setNumber: (appState && appState.currentSet) ? appState.currentSet : 1,
                     score: `${appState.homeScore}-${appState.awayScore}`,
                     guided: true,
                     rotation: normalizeRotation(appState.currentRotation)
@@ -3131,6 +3172,7 @@ function submitGuidedAction() {
             appState.actionsLog.push({
                 action: actionString,
                 result: result,
+                setNumber: (appState && appState.currentSet) ? appState.currentSet : 1,
                 score: `${appState.homeScore}-${appState.awayScore}`,
                 guided: true,
                 rotation: normalizeRotation(appState.currentRotation)
@@ -3256,6 +3298,7 @@ function submitOpponentError() {
                 appState.actionsLog.push({
                     action: actionString,
                     result: result,
+                    setNumber: (appState && appState.currentSet) ? appState.currentSet : 1,
                     score: `${appState.homeScore}-${appState.awayScore}`,
                     guided: true,
                     rotation: normalizeRotation(appState.currentRotation)
@@ -3355,9 +3398,10 @@ function updateActionsLog() {
     const container = document.getElementById('actions-list');
     if (!container) return;
 
-    const total = appState.actionsLog.length;
+    const logs = __getActionsLogForSet(__getActiveSetNumber());
+    const total = logs.length;
     const baseIndexStart = Math.max(total - 9, 0);
-    let lastLogs = appState.actionsLog.slice(-9);
+    let lastLogs = logs.slice(-9);
     let displayLogs = lastLogs.map((log, idx) => ({ log, rowNumber: baseIndexStart + idx + 1 })).reverse();
 
     if (appState.currentSequence.length > 0) {
@@ -3581,6 +3625,25 @@ function startSet() {
 
         // Se non abbiamo configurazione valida, apri il dialog di setup set e interrompi
         if (!hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1)) {
+            try {
+                appState.currentSet = setNumber;
+                appState.homeScore = 0;
+                appState.awayScore = 0;
+                appState.actionsLog = [];
+                appState.scoreHistory = [];
+                appState.currentSequence = [];
+                appState.selectedPlayer = null;
+                appState.selectedEvaluation = null;
+                appState.currentRotation = null;
+                appState.currentPhase = null;
+                appState.rallyStartPhase = null;
+                appState.setStarted = false;
+            } catch (_) {}
+            try { if (typeof updateMatchInfo === 'function') updateMatchInfo(); } catch (_) {}
+            try { if (typeof updateScoutingUI === 'function') updateScoutingUI(); } catch (_) {}
+            try { if (typeof updateNextFundamental === 'function') updateNextFundamental(); } catch (_) {}
+            try { if (typeof updatePlayersGrid === 'function') updatePlayersGrid(); } catch (_) {}
+            try { if (typeof updateScoreHistoryDisplay === 'function') updateScoreHistoryDisplay(); } catch (_) {}
             if (typeof window.openSetMetaDialog === 'function') {
                 try { window.openSetMetaDialog(setNumber); } catch(_) {}
             }
@@ -3902,6 +3965,7 @@ function submitAction() {
             action: actionString,
             result: result,
             timestamp: new Date().toLocaleTimeString('it-IT'),
+            setNumber: (appState && appState.currentSet) ? appState.currentSet : 1,
             rotation: normalizeRotation(appState.currentRotation)
         });
         
@@ -4015,7 +4079,8 @@ function addToScoreHistory(team, playerName, actionType) {
         team: team,
         playerName: playerName || 'Sconosciuto',
         actionType: actionType || 'Punto',
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        setNumber: __getActiveSetNumber()
     };
     
     appState.scoreHistory.push(historyItem);
@@ -4031,7 +4096,13 @@ function updateScoreHistoryDisplay() {
     
     // Aggiungi gli elementi dello storico in ordine cronologico inverso (più recenti in alto)
     // Creiamo una copia dell'array e la invertiamo per non modificare l'originale
-    const reversedHistory = [...appState.scoreHistory].reverse();
+    const currentSetNum = __getActiveSetNumber();
+    const baseHistory = Array.isArray(appState.scoreHistory) ? appState.scoreHistory : [];
+    const hasTagged = baseHistory.some(i => i && typeof i === 'object' && i.setNumber != null);
+    const reversedHistory = (hasTagged
+        ? baseHistory.filter(i => i && typeof i === 'object' && Number(i.setNumber) === Number(currentSetNum))
+        : baseHistory
+    ).slice().reverse();
     
     reversedHistory.forEach((item, idx) => {
         const historyElement = document.createElement('div');
@@ -4081,7 +4152,7 @@ function updateScoreHistoryDisplay() {
                         const ok = confirm('Eliminare questa riga?');
                         if (!ok) return;
                         // Rimuove l'ultima azione scoutizzata e ricalcola tutto
-                        appState.actionsLog.pop();
+                        __removeLastActionForSet(currentSetNum);
                         recomputeFromActionsLog();
                         scheduleAutosave(600);
                     } catch (e) {
@@ -4122,7 +4193,7 @@ function addLongPressListener(el, holdMs, onTrigger) {
 window.openActionsDialog = function(){
     try {
         var dlg = document.getElementById('actions-dialog');
-        var logs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
+        var logs = __getActionsLogForSet(__getActiveSetNumber());
         if (!dlg) {
             dlg = document.createElement('div');
             dlg.id = 'actions-dialog';
@@ -5616,6 +5687,7 @@ function activateMuroOverride() {
                     appState.actionsLog.push({
                         action: actionString,
                         result: result,
+                        setNumber: (appState && appState.currentSet) ? appState.currentSet : 1,
                         score: `${appState.homeScore}-${appState.awayScore}`,
                         guided: true,
                         rotation: normalizeRotation(appState.currentRotation)
