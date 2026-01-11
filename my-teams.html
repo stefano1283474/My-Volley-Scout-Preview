@@ -96,6 +96,15 @@
     @media (prefers-reduced-motion: reduce) {
       dialog[open] .dialog-card, dialog.closing .dialog-card, dialog::backdrop, dialog.closing::backdrop { animation: none; }
     }
+    .archive-tabs { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid #e5e7eb; border-radius:14px; background:#f8fafc; }
+    .archive-tab { flex:1; background:transparent; border:1px solid transparent; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:700; color:#334155; }
+    .archive-tab.active { background:#ffffff; border-color:#2563eb; color:#0f172a; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .archive-pager { display:flex; width:100%; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .archive-pager::-webkit-scrollbar { display:none; }
+    .archive-page { min-width:100%; scroll-snap-align:start; padding-top:12px; }
+    .archive-badge { display:inline-flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:999px; padding:6px 10px; background:#ffffff; color:#0f172a; font-weight:800; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
+    .archive-badge.local { border-color:#2563eb; }
+    .archive-badge.cloud { border-color:#0ea5e9; }
   </style>
 </head>
 <body>
@@ -134,19 +143,44 @@
         <div class="hero-desc">Gestisci le tue squadre, crea le partite e realizza uno scout chiaro e veloce.</div>
       </div>
     </div>
-      <div class="section-card" style="margin-top:24px;">
+    <div class="section-card" style="margin-top:24px;">
       <div class="section-title-row">
-        <h2 class="section-title rounded-title">Elenco Squadre:</h2>
+        <h2 class="section-title rounded-title" id="archiveTitle">Archivio Locale</h2>
         <div class="list-actions" style="display:flex;align-items:center;gap:10px;">
           <button id="infoBtn" class="icon-button icon-button-primary icon-button-circle" aria-label="Come funziona" title="Come funziona">i</button>
           <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
         </div>
       </div>
-        <div id="noTeamsMessage" class="empty-state" style="display:none;">
-          <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_PALLONE.png" alt="Logo" onerror="this.onerror=null; this.src='./LOGO_PALLONE.png';" style="width:80px;height:80px;display:block;margin:0 auto 8px;" />
-          Nessuna squadra. Crea una nuova squadra.
+
+      <div class="archive-tabs" role="tablist" aria-label="Archivio dati">
+        <button id="archiveTabLocal" class="archive-tab active" type="button" role="tab" aria-selected="true">Locale</button>
+        <button id="archiveTabCloud" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud</button>
+      </div>
+
+      <div id="archivePager" class="archive-pager" aria-label="Pagine archivio">
+        <div class="archive-page" data-archive="local">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 12px 0;">
+            <span class="archive-badge local">Archivio Locale</span>
+          </div>
+          <div id="noTeamsLocal" class="empty-state" style="display:none;">
+            <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_PALLONE.png" alt="Logo" onerror="this.onerror=null; this.src='./LOGO_PALLONE.png';" style="width:80px;height:80px;display:block;margin:0 auto 8px;" />
+            Nessuna squadra locale. Crea una nuova squadra.
+          </div>
+          <div id="teamsGridLocal" class="grid"></div>
         </div>
-      <div id="teamsGrid" class="grid"></div>
+        <div class="archive-page" data-archive="cloud">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 12px 0;">
+            <span class="archive-badge cloud">Archivio Cloud</span>
+          </div>
+          <div id="cloudHint" class="empty-state" style="display:none;">
+            Accedi per visualizzare e gestire i dati Cloud.
+          </div>
+          <div id="noTeamsCloud" class="empty-state" style="display:none;">
+            Nessuna squadra su Cloud. Crea una nuova squadra.
+          </div>
+          <div id="teamsGridCloud" class="grid"></div>
+        </div>
+      </div>
     </div>
     <dialog id="infoDialog">
       <div class="dialog-card">
@@ -211,8 +245,15 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <script>
-    const teamsGrid = document.getElementById('teamsGrid');
-    const noTeamsMessage = document.getElementById('noTeamsMessage');
+    const teamsGridLocal = document.getElementById('teamsGridLocal');
+    const teamsGridCloud = document.getElementById('teamsGridCloud');
+    const noTeamsLocal = document.getElementById('noTeamsLocal');
+    const noTeamsCloud = document.getElementById('noTeamsCloud');
+    const cloudHint = document.getElementById('cloudHint');
+    const archiveTitle = document.getElementById('archiveTitle');
+    const archivePager = document.getElementById('archivePager');
+    const archiveTabLocal = document.getElementById('archiveTabLocal');
+    const archiveTabCloud = document.getElementById('archiveTabCloud');
     const createTeamBtn = document.getElementById('createTeamBtn');
     const accountBtn = document.getElementById('accountBtn');
     const accountMenu = document.getElementById('accountMenu');
@@ -232,81 +273,216 @@
     const deleteConfirmText = document.getElementById('deleteConfirmText');
     const deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
     const deleteConfirmOk = document.getElementById('deleteConfirmOk');
-    let pendingDeleteId = null;
+    let pendingDelete = null;
+    let currentArchive = 'local';
+    let cloudTeams = [];
+    let isEditingTeam = false;
+    let editingTeamId = null;
+    const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
 
-    function renderTeamsList() {
-      const list = window.teamsModule?.getTeams?.() || [];
-      if (!list.length) {
-        noTeamsMessage.style.display = 'block';
-        teamsGrid.innerHTML = '';
-        if (infoBtn) infoBtn.style.display = '';
-        return;
-      }
-      if (infoBtn) infoBtn.style.display = 'none';
-      noTeamsMessage.style.display = 'none';
-      let matchesLocal = [];
-      try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) {}
-      teamsGrid.innerHTML = list.map(t => {
-        const selId = t?.id != null ? String(t.id) : null;
-        const selName = t?.name || '';
-        const partiteCount = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
-          const tId = m.teamId != null ? String(m.teamId) : null;
-          if (tId) return tId === selId;
-          // Fallback se id mancante
-          const my = m.myTeam || m.teamName;
-          const home = m.homeTeam;
-          const away = m.awayTeam;
-          return (selName && (my === selName || home === selName || away === selName));
-        }).length : 0;
-        return `
-          <div class="card" data-action="select" data-id="${t.id}" style="cursor:pointer;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <div class="team-name-click" style="font-weight:700;color:#0f172a;">${t.name}</div>
-              <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-id="${t.id}" title="Elimina" aria-label="Elimina">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </button>
-            </div>
-            <div style="color:#64748b;">${partiteCount} partite</div>
-          </div>`;
-      }).join('');
+    function isAuthenticated() {
+      return (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
     }
 
-    
+    function setArchive(next) {
+      const v = next === 'cloud' ? 'cloud' : 'local';
+      currentArchive = v;
+      try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
+      if (archiveTitle) archiveTitle.textContent = v === 'cloud' ? 'Archivio Cloud' : 'Archivio Locale';
+      if (archiveTabLocal) {
+        archiveTabLocal.classList.toggle('active', v === 'local');
+        archiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
+      }
+      if (archiveTabCloud) {
+        archiveTabCloud.classList.toggle('active', v === 'cloud');
+        archiveTabCloud.setAttribute('aria-selected', (v === 'cloud').toString());
+      }
+      try {
+        if (archivePager) {
+          const w = archivePager.clientWidth || window.innerWidth || 1;
+          const x = v === 'cloud' ? w : 0;
+          archivePager.scrollTo({ left: x, behavior: 'smooth' });
+        }
+      } catch(_) {}
+      if (createTeamBtn) createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : 'Crea Squadra (Locale)';
+    }
 
-    function handleGridClick(e) {
+    function getLocalTeamsRaw() {
+      try {
+        const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+        const arr = Array.isArray(list) ? list : [];
+        return arr.filter(t => {
+          const idStr = String(t?.id ?? '').trim();
+          if (!idStr) return false;
+          const n = Number(idStr);
+          return Number.isFinite(n) && String(Math.trunc(n)) === idStr;
+        });
+      } catch(_) { return []; }
+    }
+
+    function normalizeTeamName(team) {
+      const teamName = String(team?.teamName || '').trim();
+      const clubName = String(team?.clubName || '').trim();
+      const legacy = String(team?.name || teamName || '').trim();
+      const combined = (teamName || legacy).trim() + (clubName ? ` - ${clubName}` : '');
+      return combined.trim();
+    }
+
+    function renderLocalTeamsList() {
+      const list = getLocalTeamsRaw().map(t => Object.assign({}, t, { name: normalizeTeamName(t) }));
+      if (noTeamsLocal) noTeamsLocal.style.display = list.length ? 'none' : 'block';
+      if (teamsGridLocal) teamsGridLocal.innerHTML = '';
+      if (!list.length) return;
+      let matchesLocal = [];
+      try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches') || '[]'); } catch(_) {}
+      if (teamsGridLocal) {
+        teamsGridLocal.innerHTML = list.map(t => {
+          const selId = t?.id != null ? String(t.id) : null;
+          const selName = t?.name || '';
+          const partiteCount = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
+            const tId = m.teamId != null ? String(m.teamId) : null;
+            if (tId) return tId === selId;
+            const my = m.myTeam || m.teamName;
+            const home = m.homeTeam;
+            const away = m.awayTeam;
+            return (selName && (my === selName || home === selName || away === selName));
+          }).length : 0;
+          const safeName = String(t.name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return `
+            <div class="card" data-action="select" data-archive="local" data-id="${String(t.id).replace(/"/g,'&quot;')}" style="cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div class="team-name-click" style="font-weight:700;color:#0f172a;">${safeName}</div>
+                <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-archive="local" data-id="${String(t.id).replace(/"/g,'&quot;')}" title="Elimina (Locale)" aria-label="Elimina (Locale)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div style="color:#64748b;">${partiteCount} partite</div>
+            </div>`;
+        }).join('');
+      }
+    }
+
+    async function loadCloudTeams() {
+      if (cloudHint) cloudHint.style.display = 'none';
+      if (noTeamsCloud) noTeamsCloud.style.display = 'none';
+      if (teamsGridCloud) teamsGridCloud.innerHTML = '';
+      if (!isAuthenticated()) {
+        if (cloudHint) cloudHint.style.display = 'block';
+        return;
+      }
+      const res = await window.firestoreService?.loadUserTeams?.();
+      if (!res?.success) {
+        if (cloudHint) {
+          cloudHint.textContent = res?.error ? String(res.error) : 'Errore caricamento Cloud';
+          cloudHint.style.display = 'block';
+        }
+        return;
+      }
+      cloudTeams = Array.isArray(res.documents) ? res.documents : [];
+      renderCloudTeamsList();
+    }
+
+    function renderCloudTeamsList() {
+      const list = Array.isArray(cloudTeams) ? cloudTeams.slice() : [];
+      if (teamsGridCloud) teamsGridCloud.innerHTML = '';
+      if (!isAuthenticated()) return;
+      if (noTeamsCloud) noTeamsCloud.style.display = list.length ? 'none' : 'block';
+      if (!list.length) return;
+      if (teamsGridCloud) {
+        teamsGridCloud.innerHTML = list.map(t => {
+          const name = normalizeTeamName(t) || String(t?.name || t?.id || '');
+          const safeName = String(name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const id = String(t?.id || '').replace(/"/g,'&quot;');
+          return `
+            <div class="card" data-action="select" data-archive="cloud" data-id="${id}" style="cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div class="team-name-click" style="font-weight:700;color:#0f172a;">${safeName}</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <button class="icon-button icon-button-outline icon-button-circle" data-action="edit" data-archive="cloud" data-id="${id}" title="Modifica (Cloud)" aria-label="Modifica (Cloud)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-archive="cloud" data-id="${id}" title="Elimina (Cloud)" aria-label="Elimina (Cloud)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div style="color:#64748b;">Cloud</div>
+            </div>`;
+        }).join('');
+      }
+    }
+
+    async function deleteLocalTeamOnly(teamId) {
+      const idStr = String(teamId);
+      const localTeams = getLocalTeamsRaw();
+      const filteredTeams = localTeams.filter(t => String(t?.id) !== idStr);
+      localStorage.setItem('volleyTeams', JSON.stringify(filteredTeams));
+      try {
+        const localMatches = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+        const kept = Array.isArray(localMatches) ? localMatches.filter(m => String(m?.teamId || '') !== idStr) : [];
+        localStorage.setItem('volleyMatches', JSON.stringify(kept));
+      } catch(_){}
+      try {
+        const selected = localStorage.getItem('selectedTeamId');
+        if (selected && String(selected) === idStr) localStorage.removeItem('selectedTeamId');
+      } catch(_){}
+      try { window.teamsModule?.loadTeams?.(); } catch(_){}
+      renderLocalTeamsList();
+    }
+
+    async function handleGridClick(e) {
       const el = e.target.closest('[data-action]');
       if (!el) return;
       const id = el.getAttribute('data-id');
       const action = el.getAttribute('data-action');
+      const arch = el.getAttribute('data-archive') || currentArchive;
       if (!id || !action) return;
       if (action === 'select') {
-        const res = window.teamsModule?.selectTeam?.(id);
-        if (res?.success) {
-          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){ }
-          window.location.href = '/matches.html';
+        try { localStorage.setItem('selectedTeamId', String(id)); } catch(_){}
+        try { localStorage.setItem(ARCHIVE_STORAGE_KEY, String(arch === 'cloud' ? 'cloud' : 'local')); } catch(_){}
+        if (arch !== 'cloud') {
+          try { window.teamsModule?.selectTeam?.(id); } catch(_){}
         }
-      } else if (action === 'delete') {
+        if (arch === 'cloud') window.location.href = '/matches.html?archive=cloud';
+        else window.location.href = '/matches.html?archive=local';
+        return;
+      }
+      if (action === 'edit') {
+        if (arch !== 'cloud') return;
+        const team = (Array.isArray(cloudTeams) ? cloudTeams : []).find(t => String(t?.id || '') === String(id));
+        if (!team) return;
+        isEditingTeam = true;
+        editingTeamId = String(id);
+        clubInput.value = String(team.clubName || '').trim();
+        teamInput.value = String(team.teamName || (String(team.name || '').split(' - ')[0] || '')).trim();
+        openCreate();
+        return;
+      }
+      if (action === 'delete') {
         try {
-          const list = window.teamsModule?.getTeams?.() || [];
-          const team = list.find(t => String(t.id) === String(id));
-          const name = team?.name || 'questa squadra';
-          let matchesLocal = [];
-          try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) {}
-          const count = Array.isArray(matchesLocal) ? matchesLocal.filter(m => {
-            const tid = m.teamId != null ? String(m.teamId) : null;
-            if (tid) return tid === String(id);
-            const my = m.myTeam || m.teamName;
-            const home = m.homeTeam;
-            const away = m.awayTeam;
-            return (name && (my === name || home === name || away === name));
-          }).length : 0;
-          pendingDeleteId = id;
-          deleteConfirmText.textContent = `Eliminare "${name}"? Saranno rimossi anche i dati collegati su Firestore. Partite collegate rilevate: ${count}`;
+          pendingDelete = { id: String(id), archive: arch };
+          const name = (arch === 'cloud')
+            ? (normalizeTeamName((Array.isArray(cloudTeams)?cloudTeams:[]).find(t=>String(t?.id||'')===String(id))) || String(id))
+            : (normalizeTeamName(getLocalTeamsRaw().find(t=>String(t?.id||'')===String(id))) || String(id));
+          pendingDelete.name = name;
+          if (deleteConfirmText) {
+            deleteConfirmText.textContent = arch === 'cloud'
+              ? `Eliminare "${name}" dal Cloud? Saranno rimossi anche i dati collegati su Firestore.`
+              : `Eliminare "${name}" dall'archivio Locale?`;
+          }
           deleteConfirmDialog.showModal();
         } catch(_){}
       }
@@ -342,8 +518,10 @@
 
     function openCreate() {
       createTeamDialog.showModal();
-      teamInput.value = '';
-      clubInput.value = '';
+      if (!isEditingTeam) {
+        teamInput.value = '';
+        clubInput.value = '';
+      }
       setTimeout(() => teamInput.focus(), 0);
     }
 
@@ -358,24 +536,51 @@
         createTeamDialog.classList.remove('closing');
         createTeamDialog.close();
       }
+      isEditingTeam = false;
+      editingTeamId = null;
     }
 
-    function onCreateSubmit(e) {
+    async function onCreateSubmit(e) {
       e.preventDefault();
       const teamName = teamInput.value.trim();
       const clubName = clubInput.value.trim();
       if (!teamName) { teamInput.focus(); return; }
-      window.teamsModule?.saveTeam({ teamName, clubName, players: [] }).then(res => {
-        if (res?.success) {
-          try { localStorage.setItem('lastMyTeam', teamName); localStorage.setItem('lastMyClub', clubName); } catch(_){}
-          window.teamsModule?.selectTeam?.(res.team.id);
-          try { localStorage.setItem('selectedTeamId', String(res.team.id)); } catch(_){}
+      try {
+        try { localStorage.setItem('lastMyTeam', teamName); localStorage.setItem('lastMyClub', clubName); } catch(_){}
+        if (currentArchive === 'cloud') {
+          if (!isAuthenticated()) { alert('Devi essere autenticato per operare sul Cloud'); return; }
+          if (isEditingTeam && editingTeamId) {
+            const upd = await window.firestoreService?.updateTeamById?.(editingTeamId, { teamName, clubName });
+            if (!upd?.success) { alert(upd?.error || 'Errore modifica squadra Cloud'); return; }
+          } else {
+            const res = await window.firestoreService?.saveTeam?.({ teamName, clubName, players: [] });
+            if (!res?.success) { alert(res?.error || 'Errore creazione squadra Cloud'); return; }
+          }
           closeCreate();
-          renderTeamsList();
-        } else {
-          alert(res?.error || 'Errore creazione squadra');
+          await loadCloudTeams();
+          return;
         }
-      }).catch(err => alert(err?.message || 'Errore creazione squadra'));
+
+        const all = getLocalTeamsRaw();
+        const combined = (teamName ? teamName : '').trim() + (clubName ? ` - ${clubName}` : '');
+        const id = String(Date.now());
+        const team = {
+          id,
+          name: combined.trim(),
+          teamName: teamName.trim(),
+          clubName: clubName.trim(),
+          players: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        all.push(team);
+        localStorage.setItem('volleyTeams', JSON.stringify(all));
+        try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+        closeCreate();
+        renderLocalTeamsList();
+      } catch (err) {
+        alert(err?.message || 'Errore creazione squadra');
+      }
     }
 
     
@@ -387,11 +592,9 @@
         let __authRedirectTimer = null;
         window.authFunctions.onAuthStateChanged(async (user) => {
           if (!user) {
-            if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
-            __authRedirectTimer = setTimeout(() => {
-              const stillNull = !window.authFunctions.getCurrentUser();
-              if (stillNull) window.location.href = '/auth-login.html';
-            }, 600);
+            try { if (accountEmail) accountEmail.textContent = 'Non autenticato'; } catch(_) {}
+            try { renderLocalTeamsList(); } catch(_) {}
+            try { cloudTeams = []; renderCloudTeamsList(); } catch(_) {}
             return;
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
@@ -412,8 +615,9 @@
             }
           } catch(_){ }
           try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
-          try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.((updated)=>{ renderTeamsList(); }); } } catch(_){ }
-          renderTeamsList();
+          try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.(()=>{ renderLocalTeamsList(); }); } } catch(_){ }
+          renderLocalTeamsList();
+          await loadCloudTeams();
         });
       }
       initMyTeams();
@@ -433,7 +637,8 @@
             hydrateDataBtn.textContent = 'Aggiorno...';
             const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
             try { window.teamsModule?.loadTeams?.(); } catch(_){ }
-            try { renderTeamsList(); } catch(_){ }
+            try { renderLocalTeamsList(); } catch(_){ }
+            try { await loadCloudTeams(); } catch(_){}
             if (res?.success) alert('Aggiornamento completato');
             else alert(res?.error || 'Errore aggiornamento');
           } catch (err) {
@@ -498,12 +703,47 @@
       const goToTeamsBtn = document.getElementById('goToTeamsBtn');
       if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/my-teams.html'; }); }
       const goToMatchesBtn = document.getElementById('goToMatchesBtn');
-      if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/matches.html'; }); }
+      if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/matches.html?archive=' + encodeURIComponent(currentArchive); }); }
       const accountExit = document.getElementById('accountExit');
       if (accountExit){ accountExit.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } window.location.href = '/my-teams.html'; }); }
       if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } }); }
 
-      renderTeamsList();
+      try {
+        if (archiveTabLocal) archiveTabLocal.addEventListener('click', () => setArchive('local'));
+        if (archiveTabCloud) archiveTabCloud.addEventListener('click', () => setArchive('cloud'));
+        if (archivePager && !archivePager.__boundScroll) {
+          archivePager.__boundScroll = true;
+          let raf = null;
+          archivePager.addEventListener('scroll', () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+              const w = archivePager.clientWidth || window.innerWidth || 1;
+              const next = (archivePager.scrollLeft || 0) > (w * 0.5) ? 'cloud' : 'local';
+              if (next !== currentArchive) {
+                currentArchive = next;
+                if (archiveTitle) archiveTitle.textContent = next === 'cloud' ? 'Archivio Cloud' : 'Archivio Locale';
+                if (archiveTabLocal) {
+                  archiveTabLocal.classList.toggle('active', next === 'local');
+                  archiveTabLocal.setAttribute('aria-selected', (next === 'local').toString());
+                }
+                if (archiveTabCloud) {
+                  archiveTabCloud.classList.toggle('active', next === 'cloud');
+                  archiveTabCloud.setAttribute('aria-selected', (next === 'cloud').toString());
+                }
+                if (createTeamBtn) createTeamBtn.title = next === 'cloud' ? 'Crea Squadra (Cloud)' : 'Crea Squadra (Locale)';
+              }
+            });
+          });
+        }
+        try {
+          const qp = new URLSearchParams(window.location.search || '');
+          const urlArch = qp.get('archive');
+          const storedArch = localStorage.getItem(ARCHIVE_STORAGE_KEY);
+          setArchive(urlArch || storedArch || 'local');
+        } catch(_) {
+          setArchive('local');
+        }
+      } catch(_){}
       if (infoBtn && infoDialog) { infoBtn.addEventListener('click', (e)=>{ e.preventDefault(); infoDialog.showModal(); }); }
       if (infoClose && infoDialog) {
         infoClose.addEventListener('click', ()=>{
@@ -528,7 +768,7 @@
           const closeFn = () => {
             deleteConfirmDialog.classList.remove('closing');
             deleteConfirmDialog.close();
-            pendingDeleteId = null;
+            pendingDelete = null;
           };
 
           if (card) {
@@ -549,33 +789,21 @@
       if (deleteConfirmOk && deleteConfirmDialog) {
         deleteConfirmOk.addEventListener('click', async () => {
           try {
-            console.log('Delete confirmed for ID:', pendingDeleteId);
-            const id = pendingDeleteId;
-            if (!id) {
-              console.warn('No pending delete ID found');
-              return;
-            }
-            // pendingDeleteId = null; // Don't null it yet, wait for operation
+            const ctx = pendingDelete;
+            const id = ctx?.id;
+            if (!id) return;
             deleteConfirmOk.disabled = true;
             deleteConfirmOk.textContent = 'Eliminazione...';
-            
-            if (window.teamsModule && typeof window.teamsModule.deleteTeam === 'function') {
-                const res = await window.teamsModule.deleteTeam(id);
-                const attempted = !!res?.cloud?.attempted;
-                const success = !!res?.cloud?.success;
-                if (!attempted) {
-                  alert('Squadra eliminata localmente, ma non su cloud (utente non autenticato o servizio non disponibile).');
-                } else if (!success) {
-                  alert('Squadra eliminata localmente, ma non su cloud (errore di rete o permessi).');
-                }
-                console.log('Team deleted via module');
+
+            if (ctx.archive === 'cloud') {
+              const res = await window.firestoreService?.deleteTeamByIdOrName?.(id, ctx.name || null);
+              if (!res?.success) alert(res?.error || 'Errore eliminazione squadra Cloud');
+              await loadCloudTeams();
             } else {
-                console.error('Teams module or deleteTeam function missing');
-                alert('Errore interno: impossibile eliminare la squadra (modulo mancante)');
+              await deleteLocalTeamOnly(id);
             }
-            
-            pendingDeleteId = null;
-            renderTeamsList();
+
+            pendingDelete = null;
           } catch(err){
             console.error('Error deleting team:', err);
             alert('Errore durante l\'eliminazione: ' + (err.message || String(err)));
@@ -613,8 +841,9 @@
       createTeamBtn.addEventListener('click', openCreate);
       cancelCreate.addEventListener('click', closeCreate);
       createTeamForm.addEventListener('submit', onCreateSubmit);
-      if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderTeamsList(); });
+      if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderLocalTeamsList(); });
       try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
+      renderLocalTeamsList();
     });
   </script>
   

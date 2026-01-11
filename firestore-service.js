@@ -451,6 +451,26 @@ const firestoreService = {
             return { success: false, error: error.message };
         }
     },
+    updateTeamById: async (teamId, updates = {}) => {
+        try {
+            const userRef = await firestoreService.getUserRefEnsured();
+            const docRef = userRef.collection('teams').doc(String(teamId));
+            const squad = String(updates.teamName || '').trim();
+            const club = String(updates.clubName || '').trim();
+            const combined = (squad ? squad : '').trim() + (club ? ` - ${club}` : '');
+            const payload = {
+                teamName: squad,
+                clubName: club,
+                name: combined || String(updates.name || '').trim(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (Array.isArray(updates.players)) payload.players = updates.players;
+            await docRef.set(payload, { merge: true });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
 
     loadUserTeams: async () => {
         try {
@@ -924,6 +944,25 @@ const firestoreService = {
             const out = [];
             matchesSnap.forEach(doc => { out.push({ id: doc.id, ...doc.data(), source: 'firestore_team' }); });
             return { success: true, documents: out };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+    deleteMatchTree: async (teamId, matchId, options = {}) => {
+        try {
+            const maxSets = Number(options.maxSets || 6);
+            const userRef = await firestoreService.getUserRefEnsured();
+            const matchRef = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const deletes = [];
+            deletes.push(matchRef.collection('match_data').doc('main').delete().catch(()=>{}));
+            deletes.push(matchRef.collection('match_roster').doc('main').delete().catch(()=>{}));
+            for (let i = 1; i <= Math.max(1, Math.min(10, maxSets)); i++) {
+                const subName = `set_${i}_start`;
+                deletes.push(matchRef.collection(subName).doc('main').delete().catch(()=>{}));
+            }
+            await Promise.all(deletes);
+            await matchRef.delete();
+            return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }

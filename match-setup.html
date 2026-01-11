@@ -146,14 +146,49 @@
             const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
             const signOutBtnMobile = document.getElementById('signOutBtnMobile');
             if (goToMatchesBtnMobile) {
-              goToMatchesBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/matches.html'; });
+              goToMatchesBtnMobile.addEventListener('click', (e)=>{
+                e.preventDefault(); e.stopPropagation();
+                try {
+                  const qp = new URLSearchParams(window.location.search || '');
+                  const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
+                  const a = qp.get('archive') || stored || 'local';
+                  const out = new URLSearchParams();
+                  out.set('archive', a);
+                  window.location.href='/matches.html?' + out.toString();
+                } catch(_) { window.location.href='/matches.html'; }
+              });
             }
             if (goToTeamsBtnMobile) {
-              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
+              goToTeamsBtnMobile.addEventListener('click', (e)=>{
+                e.preventDefault(); e.stopPropagation();
+                try {
+                  const qp = new URLSearchParams(window.location.search || '');
+                  const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
+                  const a = qp.get('archive') || stored || 'local';
+                  const out = new URLSearchParams();
+                  out.set('archive', a);
+                  window.location.href='/my-teams.html?' + out.toString();
+                } catch(_) { window.location.href='/my-teams.html'; }
+              });
             }
             if (signOutBtnMobile && window.authFunctions?.signOut) {
               signOutBtnMobile.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } catch(_){} });
             }
+          })();
+        </script>
+        <script>
+          (function(){
+            const backBtn = document.getElementById('backBtn');
+            if (!backBtn) return;
+            try {
+              const qp = new URLSearchParams(window.location.search || '');
+              const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
+              const a = qp.get('archive') || stored || 'local';
+              try { localStorage.setItem('mvsSelectedArchive', a); } catch(_) {}
+              const out = new URLSearchParams();
+              out.set('archive', a);
+              backBtn.href = '/matches.html?' + out.toString();
+            } catch(_) {}
           })();
         </script>
 

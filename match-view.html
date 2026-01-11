@@ -11,7 +11,7 @@
   <header class="topappbar" style="--topbar-h:81px;">
     <div class="topappbar-content">
       <div class="topappbar-left">
-        <a href="matches.html" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
+        <a href="matches.html" id="backToMatches" class="back-btn" aria-label="Indietro" title="Indietro" style="text-decoration:none;">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
             <path d="M15.5 19a1 1 0 0 1-.71-.29l-6-6a1 1 0 0 1 0-1.42l6-6a1 1 0 0 1 1.42 1.42L10.92 12l5.29 5.29A1 1 0 0 1 15.5 19z"/>
           </svg>
@@ -59,7 +59,7 @@
     <section class="section">
       <div class="section-header">
         <h3>Riepilogo Set</h3>
-        <button type="button" class="btn" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=localStorage.getItem('selectedMatchId')||''; var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/set-config.html'; } })()">Configura Set</button>
+        <button type="button" class="btn" onclick="(function(){ try{ var team=localStorage.getItem('selectedTeamId')||''; var match=localStorage.getItem('selectedMatchId')||''; var qp=new URLSearchParams(location.search||''); var stored=''; try{ stored=localStorage.getItem('mvsSelectedArchive')||''; }catch(_){ stored=''; } var arch=qp.get('archive')||stored||''; var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); if(arch) qs.set('archive', arch); location.href='/set-config.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/set-config.html'; } })()">Configura Set</button>
       </div>
       <div id="setSummaryList"></div>
     </section>
@@ -87,8 +87,23 @@
       } catch(_) { return String(raw); }
     }
 
-    function loadMatchData(){
+    function getInitialArchive(){
       try {
+        const qp = new URLSearchParams(window.location.search || '');
+        const urlArch = qp.get('archive');
+        if (urlArch === 'cloud' || urlArch === 'local') return urlArch;
+      } catch(_) {}
+      try {
+        const stored = localStorage.getItem('mvsSelectedArchive');
+        if (stored === 'cloud' || stored === 'local') return stored;
+      } catch(_) {}
+      return 'local';
+    }
+
+    async function loadMatchData(){
+      try {
+        const archive = getInitialArchive();
+        try { localStorage.setItem('mvsSelectedArchive', archive); } catch(_) {}
         const session = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
         const selId = localStorage.getItem('selectedMatchId') || session.id || null;
         let match = null;
@@ -96,6 +111,18 @@
           const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
           match = Array.isArray(list) ? list.find(m => m.id === selId) : null;
         } catch(_) {}
+        if (archive === 'cloud') {
+          try {
+            const teamId = localStorage.getItem('selectedTeamId') || '';
+            if (teamId && selId && window.firestoreService?.getMatchData) {
+              const res = await window.firestoreService.getMatchData(teamId, selId);
+              if (res?.success) {
+                match = Object.assign({}, (res.meta || {}), (res.details || {}), { roster: Array.isArray(res.roster) ? res.roster : [] });
+                if (!match.id) match.id = String(selId);
+              }
+            }
+          } catch(_) {}
+        }
         const opponent = (match?.opponentTeam || match?.opponent) || ((match?.homeAway === 'home') ? (match?.awayTeam || match?.opponentTeam) : (match?.homeTeam || match?.opponentTeam)) || (session?.opponentTeam) || '-';
         const rawDate = match?.date || match?.matchDate || session?.matchDate || null;
         const type = (match?.matchType || match?.eventType || match?.type || session?.matchType || 'partita');
@@ -144,6 +171,15 @@
       });
       const accountBtn = document.getElementById('accountBtn');
       if (accountBtn) accountBtn.addEventListener('click', () => { try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html'; });
+      const back = document.getElementById('backToMatches');
+      if (back) {
+        try {
+          const a = getInitialArchive();
+          const qs = new URLSearchParams();
+          qs.set('archive', a);
+          back.href = 'matches.html?' + qs.toString();
+        } catch(_) {}
+      }
     }
     document.addEventListener('DOMContentLoaded', init);
   </script>
