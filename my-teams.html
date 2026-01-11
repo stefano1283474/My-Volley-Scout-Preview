@@ -145,7 +145,7 @@
     </div>
     <div class="section-card" style="margin-top:24px;">
       <div class="section-title-row">
-        <h2 class="section-title rounded-title" id="archiveTitle">Archivio Locale</h2>
+        <h2 class="section-title rounded-title" id="archiveTitle">Archivio</h2>
         <div class="list-actions" style="display:flex;align-items:center;gap:10px;">
           <button id="infoBtn" class="icon-button icon-button-primary icon-button-circle" aria-label="Come funziona" title="Come funziona">i</button>
           <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
@@ -159,9 +159,6 @@
 
       <div id="archivePager" class="archive-pager" aria-label="Pagine archivio">
         <div class="archive-page" data-archive="local">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 12px 0;">
-            <span class="archive-badge local">Archivio Locale</span>
-          </div>
           <div id="noTeamsLocal" class="empty-state" style="display:none;">
             <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_PALLONE.png" alt="Logo" onerror="this.onerror=null; this.src='./LOGO_PALLONE.png';" style="width:80px;height:80px;display:block;margin:0 auto 8px;" />
             Nessuna squadra locale. Crea una nuova squadra.
@@ -169,9 +166,6 @@
           <div id="teamsGridLocal" class="grid"></div>
         </div>
         <div class="archive-page" data-archive="cloud">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 12px 0;">
-            <span class="archive-badge cloud">Archivio Cloud</span>
-          </div>
           <div id="cloudHint" class="empty-state" style="display:none;">
             Accedi per visualizzare e gestire i dati Cloud.
           </div>
@@ -288,7 +282,7 @@
       const v = next === 'cloud' ? 'cloud' : 'local';
       currentArchive = v;
       try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
-      if (archiveTitle) archiveTitle.textContent = v === 'cloud' ? 'Archivio Cloud' : 'Archivio Locale';
+      if (archiveTitle) archiveTitle.textContent = 'Archivio';
       if (archiveTabLocal) {
         archiveTabLocal.classList.toggle('active', v === 'local');
         archiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
@@ -721,7 +715,7 @@
               const next = (archivePager.scrollLeft || 0) > (w * 0.5) ? 'cloud' : 'local';
               if (next !== currentArchive) {
                 currentArchive = next;
-                if (archiveTitle) archiveTitle.textContent = next === 'cloud' ? 'Archivio Cloud' : 'Archivio Locale';
+                if (archiveTitle) archiveTitle.textContent = 'Archivio';
                 if (archiveTabLocal) {
                   archiveTabLocal.classList.toggle('active', next === 'local');
                   archiveTabLocal.setAttribute('aria-selected', (next === 'local').toString());
