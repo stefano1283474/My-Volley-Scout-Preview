@@ -57,11 +57,13 @@ const firestoreService = {
             (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
                 const club = String(t.clubName||'').trim();
                 const squad = String(t.teamName||t.name||'').trim();
-                const docId = (club || squad) ? `${club} - ${squad}`.trim() : String(t.id||'');
-                const nameCombined = (squad + (club ? ` - ${club}` : '')).trim();
+                const combined = (squad + (club ? ` - ${club}` : '')).trim();
+                const docId = String(t.id || '').trim() || combined;
+                const nameCombined = String(t.name || '').trim() || combined;
                 if (docId) {
                     teamMap.set(nameCombined, docId);
-                    teamMap.set(String(t.name||'').trim(), docId);
+                    if (combined) teamMap.set(combined, docId);
+                    if (squad) teamMap.set(squad, docId);
                 }
             });
 
@@ -77,7 +79,7 @@ const firestoreService = {
                     const my = String(m.myTeam||m.teamName||'').trim();
                     const home = String(m.homeTeam||'').trim();
                     const away = String(m.awayTeam||'').trim();
-                    teamId = teamMap.get(my) || teamMap.get(home) || null;
+                    teamId = teamMap.get(my) || teamMap.get(home) || teamMap.get(away) || null;
                 }
                 if (!teamId) continue;
                 try {
@@ -86,6 +88,26 @@ const firestoreService = {
                     const rosterArr = Array.isArray(m.roster) ? m.roster : (Array.isArray(m.players) ? m.players : []);
                     if (Array.isArray(rosterArr) && rosterArr.length) {
                         await firestoreService.saveMatchRosterTree(teamId, String(m.id), rosterArr);
+                    }
+                    if (firestoreService.saveMatchDetailsTree) {
+                        const hasAnyDetails =
+                            (m && typeof m === 'object') &&
+                            (
+                                (m.actionsBySet && Object.keys(m.actionsBySet || {}).length) ||
+                                (m.setMeta && Object.keys(m.setMeta || {}).length) ||
+                                (m.setStateBySet && Object.keys(m.setStateBySet || {}).length) ||
+                                (m.setSummary && Object.keys(m.setSummary || {}).length) ||
+                                (m.scoreHistoryBySet && Object.keys(m.scoreHistoryBySet || {}).length)
+                            );
+                        if (hasAnyDetails) {
+                            await firestoreService.saveMatchDetailsTree(teamId, String(m.id), {
+                                actionsBySet: m.actionsBySet || {},
+                                setMeta: m.setMeta || {},
+                                setStateBySet: m.setStateBySet || {},
+                                setSummary: m.setSummary || {},
+                                scoreHistoryBySet: m.scoreHistoryBySet || {}
+                            });
+                        }
                     }
                     synced++;
                 } catch(_){ }
