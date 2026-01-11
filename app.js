@@ -179,6 +179,40 @@ window.loadScoutingSession = function(sessionData) {
             }
         } catch(_) {}
         appState.currentRoster = Array.isArray(loadedRoster) ? loadedRoster : [];
+        try {
+            const rosterMissing = !Array.isArray(appState.currentRoster) || appState.currentRoster.length === 0;
+            if (rosterMissing && !window.__mvsHydratingMatchFromFirestore) {
+                window.__mvsHydratingMatchFromFirestore = true;
+                (async function(){
+                    try {
+                        const matchId = String((md && (md.id || md.matchId)) || localStorage.getItem('selectedMatchId') || '').trim();
+                        const teamId = String(localStorage.getItem('selectedTeamId') || md?.teamId || '').trim();
+                        const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
+                        if (!matchId || !teamId || !isAuthed || !window.firestoreService?.getMatchData) return;
+                        const res = await window.firestoreService.getMatchData(teamId, matchId);
+                        if (!res?.success) return;
+                        const next = Object.assign({}, md);
+                        if (Array.isArray(res.roster) && res.roster.length) next.roster = res.roster;
+                        if (res.details) {
+                            next.actionsBySet = res.details.actionsBySet || next.actionsBySet || {};
+                            next.setMeta = res.details.setMeta || next.setMeta || {};
+                            next.setStateBySet = res.details.setStateBySet || next.setStateBySet || {};
+                            next.setSummary = res.details.setSummary || next.setSummary || {};
+                            next.scoreHistoryBySet = res.details.scoreHistoryBySet || next.scoreHistoryBySet || {};
+                        }
+                        try { localStorage.setItem('currentScoutingSession', JSON.stringify(next)); } catch(_) {}
+                        try {
+                            if (Array.isArray(next.roster) && next.roster.length) {
+                                window.loadScoutingSession(next);
+                                return;
+                            }
+                        } catch(_) {}
+                    } catch(_) {} finally {
+                        try { window.__mvsHydratingMatchFromFirestore = false; } catch(_) {}
+                    }
+                })();
+            }
+        } catch(_) {}
 
         // Imposta set corrente dalla setConfig della sessione
         if (md.setConfig) {
@@ -365,6 +399,73 @@ function switchPage(pageId) {
         if (typeof fitActivePageToViewport === 'function') fitActivePageToViewport();
     } catch (_) {}
 }
+
+let __lastHandledSetHash = null;
+function __parseSetFromHash() {
+    try {
+        const h = String(location.hash || '');
+        const m = h.match(/^#\/set\/(\d+)\s*$/);
+        const n = m ? parseInt(m[1], 10) : NaN;
+        if (Number.isInteger(n) && n >= 1 && n <= 6) return n;
+    } catch (_) {}
+    return null;
+}
+
+function __setActiveSetButton(setNumber) {
+    try {
+        const list = document.getElementById('setToolbar');
+        if (!list) return;
+        list.querySelectorAll('.set-item').forEach(function (b) {
+            if (b && b.dataset && b.dataset.set) {
+                b.classList.remove('active');
+                b.removeAttribute('aria-current');
+            }
+        });
+        const btn = list.querySelector('.set-item[data-set="' + String(setNumber) + '"]');
+        if (btn) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-current', 'true');
+        }
+    } catch (_) {}
+}
+
+function __persistSetNumberToSession(setNumber) {
+    try {
+        const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession') || '{}');
+        sessionData.setConfig = sessionData.setConfig || {};
+        sessionData.setConfig.set = setNumber;
+        localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+    } catch (_) {}
+}
+
+function goToSet(setNumber, options) {
+    const n = parseInt(setNumber, 10);
+    if (!Number.isInteger(n) || n < 1 || n > 6) return;
+    const opts = options || {};
+    const updateHash = opts.updateHash !== false;
+
+    try { saveCurrentMatch(); } catch (_) {}
+    try { scheduleAutosave(0); } catch (_) {}
+
+    try { appState.currentSet = n; } catch (_) {}
+    try { __persistSetNumberToSession(n); } catch (_) {}
+    try { __setActiveSetButton(n); } catch (_) {}
+
+    if (updateHash) {
+        const desired = '#/set/' + String(n);
+        __lastHandledSetHash = desired;
+        if (location.hash !== desired) location.hash = desired;
+    }
+
+    try {
+        const hasScoutingUI = !!document.getElementById('players-grid');
+        if (hasScoutingUI && typeof startSet === 'function') startSet();
+    } catch (_) {}
+
+    try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch (_) {}
+}
+
+window.goToSet = goToSet;
 
 // =========================
 // Report: Riepilogo (KPI)
@@ -1130,7 +1231,16 @@ function initializeApp() {
                     const n = parseInt(btn.dataset.set, 10);
                     if (Number.isInteger(n) && n >= 1 && n <= 6) {
                         try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
-                        location.href = `scouting.html#/set/${n}`;
+                        try {
+                            const isScoutingPage = /scouting\.html$/i.test(String(location.pathname || '')) || !!document.getElementById('players-grid');
+                            if (isScoutingPage && typeof window.goToSet === 'function') {
+                                window.goToSet(n);
+                            } else {
+                                location.href = `scouting.html#/set/${n}`;
+                            }
+                        } catch (_) {
+                            location.href = `scouting.html#/set/${n}`;
+                        }
                     }
                 });
             }
@@ -1163,6 +1273,27 @@ function initializeApp() {
 
         // Aggiorna colori dei set in sidebar all'avvio
         try { updateSetSidebarColors(); } catch(_) {}
+
+        // Gestione routing hash per set (es. scouting.html#/set/2)
+        try {
+            const applyHashSet = () => {
+                try {
+                    if (__lastHandledSetHash && String(location.hash || '') === __lastHandledSetHash) {
+                        __lastHandledSetHash = null;
+                        return;
+                    }
+                    const n = __parseSetFromHash();
+                    if (n && typeof window.goToSet === 'function') {
+                        window.goToSet(n, { updateHash: false });
+                    }
+                } catch (_) {}
+            };
+            applyHashSet();
+            if (!window.__mvsHashSetListenerAttached) {
+                window.__mvsHashSetListenerAttached = true;
+                window.addEventListener('hashchange', applyHashSet);
+            }
+        } catch (_) {}
 
         // Mostra app e nasconde la schermata di caricamento
         const appRoot = document.getElementById('app');

@@ -57,6 +57,14 @@ function initializeAuth() {
             if (window.firestoreService) {
                 await window.firestoreService.loadUserData(user.uid);
             }
+
+            try {
+                if (window.firestoreService && typeof window.firestoreService.hydrateUserDataToLocal === 'function') {
+                    await window.firestoreService.hydrateUserDataToLocal({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 20 });
+                }
+            } catch (e) {
+                console.error('Sync dati post-login fallito:', e);
+            }
             
             hideAuthModal();
         } else {

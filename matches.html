@@ -1504,10 +1504,12 @@
                 if (!match) return alert('Partita non trovata');
                 try {
                     const team = window.teamsModule?.getCurrentTeam?.();
-                    if (team?.id && window.authModule?.isAuthenticated() && window.firestoreService?.getMatchData) {
-                        const res = await window.firestoreService.getMatchData(team.id, match.id);
+                    const teamId = (team && team.id) ? team.id : (localStorage.getItem('selectedTeamId') || match.teamId || null);
+                    const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
+                    if (teamId && isAuthed && window.firestoreService?.getMatchData) {
+                        const res = await window.firestoreService.getMatchData(teamId, match.id);
                         if (res?.success) {
-                            if (res.roster && Array.isArray(res.roster) && !Array.isArray(match.roster)) match.roster = res.roster;
+                            if (res.roster && Array.isArray(res.roster) && (!Array.isArray(match.roster) || match.roster.length === 0)) match.roster = res.roster;
                             if (res.details) {
                                 match.actionsBySet = res.details.actionsBySet || match.actionsBySet || {};
                                 match.setMeta = res.details.setMeta || match.setMeta || {};

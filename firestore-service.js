@@ -3,6 +3,204 @@
 
 const firestoreService = {
     _emailKey: (email) => String(email||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'_'),
+    _chooseLocalOrCloud: async (options = {}) => {
+        const title = String(options.title || 'Conflitto dati').trim();
+        const subtitle = String(options.subtitle || '').trim();
+        const message = String(options.message || '').trim();
+        const hint = String(options.hint || '').trim();
+        const localLabel = String(options.localLabel || 'Usa dati locali').trim() || 'Usa dati locali';
+        const cloudLabel = String(options.cloudLabel || 'Usa dati Cloud').trim() || 'Usa dati Cloud';
+        const defaultChoice = (options.defaultChoice === 'cloud') ? 'cloud' : 'local';
+
+        try {
+            if (typeof document === 'undefined' || !document.body) return defaultChoice;
+        } catch (_) { return defaultChoice; }
+
+        const dialogId = 'mvs-conflict-choice-dialog';
+        let dlg = document.getElementById(dialogId);
+        if (!dlg) {
+            dlg = document.createElement('div');
+            dlg.id = dialogId;
+            dlg.className = 'dialog';
+            dlg.setAttribute('hidden', '');
+
+            const panel = document.createElement('div');
+            panel.className = 'dialog-panel';
+            try {
+                panel.style.maxWidth = '520px';
+                panel.style.width = '92%';
+                panel.style.border = '1px solid #e5e7eb';
+                panel.style.borderRadius = '12px';
+                panel.style.background = '#fff';
+                panel.style.overflow = 'hidden';
+            } catch (_) {}
+
+            const header = document.createElement('div');
+            header.className = 'dialog-header';
+            try {
+                header.style.display = 'grid';
+                header.style.gridTemplateColumns = '1fr auto';
+                header.style.alignItems = 'center';
+                header.style.columnGap = '8px';
+                header.style.padding = '10px 12px';
+            } catch (_) {}
+
+            const h3 = document.createElement('h3');
+            h3.setAttribute('data-role', 'title');
+            try { h3.style.margin = '0'; } catch (_) {}
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = '✕';
+            close.setAttribute('data-role', 'close');
+            try {
+                close.style.background = '#fff';
+                close.style.border = '1px solid #e5e7eb';
+                close.style.borderRadius = '10px';
+                close.style.padding = '4px 8px';
+                close.style.cursor = 'pointer';
+            } catch (_) {}
+
+            header.appendChild(h3);
+            header.appendChild(close);
+
+            const body = document.createElement('div');
+            body.className = 'dialog-body';
+            try { body.style.padding = '12px 16px'; body.style.display = 'grid'; body.style.gap = '8px'; } catch (_) {}
+
+            const sub = document.createElement('div');
+            sub.setAttribute('data-role', 'subtitle');
+            try { sub.style.fontWeight = '600'; } catch (_) {}
+
+            const msgEl = document.createElement('div');
+            msgEl.setAttribute('data-role', 'message');
+            try { msgEl.style.whiteSpace = 'pre-wrap'; } catch (_) {}
+
+            const hintEl = document.createElement('div');
+            hintEl.setAttribute('data-role', 'hint');
+            try { hintEl.style.whiteSpace = 'pre-wrap'; hintEl.style.color = '#64748b'; } catch (_) {}
+
+            body.appendChild(sub);
+            body.appendChild(msgEl);
+            body.appendChild(hintEl);
+
+            const footer = document.createElement('div');
+            footer.className = 'dialog-footer';
+            try {
+                footer.style.display = 'flex';
+                footer.style.justifyContent = 'flex-end';
+                footer.style.gap = '8px';
+                footer.style.padding = '10px 12px 12px 12px';
+                footer.style.borderTop = '1px solid #e5e7eb';
+            } catch (_) {}
+
+            const btnLocal = document.createElement('button');
+            btnLocal.type = 'button';
+            btnLocal.className = 'btn';
+            btnLocal.setAttribute('data-choice', 'local');
+            try {
+                btnLocal.style.background = '#fff';
+                btnLocal.style.color = '#0d6efd';
+                btnLocal.style.border = '1px solid #0d6efd';
+                btnLocal.style.borderRadius = '10px';
+                btnLocal.style.padding = '8px 10px';
+                btnLocal.style.fontWeight = '700';
+            } catch (_) {}
+
+            const btnCloud = document.createElement('button');
+            btnCloud.type = 'button';
+            btnCloud.className = 'btn';
+            btnCloud.setAttribute('data-choice', 'cloud');
+            try {
+                btnCloud.style.background = '#0d6efd';
+                btnCloud.style.color = '#fff';
+                btnCloud.style.border = '1px solid #0d6efd';
+                btnCloud.style.borderRadius = '10px';
+                btnCloud.style.padding = '8px 10px';
+                btnCloud.style.fontWeight = '700';
+            } catch (_) {}
+
+            footer.appendChild(btnLocal);
+            footer.appendChild(btnCloud);
+
+            panel.appendChild(header);
+            panel.appendChild(body);
+            panel.appendChild(footer);
+            dlg.appendChild(panel);
+            document.body.appendChild(dlg);
+        }
+
+        const setOpen = (v) => {
+            try {
+                if (v) {
+                    dlg.removeAttribute('hidden');
+                    dlg.classList.add('is-open');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    dlg.setAttribute('hidden', '');
+                    dlg.classList.remove('is-open');
+                    const anyOpen = document.querySelector('.dialog.is-open:not([hidden])');
+                    if (!anyOpen) document.body.style.overflow = '';
+                }
+            } catch (_) {}
+        };
+
+        const titleEl = dlg.querySelector('[data-role="title"]');
+        const subEl = dlg.querySelector('[data-role="subtitle"]');
+        const msgEl = dlg.querySelector('[data-role="message"]');
+        const hintEl = dlg.querySelector('[data-role="hint"]');
+        const btnLocal = dlg.querySelector('button[data-choice="local"]');
+        const btnCloud = dlg.querySelector('button[data-choice="cloud"]');
+        if (titleEl) titleEl.textContent = title || 'Conflitto dati';
+        if (subEl) subEl.textContent = subtitle || '';
+        if (msgEl) msgEl.textContent = message || '';
+        if (hintEl) hintEl.textContent = hint || '';
+        if (btnLocal) btnLocal.textContent = localLabel;
+        if (btnCloud) btnCloud.textContent = cloudLabel;
+
+        return await new Promise((resolve) => {
+            let resolved = false;
+            const cleanup = () => {
+                try {
+                    dlg.removeEventListener('click', onBackdropClick);
+                    document.removeEventListener('keydown', onKeydown, true);
+                    const closeBtn = dlg.querySelector('button[data-role="close"]');
+                    if (closeBtn) closeBtn.removeEventListener('click', onClose);
+                    if (btnLocal) btnLocal.removeEventListener('click', onLocal);
+                    if (btnCloud) btnCloud.removeEventListener('click', onCloud);
+                } catch (_) {}
+            };
+            const finish = (choice) => {
+                if (resolved) return;
+                resolved = true;
+                cleanup();
+                setOpen(false);
+                resolve(choice);
+            };
+            const onLocal = () => finish('local');
+            const onCloud = () => finish('cloud');
+            const onClose = () => finish(defaultChoice);
+            const onBackdropClick = (e) => {
+                try {
+                    if (e.target === dlg) finish(defaultChoice);
+                } catch (_) {}
+            };
+            const onKeydown = (e) => {
+                if (e.key === 'Escape') finish(defaultChoice);
+            };
+
+            try {
+                const closeBtn = dlg.querySelector('button[data-role="close"]');
+                if (closeBtn) closeBtn.addEventListener('click', onClose);
+                if (btnLocal) btnLocal.addEventListener('click', onLocal);
+                if (btnCloud) btnCloud.addEventListener('click', onCloud);
+                dlg.addEventListener('click', onBackdropClick);
+                document.addEventListener('keydown', onKeydown, true);
+            } catch (_) {}
+
+            setOpen(true);
+        });
+    },
     _sanitizeRosterPlayers: (players) => {
         const list = Array.isArray(players)?players:[];
         return list.map(p=>({
@@ -278,6 +476,20 @@ const firestoreService = {
             try { localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]'); } catch (_) { localTeams = []; }
             if (!Array.isArray(localTeams)) localTeams = [];
 
+            const toEpochMs = (v) => {
+                try {
+                    if (!v) return null;
+                    if (typeof v === 'number' && isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const t = Date.parse(v);
+                        return Number.isFinite(t) ? t : null;
+                    }
+                    if (typeof v.toMillis === 'function') return v.toMillis();
+                    if (typeof v.seconds === 'number') return (v.seconds * 1000) + Math.floor((v.nanoseconds || 0) / 1e6);
+                    return null;
+                } catch (_) { return null; }
+            };
+
             const normalizeTeamFromFs = (doc) => {
                 const idStr = String(doc?.id || '').trim();
                 const hasDash = idStr.includes(' - ');
@@ -292,7 +504,8 @@ const firestoreService = {
                     name: canonicalName || idStr,
                     teamName,
                     clubName,
-                    players: Array.isArray(doc?.players) ? doc.players : []
+                    players: Array.isArray(doc?.players) ? doc.players : [],
+                    _updatedAt: doc?.updatedAt || null
                 };
             };
 
@@ -312,19 +525,61 @@ const firestoreService = {
                 const bySameName = !bySameId ? localTeams.find(t => String(t?.name || '').trim() && String(t?.name || '').trim() === String(fsTeam.name || '').trim()) : null;
                 const existing = bySameId || bySameName;
                 if (existing) {
-                    const mergedTeam = Object.assign({}, existing);
-                    mergedTeam.id = id;
-                    mergedTeam.teamName = String(existing.teamName || '').trim() || fsTeam.teamName;
-                    mergedTeam.clubName = String(existing.clubName || '').trim() || fsTeam.clubName;
-                    mergedTeam.name = (mergedTeam.teamName ? mergedTeam.teamName : '').trim() + ((mergedTeam.clubName ? ` - ${mergedTeam.clubName}` : ''));
-
+                    const existingId = String(existing?.id || '').trim();
                     const localPlayers = Array.isArray(existing.players) ? existing.players : [];
                     const fsPlayers = Array.isArray(fsTeam.players) ? fsTeam.players : [];
-                    mergedTeam.players = (localPlayers.length >= fsPlayers.length && localPlayers.length) ? localPlayers : fsPlayers;
+                    const localName = String(existing?.name || '').trim();
+                    const fsName = String(fsTeam?.name || '').trim();
+                    const localTeamName = String(existing?.teamName || '').trim();
+                    const fsTeamName = String(fsTeam?.teamName || '').trim();
+                    const localClubName = String(existing?.clubName || '').trim();
+                    const fsClubName = String(fsTeam?.clubName || '').trim();
+                    const localUpdated = toEpochMs(existing?.updatedAt) || null;
+                    const fsUpdated = toEpochMs(fsTeam?._updatedAt) || null;
 
-                    const existingId = String(existing?.id || '').trim();
+                    const hasDiff =
+                        (localPlayers.length && fsPlayers.length && localPlayers.length !== fsPlayers.length) ||
+                        (localTeamName && fsTeamName && localTeamName !== fsTeamName) ||
+                        (localClubName && fsClubName && localClubName !== fsClubName) ||
+                        (localName && fsName && localName !== fsName) ||
+                        (localUpdated && fsUpdated && localUpdated !== fsUpdated);
+
+                    let useLocal = true;
+                    if (hasDiff) {
+                        let msg = `Conflitto dati squadra:\n${fsTeam.name || existing.name || id}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
+                        if (localUpdated && fsUpdated) {
+                            const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
+                            if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                        }
+                        try {
+                            const hint = (localUpdated && fsUpdated)
+                                ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
+                                : '';
+                            const choice = await firestoreService._chooseLocalOrCloud({
+                                title: 'Conflitto dati squadra',
+                                subtitle: String(fsTeam.name || existing.name || id),
+                                message: '',
+                                hint,
+                                localLabel: 'Usa dati locali',
+                                cloudLabel: 'Usa dati Cloud',
+                                defaultChoice: 'local'
+                            });
+                            useLocal = choice !== 'cloud';
+                        } catch (_) { useLocal = true; }
+                    }
+
+                    const chosen = useLocal
+                        ? Object.assign({}, fsTeam, existing)
+                        : Object.assign({}, existing, fsTeam);
+
+                    chosen.id = id;
+                    chosen.teamName = String(chosen.teamName || '').trim() || fsTeam.teamName;
+                    chosen.clubName = String(chosen.clubName || '').trim() || fsTeam.clubName;
+                    chosen.name = (chosen.teamName ? String(chosen.teamName).trim() : '').trim() + ((chosen.clubName ? ` - ${String(chosen.clubName).trim()}` : ''));
+                    chosen.players = Array.isArray(chosen.players) ? chosen.players : (useLocal ? localPlayers : fsPlayers);
+
                     if (!bySameId && existingId && existingId !== id) byId.delete(existingId);
-                    byId.set(id, mergedTeam);
+                    byId.set(id, chosen);
                     merged++;
                 } else {
                     byId.set(id, fsTeam);
@@ -403,11 +658,81 @@ const firestoreService = {
                 fsById.set(id, base);
             }
 
+            const toEpochMs = (v) => {
+                try {
+                    if (!v) return null;
+                    if (typeof v === 'number' && isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const t = Date.parse(v);
+                        return Number.isFinite(t) ? t : null;
+                    }
+                    if (typeof v.toMillis === 'function') return v.toMillis();
+                    if (typeof v.seconds === 'number') return (v.seconds * 1000) + Math.floor((v.nanoseconds || 0) / 1e6);
+                    return null;
+                } catch (_) { return null; }
+            };
+
+            const matchLabel = (m) => {
+                const home = String(m?.homeTeam || '').trim();
+                const away = String(m?.awayTeam || '').trim();
+                const my = String(m?.myTeam || m?.teamName || '').trim();
+                const opp = String(m?.opponentTeam || '').trim();
+                const date = String(m?.matchDate || m?.date || '').trim();
+                const vs = (home && away) ? `${home} vs ${away}` : (my && opp ? `${my} vs ${opp}` : '');
+                return `${vs}${date ? ` (${date})` : ''}`.trim() || String(m?.id || '').trim() || 'partita';
+            };
+
             const mergedTeam = [];
             for (const [id, fsMatch] of fsById.entries()) {
                 const existing = localById.get(id);
                 if (existing) {
-                    const mergedMatch = Object.assign({}, fsMatch, existing);
+                    const localUpdated = toEpochMs(existing?.updatedAt) || toEpochMs(existing?.scoutingEndTime) || null;
+                    const fsUpdated = toEpochMs(fsMatch?.updatedAt) || toEpochMs(fsMatch?.scoutingEndTime) || null;
+                    const localSig = JSON.stringify({
+                        matchDate: String(existing?.matchDate || existing?.date || '').trim(),
+                        opponentTeam: String(existing?.opponentTeam || '').trim(),
+                        homeTeam: String(existing?.homeTeam || '').trim(),
+                        awayTeam: String(existing?.awayTeam || '').trim(),
+                        status: String(existing?.status || '').trim()
+                    });
+                    const fsSig = JSON.stringify({
+                        matchDate: String(fsMatch?.matchDate || fsMatch?.date || '').trim(),
+                        opponentTeam: String(fsMatch?.opponentTeam || '').trim(),
+                        homeTeam: String(fsMatch?.homeTeam || '').trim(),
+                        awayTeam: String(fsMatch?.awayTeam || '').trim(),
+                        status: String(fsMatch?.status || '').trim()
+                    });
+                    const hasDiff = (localSig !== fsSig) || (localUpdated && fsUpdated && localUpdated !== fsUpdated);
+
+                    let useLocal = true;
+                    if (hasDiff) {
+                        let msg = `Conflitto dati partita:\n${matchLabel(existing) || matchLabel(fsMatch)}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
+                        if (localUpdated && fsUpdated) {
+                            const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
+                            if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                        }
+                        try {
+                            const hint = (localUpdated && fsUpdated)
+                                ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
+                                : '';
+                            const choice = await firestoreService._chooseLocalOrCloud({
+                                title: 'Conflitto dati partita',
+                                subtitle: String(matchLabel(existing) || matchLabel(fsMatch)),
+                                message: '',
+                                hint,
+                                localLabel: 'Usa dati locali',
+                                cloudLabel: 'Usa dati Cloud',
+                                defaultChoice: 'local'
+                            });
+                            useLocal = choice !== 'cloud';
+                        } catch (_) { useLocal = true; }
+                    }
+
+                    const mergedMatch = useLocal
+                        ? Object.assign({}, fsMatch, existing)
+                        : Object.assign({}, existing, fsMatch);
+
+                    mergedMatch._mvsSource = useLocal ? 'local' : 'cloud';
                     mergedMatch.id = id;
                     mergedMatch.teamId = tId;
                     mergedMatch.matchDate = mergedMatch.matchDate || mergedMatch.date || fsMatch.matchDate || fsMatch.date || '';
@@ -437,13 +762,14 @@ const firestoreService = {
                             const roster = Array.isArray(r.roster) ? r.roster : [];
                             const details = r.details || {};
                             const updated = Object.assign({}, cur);
-                            if (roster.length && !(Array.isArray(updated.roster) && updated.roster.length)) updated.roster = roster;
+                            const shouldOverride = String(updated?._mvsSource || '') === 'cloud';
+                            if (roster.length && (shouldOverride || !(Array.isArray(updated.roster) && updated.roster.length))) updated.roster = roster;
                             if (details && typeof details === 'object') {
-                                if (!updated.actionsBySet) updated.actionsBySet = details.actionsBySet || {};
-                                if (!updated.setMeta) updated.setMeta = details.setMeta || {};
-                                if (!updated.setStateBySet) updated.setStateBySet = details.setStateBySet || {};
-                                if (!updated.setSummary) updated.setSummary = details.setSummary || {};
-                                if (!updated.scoreHistoryBySet) updated.scoreHistoryBySet = details.scoreHistoryBySet || {};
+                                if (shouldOverride || !updated.actionsBySet) updated.actionsBySet = details.actionsBySet || {};
+                                if (shouldOverride || !updated.setMeta) updated.setMeta = details.setMeta || {};
+                                if (shouldOverride || !updated.setStateBySet) updated.setStateBySet = details.setStateBySet || {};
+                                if (shouldOverride || !updated.setSummary) updated.setSummary = details.setSummary || {};
+                                if (shouldOverride || !updated.scoreHistoryBySet) updated.scoreHistoryBySet = details.scoreHistoryBySet || {};
                             }
                             mergedTeam[idx] = updated;
                         }
