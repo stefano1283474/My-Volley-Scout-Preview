@@ -185,6 +185,10 @@
     <script>
       document.addEventListener('DOMContentLoaded', function(){
         try {
+          try {
+            var ss = sessionStorage.getItem('currentScoutingSession');
+            if (ss) { localStorage.setItem('currentScoutingSession', ss); }
+          } catch(_) {}
           var s = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
           if (s && Object.keys(s).length > 0 && typeof window.loadScoutingSession === 'function') {
             window.loadScoutingSession(s);

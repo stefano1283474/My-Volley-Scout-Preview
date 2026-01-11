@@ -53,6 +53,46 @@ function normalizeRotation(rot) {
   return `P${valid}`;
 }
 
+function __normalizeIndexedMapToArray(value) {
+    try {
+        if (Array.isArray(value)) return value;
+        if (typeof value === 'string') {
+            const s = value.trim();
+            if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+                try {
+                    const parsed = JSON.parse(s);
+                    return __normalizeIndexedMapToArray(parsed);
+                } catch (_) {
+                    return value;
+                }
+            }
+            return value;
+        }
+        if (!value || typeof value !== 'object') return value;
+        const keys = Object.keys(value);
+        const idx = keys.filter(k => /^\d+$/.test(String(k))).sort((a, b) => Number(a) - Number(b));
+        if (!idx.length) return value;
+        return idx.map(k => value[k]);
+    } catch (_) {
+        return value;
+    }
+}
+
+function __normalizePerSetCollections(map) {
+    try {
+        if (!map || typeof map !== 'object') return {};
+        const out = {};
+        Object.keys(map).forEach((k) => {
+            const v = map[k];
+            const nv = __normalizeIndexedMapToArray(v);
+            out[k] = nv;
+        });
+        return out;
+    } catch (_) {
+        return map || {};
+    }
+}
+
 function cancelAutosave() {
     try {
         if (__autosaveTimerId) {
@@ -110,6 +150,8 @@ window.loadScoutingSession = function(sessionData) {
 
         // Includi dati per-set se disponibili nella sessione
         try {
+            md.actionsBySet = __normalizePerSetCollections(md.actionsBySet || {});
+            md.scoreHistoryBySet = __normalizePerSetCollections(md.scoreHistoryBySet || {});
             appState.currentMatch.actionsBySet = md.actionsBySet || {};
             appState.currentMatch.scoreHistoryBySet = md.scoreHistoryBySet || {};
             appState.currentMatch.setStateBySet = md.setStateBySet || {};
@@ -181,31 +223,160 @@ window.loadScoutingSession = function(sessionData) {
         appState.currentRoster = Array.isArray(loadedRoster) ? loadedRoster : [];
         try {
             const rosterMissing = !Array.isArray(appState.currentRoster) || appState.currentRoster.length === 0;
-            if (rosterMissing && !window.__mvsHydratingMatchFromFirestore) {
+            const teamId = String(localStorage.getItem('selectedTeamId') || md?.teamId || '').trim();
+            const selectedMatchId = String(localStorage.getItem('selectedMatchId') || '').trim();
+            const sessionMatchId = String((md && (md.id || md.matchId)) || '').trim();
+            const sessionMismatch = !!(selectedMatchId && sessionMatchId && selectedMatchId !== sessionMatchId);
+            const matchId = String((selectedMatchId && (!sessionMatchId || sessionMismatch)) ? selectedMatchId : (sessionMatchId || selectedMatchId || '')).trim();
+
+            const hasAnyDetails = (() => {
+                try {
+                    const a = md.actionsBySet && typeof md.actionsBySet === 'object' ? Object.keys(md.actionsBySet || {}).length : 0;
+                    const sm = md.setMeta && typeof md.setMeta === 'object' ? Object.keys(md.setMeta || {}).length : 0;
+                    const ss = md.setStateBySet && typeof md.setStateBySet === 'object' ? Object.keys(md.setStateBySet || {}).length : 0;
+                    const sum = md.setSummary && typeof md.setSummary === 'object' ? Object.keys(md.setSummary || {}).length : 0;
+                    const sh = md.scoreHistoryBySet && typeof md.scoreHistoryBySet === 'object' ? Object.keys(md.scoreHistoryBySet || {}).length : 0;
+                    return (a + sm + ss + sum + sh) > 0;
+                } catch (_) {
+                    return false;
+                }
+            })();
+
+            const hasProgressWithoutActions = (() => {
+                try {
+                    const progressed = new Set();
+                    const sum = (md && md.setSummary && typeof md.setSummary === 'object') ? md.setSummary : {};
+                    const st = (md && md.setStateBySet && typeof md.setStateBySet === 'object') ? md.setStateBySet : {};
+                    for (let i = 1; i <= 6; i++) {
+                        const s = sum[i] || {};
+                        const si = st[i] || {};
+                        const h = (s.home != null) ? Number(s.home || 0) : Number(si.homeScore || 0);
+                        const a = (s.away != null) ? Number(s.away || 0) : Number(si.awayScore || 0);
+                        if ((h > 0) || (a > 0)) progressed.add(String(i));
+                    }
+                    if (!progressed.size) return false;
+                    const ab = (md && md.actionsBySet && typeof md.actionsBySet === 'object') ? md.actionsBySet : {};
+                    for (const k of progressed) {
+                        const v = __normalizeIndexedMapToArray(ab[k]);
+                        if (Array.isArray(v) && v.length) return false;
+                    }
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            })();
+
+            const needsHydration = (rosterMissing || sessionMismatch || !hasAnyDetails || hasProgressWithoutActions);
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
+            const canFirestore = !!(isAuthed && window.firestoreService?.getMatchData);
+
+            if (needsHydration && !canFirestore && !window.__mvsHydratingMatchFromLocal) {
+                window.__mvsHydratingMatchFromLocal = true;
+                try {
+                    if (!matchId) return;
+                    const list = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                    const found = Array.isArray(list) ? list.find(m => String(m.id) === String(matchId)) : null;
+                    if (!found) return;
+                    const next = Object.assign({}, md);
+                    next.id = matchId;
+                    next.opponentTeam = found.opponentTeam || found.opponent || next.opponentTeam || '';
+                    next.matchDate = found.matchDate || found.date || next.matchDate || '';
+                    next.matchType = found.matchType || found.eventType || next.matchType || '';
+                    next.homeAway = found.homeAway || found.location || next.homeAway || '';
+                    next.description = found.description || next.description || '';
+                    const lr = Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : []);
+                    if (Array.isArray(lr) && lr.length && (!Array.isArray(next.roster) || next.roster.length === 0)) next.roster = lr;
+
+                    const cloudActionsBySet = __normalizePerSetCollections(found.actionsBySet || {});
+                    const localActionsBySet = __normalizePerSetCollections(next.actionsBySet || {});
+                    Object.keys(cloudActionsBySet || {}).forEach((k) => {
+                        const c = cloudActionsBySet[k];
+                        const l = localActionsBySet[k];
+                        if (!Array.isArray(l) || l.length === 0) localActionsBySet[k] = c;
+                        else if (Array.isArray(c) && c.length > l.length) localActionsBySet[k] = c;
+                    });
+                    next.actionsBySet = localActionsBySet || {};
+
+                    const cloudScoreHistoryBySet = __normalizePerSetCollections(found.scoreHistoryBySet || {});
+                    const localScoreHistoryBySet = __normalizePerSetCollections(next.scoreHistoryBySet || {});
+                    Object.keys(cloudScoreHistoryBySet || {}).forEach((k) => {
+                        const c = cloudScoreHistoryBySet[k];
+                        const l = localScoreHistoryBySet[k];
+                        if (!Array.isArray(l) || l.length === 0) localScoreHistoryBySet[k] = c;
+                        else if (Array.isArray(c) && c.length > l.length) localScoreHistoryBySet[k] = c;
+                    });
+                    next.scoreHistoryBySet = localScoreHistoryBySet || {};
+
+                    next.setMeta = (next.setMeta && typeof next.setMeta === 'object') ? next.setMeta : {};
+                    const cloudSetMeta = (found.setMeta && typeof found.setMeta === 'object') ? found.setMeta : {};
+                    Object.keys(cloudSetMeta).forEach((k) => { if (!next.setMeta[k]) next.setMeta[k] = cloudSetMeta[k]; });
+
+                    next.setStateBySet = (next.setStateBySet && typeof next.setStateBySet === 'object') ? next.setStateBySet : {};
+                    const cloudSetState = (found.setStateBySet && typeof found.setStateBySet === 'object') ? found.setStateBySet : {};
+                    Object.keys(cloudSetState).forEach((k) => { if (!next.setStateBySet[k]) next.setStateBySet[k] = cloudSetState[k]; });
+
+                    next.setSummary = (next.setSummary && typeof next.setSummary === 'object') ? next.setSummary : {};
+                    const cloudSetSummary = (found.setSummary && typeof found.setSummary === 'object') ? found.setSummary : {};
+                    Object.keys(cloudSetSummary).forEach((k) => { if (!next.setSummary[k]) next.setSummary[k] = cloudSetSummary[k]; });
+
+                    try { localStorage.setItem('currentScoutingSession', JSON.stringify(next)); } catch(_) {}
+                    try { window.loadScoutingSession(next); } catch(_) {}
+                } catch (_) {} finally {
+                    try { window.__mvsHydratingMatchFromLocal = false; } catch(_) {}
+                }
+            }
+            if (needsHydration && !window.__mvsHydratingMatchFromFirestore) {
                 window.__mvsHydratingMatchFromFirestore = true;
                 (async function(){
                     try {
-                        const matchId = String((md && (md.id || md.matchId)) || localStorage.getItem('selectedMatchId') || '').trim();
-                        const teamId = String(localStorage.getItem('selectedTeamId') || md?.teamId || '').trim();
-                        const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
                         if (!matchId || !teamId || !isAuthed || !window.firestoreService?.getMatchData) return;
                         const res = await window.firestoreService.getMatchData(teamId, matchId);
                         if (!res?.success) return;
                         const next = Object.assign({}, md);
                         if (Array.isArray(res.roster) && res.roster.length) next.roster = res.roster;
                         if (res.details) {
-                            next.actionsBySet = res.details.actionsBySet || next.actionsBySet || {};
-                            next.setMeta = res.details.setMeta || next.setMeta || {};
-                            next.setStateBySet = res.details.setStateBySet || next.setStateBySet || {};
-                            next.setSummary = res.details.setSummary || next.setSummary || {};
-                            next.scoreHistoryBySet = res.details.scoreHistoryBySet || next.scoreHistoryBySet || {};
+                            const cloudActionsBySet = __normalizePerSetCollections(res.details.actionsBySet || {});
+                            const localActionsBySet = __normalizePerSetCollections(next.actionsBySet || {});
+                            Object.keys(cloudActionsBySet || {}).forEach((k) => {
+                                const c = cloudActionsBySet[k];
+                                const l = localActionsBySet[k];
+                                if (!Array.isArray(l) || l.length === 0) localActionsBySet[k] = c;
+                                else if (Array.isArray(c) && c.length > l.length) localActionsBySet[k] = c;
+                            });
+                            next.actionsBySet = localActionsBySet || {};
+
+                            const cloudScoreHistoryBySet = __normalizePerSetCollections(res.details.scoreHistoryBySet || {});
+                            const localScoreHistoryBySet = __normalizePerSetCollections(next.scoreHistoryBySet || {});
+                            Object.keys(cloudScoreHistoryBySet || {}).forEach((k) => {
+                                const c = cloudScoreHistoryBySet[k];
+                                const l = localScoreHistoryBySet[k];
+                                if (!Array.isArray(l) || l.length === 0) localScoreHistoryBySet[k] = c;
+                                else if (Array.isArray(c) && c.length > l.length) localScoreHistoryBySet[k] = c;
+                            });
+                            next.scoreHistoryBySet = localScoreHistoryBySet || {};
+
+                            next.setMeta = (next.setMeta && typeof next.setMeta === 'object') ? next.setMeta : {};
+                            const cloudSetMeta = (res.details.setMeta && typeof res.details.setMeta === 'object') ? res.details.setMeta : {};
+                            Object.keys(cloudSetMeta).forEach((k) => {
+                                if (!next.setMeta[k]) next.setMeta[k] = cloudSetMeta[k];
+                            });
+
+                            next.setStateBySet = (next.setStateBySet && typeof next.setStateBySet === 'object') ? next.setStateBySet : {};
+                            const cloudSetState = (res.details.setStateBySet && typeof res.details.setStateBySet === 'object') ? res.details.setStateBySet : {};
+                            Object.keys(cloudSetState).forEach((k) => {
+                                if (!next.setStateBySet[k]) next.setStateBySet[k] = cloudSetState[k];
+                            });
+
+                            next.setSummary = (next.setSummary && typeof next.setSummary === 'object') ? next.setSummary : {};
+                            const cloudSetSummary = (res.details.setSummary && typeof res.details.setSummary === 'object') ? res.details.setSummary : {};
+                            Object.keys(cloudSetSummary).forEach((k) => {
+                                if (!next.setSummary[k]) next.setSummary[k] = cloudSetSummary[k];
+                            });
                         }
                         try { localStorage.setItem('currentScoutingSession', JSON.stringify(next)); } catch(_) {}
                         try {
-                            if (Array.isArray(next.roster) && next.roster.length) {
-                                window.loadScoutingSession(next);
-                                return;
-                            }
+                            window.loadScoutingSession(next);
+                            return;
                         } catch(_) {}
                     } catch(_) {} finally {
                         try { window.__mvsHydratingMatchFromFirestore = false; } catch(_) {}
@@ -238,8 +409,13 @@ window.loadScoutingSession = function(sessionData) {
                 appState.scoreHistory = md.scoreHistory;
             }
             // Preferisci azioni per set se disponibili
-            if (md.actionsBySet && Array.isArray(md.actionsBySet[appState.currentSet])) {
-                appState.actionsLog = md.actionsBySet[appState.currentSet] || [];
+            if (md.actionsBySet) {
+                const perSet = md.actionsBySet[appState.currentSet];
+                const normalized = __normalizeIndexedMapToArray(perSet);
+                if (normalized !== perSet) md.actionsBySet[appState.currentSet] = normalized;
+                if (Array.isArray(md.actionsBySet[appState.currentSet])) {
+                    appState.actionsLog = md.actionsBySet[appState.currentSet] || [];
+                }
             } else if (Array.isArray(md.actions) && md.actions.length > 0) {
                 appState.actionsLog = md.actions;
             }
@@ -285,9 +461,11 @@ window.loadScoutingSession = function(sessionData) {
             if (hasActions && !hasHistory) {
                 appState.setStarted = true;
                 recomputeFromActionsLog();
-                try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch(_) {}
+                try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch (_) {}
             }
         } catch(_) {}
+
+        try { localStorage.setItem('currentScoutingSession', JSON.stringify(md)); } catch (_) {}
     } catch (e) {
         console.error('Errore loadScoutingSession:', e);
     }
@@ -2102,7 +2280,7 @@ function recomputeFromActionsLog() {
             const log = actions[i];
             const rotationBefore = normalizeRotation(appState.currentRotation);
             try {
-                const actionStr = String(log.action || '');
+                const actionStr = (log && typeof log.action === 'string') ? log.action : (typeof log === 'string' ? log : '');
                 const parsed = parseAction(actionStr);
 
                 // Prova a ricostruire nome giocatore e tipo azione
