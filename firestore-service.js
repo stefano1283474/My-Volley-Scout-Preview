@@ -818,7 +818,81 @@ const firestoreService = {
             });
 
             const nextAll = others.concat(combinedTeam);
-            localStorage.setItem('volleyMatches', JSON.stringify(nextAll));
+
+            const dedupeKey = (m) => {
+                const t = String(m?.teamId || '').trim();
+                const id = String(m?.id || '').trim();
+                const date = String(m?.matchDate || m?.date || '').trim();
+                const status = String(m?.status || '').trim();
+                const type = String(m?.eventType || m?.matchType || '').trim();
+                const home = String(m?.homeTeam || m?.myTeam || m?.teamName || '').trim();
+                const away = String(m?.awayTeam || m?.opponentTeam || '').trim();
+                if (id) return `id:${t}|${id}|${home}|${away}`;
+                return `sig:${t}|${date}|${home}|${away}|${status}|${type}`;
+            };
+
+            const matchScore = (m) => {
+                let s = 0;
+                try {
+                    if (Array.isArray(m?.roster) && m.roster.length) s += 6;
+                    if (m?.actionsBySet && typeof m.actionsBySet === 'object' && Object.keys(m.actionsBySet).length) s += 8;
+                    if (m?.setMeta && typeof m.setMeta === 'object' && Object.keys(m.setMeta).length) s += 4;
+                    if (m?.setStateBySet && typeof m.setStateBySet === 'object' && Object.keys(m.setStateBySet).length) s += 3;
+                    if (m?.setSummary && typeof m.setSummary === 'object' && Object.keys(m.setSummary).length) s += 3;
+                    if (m?.scoreHistoryBySet && typeof m.scoreHistoryBySet === 'object' && Object.keys(m.scoreHistoryBySet).length) s += 2;
+                    if (Array.isArray(m?.sets) && m.sets.length) s += 1;
+                    const score = m?.score;
+                    if (score && typeof score === 'object' && (Number(score.home || 0) || Number(score.away || 0))) s += 1;
+                } catch (_) { }
+                return s;
+            };
+
+            const mergePreferMoreInfo = (a, b) => {
+                const aScore = matchScore(a);
+                const bScore = matchScore(b);
+                const aTime = toEpochMs(a?.updatedAt) || toEpochMs(a?.scoutingEndTime) || toEpochMs(a?.createdAt) || 0;
+                const bTime = toEpochMs(b?.updatedAt) || toEpochMs(b?.scoutingEndTime) || toEpochMs(b?.createdAt) || 0;
+
+                const primary = (bScore > aScore) || (bScore === aScore && bTime > aTime) ? b : a;
+                const secondary = primary === a ? b : a;
+                const out = Object.assign({}, secondary, primary);
+
+                const aRoster = Array.isArray(a?.roster) ? a.roster : [];
+                const bRoster = Array.isArray(b?.roster) ? b.roster : [];
+                if (aRoster.length || bRoster.length) out.roster = (bRoster.length > aRoster.length) ? bRoster : aRoster;
+
+                const ensureObj = (v) => (v && typeof v === 'object') ? v : null;
+                const preferObj = (k) => {
+                    const ao = ensureObj(a?.[k]);
+                    const bo = ensureObj(b?.[k]);
+                    if (bo && Object.keys(bo).length) return bo;
+                    if (ao && Object.keys(ao).length) return ao;
+                    return out?.[k];
+                };
+
+                out.actionsBySet = preferObj('actionsBySet');
+                out.setMeta = preferObj('setMeta');
+                out.setStateBySet = preferObj('setStateBySet');
+                out.setSummary = preferObj('setSummary');
+                out.scoreHistoryBySet = preferObj('scoreHistoryBySet');
+
+                return out;
+            };
+
+            const deduped = [];
+            const indexByKey = new Map();
+            for (const m of nextAll) {
+                const key = dedupeKey(m);
+                const idx = indexByKey.get(key);
+                if (idx == null) {
+                    indexByKey.set(key, deduped.length);
+                    deduped.push(m);
+                } else {
+                    deduped[idx] = mergePreferMoreInfo(deduped[idx], m);
+                }
+            }
+
+            localStorage.setItem('volleyMatches', JSON.stringify(deduped));
 
             return { success: true, hydrated: mergedTeam.length, detailsLoaded };
         } catch (error) {
