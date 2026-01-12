@@ -308,8 +308,7 @@
         return arr.filter(t => {
           const idStr = String(t?.id ?? '').trim();
           if (!idStr) return false;
-          const n = Number(idStr);
-          return Number.isFinite(n) && String(Math.trunc(n)) === idStr;
+          return true;
         });
       } catch(_) { return []; }
     }
