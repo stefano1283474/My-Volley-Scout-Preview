@@ -859,13 +859,13 @@
                         
                         if (window.firestoreService?.syncLocalTeamsToFirestore) { 
                             try {
-                                tRes = await window.firestoreService.syncLocalTeamsToFirestore(); 
+                                tRes = await window.firestoreService.syncLocalTeamsToFirestore({ conflictMode: 'ask' }); 
                             } catch(e) { tRes = { success: false, error: e.message }; }
                         }
                         
                         if (window.firestoreService?.syncLocalMatchesToFirestore) { 
                             try {
-                                mRes = await window.firestoreService.syncLocalMatchesToFirestore(); 
+                                mRes = await window.firestoreService.syncLocalMatchesToFirestore({ conflictMode: 'ask' }); 
                             } catch(e) { mRes = { success: false, error: e.message }; }
                         }
                         
