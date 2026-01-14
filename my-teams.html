@@ -127,9 +127,9 @@
           <div class="menu-item" id="accountEmail">Caricamento...</div>
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-          <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna da cloud</button>
-          <button class="menu-item" id="syncDataBtn" type="button">Sincronizza dati</button>
-          <button class="menu-item" id="purgeAllBtn" type="button">Pulisci tutto</button>
+          <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
+          <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
+          <button class="menu-item" id="purgeAllBtn" type="button">Pulisci dati locali</button>
           <button class="menu-item" id="accountExit">Esci</button>
           <button class="menu-item" id="accountLogout">Logout</button>
           <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -499,8 +499,7 @@
           const all = Array.from(new Set([].concat(names, extra)));
           await Promise.all(all.map(n => { try { return indexedDB.deleteDatabase(n); } catch(_) { return Promise.resolve(); } }));
         } catch(_) {}
-        try { if (window.authFunctions && typeof window.authFunctions.signOut === 'function') { await window.authFunctions.signOut(); } } catch(_) {}
-        alert('Pulizia completata');
+        alert('Pulizia locale completata (Cloud non modificato)');
         try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ }
         location.href = '/auth-login.html';
       } catch(_) {
@@ -622,12 +621,20 @@
           accountMenu.hidden = expanded;
         });
         const purgeBtn = document.getElementById('purgeAllBtn');
-        if (purgeBtn) purgeBtn.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); await purgeAll(); });
+        if (purgeBtn) purgeBtn.addEventListener('click', async (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const ok = confirm('Vuoi pulire tutti i dati locali dell’app su questo dispositivo?\n\nVerranno rimossi dati, cache/offline e impostazioni locali.\nI dati sul Cloud non verranno modificati.');
+          if (!ok) {
+            try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
+            return;
+          }
+          await purgeAll();
+        });
         if (hydrateDataBtn) hydrateDataBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
           try {
             hydrateDataBtn.disabled = true;
-            hydrateDataBtn.textContent = 'Aggiorno...';
+            hydrateDataBtn.textContent = 'Aggiorno Locale...';
             const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
             try { window.teamsModule?.loadTeams?.(); } catch(_){ }
             try { renderLocalTeamsList(); } catch(_){ }
@@ -637,9 +644,9 @@
           } catch (err) {
             alert(err?.message || 'Errore aggiornamento');
           }
-          finally {
+            finally {
             hydrateDataBtn.disabled = false;
-            hydrateDataBtn.textContent = 'Aggiorna da cloud';
+            hydrateDataBtn.textContent = 'Aggiorna Locale da Cloud';
             try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
           }
         });
@@ -647,7 +654,7 @@
           e.preventDefault(); e.stopPropagation();
           try {
             syncDataBtn.disabled = true;
-            syncDataBtn.textContent = 'Sincronizzo...';
+            syncDataBtn.textContent = 'Aggiorno Cloud...';
             try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
             let tRes = null, mRes = null;
             
@@ -682,7 +689,7 @@
           }
           finally {
             syncDataBtn.disabled = false;
-            syncDataBtn.textContent = 'Sincronizza dati';
+            syncDataBtn.textContent = 'Aggiorna Cloud da Locale';
             try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
           }
         });

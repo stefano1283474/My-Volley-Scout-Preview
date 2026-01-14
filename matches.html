@@ -449,8 +449,8 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna da cloud</button>
-                    <button class="menu-item" id="syncDataBtn" type="button">Sincronizza dati</button>
+                    <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
+                    <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
                     <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -465,7 +465,7 @@
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:block;">
             <div class="section-title-row">
-                <h2 class="section-title rounded-title" id="matchesArchiveTitle">Elenco Partite:</h2>
+                <h2 class="section-title rounded-title" id="matchesArchiveTitle">Elenco Partite</h2>
                 <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
                   <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -488,9 +488,6 @@
                     </svg>
                   </button>
                 </div>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <div class="archive-badge local" id="matchesArchiveBadge">Archivio Locale</div>
             </div>
             <div class="archive-tabs" role="tablist" aria-label="Archivio dati partite">
                 <button id="matchesArchiveTabLocal" class="archive-tab active" type="button" role="tab" aria-selected="true">Locale</button>
@@ -683,12 +680,7 @@
                 const nextUrl = window.location.pathname + '?' + qp.toString();
                 window.history.replaceState(null, '', nextUrl);
             } catch(_) {}
-            if (matchesArchiveTitle) matchesArchiveTitle.textContent = v === 'cloud' ? 'Elenco Partite (Cloud):' : 'Elenco Partite (Locale):';
-            if (matchesArchiveBadge) {
-                matchesArchiveBadge.textContent = v === 'cloud' ? 'Archivio Cloud' : 'Archivio Locale';
-                matchesArchiveBadge.classList.toggle('cloud', v === 'cloud');
-                matchesArchiveBadge.classList.toggle('local', v === 'local');
-            }
+            if (matchesArchiveTitle) matchesArchiveTitle.textContent = 'Elenco Partite';
             if (matchesArchiveTabLocal) {
                 matchesArchiveTabLocal.classList.toggle('active', v === 'local');
                 matchesArchiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
@@ -831,7 +823,7 @@
                     e.stopPropagation();
                     try {
                         hydrateDataBtn.disabled = true;
-                        hydrateDataBtn.textContent = 'Aggiorno...';
+                        hydrateDataBtn.textContent = 'Aggiorno Locale...';
                         const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
                         try { window.teamsModule?.loadTeams?.(); } catch(_){ }
                         try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
@@ -843,7 +835,7 @@
                     }
                     finally {
                         hydrateDataBtn.disabled = false;
-                        hydrateDataBtn.textContent = 'Aggiorna da cloud';
+                        hydrateDataBtn.textContent = 'Aggiorna Locale da Cloud';
                         try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
                     }
                 });
@@ -853,7 +845,7 @@
                     e.preventDefault(); e.stopPropagation();
                     try {
                         syncDataBtn.disabled = true;
-                        syncDataBtn.textContent = 'Sincronizzo...';
+                        syncDataBtn.textContent = 'Aggiorno Cloud...';
                         try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
                         let tRes = null, mRes = null;
                         
@@ -888,7 +880,7 @@
                     }
                     finally {
                         syncDataBtn.disabled = false;
-                        syncDataBtn.textContent = 'Sincronizza dati';
+                        syncDataBtn.textContent = 'Aggiorna Cloud da Locale';
                         try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
                     }
                 });
