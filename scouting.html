@@ -75,25 +75,25 @@
                           </span>
                           <span>Salva</span>
                         </button>
-                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button" onclick="location.href='/matches.html'">
+                        <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Vai a Elenco Partite</span>
                         </button>
-                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button" onclick="location.href='/my-teams.html'">
+                        <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
                           </span>
                           <span>Vai a Elenco Squadre</span>
                         </button>
-                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button" onclick="location.href='/my-teams.html'">
+                        <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
                           <span>Esci</span>
                         </button>
-                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button" onclick="(async function(){try{if(window.authFunctions&&window.authFunctions.signOut){await window.authFunctions.signOut();}}catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html';})()">
+                        <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
                           <span class="menu-item-icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                           </span>
@@ -110,8 +110,8 @@
             <aside class="set-sidebar" aria-label="Selezione set">
               <div class="set-sidebar-header">Passa a:</div>
               <div id="setToolbar" class="set-list" role="list">
-                <button class="set-item" role="listitem" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } try{ var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/riepilogo-gara.html'; } })()">Riepilogo Gara</button>
-                <button class="set-item" role="listitem" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } location.href='/elenco-player.html'; })()">Elenco Player</button>
+                <button class="set-item" role="listitem" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } try{ try{ if(window.cancelAutosave) window.cancelAutosave(); if(window.saveCurrentMatch) window.saveCurrentMatch(); }catch(_){ } var team=localStorage.getItem('selectedTeamId')||''; var match=''; try{ var setup=JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); match = (setup && setup.id) || localStorage.getItem('selectedMatchId') || ''; }catch(_){ match = localStorage.getItem('selectedMatchId') || ''; } var qs=new URLSearchParams(); if(team) qs.set('team', team); if(match) qs.set('match', match); location.href='/riepilogo-gara.html'+(qs.toString()?('?'+qs.toString()):''); }catch(_){ location.href='/riepilogo-gara.html'; } })()">Riepilogo Gara</button>
+                <button class="set-item" role="listitem" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } try{ try{ if(window.cancelAutosave) window.cancelAutosave(); if(window.saveCurrentMatch) window.saveCurrentMatch(); }catch(_){ } location.href='/elenco-player.html'; }catch(_){ location.href='/elenco-player.html'; } })()">Elenco Player</button>
                 <button class="set-item active" data-set="1" aria-current="true" role="listitem">Set 1</button>
                 <button class="set-item" data-set="2" role="listitem">Set 2</button>
                 <button class="set-item" data-set="3" role="listitem">Set 3</button>
@@ -122,7 +122,7 @@
               <div class="sidebar-resizer" aria-hidden="true"></div>
               <div class="set-sidebar-header" style="margin-top:12px;">Reportistica</div>
               <div class="set-list" role="list">
-                <button class="set-item" role="listitem" title="Vai a Match-Stats" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } location.href='/match-stats.html'; })()">Match-Stats</button>
+                <button class="set-item" role="listitem" title="Vai a Match-Stats" onclick="(function(){ try{ if(window.setSidebarOpen) window.setSidebarOpen(false); }catch(_){ } try{ try{ if(window.cancelAutosave) window.cancelAutosave(); if(window.saveCurrentMatch) window.saveCurrentMatch(); }catch(_){ } location.href='/match-stats.html'; }catch(_){ location.href='/match-stats.html'; } })()">Match-Stats</button>
               </div>
             </aside>
 

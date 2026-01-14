@@ -41,6 +41,43 @@ var appState = window.appState;
 window.rotationSequence = window.rotationSequence || ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
 var rotationSequence = window.rotationSequence;
 
+let __lastSavedCoreSignature = null;
+
+function __stableStringify(value) {
+    try {
+        const seen = new WeakSet();
+        const normalize = (v) => {
+            if (v === null || v === undefined) return v;
+            if (typeof v !== 'object') return v;
+            if (seen.has(v)) return null;
+            seen.add(v);
+            if (Array.isArray(v)) return v.map(normalize);
+            const out = {};
+            Object.keys(v).sort().forEach((k) => {
+                out[k] = normalize(v[k]);
+            });
+            return out;
+        };
+        return JSON.stringify(normalize(value));
+    } catch (_) {
+        try { return JSON.stringify(value); } catch (_) { return ''; }
+    }
+}
+
+function __coreSignatureFromPayload(payload) {
+    try {
+        if (!payload || typeof payload !== 'object') return null;
+        const core = Object.assign({}, payload);
+        delete core.createdAt;
+        delete core.updatedAt;
+        delete core.scoutingEndTime;
+        delete core.cloudRef;
+        return __stableStringify(core);
+    } catch (_) {
+        return null;
+    }
+}
+
 // Normalizza una rotazione in formato coerente "P1".."P6"
 function normalizeRotation(rot) {
   if (!rot) return 'P1';
@@ -466,6 +503,7 @@ window.loadScoutingSession = function(sessionData) {
         } catch(_) {}
 
         try { localStorage.setItem('currentScoutingSession', JSON.stringify(md)); } catch (_) {}
+        try { __lastSavedCoreSignature = __getCurrentCoreSignature(); } catch(_) {}
     } catch (e) {
         console.error('Errore loadScoutingSession:', e);
     }
@@ -655,6 +693,13 @@ function goToSet(setNumber, options) {
     if (!Number.isInteger(n) || n < 1 || n > 6) return;
     const opts = options || {};
     const updateHash = opts.updateHash !== false;
+
+    try {
+        if (!__getSetMetaPresence(n) && typeof window.openSetMetaDialog === 'function') {
+            window.openSetMetaDialog(n);
+            return;
+        }
+    } catch (_) {}
 
     try { saveCurrentMatch(); } catch (_) {}
     try { scheduleAutosave(0); } catch (_) {}
@@ -1322,8 +1367,9 @@ function initializeApp() {
                     const originalText = saveMatchBtn.textContent;
                     try { saveMatchBtn.textContent = '💾 Salvataggio…'; } catch(_){}
                     cancelAutosave();
-                    await saveCurrentMatch();
-                    alert('Partita salvata.');
+                    const ok = await saveCurrentMatch();
+                    if (ok) alert('Partita salvata.');
+                    else alert('Errore nel salvataggio della partita.');
                     try { saveMatchBtn.textContent = originalText || '💾 Salva'; } catch(_){}
                 } catch (error) {
                     console.error('Errore nel salvataggio partita:', error);
@@ -1336,12 +1382,12 @@ function initializeApp() {
             });
         }
         if (goToMatchesBtnMobile) {
-            goToMatchesBtnMobile.addEventListener('click', (e) => {
+            goToMatchesBtnMobile.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    // Salvataggio non bloccante (se fallisce, ignora)
-                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
+                    const ok = await __confirmSaveBeforeExit();
+                    if (!ok) return;
                     window.location.href = '/matches.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1350,11 +1396,12 @@ function initializeApp() {
             });
         }
         if (goToTeamsBtnMobile) {
-            goToTeamsBtnMobile.addEventListener('click', (e) => {
+            goToTeamsBtnMobile.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
+                    const ok = await __confirmSaveBeforeExit();
+                    if (!ok) return;
                     window.location.href = '/my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1364,11 +1411,12 @@ function initializeApp() {
         }
         // Voce: Esci (torna alla pagina di benvenuto)
         if (exitToWelcomeBtnMobile) {
-            exitToWelcomeBtnMobile.addEventListener('click', (e) => {
+            exitToWelcomeBtnMobile.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { cancelAutosave(); saveCurrentMatch(); } catch(_){}
+                    const ok = await __confirmSaveBeforeExit();
+                    if (!ok) return;
                     window.location.href = '/my-teams.html';
                 } finally {
                     if (headerMenu) headerMenu.setAttribute('hidden', '');
@@ -1399,7 +1447,8 @@ function initializeApp() {
                 e.preventDefault();
                 e.stopPropagation();
                 try {
-                    try { cancelAutosave(); await saveCurrentMatch(); } catch(_){ }
+                    const ok = await __confirmSaveBeforeExit();
+                    if (!ok) return;
                     if (typeof window.authFunctions !== 'undefined' && typeof window.authFunctions.signOut === 'function') {
                         await window.authFunctions.signOut();
                     }
@@ -1445,6 +1494,12 @@ function initializeApp() {
                         try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
                         try {
                             const isScoutingPage = /scouting\.html$/i.test(String(location.pathname || '')) || !!document.getElementById('players-grid');
+                            const isInitialized = (typeof __getSetMetaPresence === 'function') ? __getSetMetaPresence(n) : true;
+                            if (!isInitialized && typeof window.openSetMetaDialog === 'function') {
+                                window.openSetMetaDialog(n);
+                                setSidebarOpen(false);
+                                return;
+                            }
                             if (isScoutingPage && typeof window.goToSet === 'function') {
                                 let ok = false;
                                 try {
@@ -1501,6 +1556,10 @@ function initializeApp() {
                         return;
                     }
                     const n = __parseSetFromHash();
+                    if (n && typeof __getSetMetaPresence === 'function' && !__getSetMetaPresence(n) && typeof window.openSetMetaDialog === 'function') {
+                        window.openSetMetaDialog(n);
+                        return;
+                    }
                     if (n && typeof window.goToSet === 'function') {
                         window.goToSet(n, { updateHash: false });
                     }
@@ -1543,15 +1602,16 @@ function scheduleAutosave(delayMs = 1500) {
 }
 
 // Salva la sessione corrente (locale e cloud, se disponibile)
-async function saveCurrentMatch() {
+function __buildCurrentSavePayloadSnapshot(opts) {
     try {
+        const persistSession = !!(opts && opts.persistSession);
         const sessionRaw = localStorage.getItem('currentScoutingSession');
-        if (!sessionRaw) return;
+        if (!sessionRaw) return null;
         let sessionData = {};
         try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
 
         const currentTeam = window.teamsModule?.getCurrentTeam?.();
-        const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId;
+        const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId || (currentTeam?.id != null ? String(currentTeam.id) : null);
         const actions = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
         const scoreHistory = (window.appState && Array.isArray(window.appState.scoreHistory)) ? window.appState.scoreHistory : [];
 
@@ -1573,8 +1633,9 @@ async function saveCurrentMatch() {
                 currentRotation: (window.appState && window.appState.currentRotation) ? window.appState.currentRotation : 'P1',
                 setStarted: !!(window.appState && window.appState.setStarted)
             };
-            // Persisti subito la sessione aggiornata
-            localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
+            if (persistSession) {
+                try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+            }
         } catch (e) { console.warn('Aggiornamento dati per set fallito:', e); }
 
         let matchId = sessionData.id;
@@ -1588,10 +1649,12 @@ async function saveCurrentMatch() {
             }
             if (!matchId) {
                 console.warn('ID partita mancante, salvataggio ignorato');
-                return;
+                return null;
             }
             sessionData.id = matchId;
-            try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+            if (persistSession) {
+                try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+            }
         }
 
         // Migrazione ID: se esiste selectedMatchId e differisce, allinea la sessione e lo stato
@@ -1601,13 +1664,31 @@ async function saveCurrentMatch() {
                 matchId = selectedId;
                 sessionData.id = selectedId;
                 try { if (window.appState?.currentMatch) window.appState.currentMatch.id = selectedId; } catch(_) {}
-                try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+                if (persistSession) {
+                    try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+                }
+            }
+        } catch(_) {}
+
+        try {
+            if (selectedTeamId && !sessionData.teamId) {
+                sessionData.teamId = selectedTeamId;
+                if (persistSession) {
+                    try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
+                }
             }
         } catch(_) {}
 
         const __label = __computeMatchStatusLabel(sessionData);
         const __code = __mapMatchStatusCode(__label);
-        const payload = {
+        const rosterForSave = (() => {
+            const r1 = Array.isArray(sessionData.roster) ? sessionData.roster : null;
+            if (r1 && r1.length) return r1;
+            const r2 = (window.appState && Array.isArray(window.appState.currentRoster)) ? window.appState.currentRoster : null;
+            if (r2 && r2.length) return r2;
+            return [];
+        })();
+        return {
             id: matchId,
             teamId: selectedTeamId || null,
             myTeam: currentTeam?.name || null,
@@ -1618,8 +1699,10 @@ async function saveCurrentMatch() {
             venue: sessionData.venue || '',
             description: sessionData.description || '',
             setConfig: sessionData.setConfig || {},
+            setMeta: sessionData.setMeta || {},
+            setSummary: sessionData.setSummary || {},
+            roster: rosterForSave,
             sessionStartTime: sessionData.startTime || null,
-            scoutingEndTime: new Date().toISOString(),
             status: __code,
             statusLabel: __label,
             score: {
@@ -1631,13 +1714,64 @@ async function saveCurrentMatch() {
             actionsBySet: sessionData.actionsBySet || {},
             scoreHistoryBySet: sessionData.scoreHistoryBySet || {},
             setStateBySet: sessionData.setStateBySet || {},
+        };
+    } catch (error) {
+        console.warn('__buildCurrentSavePayloadSnapshot errore:', error);
+        return null;
+    }
+}
+
+function __getCurrentCoreSignature() {
+    const snap = __buildCurrentSavePayloadSnapshot();
+    return snap ? __coreSignatureFromPayload(snap) : null;
+}
+
+function __needsSavePromptOnExit() {
+    try {
+        const sig = __getCurrentCoreSignature();
+        if (!sig) return false;
+        if (!__lastSavedCoreSignature) return true;
+        return sig !== __lastSavedCoreSignature;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function __confirmSaveBeforeExit() {
+    try {
+        if (!__needsSavePromptOnExit()) return true;
+        const doSave = window.confirm('I dati dell’autosave non coincidono con lo stato attuale. Vuoi eseguire “Salva” prima di uscire?');
+        if (!doSave) return true;
+        try { cancelAutosave(); } catch(_) {}
+        const ok = await saveCurrentMatch();
+        if (ok === false) {
+            alert('Salvataggio non riuscito. Rimango nella pagina.');
+            return false;
+        }
+        return true;
+    } catch (_) {
+        return true;
+    }
+}
+
+async function saveCurrentMatch() {
+    try {
+        const sessionRaw = localStorage.getItem('currentScoutingSession');
+        if (!sessionRaw) return true;
+        let sessionData = {};
+        try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
+
+        const payloadBase = __buildCurrentSavePayloadSnapshot({ persistSession: true });
+        if (!payloadBase) return true;
+        const payload = Object.assign({}, payloadBase, {
+            scoutingEndTime: new Date().toISOString(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        };
+        });
 
         try {
             const userEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
-            const teamIdRef = selectedTeamId || currentTeam?.id;
+            const teamIdRef = payload.teamId || (window.teamsModule?.getCurrentTeam?.()?.id != null ? String(window.teamsModule.getCurrentTeam().id) : null);
             if (userEmail && teamIdRef) {
                 payload.cloudRef = {
                     userEmail,
@@ -1652,6 +1786,7 @@ async function saveCurrentMatch() {
         try { window.dispatchEvent(new CustomEvent('save:started')); } catch(_) {}
 
         // Salvataggio locale
+        let localOk = true;
         try {
             const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
             const idx = local.findIndex(m => m.id === payload.id);
@@ -1668,7 +1803,7 @@ async function saveCurrentMatch() {
                 if (!prev) { byId.set(m.id, m); return; }
                 const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
                 const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
-                const better = (m.id === matchId ? 1 : 0) - (prev.id === matchId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                const better = (m.id === payload.id ? 1 : 0) - (prev.id === payload.id ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
                 if (better > 0) byId.set(m.id, m);
             });
             let merged = Array.from(byId.values());
@@ -1690,18 +1825,22 @@ async function saveCurrentMatch() {
                 if (!prev) { byContent.set(k, m); return; }
                 const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
                 const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
-                const better = (m.id === matchId ? 1 : 0) - (prev.id === matchId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                const better = (m.id === payload.id ? 1 : 0) - (prev.id === payload.id ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
                 if (better > 0) byContent.set(k, m);
             });
             const deduped = Array.from(byContent.values());
             localStorage.setItem('volleyMatches', JSON.stringify(deduped));
-        } catch (e) { console.warn('Salvataggio locale non riuscito:', e); }
+        } catch (e) {
+            localOk = false;
+            console.warn('Salvataggio locale non riuscito:', e);
+        }
 
         try {
             if (window.authFunctions?.getCurrentUser && window.firestoreService) {
                 const user = window.authFunctions.getCurrentUser();
                 if (user) {
-                    const teamId = selectedTeamId || currentTeam?.id || null;
+                    const currentTeam = window.teamsModule?.getCurrentTeam?.();
+                    const teamId = payload.teamId || (currentTeam?.id != null ? String(currentTeam.id) : null);
                     if (teamId) {
                         if (typeof window.firestoreService.saveMatchTree === 'function') {
                             await window.firestoreService.saveMatchTree(teamId, payload);
@@ -1726,11 +1865,17 @@ async function saveCurrentMatch() {
             }
         } catch (e) { console.warn('Salvataggio su Firestore non riuscito:', e); }
 
+        if (localOk) {
+            try { __lastSavedCoreSignature = __coreSignatureFromPayload(payload); } catch(_) {}
+        }
+
         // Notifica completamento salvataggio
-        try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: true } })); } catch(_) {}
+        try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: !!localOk } })); } catch(_) {}
+        return !!localOk;
     } catch (error) {
         console.warn('saveCurrentMatch errore:', error);
         try { window.dispatchEvent(new CustomEvent('save:completed', { detail: { ok: false, error } })); } catch(_) {}
+        return false;
     }
 }
 
@@ -4924,11 +5069,10 @@ function __isSetCompleted(setNum, home, away){
 function __computeSetStatus(setNum){
     const hasMeta = __getSetMetaPresence(setNum);
     const snap = __getSetDataSnapshot(setNum);
-    const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
     const completed = __isSetCompleted(setNum, snap.home, snap.away);
+    if (!hasMeta) return 'none';
     if (completed) return 'completed';
-    if (hasQuartine || snap.started || hasMeta) return 'partial';
-    return 'none';
+    return 'partial';
 }
 
 function updateSetSidebarColors(){
@@ -4994,13 +5138,21 @@ function __isSetCompletedFromScores(setNum, home, away){
 }
 
 function __computeSetStatusFromSession(session, setNum){
-    const hasMeta = __getSetMetaPresence(setNum);
+    let hasMeta = false;
+    try {
+        const cfg = session.setConfig || {};
+        const sm = session.setMeta && session.setMeta[setNum];
+        if (Number(setNum) === 1) {
+            hasMeta = !!((cfg && cfg.ourRotation && cfg.phase) || (sm && sm.ourRotation && sm.phase));
+        } else {
+            hasMeta = !!(sm && sm.ourRotation && sm.phase);
+        }
+    } catch (_) { hasMeta = false; }
     const snap = __getSetDataSnapshotFromSession(session, setNum);
-    const hasQuartine = Array.isArray(snap.actions) && snap.actions.length > 0;
     const completed = __isSetCompletedFromScores(setNum, snap.home, snap.away);
+    if (!hasMeta) return 'none';
     if (completed) return 'completed';
-    if (hasQuartine || snap.started || hasMeta) return 'partial';
-    return 'none';
+    return 'partial';
 }
 
 function __computeMatchStatusLabel(session){
@@ -5243,6 +5395,11 @@ function openSetMetaDialog(setNumber){
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
             } catch(_){ }
             try { appState.currentSet = setNumber; } catch(_){ }
+            try {
+                var desired = '#/set/' + String(setNumber);
+                __lastHandledSetHash = desired;
+                if (location.hash !== desired) location.hash = desired;
+            } catch(_){ }
             try { startSet(); } catch(_){ }
             try { updateSetSidebarColors(); } catch(_){ }
             try {
