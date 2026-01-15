@@ -979,7 +979,12 @@ const firestoreService = {
                 if (m && (!m.teamId || String(m.teamId).trim() !== tId)) return Object.assign({}, m, { teamId: tId });
                 return m;
             });
-            const combinedTeam = mergedTeam.concat(localOnlyWithTeam);
+            const combinedTeam = mergedTeam.concat(localOnlyWithTeam).map((m) => {
+                const out = Object.assign({}, m);
+                const src = String(out?.source || '').toLowerCase();
+                if (src.startsWith('firestore')) out.source = 'local_hydrated';
+                return out;
+            });
             combinedTeam.sort((a, b) => {
                 const da = String(a?.matchDate || a?.date || a?.updatedAt || a?.createdAt || '');
                 const db = String(b?.matchDate || b?.date || b?.updatedAt || b?.createdAt || '');
