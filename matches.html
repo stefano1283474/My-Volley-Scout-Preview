@@ -1608,6 +1608,141 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
+                function toEpoch(v){
+                    try {
+                        if (!v) return 0;
+                        if (typeof v === 'number') return v;
+                        const d = new Date(v);
+                        const t = d.getTime();
+                        return Number.isFinite(t) ? t : 0;
+                    } catch(_) { return 0; }
+                }
+                function mergePerSetPreferExisting(existingMap, incomingMap, meaningful){
+                    const incoming = (incomingMap && typeof incomingMap === 'object') ? incomingMap : {};
+                    const existing = (existingMap && typeof existingMap === 'object') ? existingMap : {};
+                    const out = Object.assign({}, incoming);
+                    const keys = new Set([].concat(Object.keys(incoming), Object.keys(existing)));
+                    keys.forEach((k) => {
+                        const ev = existing[k];
+                        const iv = incoming[k];
+                        const eOk = meaningful(ev);
+                        const iOk = meaningful(iv);
+                        if (eOk) out[k] = ev;
+                        else if (iOk) out[k] = iv;
+                        else if (iv !== undefined) out[k] = iv;
+                        else if (ev !== undefined) out[k] = ev;
+                    });
+                    return out;
+                }
+                function mergeSetMetaPreferExisting(existingMap, incomingMap){
+                    const incoming = (incomingMap && typeof incomingMap === 'object') ? incomingMap : {};
+                    const existing = (existingMap && typeof existingMap === 'object') ? existingMap : {};
+                    const out = Object.assign({}, incoming);
+                    const keys = new Set([].concat(Object.keys(incoming), Object.keys(existing)));
+                    keys.forEach((k) => {
+                        const iv = (incoming[k] && typeof incoming[k] === 'object') ? incoming[k] : {};
+                        const ev = (existing[k] && typeof existing[k] === 'object') ? existing[k] : {};
+                        out[k] = Object.assign({}, iv, ev);
+                    });
+                    return out;
+                }
+                function hasStateData(st){
+                    try {
+                        if (!st || typeof st !== 'object') return false;
+                        if (st.setStarted) return true;
+                        const h = Number(st.homeScore || 0);
+                        const a = Number(st.awayScore || 0);
+                        return (h + a) > 0;
+                    } catch(_) { return false; }
+                }
+                function hasSummaryData(s){
+                    try {
+                        if (!s || typeof s !== 'object') return false;
+                        const h = Number(s.home || 0);
+                        const a = Number(s.away || 0);
+                        return (h + a) > 0;
+                    } catch(_) { return false; }
+                }
+                function hasMetaData(m){
+                    try {
+                        if (!m || typeof m !== 'object') return false;
+                        return !!(m.phase || m.ourRotation);
+                    } catch(_) { return false; }
+                }
+                function hasAnyDetails(m){
+                    try {
+                        const ab = m?.actionsBySet;
+                        const st = m?.setStateBySet;
+                        const sm = m?.setSummary;
+                        const meta = m?.setMeta;
+                        const sh = m?.scoreHistoryBySet;
+                        const anyAb = ab && typeof ab === 'object' && Object.keys(ab).some(k => Array.isArray(ab[k]) && ab[k].length);
+                        const anySt = st && typeof st === 'object' && Object.keys(st).some(k => hasStateData(st[k]));
+                        const anySm = sm && typeof sm === 'object' && Object.keys(sm).some(k => hasSummaryData(sm[k]));
+                        const anyMeta = meta && typeof meta === 'object' && Object.keys(meta).some(k => hasMetaData(meta[k]));
+                        const anySh = sh && typeof sh === 'object' && Object.keys(sh).some(k => Array.isArray(sh[k]) && sh[k].length);
+                        return anyAb || anySt || anySm || anyMeta || anySh;
+                    } catch(_) { return false; }
+                }
+                function mergeSetStatePreferExisting(existingMap, incomingMap){
+                    const incoming = (incomingMap && typeof incomingMap === 'object') ? incomingMap : {};
+                    const existing = (existingMap && typeof existingMap === 'object') ? existingMap : {};
+                    const out = Object.assign({}, incoming);
+                    const keys = new Set([].concat(Object.keys(incoming), Object.keys(existing)));
+                    keys.forEach((k) => {
+                        const iv = (incoming[k] && typeof incoming[k] === 'object') ? incoming[k] : {};
+                        const ev = (existing[k] && typeof existing[k] === 'object') ? existing[k] : {};
+                        const eOk = hasStateData(ev);
+                        const iOk = hasStateData(iv);
+                        if (eOk) out[k] = Object.assign({}, iv, ev);
+                        else if (iOk) out[k] = Object.assign({}, ev, iv);
+                        else if (incoming[k] !== undefined) out[k] = Object.assign({}, ev, iv);
+                        else if (existing[k] !== undefined) out[k] = ev;
+                    });
+                    return out;
+                }
+                function mergeSetSummaryPreferExisting(existingMap, incomingMap){
+                    const incoming = (incomingMap && typeof incomingMap === 'object') ? incomingMap : {};
+                    const existing = (existingMap && typeof existingMap === 'object') ? existingMap : {};
+                    const out = Object.assign({}, incoming);
+                    const keys = new Set([].concat(Object.keys(incoming), Object.keys(existing)));
+                    keys.forEach((k) => {
+                        const iv = (incoming[k] && typeof incoming[k] === 'object') ? incoming[k] : {};
+                        const ev = (existing[k] && typeof existing[k] === 'object') ? existing[k] : {};
+                        const eOk = hasSummaryData(ev);
+                        const iOk = hasSummaryData(iv);
+                        if (eOk) out[k] = Object.assign({}, iv, ev);
+                        else if (iOk) out[k] = Object.assign({}, ev, iv);
+                        else if (incoming[k] !== undefined) out[k] = Object.assign({}, ev, iv);
+                        else if (existing[k] !== undefined) out[k] = ev;
+                    });
+                    return out;
+                }
+                function mergeMatchPreferExistingDetails(existingMatch, incomingMatch){
+                    const out = Object.assign({}, incomingMatch || {});
+                    const e = existingMatch || {};
+                    out.actionsBySet = mergePerSetPreferExisting(e.actionsBySet || {}, out.actionsBySet || {}, (v) => Array.isArray(v) && v.length > 0);
+                    out.scoreHistoryBySet = mergePerSetPreferExisting(e.scoreHistoryBySet || {}, out.scoreHistoryBySet || {}, (v) => Array.isArray(v) && v.length > 0);
+                    out.setMeta = mergeSetMetaPreferExisting(e.setMeta || {}, out.setMeta || {});
+                    out.setStateBySet = mergeSetStatePreferExisting(e.setStateBySet || {}, out.setStateBySet || {});
+                    out.setSummary = mergeSetSummaryPreferExisting(e.setSummary || {}, out.setSummary || {});
+                    if ((!Array.isArray(out.roster) || out.roster.length === 0) && Array.isArray(e.roster) && e.roster.length) out.roster = e.roster;
+                    const et = toEpoch(e.updatedAt || e.scoutingEndTime || e.createdAt);
+                    const it = toEpoch(out.updatedAt || out.scoutingEndTime || out.createdAt);
+                    if (et && (!it || et > it)) out.updatedAt = e.updatedAt || out.updatedAt;
+                    return out;
+                }
+                try {
+                    const localAll = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                    const localMatch = Array.isArray(localAll) ? localAll.find(x => String(x?.id || '') === String(match.id || '')) : null;
+                    if (localMatch && typeof localMatch === 'object') {
+                        const localUpdated = toEpoch(localMatch.updatedAt || localMatch.scoutingEndTime || localMatch.createdAt);
+                        const matchUpdated = toEpoch(match.updatedAt || match.scoutingEndTime || match.createdAt);
+                        const preferLocal = (localUpdated && (!matchUpdated || localUpdated > matchUpdated)) || (hasAnyDetails(localMatch) && !hasAnyDetails(match));
+                        if (preferLocal) Object.assign(match, mergeMatchPreferExistingDetails(localMatch, match));
+                        else Object.assign(match, mergeMatchPreferExistingDetails(match, localMatch));
+                    }
+                } catch(_) {}
                 try {
                     const team = window.teamsModule?.getCurrentTeam?.();
                     const teamId = (team && team.id) ? team.id : (localStorage.getItem('selectedTeamId') || match.teamId || null);
@@ -1616,12 +1751,13 @@
                         const res = await window.firestoreService.getMatchData(teamId, match.id);
                         if (res?.success) {
                             if (res.roster && Array.isArray(res.roster) && (!Array.isArray(match.roster) || match.roster.length === 0)) match.roster = res.roster;
-                            if (res.details) {
-                                match.actionsBySet = res.details.actionsBySet || match.actionsBySet || {};
-                                match.setMeta = res.details.setMeta || match.setMeta || {};
-                                match.setStateBySet = res.details.setStateBySet || match.setStateBySet || {};
-                                match.setSummary = res.details.setSummary || match.setSummary || {};
-                                match.scoreHistoryBySet = res.details.scoreHistoryBySet || match.scoreHistoryBySet || {};
+                            if (res.details && typeof res.details === 'object') {
+                                const details = res.details || {};
+                                match.actionsBySet = mergePerSetPreferExisting(match.actionsBySet || {}, details.actionsBySet || {}, (v) => Array.isArray(v) && v.length > 0);
+                                match.scoreHistoryBySet = mergePerSetPreferExisting(match.scoreHistoryBySet || {}, details.scoreHistoryBySet || {}, (v) => Array.isArray(v) && v.length > 0);
+                                match.setMeta = mergeSetMetaPreferExisting(match.setMeta || {}, details.setMeta || {});
+                                match.setStateBySet = mergeSetStatePreferExisting(match.setStateBySet || {}, details.setStateBySet || {});
+                                match.setSummary = mergeSetSummaryPreferExisting(match.setSummary || {}, details.setSummary || {});
                             }
                         }
                     }

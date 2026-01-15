@@ -1768,6 +1768,8 @@ async function saveCurrentMatch() {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         });
+        const payloadId = String(payload.id || '').trim();
+        if (payloadId) payload.id = payloadId;
 
         try {
             const userEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
@@ -1789,7 +1791,7 @@ async function saveCurrentMatch() {
         let localOk = true;
         try {
             const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-            const idx = local.findIndex(m => m.id === payload.id);
+            const idx = local.findIndex(m => String(m?.id || '').trim() === payloadId);
             if (idx >= 0) local[idx] = payload; else local.unshift(payload);
 
             // 1) Deduplica PRIMARIA per id partita
@@ -1798,13 +1800,14 @@ async function saveCurrentMatch() {
             };
             const byId = new Map();
             local.forEach(m => {
-                if (!m || !m.id) return;
-                const prev = byId.get(m.id);
-                if (!prev) { byId.set(m.id, m); return; }
+                const k = String(m?.id || '').trim();
+                if (!k) return;
+                const prev = byId.get(k);
+                if (!prev) { byId.set(k, m); return; }
                 const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
                 const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
-                const better = (m.id === payload.id ? 1 : 0) - (prev.id === payload.id ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
-                if (better > 0) byId.set(m.id, m);
+                const better = (k === payloadId ? 1 : 0) - (String(prev?.id || '').trim() === payloadId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                if (better > 0) byId.set(k, m);
             });
             let merged = Array.from(byId.values());
 
@@ -1825,7 +1828,7 @@ async function saveCurrentMatch() {
                 if (!prev) { byContent.set(k, m); return; }
                 const prevTs = new Date(prev.updatedAt||prev.createdAt||0).getTime();
                 const mTs = new Date(m.updatedAt||m.createdAt||0).getTime();
-                const better = (m.id === payload.id ? 1 : 0) - (prev.id === payload.id ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
+                const better = (String(m?.id || '').trim() === payloadId ? 1 : 0) - (String(prev?.id || '').trim() === payloadId ? 1 : 0) || (mTs - prevTs) || (scoreOf(m) - scoreOf(prev));
                 if (better > 0) byContent.set(k, m);
             });
             const deduped = Array.from(byContent.values());
