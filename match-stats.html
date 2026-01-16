@@ -18,14 +18,34 @@
       .set-filter { position: sticky; top: var(--sticky-filter-top, 56px); z-index: 5; background: #ffffff; padding: 4px 0; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
       .set-filter .filter-btn { margin-right: 6px; }
       .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .simple-table { border-collapse: separate; border-spacing: 0; min-width: 840px; width: max-content; table-layout: auto; display: inline-table; }
-      .simple-table th, .simple-table td { white-space: nowrap; }
+      .simple-table { border-collapse: separate; border-spacing: 0; min-width: 0; width: max-content; table-layout: fixed; display: inline-table; }
+      .simple-table th, .simple-table td { white-space: nowrap; padding: 2px 4px; font-size: 12px; line-height: 1.1; }
       .simple-table th:first-child,
-      .simple-table td:first-child { position: sticky; left: 0; z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
+      .simple-table td:first-child { position: sticky; left: 0; z-index: 4; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
       .simple-table th:nth-child(2),
-      .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 56px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); }
+      .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 48px); z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table th:nth-child(3),
+      .simple-table td:nth-child(3) { position: sticky; left: var(--sticky-left-3, 96px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table th:nth-child(4),
+      .simple-table td:nth-child(4),
+      .simple-table th:nth-child(5),
+      .simple-table td:nth-child(5),
+      .simple-table th:nth-child(6),
+      .simple-table td:nth-child(6),
+      .simple-table th:nth-child(7),
+      .simple-table td:nth-child(7),
+      .simple-table th:nth-child(8),
+      .simple-table td:nth-child(8),
+      .simple-table th:nth-child(9),
+      .simple-table td:nth-child(9),
+      .simple-table th:nth-child(10),
+      .simple-table td:nth-child(10),
+      .simple-table th:nth-child(11),
+      .simple-table td:nth-child(11),
+      .simple-table th:nth-child(12),
+      .simple-table td:nth-child(12) { width: 4ch; min-width: 4ch; max-width: 4ch; text-align: center; padding-left: 0; padding-right: 0; }
       .simple-table tr.total-row td { text-align: center; }
-      .simple-table tr.total-row td[colspan="2"] { text-align: left; }
+      .simple-table tr.total-row td[colspan="3"] { text-align: left; }
     </style>
   </head>
   <body class="page-report">
@@ -120,31 +140,31 @@
           <div class="report-row">
             <div class="panel">
               <div class="panel-title">Attacco – per Giocatore (All Set)</div>
-              <div class="placeholder-area" id="all-attacco">Tabella Attacco</div>
+              <div class="placeholder-area" id="all-attacco"></div>
             </div>
           </div>
           <div class="report-row">
             <div class="panel">
               <div class="panel-title">Battuta – per Giocatore (All Set)</div>
-              <div class="placeholder-area" id="all-battuta">Tabella Battuta</div>
+              <div class="placeholder-area" id="all-battuta"></div>
             </div>
           </div>
           <div class="report-row">
             <div class="panel">
               <div class="panel-title">Muro – per Giocatore (All Set)</div>
-              <div class="placeholder-area" id="all-muro">Tabella Muro</div>
+              <div class="placeholder-area" id="all-muro"></div>
             </div>
           </div>
           <div class="report-row">
             <div class="panel">
               <div class="panel-title">Ricezione – per Giocatore (All Set)</div>
-              <div class="placeholder-area" id="all-ricezione">Tabella Ricezione</div>
+              <div class="placeholder-area" id="all-ricezione"></div>
             </div>
           </div>
           <div class="report-row">
             <div class="panel">
               <div class="panel-title">Difesa – per Giocatore (All Set)</div>
-              <div class="placeholder-area" id="all-difesa">Tabella Difesa</div>
+              <div class="placeholder-area" id="all-difesa"></div>
             </div>
           </div>
         </div>
@@ -152,20 +172,62 @@
     </main>
 
   <script src="connection-manager.js"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function(){
-      try {
+      (async function(){
         try {
-          const s = sessionStorage.getItem('currentScoutingSession');
-          if (s) { localStorage.setItem('currentScoutingSession', s); }
+          try {
+            const qs = new URLSearchParams(location.search || '');
+            const team = qs.get('team');
+            const match = qs.get('match');
+            if (team) localStorage.setItem('selectedTeamId', String(team));
+            if (match) localStorage.setItem('selectedMatchId', String(match));
+          } catch(_) {}
+
+          try {
+            const s = sessionStorage.getItem('currentScoutingSession');
+            if (s) { localStorage.setItem('currentScoutingSession', s); }
+          } catch(_) {}
+
+          const selectedMatchId = (() => { try { return String(localStorage.getItem('selectedMatchId') || '').trim(); } catch(_) { return ''; } })();
+          let sessionData = {};
+          try { sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}') || {}; } catch(_) { sessionData = {}; }
+
+          const sessionId = String(sessionData?.id || sessionData?.matchId || '').trim();
+          const needsMatch = !!(selectedMatchId && sessionId && selectedMatchId !== sessionId);
+
+          let payload = (sessionData && Object.keys(sessionData).length > 0 && !needsMatch) ? sessionData : null;
+
+          if (!payload && selectedMatchId) {
+            try {
+              const localMatches = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+              const found = Array.isArray(localMatches) ? localMatches.find(m => String(m?.id || '') === selectedMatchId) : null;
+              if (found) {
+                payload = Object.assign({}, found, { id: selectedMatchId });
+              }
+            } catch(_) {}
+          }
+
+          if (!payload && selectedMatchId) {
+            payload = { id: selectedMatchId, teamId: (() => { try { return localStorage.getItem('selectedTeamId') || null; } catch(_) { return null; } })() };
+          }
+
+          if (payload && typeof window.loadScoutingSession === 'function') {
+            try { localStorage.setItem('currentScoutingSession', JSON.stringify(payload)); } catch(_) {}
+            try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(payload)); } catch(_) {}
+            try { window.loadScoutingSession(payload); } catch(_) {}
+          }
         } catch(_) {}
-        const sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
-        if (sessionData && Object.keys(sessionData).length > 0 && typeof window.loadScoutingSession === 'function') {
-          window.loadScoutingSession(sessionData);
-        }
-      } catch(_) {}
-      try { switchPage('match-stats'); } catch (_) {}
+        try { switchPage('match-stats'); } catch (_) {}
+        const safeRender = () => {
+          try { if (typeof window.renderMatchStats === 'function') window.renderMatchStats(); } catch(_) {}
+          setTimeout(() => { try { computeStickyOffsets(); setStickyFilterTop(); } catch(_) {} }, 0);
+        };
+        safeRender();
+        setTimeout(safeRender, 350);
+        setTimeout(safeRender, 1200);
+      })();
       try {
         const toggle = document.getElementById('headerMenuToggle');
         const menu = document.getElementById('headerMenu');
@@ -188,10 +250,13 @@
       function computeStickyOffsets(){
         try {
           document.querySelectorAll('#match-stats .simple-table').forEach(tbl => {
-            const firstCell = tbl.querySelector('tbody tr td:first-child') || tbl.querySelector('thead tr th:first-child');
-            if (!firstCell) return;
-            const w = Math.round(firstCell.getBoundingClientRect().width);
-            tbl.style.setProperty('--sticky-left-2', (w || 56) + 'px');
+            const c1 = tbl.querySelector('tbody tr td:first-child') || tbl.querySelector('thead tr th:first-child');
+            const c2 = tbl.querySelector('tbody tr td:nth-child(2)') || tbl.querySelector('thead tr th:nth-child(2)');
+            if (!c1 || !c2) return;
+            const w1 = Math.round(c1.getBoundingClientRect().width);
+            const w2 = Math.round(c2.getBoundingClientRect().width);
+            tbl.style.setProperty('--sticky-left-2', (w1 || 48) + 'px');
+            tbl.style.setProperty('--sticky-left-3', ((w1 || 48) + (w2 || 48)) + 'px');
           });
         } catch(_) {}
       }
@@ -206,32 +271,6 @@
       setStickyFilterTop();
       window.addEventListener('resize', computeStickyOffsets);
       window.addEventListener('resize', setStickyFilterTop);
-      document.addEventListener('click', (e) => {
-        const btn = e.target && e.target.closest('[data-set-filter]');
-        if (!btn) return;
-        const fund = btn.getAttribute('data-fund');
-        const setLabel = btn.getAttribute('data-set');
-        if (!fund || !setLabel) { setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50); return; }
-        try {
-          const map = window.appState && window.appState.allSetFilterByFundamental ? window.appState.allSetFilterByFundamental : {};
-          let selected = Array.isArray(map[fund]) ? map[fund].map(String) : ['ALL'];
-          if (setLabel === 'ALL') {
-            selected = ['ALL'];
-          } else {
-            selected = selected.filter(s => s !== 'ALL');
-            const has = selected.includes(String(setLabel));
-            if (has) {
-              selected = selected.filter(s => s !== String(setLabel));
-            } else {
-              selected = selected.concat([String(setLabel)]);
-            }
-            if (selected.length === 0) selected = ['ALL'];
-          }
-          if (window.appState) window.appState.allSetFilterByFundamental[fund] = selected;
-          try { renderMatchStats(); } catch(_) {}
-        } catch(_) {}
-        setTimeout(() => { computeStickyOffsets(); setStickyFilterTop(); }, 50);
-      });
       try {
         const list = document.getElementById('setToolbar');
         if (list) {
