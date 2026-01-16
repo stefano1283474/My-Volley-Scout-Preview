@@ -5287,8 +5287,6 @@ function __mapMatchStatusCode(label){
     return 'initialized';
 }
 
-let __lastEndSetAutoSaveKey = null;
-
 function checkSetEnd() {
     // Evita prompt durante import/ricostruzioni automatiche
     if (appState.suppressSetPrompts) {
@@ -5315,12 +5313,6 @@ function checkSetEnd() {
     
     if (setWinner) {
         try {
-            const key = String(appState.currentSet) + ':' + String(homeScore) + '-' + String(awayScore);
-            if (__lastEndSetAutoSaveKey !== key) {
-                __lastEndSetAutoSaveKey = key;
-                try { cancelAutosave(); } catch(_) {}
-                try { saveCurrentMatch(); } catch(_) {}
-            }
             if (typeof window.openEndSetDialog === 'function') {
                 window.openEndSetDialog(appState.currentSet, setWinner, homeScore, awayScore);
             }
@@ -5382,9 +5374,6 @@ function openEndSetDialog(setNumber, winner, homeScore, awayScore){
         try{ btnNext.style.background='#fff'; btnNext.style.color='#0d6efd'; btnNext.style.border='1px solid #0d6efd'; btnNext.style.borderRadius='10px'; btnNext.style.padding='6px 10px'; btnNext.style.fontWeight='600'; }catch(_){ }
         btnNext.addEventListener('click', function(){
             if (setNumber >= 6) { try { window.location.href = '/match-stats.html'; } catch(_) {} closeDialog('end-set-dialog'); return; }
-            appState.currentSet = nextSetNum;
-            try { updateSetSidebarColors(); } catch(_) {}
-            try { resetCurrentSet(); } catch(_) {}
             try { openSetMetaDialog(nextSetNum); } catch(_) {}
             closeDialog('end-set-dialog');
         });
@@ -5410,9 +5399,6 @@ function openEndSetDialog(setNumber, winner, homeScore, awayScore){
             btnNext.textContent = (setNumber >= 6) ? 'Vai a Report' : ('Passa al Set ' + String(nextSetNum));
             btnNext.onclick = function(){
                 if (setNumber >= 6) { try { window.location.href = '/match-stats.html'; } catch(_) {} closeDialog('end-set-dialog'); return; }
-                appState.currentSet = nextSetNum;
-                try { updateSetSidebarColors(); } catch(_) {}
-                try { resetCurrentSet(); } catch(_) {}
                 try { openSetMetaDialog(nextSetNum); } catch(_) {}
                 closeDialog('end-set-dialog');
             };
@@ -5505,10 +5491,27 @@ function openSetMetaDialog(setNumber){
         btnStart.textContent = 'Avvia Set';
         btnStart.className = 'btn';
         try{ btnStart.style.background='#fff'; btnStart.style.color='#0d6efd'; btnStart.style.border='1px solid #0d6efd'; btnStart.style.borderRadius='10px'; btnStart.style.padding='6px 10px'; btnStart.style.fontWeight='600'; }catch(_){ }
-        btnStart.addEventListener('click', function(){
+        btnStart.addEventListener('click', async function(){
+            try { btnStart.disabled = true; } catch(_) {}
             var phase = selPhase.value || 'servizio';
             var ourRot = selRot.value || 'P1';
             var oppRot = selOpp.value || '';
+            try {
+                if (typeof cancelAutosave === 'function') cancelAutosave();
+            } catch(_) {}
+            try {
+                if (typeof saveCurrentMatch === 'function') {
+                    const ok = await saveCurrentMatch();
+                    if (ok === false) {
+                        try { alert('Salvataggio automatico non riuscito. Riprova.'); } catch(_) {}
+                        try { btnStart.disabled = false; } catch(_) {}
+                        return;
+                    }
+                }
+            } catch(_) {
+                try { btnStart.disabled = false; } catch(_) {}
+                return;
+            }
             try {
                 var sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
                 sessionData.setMeta = sessionData.setMeta || {};
