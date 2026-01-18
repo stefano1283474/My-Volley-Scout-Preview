@@ -2508,7 +2508,7 @@ function openDialog(dialogId) {
     // Gestione custom <div class="dialog">
     el.removeAttribute('hidden');
     el.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
+    try { __mvsLockScroll(); } catch(_) { document.body.style.overflow = 'hidden'; }
 }
 
 function closeDialog(dialogId) {
@@ -2527,7 +2527,68 @@ function closeDialog(dialogId) {
     el.classList.remove('is-open');
     // Ripristina lo scroll se nessun altro dialog custom è aperto
     const anyOpen = document.querySelector('.dialog.is-open:not([hidden])');
-    if (!anyOpen) document.body.style.overflow = '';
+    if (!anyOpen) {
+        try { __mvsUnlockScroll(); } catch(_) { document.body.style.overflow = ''; }
+    }
+}
+
+function __mvsEnsureScrollLockState() {
+    try {
+        if (!window.__mvsScrollLock) window.__mvsScrollLock = { count: 0 };
+    } catch (_) {}
+}
+
+function __mvsLockScroll() {
+    try {
+        __mvsEnsureScrollLockState();
+        const st = window.__mvsScrollLock;
+        if ((st.count || 0) === 0) {
+            st.scrollY = window.scrollY || window.pageYOffset || 0;
+            st.bodyOverflow = document.body.style.overflow;
+            st.htmlOverflow = document.documentElement.style.overflow;
+            st.bodyPosition = document.body.style.position;
+            st.bodyTop = document.body.style.top;
+            st.bodyWidth = document.body.style.width;
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${st.scrollY}px`;
+            document.body.style.width = '100%';
+        }
+        st.count = (st.count || 0) + 1;
+    } catch (_) {}
+}
+
+function __mvsUnlockScroll() {
+    try {
+        __mvsEnsureScrollLockState();
+        const st = window.__mvsScrollLock;
+        st.count = Math.max(0, (st.count || 0) - 1);
+        if (st.count !== 0) return;
+        document.body.style.overflow = st.bodyOverflow || '';
+        document.documentElement.style.overflow = st.htmlOverflow || '';
+        document.body.style.position = st.bodyPosition || '';
+        document.body.style.top = st.bodyTop || '';
+        document.body.style.width = st.bodyWidth || '';
+        const y = Number(st.scrollY || 0) || 0;
+        window.scrollTo(0, y);
+    } catch (_) {
+        try {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+        } catch (_) {}
+    }
+}
+
+function __mvsCloseModalElement(dlg) {
+    try { if (dlg && dlg.parentNode) dlg.parentNode.removeChild(dlg); else if (dlg && typeof dlg.remove === 'function') dlg.remove(); } catch (_) {}
+    try {
+        const anyOpen = document.querySelector('.dialog.is-open:not([hidden])');
+        if (!anyOpen) __mvsUnlockScroll();
+    } catch (_) { try { __mvsUnlockScroll(); } catch(_){} }
 }
 
 // Ricalcolo completo di punteggio, fase e rotazione partendo dalle azioni loggate
@@ -4501,7 +4562,7 @@ window.openActionsDialog = function(){
             close.type = 'button';
             close.textContent = 'Chiudi';
             close.className = '';
-            close.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
             header.appendChild(title);
             header.appendChild(close);
@@ -4527,12 +4588,12 @@ window.openActionsDialog = function(){
             var cancelBtn = document.createElement('button');
             cancelBtn.className = '';
             cancelBtn.textContent = 'Annulla';
-            cancelBtn.addEventListener('click', function(){ try{ dlg.remove(); }catch(_){} });
+            cancelBtn.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{ cancelBtn.style.background='#fff'; cancelBtn.style.color='#0d6efd'; cancelBtn.style.border='1px solid #0d6efd'; cancelBtn.style.borderRadius='10px'; cancelBtn.style.padding='6px 10px'; cancelBtn.style.fontWeight='600'; }catch(_){}
             var saveBtn = document.createElement('button');
             saveBtn.className = '';
             saveBtn.textContent = 'Salva';
-            saveBtn.addEventListener('click', function(){ try{ recomputeFromActionsLog(); dlg.remove(); }catch(_){} });
+            saveBtn.addEventListener('click', function(){ try{ recomputeFromActionsLog(); __mvsCloseModalElement(dlg); }catch(_){} });
             try{ saveBtn.style.background='#fff'; saveBtn.style.color='#0d6efd'; saveBtn.style.border='1px solid #0d6efd'; saveBtn.style.borderRadius='10px'; saveBtn.style.padding='6px 10px'; saveBtn.style.fontWeight='600'; }catch(_){}
             footer.appendChild(cancelBtn);
             footer.appendChild(saveBtn);
@@ -4540,10 +4601,10 @@ window.openActionsDialog = function(){
             panel.appendChild(body);
             panel.appendChild(footer);
             dlg.appendChild(panel);
-            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
-            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ __mvsCloseModalElement(dlg); }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ __mvsCloseModalElement(dlg); }catch(_){} document.removeEventListener('keydown', onKey); } });
             document.body.appendChild(dlg);
-            try{ document.body.style.overflow='hidden'; }catch(_){ }
+            try{ __mvsLockScroll(); }catch(_){ try{ document.body.style.overflow='hidden'; }catch(_){ } }
         }
         var totalEl = document.getElementById('actions-total');
         if (totalEl) totalEl.textContent = 'Totale azioni: ' + String(logs.length);
@@ -4689,7 +4750,7 @@ window.openActionViewer = function(index){
             var close = document.createElement('button');
             close.type = 'button';
             close.textContent = 'Chiudi';
-            close.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
             header.appendChild(h3);
             header.appendChild(close);
@@ -4725,17 +4786,17 @@ window.openActionViewer = function(index){
             var close2 = document.createElement('button');
             close2.type = 'button';
             close2.textContent = 'Chiudi';
-            close2.addEventListener('click', function(){ try{ dlg.remove(); }catch(_){} });
+            close2.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{ close2.style.background='#fff'; close2.style.color='#0d6efd'; close2.style.border='1px solid #0d6efd'; close2.style.borderRadius='10px'; close2.style.padding='6px 10px'; close2.style.fontWeight='600'; }catch(_){}
             footer.appendChild(close2);
             panel.appendChild(header);
             panel.appendChild(body);
             panel.appendChild(footer);
             dlg.appendChild(panel);
-            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
-            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ __mvsCloseModalElement(dlg); }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ __mvsCloseModalElement(dlg); }catch(_){} document.removeEventListener('keydown', onKey); } });
             document.body.appendChild(dlg);
-            try{ document.body.style.overflow='hidden'; }catch(_){ }
+            try{ __mvsLockScroll(); }catch(_){ try{ document.body.style.overflow='hidden'; }catch(_){ } }
         } else {
             // if dialog exists, just update contents
             var body = dlg.querySelector('.dialog-body');
@@ -4812,7 +4873,7 @@ window.openActionEditor = function(index){
             cancelIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18 6L6 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M6 6L18 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
             cancelIcon.title = 'Annulla';
             cancelIcon.setAttribute('aria-label','Annulla');
-            cancelIcon.addEventListener('click', function(){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} });
+            cancelIcon.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{
                 cancelIcon.style.background='#fff';
                 cancelIcon.style.color='#0d6efd';
@@ -4863,7 +4924,7 @@ window.openActionEditor = function(index){
                     var updated = parts.join(' ');
                     if (logs[index]) logs[index].action = updated;
                     recomputeFromActionsLog();
-                    try { dlg.remove(); } catch(_){}
+                    try { __mvsCloseModalElement(dlg); } catch(_){}
                     openActionsDialog();
                 } catch(_){}
             });
@@ -4921,10 +4982,10 @@ window.openActionEditor = function(index){
             panel.appendChild(body);
             panel.appendChild(footer);
             dlg.appendChild(panel);
-            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} } });
-            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ dlg.remove(); document.body.style.overflow=''; }catch(_){} document.removeEventListener('keydown', onKey); } });
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ __mvsCloseModalElement(dlg); }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ __mvsCloseModalElement(dlg); }catch(_){} document.removeEventListener('keydown', onKey); } });
             document.body.appendChild(dlg);
-            try{ document.body.style.overflow='hidden'; }catch(_){ }
+            try{ __mvsLockScroll(); }catch(_){ try{ document.body.style.overflow='hidden'; }catch(_){ } }
         }
         var rowsEl = document.getElementById('quartine-editor-rows');
         if (rowsEl) {
