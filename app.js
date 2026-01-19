@@ -2586,8 +2586,10 @@ function __mvsUnlockScroll() {
 function __mvsCloseModalElement(dlg) {
     try { if (dlg && dlg.parentNode) dlg.parentNode.removeChild(dlg); else if (dlg && typeof dlg.remove === 'function') dlg.remove(); } catch (_) {}
     try {
+        __mvsUnlockScroll();
         const anyOpen = document.querySelector('.dialog.is-open:not([hidden])');
-        if (!anyOpen) __mvsUnlockScroll();
+        const st = window.__mvsScrollLock;
+        if (anyOpen && (!st || !st.count)) __mvsLockScroll();
     } catch (_) { try { __mvsUnlockScroll(); } catch(_){} }
 }
 
@@ -3020,11 +3022,16 @@ function selectPlayer(number, name, btnEl) {
             // Sostituisci il player nella riga della sequenza selezionata
             const item = appState.currentSequence[target.index];
             const q = String(item.quartet || '');
-            const f = q.charAt(2);
-            const e = q.charAt(3);
             const nn = String(number).padStart(2, '0');
-            item.quartet = `${nn}${f}${e}`;
             item.playerName = name;
+            if (q.length >= 4) {
+                const f = q.charAt(2);
+                const e = q.charAt(3);
+                item.quartet = `${nn}${f}${e}`;
+            } else {
+                __mvsSetSequenceParts(item, { playerNumber: nn });
+                __mvsRebuildQuartetFromParts(item);
+            }
 
             appState.replacePlayerMode = false;
             appState.replaceTarget = null;
@@ -3119,7 +3126,7 @@ function selectPlayer(number, name, btnEl) {
             const tempResult = determineFinalResult(fundamental, evaluation);
             const isPoint = tempResult === 'home_point' || tempResult === 'away_point';
             if (isPoint) {
-                const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+                const actionString = appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ');
                 const result = parseAction(actionString);
                 result.playerName = prevPlayer.name;
                 result.actionType = evaluation === 5 ? 'Punto' : 'Errore';
@@ -3478,7 +3485,7 @@ function submitGuidedAction() {
     let isPoint = tempResult === 'home_point' || tempResult === 'away_point';
     
     if (isPoint) {
-        const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+        const actionString = appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ');
         try {
             const result = parseAction(actionString);
             
@@ -3593,7 +3600,7 @@ function submitOpponentError() {
     }
     // Costruisci la stringa d'azione: se esiste una sequenza corrente,
     // aggiungi "avv" come quartina speciale nella stessa azione; altrimenti usa solo "avv".
-    const baseString = appState.currentSequence.map(s => s.quartet).join(' ');
+    const baseString = appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ');
     const actionString = baseString ? `${baseString} avv` : 'avv';
     // Imposta flag per mostrare il descrittivo "– Err Avv"
     appState.opponentErrorPressed = true;
@@ -3724,7 +3731,7 @@ function updateActionsLog() {
     let displayLogs = lastLogs.map((log, idx) => ({ log, rowNumber: baseIndexStart + idx + 1 })).reverse();
 
     if (appState.currentSequence.length > 0) {
-        const currentString = appState.currentSequence.map(s => s.quartet).join(' ');
+        const currentString = appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ');
         displayLogs.unshift({
             log: {
                 timestamp: 'Corrente',
@@ -4212,7 +4219,7 @@ function updateActionSummary() {
     const box = document.getElementById('action-summary-box');
     if (!el) return;
     const text = (appState.currentSequence && appState.currentSequence.length > 0)
-        ? appState.currentSequence.map(s => s.quartet).join(' ')
+        ? appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ')
         : '';
     el.textContent = text;
     if (box) box.style.display = text ? 'block' : 'none';
@@ -4360,6 +4367,16 @@ function determineFinalResult(fundamental, evaluation) {
     }
 }
 
+function __mvsFundamentalLabel(code) {
+    const c = String(code || '').trim().toLowerCase();
+    if (c === 'b') return 'Servizio';
+    if (c === 'r') return 'Ricezione';
+    if (c === 'a') return 'Attacco';
+    if (c === 'd') return 'Difesa';
+    if (c === 'm') return 'Muro';
+    return '';
+}
+
 function processActionResult(result) {
     // Usa la fase di INIZIO RALLY per determinare rotazione al primo cambio
     const startedInReception = (appState.rallyStartPhase === 'ricezione');
@@ -4367,7 +4384,10 @@ function processActionResult(result) {
         appState.homeScore++;
         
         // Aggiungi al storico punteggio
-        addToScoreHistory('home', result.playerName, result.actionType);
+        const lastFundamental = (result && Array.isArray(result.actions) && result.actions.length)
+            ? result.actions[result.actions.length - 1].fundamental
+            : '';
+        addToScoreHistory('home', result.playerName, result.actionType, lastFundamental);
         
         // Il punto nostro porta sempre a SERVIZIO
         // La rotazione avanza SOLO se il rally era iniziato in RICEZIONE
@@ -4377,7 +4397,10 @@ function processActionResult(result) {
         appState.awayScore++;
         
         // Aggiungi al storico punteggio
-        addToScoreHistory('away', result.playerName, result.actionType);
+        const lastFundamental = (result && Array.isArray(result.actions) && result.actions.length)
+            ? result.actions[result.actions.length - 1].fundamental
+            : '';
+        addToScoreHistory('away', result.playerName, result.actionType, lastFundamental);
         
         // Punto avversario → si va in RICEZIONE, senza cambiare rotazione
         appState.currentPhase = 'ricezione';
@@ -4391,13 +4414,14 @@ function processActionResult(result) {
 }
 
 // Funzione per aggiungere un elemento allo storico punteggio
-function addToScoreHistory(team, playerName, actionType) {
+function addToScoreHistory(team, playerName, actionType, fundamental) {
     const historyItem = {
         homeScore: appState.homeScore,
         awayScore: appState.awayScore,
         team: team,
         playerName: playerName || 'Sconosciuto',
         actionType: actionType || 'Punto',
+        fundamental: fundamental || '',
         timestamp: new Date().toLocaleTimeString(),
         setNumber: __getActiveSetNumber()
     };
@@ -4448,16 +4472,17 @@ function updateScoreHistoryDisplay() {
 
             const description = document.createElement('span');
             description.className = 'score-description';
+            const fText = __mvsFundamentalLabel(item.fundamental);
 
             if (item.team === 'home') {
                 // Caso speciale: errore avversario premuto dalla sezione Player
                 if ((item.actionType === 'Errore') && (String(item.playerName).toLowerCase() === 'avversario')) {
                     description.textContent = 'Errore Avversario';
                 } else {
-                    description.textContent = `Punto di ${item.playerName}`;
+                    description.textContent = `Punto di ${item.playerName}${fText ? ` in ${fText}` : ''}`;
                 }
             } else {
-                description.textContent = `Errore di ${item.playerName}`;
+                description.textContent = `Errore di ${item.playerName}${fText ? ` in ${fText}` : ''}`;
             }
 
             historyElement.appendChild(scoreText);
@@ -4509,6 +4534,285 @@ function addLongPressListener(el, holdMs, onTrigger) {
     ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => el.addEventListener(evt, cancel));
 }
 
+let __mvsPillMenuCleanup = null;
+function __mvsHidePillMenu() {
+    try { if (typeof __mvsPillMenuCleanup === 'function') __mvsPillMenuCleanup(); } catch(_) {}
+    __mvsPillMenuCleanup = null;
+    try {
+        const el = document.getElementById('pill-context-menu');
+        if (el) el.remove();
+    } catch(_) {}
+}
+
+function __mvsShowPillMenu(anchorEl, items) {
+    __mvsHidePillMenu();
+    if (!anchorEl) return;
+    const menu = document.createElement('div');
+    menu.id = 'pill-context-menu';
+    menu.className = 'pill-menu';
+    (items || []).forEach(it => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = (it && it.className) ? it.className : '';
+        if (it && it.danger) btn.classList.add('pill-menu-danger');
+        btn.textContent = (it && it.label) ? it.label : '';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try { if (it && typeof it.onSelect === 'function') it.onSelect(); } catch(_) {}
+            __mvsHidePillMenu();
+        });
+        menu.appendChild(btn);
+    });
+    document.body.appendChild(menu);
+
+    try {
+        const r = anchorEl.getBoundingClientRect();
+        const pad = 6;
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+        const mw = menu.offsetWidth || 180;
+        const mh = menu.offsetHeight || 240;
+        let left = Math.min(Math.max(pad, r.left), vw - mw - pad);
+        let top = r.bottom + 6;
+        if (top + mh + pad > vh) top = Math.max(pad, r.top - mh - 6);
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+    } catch(_) {}
+
+    const onOutside = (ev) => {
+        try {
+            const t = ev.target;
+            if (!t) return;
+            if (menu.contains(t)) return;
+            __mvsHidePillMenu();
+        } catch(_) {}
+    };
+    const onKey = (ev) => {
+        if (ev.key === 'Escape') __mvsHidePillMenu();
+    };
+    const onScrollResize = () => __mvsHidePillMenu();
+
+    document.addEventListener('pointerdown', onOutside, true);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('scroll', onScrollResize, true);
+    window.addEventListener('resize', onScrollResize, true);
+
+    __mvsPillMenuCleanup = () => {
+        document.removeEventListener('pointerdown', onOutside, true);
+        document.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('scroll', onScrollResize, true);
+        window.removeEventListener('resize', onScrollResize, true);
+    };
+}
+
+function __mvsSpanTarget(span) {
+    const kind = span?.dataset?.rowKind || span?.getAttribute?.('data-row-kind') || 'current';
+    const idxStr = span?.dataset?.rowIndex || span?.getAttribute?.('data-row-index');
+    const index = idxStr != null ? parseInt(idxStr, 10) : null;
+    return { kind, index: Number.isFinite(index) ? index : null };
+}
+
+function __mvsGetSequenceParts(item) {
+    try {
+        if (item && item.__mvsParts && typeof item.__mvsParts === 'object') return item.__mvsParts;
+    } catch(_) {}
+    const q = String(item?.quartet || '').trim();
+    const m = q.match(/^(\d{2})([bramdBRAMD])(\d)$/);
+    if (!m) return { playerNumber: '', fundamental: '', evaluation: null };
+    const pn = m[1];
+    const f = String(m[2] || '').toLowerCase();
+    const e = parseInt(m[3], 10);
+    return { playerNumber: pn, fundamental: f, evaluation: Number.isFinite(e) ? e : null };
+}
+
+function __mvsSetSequenceParts(item, parts) {
+    try { item.__mvsParts = { ...(item.__mvsParts || {}), ...(parts || {}) }; } catch(_) {}
+}
+
+function __mvsRebuildQuartetFromParts(item) {
+    const parts = __mvsGetSequenceParts(item);
+    const pn = String(parts.playerNumber || '').trim();
+    const f = String(parts.fundamental || '').trim().toLowerCase();
+    const e = parts.evaluation != null ? parseInt(parts.evaluation, 10) : null;
+    if (pn && f && Number.isFinite(e) && e >= 1 && e <= 5) {
+        item.quartet = `${String(pn).padStart(2, '0')}${f}${e}`;
+    } else {
+        item.quartet = '';
+    }
+}
+
+function __mvsEvaluationLabel(val, fundamentalCode) {
+    const v = parseInt(val, 10);
+    if (!Number.isFinite(v)) return '';
+    if (v === 5) {
+        const f = String(fundamentalCode || '').trim().toLowerCase();
+        return (f === 'd' || f === 'r') ? 'PERFETTO' : 'PUNTO';
+    }
+    if (v === 4) return 'POSITIVO';
+    if (v === 3) return 'NEUTRO';
+    if (v === 2) return 'NEGATIVO';
+    if (v === 1) return 'ERRORE';
+    return String(v);
+}
+
+function __mvsInsertRowAfterTarget(target) {
+    try {
+        if (!Array.isArray(appState.currentSequence)) appState.currentSequence = [];
+        const blank = { quartet: '', playerName: '' };
+        __mvsSetSequenceParts(blank, { playerNumber: '', fundamental: '', evaluation: null });
+        const idx = (target && target.kind === 'sequence' && Number.isInteger(target.index))
+            ? Math.min(appState.currentSequence.length, target.index + 1)
+            : appState.currentSequence.length;
+        appState.currentSequence.splice(idx, 0, blank);
+        updateActionSummary();
+        updateDescriptiveQuartet();
+        updateNextFundamental();
+        scheduleAutosave(600);
+    } catch(_) {}
+}
+
+function __mvsClearCurrentScoutRow() {
+    try {
+        if (appState.autoCloseTimerId) {
+            clearTimeout(appState.autoCloseTimerId);
+            appState.autoCloseTimerId = null;
+        }
+    } catch (_) {}
+    try {
+        appState.autoClosePending = false;
+        appState.autoClosePayload = null;
+        document.querySelectorAll('.eval-btn').forEach(btn => {
+            btn.classList.remove('timer-pending');
+            btn.classList.remove('selected');
+            btn.style.removeProperty('--pulse-duration');
+        });
+    } catch(_) {}
+
+    try { appState.selectedPlayer = null; } catch(_) {}
+    try { appState.selectedEvaluation = null; } catch(_) {}
+    try { appState.overrideFundamental = null; } catch(_) {}
+    try { appState.calculatedFundamental = null; } catch(_) {}
+    try { appState.nextFundamentalPreview = null; } catch(_) {}
+    try { appState.opponentErrorPressed = false; } catch(_) {}
+    try { appState.justClosedAction = false; } catch(_) {}
+    try {
+        if (appState.replacePlayerMode) cancelReplacePlayerMode();
+    } catch(_) {}
+    try { updateActionSummary(); } catch(_) {}
+    try { updateNextFundamental(); } catch(_) {}
+    try { updateDescriptiveQuartet(); } catch(_) {}
+    try { updatePlayersGrid(); } catch(_) {}
+}
+
+function __mvsSetFundamentalForTarget(target, code) {
+    const c = String(code || '').toLowerCase();
+    if (!['d','a','b','r','m'].includes(c)) return;
+    if (target.kind === 'sequence' && Number.isInteger(target.index)) {
+        const item = (appState.currentSequence && appState.currentSequence[target.index]) ? appState.currentSequence[target.index] : null;
+        if (!item) return;
+        const q = String(item.quartet || '');
+        if (q.length >= 4) {
+            item.quartet = `${q.substring(0, 2)}${c}${q.substring(3, 4)}`;
+        } else {
+            __mvsSetSequenceParts(item, { fundamental: c });
+            __mvsRebuildQuartetFromParts(item);
+        }
+        try { updateActionSummary(); } catch(_) {}
+        try { updateDescriptiveQuartet(); } catch(_) {}
+        try { updateNextFundamental(); } catch(_) {}
+        return;
+    }
+    try { appState.calculatedFundamental = c; } catch(_) {}
+    try { appState.overrideFundamental = null; } catch(_) {}
+    try {
+        if (appState.autoClosePending && appState.autoClosePayload) {
+            appState.autoClosePayload.fundamental = c;
+        }
+    } catch(_) {}
+    try { updateNextFundamental(); } catch(_) {}
+    try { updateDescriptiveQuartet(); } catch(_) {}
+    try { updatePlayersGrid(); } catch(_) {}
+}
+
+function __mvsSetEvaluationForTarget(target, val) {
+    const v = parseInt(val, 10);
+    if (!Number.isFinite(v) || v < 1 || v > 5) return;
+    if (target.kind === 'sequence' && Number.isInteger(target.index)) {
+        const item = (appState.currentSequence && appState.currentSequence[target.index]) ? appState.currentSequence[target.index] : null;
+        if (!item) return;
+        const q = String(item.quartet || '');
+        if (q.length >= 4) {
+            item.quartet = `${q.substring(0, 3)}${String(v)}`;
+        } else {
+            __mvsSetSequenceParts(item, { evaluation: v });
+            __mvsRebuildQuartetFromParts(item);
+        }
+        try { updateActionSummary(); } catch(_) {}
+        try { updateDescriptiveQuartet(); } catch(_) {}
+        try { updateNextFundamental(); } catch(_) {}
+        return;
+    }
+    try { selectEvaluation(v); } catch(_) {}
+}
+
+function __mvsDeleteRowForTarget(target) {
+    if (target.kind === 'sequence' && Number.isInteger(target.index)) {
+        try {
+            if (!Array.isArray(appState.currentSequence)) return;
+            if (target.index < 0 || target.index >= appState.currentSequence.length) return;
+            appState.currentSequence.splice(target.index, 1);
+            if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence') {
+                if (appState.replaceTarget.index === target.index) {
+                    cancelReplacePlayerMode();
+                } else if (Number.isInteger(appState.replaceTarget.index) && appState.replaceTarget.index > target.index) {
+                    appState.replaceTarget.index = appState.replaceTarget.index - 1;
+                }
+            }
+        } catch(_) {}
+        try { updateActionSummary(); } catch(_) {}
+        try { updateDescriptiveQuartet(); } catch(_) {}
+        try { updateNextFundamental(); } catch(_) {}
+        return;
+    }
+    __mvsClearCurrentScoutRow();
+}
+
+function __mvsOpenFundamentalMenuForSpan(span) {
+    const target = __mvsSpanTarget(span);
+    __mvsShowPillMenu(span, [
+        { label: 'Elimina', danger: true, onSelect: () => __mvsDeleteRowForTarget(target) },
+        { label: 'Inserisci', onSelect: () => __mvsInsertRowAfterTarget(target) },
+        { label: 'DIF', onSelect: () => __mvsSetFundamentalForTarget(target, 'd') },
+        { label: 'ATT', onSelect: () => __mvsSetFundamentalForTarget(target, 'a') },
+        { label: 'SERV', onSelect: () => __mvsSetFundamentalForTarget(target, 'b') },
+        { label: 'RICE', onSelect: () => __mvsSetFundamentalForTarget(target, 'r') },
+        { label: 'MURO', onSelect: () => __mvsSetFundamentalForTarget(target, 'm') }
+    ]);
+}
+
+function __mvsOpenEvaluationMenuForSpan(span) {
+    const target = __mvsSpanTarget(span);
+    let fCode = '';
+    try {
+        if (target.kind === 'sequence' && Number.isInteger(target.index)) {
+            const item = (appState.currentSequence && appState.currentSequence[target.index]) ? appState.currentSequence[target.index] : null;
+            const parts = __mvsGetSequenceParts(item);
+            fCode = String(parts.fundamental || '').trim().toLowerCase();
+        } else {
+            fCode = String(appState.calculatedFundamental || appState.overrideFundamental || predictNextFundamental() || '').trim().toLowerCase();
+        }
+    } catch(_) {}
+    const label5 = __mvsEvaluationLabel(5, fCode);
+    __mvsShowPillMenu(span, [
+        { label: label5, className: 'pill-menu-eval eval-5', onSelect: () => __mvsSetEvaluationForTarget(target, 5) },
+        { label: 'POSITIVO', className: 'pill-menu-eval eval-4', onSelect: () => __mvsSetEvaluationForTarget(target, 4) },
+        { label: 'NEUTRO', className: 'pill-menu-eval eval-3', onSelect: () => __mvsSetEvaluationForTarget(target, 3) },
+        { label: 'NEGATIVO', className: 'pill-menu-eval eval-2', onSelect: () => __mvsSetEvaluationForTarget(target, 2) },
+        { label: 'ERRORE', className: 'pill-menu-eval eval-1', onSelect: () => __mvsSetEvaluationForTarget(target, 1) }
+    ]);
+}
+
 window.openActionsDialog = function(){
     try {
         var dlg = document.getElementById('actions-dialog');
@@ -4516,85 +4820,43 @@ window.openActionsDialog = function(){
         if (!dlg) {
             dlg = document.createElement('div');
             dlg.id = 'actions-dialog';
-            dlg.className = 'dialog is-open';
-            dlg.style.position = 'fixed';
-            dlg.style.inset = '0';
-            dlg.style.background = 'rgba(0,0,0,0.35)';
-            dlg.style.zIndex = '1002';
-            dlg.style.display = 'flex';
-            dlg.style.alignItems = 'center';
-            dlg.style.justifyContent = 'center';
+            dlg.className = 'dialog is-open mvs-actions-dialog';
             var panel = document.createElement('div');
-            panel.className = 'dialog-panel';
-            panel.style.maxWidth = '640px';
-            panel.style.width = 'min(640px, calc(100% - 16px))';
-            panel.style.margin = '0 12px';
-            panel.style.background = '#fff';
-            panel.style.borderRadius = '12px';
-            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-            panel.style.display = 'flex';
-            panel.style.flexDirection = 'column';
-            panel.style.maxHeight = '80vh';
-            panel.style.overflow = 'hidden';
+            panel.className = 'dialog-content mvs-dialog-content';
             var header = document.createElement('div');
-            header.className = 'dialog-header';
-            header.style.display = 'flex';
-            header.style.alignItems = 'center';
-            header.style.justifyContent = 'space-between';
-            header.style.padding = '12px 16px';
-            header.style.position = 'sticky';
-            header.style.top = '0';
-            header.style.background = '#fff';
-            header.style.zIndex = '1';
+            header.className = 'dialog-header mvs-dialog-header';
             var title = document.createElement('div');
-            title.style.display = 'flex';
-            title.style.alignItems = 'center';
-            title.style.gap = '8px';
+            title.className = 'mvs-dialog-title';
             var h3 = document.createElement('h3');
             h3.textContent = 'Progr. Azioni';
-            h3.style.margin = '0';
             var total = document.createElement('span');
             total.id = 'actions-total';
-            total.style.color = '#64748b';
+            total.className = 'mvs-dialog-subtitle';
             title.appendChild(h3);
             title.appendChild(total);
             var close = document.createElement('button');
             close.type = 'button';
             close.textContent = 'Chiudi';
-            close.className = '';
+            close.className = 'close-btn';
             close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
-            try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
             header.appendChild(title);
             header.appendChild(close);
             var body = document.createElement('div');
             body.className = 'dialog-body';
-            body.style.padding = '8px 12px';
-            body.style.flex = '1 1 auto';
-            body.style.overflowY = 'auto';
             var list = document.createElement('div');
             list.id = 'actions-list-container';
-            list.style.minHeight = '0';
+            list.className = 'mvs-actions-list';
             body.appendChild(list);
             var footer = document.createElement('div');
             footer.className = 'dialog-footer';
-            footer.style.display = 'flex';
-            footer.style.flexWrap = 'wrap';
-            footer.style.justifyContent = 'flex-end';
-            footer.style.gap = '8px';
-            footer.style.padding = '10px 12px';
-            footer.style.position = 'sticky';
-            footer.style.bottom = '0';
-            footer.style.background = '#fff';
             var cancelBtn = document.createElement('button');
-            cancelBtn.className = '';
+            cancelBtn.className = 'secondary-btn';
             cancelBtn.textContent = 'Annulla';
             cancelBtn.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
-            try{ cancelBtn.style.background='#fff'; cancelBtn.style.color='#0d6efd'; cancelBtn.style.border='1px solid #0d6efd'; cancelBtn.style.borderRadius='10px'; cancelBtn.style.padding='6px 10px'; cancelBtn.style.fontWeight='600'; }catch(_){}
             var saveBtn = document.createElement('button');
-            saveBtn.className = '';
+            saveBtn.className = 'primary-btn';
             saveBtn.textContent = 'Salva';
             saveBtn.addEventListener('click', function(){ try{ recomputeFromActionsLog(); __mvsCloseModalElement(dlg); }catch(_){} });
-            try{ saveBtn.style.background='#fff'; saveBtn.style.color='#0d6efd'; saveBtn.style.border='1px solid #0d6efd'; saveBtn.style.borderRadius='10px'; saveBtn.style.padding='6px 10px'; saveBtn.style.fontWeight='600'; }catch(_){}
             footer.appendChild(cancelBtn);
             footer.appendChild(saveBtn);
             panel.appendChild(header);
@@ -4613,83 +4875,41 @@ window.openActionsDialog = function(){
             container.innerHTML = '';
             if (!logs.length) {
                 var empty = document.createElement('div');
-                empty.style.padding = '8px';
+                empty.className = 'mvs-empty';
                 empty.textContent = 'Nessuna azione';
                 container.appendChild(empty);
             } else {
                 logs.forEach(function(item, idx){
                     var card = document.createElement('div');
-                    card.style.display = 'grid';
-                    card.style.gridTemplateColumns = 'max-content 1fr max-content';
-                    card.style.alignItems = 'center';
-                    card.style.gap = '8px';
-                    card.style.border = '1px solid #e9ecef';
-                    card.style.borderRadius = '10px';
-                    card.style.padding = '8px 10px';
-                    card.style.marginBottom = '8px';
-                    card.style.cursor = 'pointer';
+                    var rr = String(item && item.result && item.result.result ? item.result.result : '');
+                    var cls = 'mvs-action-row';
+                    if (rr === 'home_point') cls += ' point-home';
+                    else if (rr === 'away_point') cls += ' point-away';
+                    card.className = cls;
                     var meta = document.createElement('div');
                     var score = String(item.score || '0-0');
                     var phase = String(item.phase || appState.currentPhase || '');
                     var rot = String(item.rotation || '');
                     var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
                     meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot;
-                    meta.style.fontWeight = '600';
-                    meta.style.color = '#0d6efd';
+                    meta.className = 'mvs-action-meta';
                     var actionText = document.createElement('div');
                     actionText.textContent = String(item.action || '');
-                    actionText.style.fontFamily = 'monospace';
-                    actionText.style.whiteSpace = 'nowrap';
-                    actionText.style.overflowX = 'auto';
-                    actionText.style.display = 'block';
-                    actionText.style.width = '100%';
+                    actionText.className = 'mvs-action-str';
                     var actions = document.createElement('div');
-                    actions.style.display = 'flex';
-                    actions.style.gap = '8px';
+                    actions.className = 'mvs-action-actions';
                     var editBtn = document.createElement('button');
                     editBtn.type = 'button';
-                    editBtn.className = '';
-                    editBtn.textContent = '✎';
+                    editBtn.className = 'icon-btn mvs-icon-btn';
+                    editBtn.setAttribute('aria-label','Modifica quartine');
+                    editBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3L16.5 4.5a2.1 2.1 0 0 0-3 0L3 15v5z" stroke="#0d6efd" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
                     editBtn.addEventListener('click', function(ev){ ev.stopPropagation(); window.openActionEditor(idx); });
-                    try{
-                        editBtn.style.background='transparent';
-                        editBtn.style.color='#0d6efd';
-                        editBtn.style.border='none';
-                        editBtn.style.borderRadius='999px';
-                        editBtn.style.padding='4px 8px';
-                        editBtn.style.fontWeight='600';
-                        editBtn.style.minWidth='40px';
-                        editBtn.style.display='inline-flex';
-                        editBtn.style.alignItems='center';
-                        editBtn.style.justifyContent='center';
-                        editBtn.style.outline='none';
-                        editBtn.style.boxShadow='none';
-                        editBtn.style.webkitAppearance='none';
-                        editBtn.style.MozAppearance='none';
-                        editBtn.style.appearance='none';
-                    }catch(_){ }
                     var delBtn = document.createElement('button');
                     delBtn.type = 'button';
-                    delBtn.className = '';
-                    delBtn.textContent = '🗑';
+                    delBtn.className = 'icon-btn mvs-icon-btn';
+                    delBtn.setAttribute('aria-label','Elimina azione');
+                    delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 6h18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M8 6v-2h8v2" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M14 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
                     delBtn.addEventListener('click', function(ev){ ev.stopPropagation(); try { appState.actionsLog.splice(idx, 1); recomputeFromActionsLog(); openActionsDialog(); } catch(_){} });
-                    try{
-                        delBtn.style.background='transparent';
-                        delBtn.style.color='#0d6efd';
-                        delBtn.style.border='none';
-                        delBtn.style.borderRadius='999px';
-                        delBtn.style.padding='4px 8px';
-                        delBtn.style.fontWeight='600';
-                        delBtn.style.minWidth='40px';
-                        delBtn.style.display='inline-flex';
-                        delBtn.style.alignItems='center';
-                        delBtn.style.justifyContent='center';
-                        delBtn.style.outline='none';
-                        delBtn.style.boxShadow='none';
-                        delBtn.style.webkitAppearance='none';
-                        delBtn.style.MozAppearance='none';
-                        delBtn.style.appearance='none';
-                    }catch(_){ }
                     actions.appendChild(editBtn);
                     actions.appendChild(delBtn);
                     card.appendChild(meta);
@@ -4834,68 +5054,53 @@ window.openActionEditor = function(index){
         if (!dlg) {
             dlg = document.createElement('div');
             dlg.id = 'action-editor-dialog';
-            dlg.className = 'dialog is-open';
-            dlg.style.position = 'fixed';
-            dlg.style.inset = '0';
-            dlg.style.background = 'rgba(0,0,0,0.35)';
-            dlg.style.zIndex = '1003';
+            dlg.className = 'dialog is-open mvs-quartine-dialog';
             var panel = document.createElement('div');
-            panel.className = 'dialog-panel';
-            panel.style.maxWidth = '700px';
-            panel.style.width = 'min(700px, calc(100% - 16px))';
-            panel.style.margin = '0 12px';
-            panel.style.background = '#fff';
-            panel.style.borderRadius = '12px';
-            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-            panel.style.display = 'flex';
-            panel.style.flexDirection = 'column';
-            panel.style.maxHeight = '80vh';
-            panel.style.overflow = 'hidden';
+            panel.className = 'dialog-content mvs-dialog-content';
             var header = document.createElement('div');
-            header.className = 'dialog-header';
-            header.style.display = 'flex';
-            header.style.alignItems = 'center';
-            header.style.justifyContent = 'space-between';
-            header.style.padding = '12px 16px';
-            header.style.position = 'sticky';
-            header.style.top = '0';
-            header.style.background = '#fff';
-            header.style.zIndex = '1';
+            header.className = 'dialog-header mvs-dialog-header';
             var h3 = document.createElement('h3');
             h3.textContent = 'Editor Quartine';
-            h3.style.margin = '0';
             header.appendChild(h3);
-            var headerActions = document.createElement('div');
-            headerActions.style.display = 'flex';
-            headerActions.style.gap = '8px';
-            var cancelIcon = document.createElement('button');
-            cancelIcon.type = 'button';
-            cancelIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18 6L6 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M6 6L18 18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
-            cancelIcon.title = 'Annulla';
-            cancelIcon.setAttribute('aria-label','Annulla');
-            cancelIcon.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
-            try{
-                cancelIcon.style.background='#fff';
-                cancelIcon.style.color='#0d6efd';
-                cancelIcon.style.border='1px solid #e9ecef';
-                cancelIcon.style.borderRadius='8px';
-                cancelIcon.style.padding='6px';
-                cancelIcon.style.fontWeight='700';
-                cancelIcon.style.display='inline-flex';
-                cancelIcon.style.alignItems='center';
-                cancelIcon.style.justifyContent='center';
-                cancelIcon.style.outline='none';
-                cancelIcon.style.boxShadow='none';
-                cancelIcon.style.webkitAppearance='none';
-                cancelIcon.style.MozAppearance='none';
-                cancelIcon.style.appearance='none';
-            }catch(_){ }
-            var confirmIcon = document.createElement('button');
-            confirmIcon.type = 'button';
-            confirmIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="#0d6efd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-            confirmIcon.title = 'Conferma';
-            confirmIcon.setAttribute('aria-label','Conferma');
-            confirmIcon.addEventListener('click', function(){
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Chiudi';
+            close.className = 'close-btn';
+            close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
+            header.appendChild(close);
+            var body = document.createElement('div');
+            body.className = 'dialog-body';
+            var rows = document.createElement('div');
+            rows.id = 'quartine-editor-rows';
+            rows.className = 'mvs-quartine-rows';
+            body.appendChild(rows);
+            var footer = document.createElement('div');
+            footer.className = 'dialog-footer';
+            var left = document.createElement('div');
+            left.className = 'mvs-dialog-footer-left';
+            var avvBtn = document.createElement('button');
+            avvBtn.type = 'button';
+            avvBtn.className = 'secondary-btn';
+            avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
+            avvBtn.addEventListener('click', function(){
+                hasAvv = !hasAvv;
+                avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
+                if (hasAvv) { appendAvvRow(); ensureAvvRowPosition(); } else { var r = rowsEl.querySelector('.avv-row'); if (r) r.remove(); }
+            });
+            left.appendChild(avvBtn);
+            footer.appendChild(left);
+            var right = document.createElement('div');
+            right.className = 'mvs-dialog-footer-right';
+            var cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'secondary-btn';
+            cancelBtn.textContent = 'Annulla';
+            cancelBtn.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
+            var saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'primary-btn';
+            saveBtn.textContent = 'Salva';
+            saveBtn.addEventListener('click', function(){
                 try {
                     var rowEls = Array.from(rows.querySelectorAll('.quartine-row'));
                     var parts = [];
@@ -4928,56 +5133,9 @@ window.openActionEditor = function(index){
                     openActionsDialog();
                 } catch(_){}
             });
-            try{
-                confirmIcon.style.background='#fff';
-                confirmIcon.style.color='#0d6efd';
-                confirmIcon.style.border='1px solid #e9ecef';
-                confirmIcon.style.borderRadius='8px';
-                confirmIcon.style.padding='6px';
-                confirmIcon.style.fontWeight='700';
-                confirmIcon.style.display='inline-flex';
-                confirmIcon.style.alignItems='center';
-                confirmIcon.style.justifyContent='center';
-                confirmIcon.style.outline='none';
-                confirmIcon.style.boxShadow='none';
-                confirmIcon.style.webkitAppearance='none';
-                confirmIcon.style.MozAppearance='none';
-                confirmIcon.style.appearance='none';
-            }catch(_){ }
-            headerActions.appendChild(cancelIcon);
-            headerActions.appendChild(confirmIcon);
-            header.appendChild(headerActions);
-            var body = document.createElement('div');
-            body.className = 'dialog-body';
-            body.style.padding = '8px 12px';
-            body.style.flex = '1 1 auto';
-            body.style.overflowY = 'auto';
-            var rows = document.createElement('div');
-            rows.id = 'quartine-editor-rows';
-            body.appendChild(rows);
-            var footer = document.createElement('div');
-            footer.className = 'dialog-footer';
-            footer.style.display = 'flex';
-            footer.style.flexWrap = 'wrap';
-            footer.style.justifyContent = 'space-between';
-            footer.style.gap = '8px';
-            footer.style.padding = '10px 12px';
-            footer.style.position = 'sticky';
-            footer.style.bottom = '0';
-            footer.style.background = '#fff';
-            var left = document.createElement('div');
-            var avvBtn = document.createElement('button');
-            avvBtn.type = 'button';
-            avvBtn.className = '';
-            avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
-            avvBtn.addEventListener('click', function(){
-                hasAvv = !hasAvv;
-                avvBtn.textContent = hasAvv ? 'Rimuovi avv' : 'Aggiungi avv';
-                if (hasAvv) { appendAvvRow(); ensureAvvRowPosition(); } else { var r = rowsEl.querySelector('.avv-row'); if (r) r.remove(); }
-            });
-            try{ avvBtn.style.background='#fff'; avvBtn.style.color='#0d6efd'; avvBtn.style.border='1px solid #0d6efd'; avvBtn.style.borderRadius='10px'; avvBtn.style.padding='6px 10px'; avvBtn.style.fontWeight='600'; }catch(_){ }
-            left.appendChild(avvBtn);
-            footer.appendChild(left);
+            right.appendChild(cancelBtn);
+            right.appendChild(saveBtn);
+            footer.appendChild(right);
             panel.appendChild(header);
             panel.appendChild(body);
             panel.appendChild(footer);
@@ -5032,14 +5190,8 @@ window.openActionEditor = function(index){
                 if (existing) return existing;
                 var row = document.createElement('div');
                 row.className = 'quartine-row avv-row';
-                row.style.display = 'grid';
-                row.style.gridTemplateColumns = 'max-content';
-                row.style.gap = '8px';
-                row.style.alignItems = 'center';
-                row.style.marginBottom = '8px';
                 var avvField = document.createElement('select');
-                avvField.className = 'form-select q-avv';
-                avvField.style.minWidth = '80px';
+                avvField.className = 'mvs-select q-avv';
                 var opt = document.createElement('option'); opt.value = 'avv'; opt.textContent = 'avv'; avvField.appendChild(opt);
                 avvField.value = 'avv';
                 avvField.disabled = true;
@@ -5056,55 +5208,30 @@ window.openActionEditor = function(index){
             function appendRow(q, idx){
                 var row = document.createElement('div');
                 row.className = 'quartine-row';
-                row.style.display = 'grid';
-                row.style.gridTemplateColumns = 'max-content max-content max-content max-content';
-                row.style.gap = '8px';
-                row.style.alignItems = 'center';
-                row.style.marginBottom = '8px';
                 var selNum = document.createElement('select');
-                selNum.className = 'form-select q-player';
-                selNum.style.width = 'auto';
-                selNum.style.minWidth = '140px';
-                selNum.style.whiteSpace = 'nowrap';
+                selNum.className = 'mvs-select q-player';
                 var phNum = document.createElement('option'); phNum.value = ''; phNum.textContent = 'Seleziona'; phNum.disabled = true; selNum.appendChild(phNum);
                 options.forEach(function(opt){
                     var o = document.createElement('option'); o.value = opt.value; o.textContent = opt.label; selNum.appendChild(o);
                 });
                 selNum.value = q && q.player ? String(q.player) : '';
                 var selFund = document.createElement('select');
-                selFund.className = 'form-select q-fund';
-                selFund.style.width = '3ch';
-                selFund.style.minWidth = '40px';
-                selFund.style.whiteSpace = 'nowrap';
+                selFund.className = 'mvs-select q-fund';
                 var funds = (idx===0) ? ['b','r'] : fundsAll;
                 var phFund = document.createElement('option'); phFund.value = ''; phFund.textContent = 'Seleziona'; phFund.disabled = true; selFund.appendChild(phFund);
                 funds.forEach(function(f){ var o = document.createElement('option'); o.value = f; o.textContent = f; selFund.appendChild(o); });
                 selFund.value = q && q.fundamental ? String(q.fundamental) : '';
                 var selEval = document.createElement('select');
-                selEval.className = 'form-select q-eval';
-                selEval.style.width = '4ch';
-                selEval.style.minWidth = '48px';
-                selEval.style.whiteSpace = 'nowrap';
+                selEval.className = 'mvs-select q-eval';
                 var phEval = document.createElement('option'); phEval.value = ''; phEval.textContent = 'Seleziona'; phEval.disabled = true; selEval.appendChild(phEval);
                 evalOptions.forEach(function(ev){ var o = document.createElement('option'); o.value = ev.value; o.textContent = ev.label; selEval.appendChild(o); });
                 selEval.value = q && q.evaluation ? String(q.evaluation) : '';
                 var actions = document.createElement('div');
-                actions.style.display = 'flex';
-                actions.style.gap = '6px';
+                actions.className = 'mvs-quartine-actions';
                 var addBtn = document.createElement('button');
                 addBtn.type = 'button';
-                addBtn.className = '';
+                addBtn.className = 'icon-btn mvs-icon-btn';
                 addBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 5v14" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M5 12h14" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
-                try{
-                    addBtn.style.background='#fff';
-                    addBtn.style.color='#0d6efd';
-                    addBtn.style.border='1px solid #e9ecef';
-                    addBtn.style.borderRadius='8px';
-                    addBtn.style.padding='6px';
-                    addBtn.style.display='inline-flex';
-                    addBtn.style.alignItems='center';
-                    addBtn.style.justifyContent='center';
-                }catch(_){ }
                 addBtn.title = 'Aggiungi quartina';
                 addBtn.addEventListener('click', function(){
                     try {
@@ -5116,18 +5243,8 @@ window.openActionEditor = function(index){
                 });
                 var delBtn = document.createElement('button');
                 delBtn.type = 'button';
-                delBtn.className = '';
+                delBtn.className = 'icon-btn mvs-icon-btn';
                 delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 6h18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M8 6v-2h8v2" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M14 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
-                try{
-                    delBtn.style.background='#fff';
-                    delBtn.style.color='#0d6efd';
-                    delBtn.style.border='1px solid #e9ecef';
-                    delBtn.style.borderRadius='8px';
-                    delBtn.style.padding='6px';
-                    delBtn.style.display='inline-flex';
-                    delBtn.style.alignItems='center';
-                    delBtn.style.justifyContent='center';
-                }catch(_){ }
                 delBtn.title = 'Elimina quartina';
                 delBtn.addEventListener('click', function(){
                     try {
@@ -5725,14 +5842,7 @@ function updateDescriptiveQuartet() {
     const fundamentalAbbr = { b: 'SERV', r: 'RICE', a: 'ATT', d: 'DIF', m: 'MURO' };
     const fundamentalUpper = fundamentalAbbr[fundamentalCode] || '';
 
-    const evalNames = {
-        1: 'ERRORE',
-        2: 'NEGATIVO',
-        3: 'NEUTRO',
-        4: 'POSITIVO',
-        5: 'PUNTO'
-    };
-    const evalText = evalVal ? (evalNames[evalVal] || String(evalVal)) : '';
+    const evalText = evalVal ? __mvsEvaluationLabel(evalVal, fundamentalCode) : '';
 
     // Layout multi‑linea: mostra la progressione dell'azione corrente
     if (appState.multiLineLayout) {
@@ -5754,51 +5864,56 @@ function updateDescriptiveQuartet() {
             const pTok = (typeof escapeHtml === 'function') ? escapeHtml([nn, nameUpper].filter(Boolean).join(' ')) : [nn, nameUpper].filter(Boolean).join(' ');
             const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
             const evalSpan = evalToken
-                ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
-                : `<span class="token token-eval token-placeholder"></span>`;
+                ? `<span class="token token-eval eval-${evalVal}" data-row-kind="current">${eTok}</span>`
+                : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
                 : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span>${playerCell}${evalSpan}</div>`);
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental" data-row-kind="current">${fTok}</span>${playerCell}${evalSpan}</div>`);
         } else if (evalVal) {
             // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
             const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
             const evalToken = evalText;
             const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
             const evalSpan = evalToken
-                ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
-                : `<span class="token token-eval token-placeholder"></span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span><span class="token token-player token-placeholder"></span>${evalSpan}</div>`);
+                ? `<span class="token token-eval eval-${evalVal}" data-row-kind="current">${eTok}</span>`
+                : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
+            lines.push(`<div class="multi-line-item"><span class="token token-fundamental" data-row-kind="current">${fTok}</span><span class="token token-player token-placeholder"></span>${evalSpan}</div>`);
         }
 
         // Aggiungi le righe della sequenza (più recente in alto)
         for (let i = seq.length - 1; i >= 0; i--) {
             const item = seq[i];
-            const q = String(item.quartet || '');
-            const nn = q.substring(0, 2);
-            const f = q.charAt(2);
-            const e = parseInt(q.charAt(3), 10);
-            const fUpper = fundamentalAbbr[f] || '';
-            const evalNames = {
-                1: 'ERRORE',
-                2: 'NEGATIVO',
-                3: 'NEUTRO',
-                4: 'POSITIVO',
-                5: 'PUNTO'
-            };
-            const evalTextLine = evalNames[e] || '';
-            const nameUpper = String(item.playerName || '').toUpperCase();
-            const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fUpper) : fUpper;
-            const pTok = (typeof escapeHtml === 'function') ? escapeHtml([nn, nameUpper].filter(Boolean).join(' ')) : [nn, nameUpper].filter(Boolean).join(' ');
-            const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalTextLine) : evalTextLine;
+            const qNorm = String(item?.quartet || '').trim();
             // Evita duplicare l'ultima riga se coincide con la riga provvisoria
-            if (provisionalQuartet && i === seq.length - 1 && q === provisionalQuartet) {
+            if (provisionalQuartet && i === seq.length - 1 && qNorm && qNorm === provisionalQuartet) {
                 continue;
             }
+
+            const parts = __mvsGetSequenceParts(item);
+            const pnRaw = String(parts.playerNumber || '').trim();
+            const pn = pnRaw ? String(pnRaw).padStart(2, '0') : '';
+            const f = String(parts.fundamental || '').trim().toLowerCase();
+            const e = parts.evaluation != null ? parseInt(parts.evaluation, 10) : null;
+
+            const fUpper = f ? (fundamentalAbbr[f] || '') : '';
+            const fTok = fUpper ? ((typeof escapeHtml === 'function') ? escapeHtml(fUpper) : fUpper) : '&nbsp;';
+            const fCls = `token token-fundamental${fUpper ? '' : ' token-empty'}`;
+
+            const nameUpper = String(item?.playerName || '').toUpperCase();
+            const playerText = pn ? [pn, nameUpper].filter(Boolean).join(' ') : '';
+            const pTok = playerText ? ((typeof escapeHtml === 'function') ? escapeHtml(playerText) : playerText) : '&nbsp;';
+            const pCls = `token token-player${playerText ? '' : ' token-empty'}`;
+
+            const evalTextLine = Number.isFinite(e) ? __mvsEvaluationLabel(e, f) : '';
+            const eTok = evalTextLine ? ((typeof escapeHtml === 'function') ? escapeHtml(evalTextLine) : evalTextLine) : '&nbsp;';
+            const eCls = evalTextLine ? `token token-eval eval-${e}` : 'token token-eval token-empty';
+
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence' && appState.replaceTarget.index === i)
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-                : `<span class="token token-player" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental">${fTok}</span>${playerCell}${evalTextLine ? `<span class="token token-eval eval-${e}">${eTok}</span>` : ''}</div>`);
+                : `<span class="${pCls}" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>`;
+            const evalCell = `<span class="${eCls}" data-row-kind="sequence" data-row-index="${i}">${eTok}</span>`;
+            lines.push(`<div class="multi-line-item"><span class="${fCls}" data-row-kind="sequence" data-row-index="${i}">${fTok}</span>${playerCell}${evalCell}</div>`);
         }
 
         el.classList.add('multiline');
@@ -5808,10 +5923,30 @@ function updateDescriptiveQuartet() {
         try {
             const playerSpans = el.querySelectorAll('.token-player');
             playerSpans.forEach(span => {
-                if (span.classList.contains('token-placeholder')) return;
                 span.style.cursor = 'pointer';
                 span.title = 'Cambia giocatore della quartina';
                 span.addEventListener('click', enterReplacePlayerModeFromSpan);
+                addLongPressListener(span, 650, () => {
+                    const kind = span.dataset.rowKind || span.getAttribute('data-row-kind') || 'current';
+                    const indexStr = span.dataset.rowIndex || span.getAttribute('data-row-index');
+                    const idx = indexStr != null ? parseInt(indexStr, 10) : null;
+                    enterReplacePlayerModeFor(kind, Number.isFinite(idx) ? idx : null, span);
+                });
+            });
+        } catch(_) {}
+        try {
+            const fundSpans = el.querySelectorAll('.token-fundamental');
+            fundSpans.forEach(span => {
+                span.style.cursor = 'context-menu';
+                addLongPressListener(span, 650, () => __mvsOpenFundamentalMenuForSpan(span));
+                span.addEventListener('contextmenu', (ev) => { ev.preventDefault(); __mvsOpenFundamentalMenuForSpan(span); });
+            });
+            const evalSpans = el.querySelectorAll('.token-eval');
+            evalSpans.forEach(span => {
+                if (span.classList.contains('token-placeholder')) return;
+                span.style.cursor = 'context-menu';
+                addLongPressListener(span, 650, () => __mvsOpenEvaluationMenuForSpan(span));
+                span.addEventListener('contextmenu', (ev) => { ev.preventDefault(); __mvsOpenEvaluationMenuForSpan(span); });
             });
         } catch(_) {}
         return;
@@ -5857,13 +5992,13 @@ function updateDescriptiveQuartet() {
         const pTok = (typeof escapeHtml === 'function') ? escapeHtml(playerToken) : playerToken;
         const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
         const evalSpan = evalToken
-            ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
-            : `<span class="token token-eval token-placeholder"></span>`;
+            ? `<span class="token token-eval eval-${evalVal}" data-row-kind="current">${eTok}</span>`
+            : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
         const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
             ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
             : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
         const html = `
-            <span class="token token-fundamental">${fTok}</span>
+            <span class="token token-fundamental" data-row-kind="current">${fTok}</span>
             ${playerCell}
             ${evalSpan}
         `;
@@ -5877,10 +6012,10 @@ function updateDescriptiveQuartet() {
         const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
         const eTok = (typeof escapeHtml === 'function') ? escapeHtml(evalToken) : evalToken;
         const evalSpan = evalToken
-            ? `<span class="token token-eval eval-${evalVal}">${eTok}</span>`
-            : `<span class="token token-eval token-placeholder"></span>`;
+            ? `<span class="token token-eval eval-${evalVal}" data-row-kind="current">${eTok}</span>`
+            : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
         const html = `
-            <span class="token token-fundamental">${fTok}</span>
+            <span class="token token-fundamental" data-row-kind="current">${fTok}</span>
             <span class="token token-player token-placeholder"></span>
             ${evalSpan}
         `;
@@ -5892,7 +6027,7 @@ function updateDescriptiveQuartet() {
         const fundamentalToken = fundamentalUpper;
         const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalToken) : fundamentalToken;
         const html = `
-            <span class="token token-fundamental">${fTok}</span>
+            <span class="token token-fundamental" data-row-kind="current">${fTok}</span>
         `;
         el.classList.remove('multiline');
         el.innerHTML = html;
@@ -5907,6 +6042,21 @@ function updateDescriptiveQuartet() {
             span.style.cursor = 'pointer';
             span.title = 'Cambia giocatore della quartina';
             span.addEventListener('click', enterReplacePlayerModeFromSpan);
+        });
+    } catch(_) {}
+    try {
+        const fundSpans = el.querySelectorAll('.token-fundamental');
+        fundSpans.forEach(span => {
+            span.style.cursor = 'context-menu';
+            addLongPressListener(span, 650, () => __mvsOpenFundamentalMenuForSpan(span));
+            span.addEventListener('contextmenu', (ev) => { ev.preventDefault(); __mvsOpenFundamentalMenuForSpan(span); });
+        });
+        const evalSpans = el.querySelectorAll('.token-eval');
+        evalSpans.forEach(span => {
+            if (span.classList.contains('token-placeholder')) return;
+            span.style.cursor = 'context-menu';
+            addLongPressListener(span, 650, () => __mvsOpenEvaluationMenuForSpan(span));
+            span.addEventListener('contextmenu', (ev) => { ev.preventDefault(); __mvsOpenEvaluationMenuForSpan(span); });
         });
     } catch(_) {}
 
@@ -6020,7 +6170,7 @@ function activateMuroOverride() {
                 const tempResult = determineFinalResult(fundamental, evaluation);
                 const isPoint = tempResult === 'home_point' || tempResult === 'away_point';
                 if (isPoint) {
-                    const actionString = appState.currentSequence.map(s => s.quartet).join(' ');
+                    const actionString = appState.currentSequence.map(s => String(s?.quartet || '').trim()).filter(Boolean).join(' ');
                     const result = parseAction(actionString);
                     result.playerName = prevPlayer.name;
                     result.actionType = evaluation === 5 ? 'Punto' : 'Errore';
