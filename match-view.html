@@ -53,6 +53,10 @@
           <label>Casa/Trasferta</label>
           <div id="md-homeaway" class="readonly-field">-</div>
         </div>
+        <div class="form-group">
+          <label>File Excel</label>
+          <div id="md-excel" class="readonly-field">-</div>
+        </div>
       </div>
     </section>
 
@@ -133,10 +137,26 @@
         const dateEl = document.getElementById('md-date');
         const typeEl = document.getElementById('md-type');
         const haEl = document.getElementById('md-homeaway');
+        const excelEl = document.getElementById('md-excel');
         if (oppEl) oppEl.textContent = opponent || '-';
         if (dateEl) dateEl.textContent = rawDate ? formatItalianDateDisplay(rawDate) : '-';
         if (typeEl) typeEl.textContent = String(type || 'partita');
         if (haEl) haEl.textContent = haLabel;
+        if (excelEl) {
+          const url = match?.excelFileUrl || session?.excelFileUrl || '';
+          const name = match?.excelFileName || session?.excelFileName || '';
+          if (url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = name || 'Apri file Excel';
+            excelEl.innerHTML = '';
+            excelEl.appendChild(a);
+          } else {
+            excelEl.textContent = name || '-';
+          }
+        }
 
         const listEl = document.getElementById('setSummaryList');
         if (listEl) {

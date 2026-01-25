@@ -25,6 +25,7 @@ if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp
   }
   window.googleProvider = window.googleProvider || new firebase.auth.GoogleAuthProvider();
   window.googleProvider.setCustomParameters({ prompt: 'select_account' });
+  try { window.googleProvider.addScope('https://www.googleapis.com/auth/drive.file'); } catch(_) {}
   try {
     window.db.settings(Object.assign({
       cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
@@ -62,10 +63,35 @@ const authFunctions = (function(){
         try { const userCredential = await window.auth.signInWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       signInWithGoogle: async () => {
-        try { const result = await window.auth.signInWithPopup(window.googleProvider); return { success: true, user: result.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+        try {
+          const result = await window.auth.signInWithPopup(window.googleProvider);
+          try {
+            const cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+            const token = cred && cred.accessToken;
+            if (token) {
+              const expiresAt = Date.now() + 50 * 60 * 1000;
+              window.__mvsDriveToken = token;
+              window.__mvsDriveTokenExpiresAt = expiresAt;
+              try {
+                sessionStorage.setItem('mvsDriveToken', token);
+                sessionStorage.setItem('mvsDriveTokenExpiresAt', String(expiresAt));
+              } catch (_) {}
+            }
+          } catch (_) {}
+          return { success: true, user: result.user };
+        } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       signOut: async () => {
-        try { await window.auth.signOut(); return { success: true }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+        try {
+          await window.auth.signOut();
+          try {
+            sessionStorage.removeItem('mvsDriveToken');
+            sessionStorage.removeItem('mvsDriveTokenExpiresAt');
+          } catch (_) {}
+          window.__mvsDriveToken = null;
+          window.__mvsDriveTokenExpiresAt = 0;
+          return { success: true };
+        } catch (error) { return { success: false, error: error.message, code: error.code }; }
       },
       getCurrentUser: () => { return window.auth.currentUser; },
       onAuthStateChanged: (callback) => { return window.auth.onAuthStateChanged(callback); }

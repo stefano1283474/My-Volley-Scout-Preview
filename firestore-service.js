@@ -569,7 +569,11 @@ const firestoreService = {
         description: match.description||'',
         status: match.status||'created',
         currentSet: match.currentSet||1,
-        score: match.score||{home:0,away:0}
+        score: match.score||{home:0,away:0},
+        matchNumber: match.matchNumber||match.matchNo||match.fileNumber||'',
+        excelFileName: match.excelFileName||'',
+        excelFileUrl: match.excelFileUrl||'',
+        excelFilePath: match.excelFilePath||''
     }),
     getUserRef: () => {
         const user = authFunctions.getCurrentUser();

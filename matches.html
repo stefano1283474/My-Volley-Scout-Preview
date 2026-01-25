@@ -2168,7 +2168,57 @@
             return s.slice(0,1);
         }
 
+        async function importMatchFromDrive(){
+            try {
+                if (!window.mvsDrive || typeof window.mvsDrive.listFiles !== 'function') return false;
+                const token = await window.mvsDrive.ensureToken?.();
+                if (!token) {
+                    alert('Autenticazione Google Drive non disponibile');
+                    return false;
+                }
+                const res = await window.mvsDrive.listFiles();
+                if (!res || !res.success || !Array.isArray(res.files) || res.files.length === 0) {
+                    alert('Nessun file trovato su Google Drive');
+                    return false;
+                }
+                const lines = res.files.map((f, i) => {
+                    const dt = f.modifiedTime ? new Date(f.modifiedTime).toLocaleString() : '';
+                    return `${i + 1}) ${f.name || 'File'}${dt ? ' - ' + dt : ''}`;
+                });
+                const pick = prompt('Seleziona il numero del file da importare:\n' + lines.join('\n'));
+                const idx = Number(pick) - 1;
+                if (!Number.isFinite(idx) || idx < 0 || idx >= res.files.length) return false;
+                const meta = res.files[idx];
+                const dl = await window.mvsDrive.downloadFile(meta.id);
+                if (!dl || !dl.success || !dl.blob) {
+                    alert('Errore download da Google Drive');
+                    return false;
+                }
+                const blob = dl.blob;
+                let fileObj = null;
+                try {
+                    fileObj = new File([blob], meta.name || 'match.xlsx', { type: blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                } catch (_) {
+                    fileObj = { name: meta.name || 'match.xlsx', arrayBuffer: () => blob.arrayBuffer() };
+                }
+                showImportStages(fileObj.name);
+                await importMatchFromExcelFile(fileObj);
+                return true;
+            } catch (e) {
+                alert('Errore durante importazione da Google Drive');
+                return false;
+            }
+        }
+
         async function handleImportMatchClick(){
+            const canDrive = window.mvsDrive && typeof window.mvsDrive.listFiles === 'function';
+            if (canDrive) {
+                const useDrive = confirm('Vuoi importare una partita da Google Drive?');
+                if (useDrive) {
+                    const ok = await importMatchFromDrive();
+                    if (ok) return;
+                }
+            }
             const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (("ontouchstart" in window) && (navigator.maxTouchPoints||0) > 0);
             if (window.showOpenFilePicker && !isMobile){
                 try {

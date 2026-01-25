@@ -43,6 +43,143 @@ var rotationSequence = window.rotationSequence;
 
 let __lastSavedCoreSignature = null;
 
+(function(){
+    if (window.mvsDrive) return;
+    const TOKEN_KEY = 'mvsDriveToken';
+    const EXPIRES_KEY = 'mvsDriveTokenExpiresAt';
+    const readToken = () => {
+        try {
+            let token = null;
+            let exp = 0;
+            try {
+                token = sessionStorage.getItem(TOKEN_KEY);
+                exp = Number(sessionStorage.getItem(EXPIRES_KEY) || 0);
+            } catch (_) {}
+            if (!token && window.__mvsDriveToken) {
+                token = window.__mvsDriveToken;
+                exp = Number(window.__mvsDriveTokenExpiresAt || 0);
+            }
+            if (token && exp && exp < Date.now()) {
+                try {
+                    sessionStorage.removeItem(TOKEN_KEY);
+                    sessionStorage.removeItem(EXPIRES_KEY);
+                } catch (_) {}
+                window.__mvsDriveToken = null;
+                window.__mvsDriveTokenExpiresAt = 0;
+                return null;
+            }
+            return token;
+        } catch (_) {
+            return null;
+        }
+    };
+    const storeToken = (token, expiresAt) => {
+        if (!token) return;
+        window.__mvsDriveToken = token;
+        window.__mvsDriveTokenExpiresAt = expiresAt;
+        try {
+            sessionStorage.setItem(TOKEN_KEY, token);
+            sessionStorage.setItem(EXPIRES_KEY, String(expiresAt));
+        } catch (_) {}
+    };
+    const ensureToken = async () => {
+        const existing = readToken();
+        if (existing) return existing;
+        try {
+            if (!window.auth || !window.googleProvider || !window.firebase || !firebase.auth || !firebase.auth.GoogleAuthProvider) return null;
+            const result = await window.auth.signInWithPopup(window.googleProvider);
+            const cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+            const token = cred && cred.accessToken;
+            if (token) {
+                storeToken(token, Date.now() + 50 * 60 * 1000);
+                return token;
+            }
+        } catch (_) {}
+        return null;
+    };
+    const driveFetch = async (url, options = {}) => {
+        const token = await ensureToken();
+        if (!token) return { ok: false, error: 'Token non disponibile' };
+        const headers = Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + token });
+        try {
+            const res = await fetch(url, Object.assign({}, options, { headers }));
+            if (!res.ok) {
+                let text = '';
+                try { text = await res.text(); } catch (_) {}
+                return { ok: false, status: res.status, error: text || res.statusText };
+            }
+            return { ok: true, response: res };
+        } catch (e) {
+            return { ok: false, error: e.message || String(e) };
+        }
+    };
+    const uploadFile = async (blob, fileName, appProps = {}) => {
+        try {
+            const token = await ensureToken();
+            if (!token || !blob) return { success: false, error: 'Token non disponibile' };
+            const mimeType = blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const metadata = {
+                name: fileName,
+                mimeType,
+                appProperties: Object.assign({ mvs: '1' }, appProps || {})
+            };
+            const boundary = '-------314159265358979323846';
+            const delimiter = '\r\n--' + boundary + '\r\n';
+            const closeDelimiter = '\r\n--' + boundary + '--';
+            const body = new Blob([
+                delimiter,
+                'Content-Type: application/json; charset=UTF-8\r\n\r\n',
+                JSON.stringify(metadata),
+                delimiter,
+                'Content-Type: ' + mimeType + '\r\n\r\n',
+                blob,
+                closeDelimiter
+            ], { type: 'multipart/related; boundary=' + boundary });
+            const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,webViewLink', {
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + token },
+                body
+            });
+            if (!res.ok) {
+                let text = '';
+                try { text = await res.text(); } catch (_) {}
+                return { success: false, error: text || res.statusText };
+            }
+            const data = await res.json();
+            return { success: true, id: data.id, name: data.name, modifiedTime: data.modifiedTime, webViewLink: data.webViewLink };
+        } catch (e) {
+            return { success: false, error: e.message || String(e) };
+        }
+    };
+    const listFiles = async () => {
+        try {
+            const url = new URL('https://www.googleapis.com/drive/v3/files');
+            url.searchParams.set('q', "appProperties has { key='mvs' and value='1' } and trashed=false");
+            url.searchParams.set('fields', 'files(id,name,modifiedTime,size,webViewLink,iconLink,mimeType)');
+            url.searchParams.set('orderBy', 'modifiedTime desc');
+            url.searchParams.set('pageSize', '20');
+            const res = await driveFetch(url.toString());
+            if (!res.ok) return { success: false, error: res.error || 'Errore Drive' };
+            const data = await res.response.json();
+            return { success: true, files: data.files || [] };
+        } catch (e) {
+            return { success: false, error: e.message || String(e) };
+        }
+    };
+    const downloadFile = async (fileId) => {
+        try {
+            if (!fileId) return { success: false, error: 'File non valido' };
+            const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '?alt=media');
+            if (!res.ok) return { success: false, error: res.error || 'Errore download' };
+            const blob = await res.response.blob();
+            return { success: true, blob };
+        } catch (e) {
+            return { success: false, error: e.message || String(e) };
+        }
+    };
+    window.mvsDrive = { ensureToken, listFiles, uploadFile, downloadFile, readToken };
+})();
+
 function __stableStringify(value) {
     try {
         const seen = new WeakSet();
@@ -2056,6 +2193,194 @@ async function exportAllSetsToExcel() {
             return 'casa';
         }
 
+        function normalizeFileSegment(value, maxLen = 48) {
+            const raw = String(value || '').trim();
+            const noBad = raw.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_');
+            const clean = noBad.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+            return (clean || '').slice(0, maxLen);
+        }
+
+        function getTeamClubLabel(match) {
+            let team = match?.myTeam || match?.teamName || '';
+            let club = match?.myClub || match?.clubName || '';
+            try {
+                const t = window.teamsModule?.getCurrentTeam?.();
+                if (!team) team = t?.teamName || t?.name || '';
+                if (!club) club = t?.clubName || '';
+            } catch (_) {}
+            const combo = (team ? team : '').trim() + (club ? `_${club}` : '');
+            return combo || team || club || 'Squadra';
+        }
+
+        function getMatchNumber(matchId) {
+            try {
+                const map = safeJsonParse(localStorage.getItem('mvsMatchNumbers'), {});
+                const existing = map && map[matchId];
+                if (existing) return String(existing).padStart(3, '0').slice(-3);
+                let maxNum = 0;
+                Object.keys(map || {}).forEach(k => {
+                    const n = Number(map[k] || 0);
+                    if (n > maxNum) maxNum = n;
+                });
+                try {
+                    const list = safeJsonParse(localStorage.getItem('volleyMatches'), []);
+                    (Array.isArray(list) ? list : []).forEach(m => {
+                        const n = Number(m?.matchNumber || m?.matchNo || m?.fileNumber || 0);
+                        if (n > maxNum) maxNum = n;
+                    });
+                } catch (_) {}
+                const next = maxNum + 1;
+                if (map && matchId) {
+                    map[matchId] = next;
+                    try { localStorage.setItem('mvsMatchNumbers', JSON.stringify(map)); } catch (_) {}
+                }
+                return String(next).padStart(3, '0').slice(-3);
+            } catch (_) {
+                return String(1).padStart(3, '0');
+            }
+        }
+
+        function resolveSetScore(setNum, actionsBySet, setStateBySet, setSummary) {
+            const state = setStateBySet && setStateBySet[setNum] ? setStateBySet[setNum] : null;
+            let home = state && state.homeScore != null ? Number(state.homeScore) || 0 : 0;
+            let away = state && state.awayScore != null ? Number(state.awayScore) || 0 : 0;
+            if (!(home || away)) {
+                const sum = setSummary && setSummary[setNum] ? setSummary[setNum] : null;
+                if (sum) {
+                    home = Number(sum.home || 0);
+                    away = Number(sum.away || 0);
+                }
+            }
+            if (!(home || away)) {
+                const actions = Array.isArray(actionsBySet && actionsBySet[setNum]) ? actionsBySet[setNum] : [];
+                const fallback = pickScoreFromActions(actions);
+                home = fallback.home;
+                away = fallback.away;
+            }
+            return { home, away };
+        }
+
+        function computeWins(match, actionsBySet, setStateBySet, setSummary, homeAwayLabel) {
+            let myWins = 0;
+            let oppWins = 0;
+            const isHome = homeAwayLabel === 'casa';
+            for (let i = 1; i <= 6; i++) {
+                const sc = resolveSetScore(i, actionsBySet, setStateBySet, setSummary);
+                if (!sc.home && !sc.away) continue;
+                const myScore = isHome ? sc.home : sc.away;
+                const oppScore = isHome ? sc.away : sc.home;
+                if (myScore > oppScore) myWins++;
+                else if (oppScore > myScore) oppWins++;
+            }
+            return { myWins, oppWins };
+        }
+
+        async function ensureFirebaseStorage() {
+            try {
+                if (window.firebase && typeof window.firebase.storage === 'function') return window.firebase.storage();
+                await new Promise((resolve, reject) => {
+                    try {
+                        const s = document.createElement('script');
+                        s.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js';
+                        s.async = true;
+                        s.onload = () => resolve();
+                        s.onerror = () => reject(new Error('Impossibile caricare Firebase Storage'));
+                        document.head.appendChild(s);
+                    } catch (e) { reject(e); }
+                });
+                if (window.firebase && typeof window.firebase.storage === 'function') return window.firebase.storage();
+            } catch (_) {}
+            return null;
+        }
+
+        async function idbOpen() {
+            return new Promise((resolve, reject) => {
+                try {
+                    const req = indexedDB.open('mvs_fs', 1);
+                    req.onupgradeneeded = () => {
+                        try { req.result.createObjectStore('handles'); } catch (_) {}
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                } catch (e) { reject(e); }
+            });
+        }
+
+        async function idbGetHandle(key) {
+            try {
+                const db = await idbOpen();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction('handles', 'readonly');
+                    const store = tx.objectStore('handles');
+                    const req = store.get(key);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (_) { return null; }
+        }
+
+        async function idbSetHandle(key, value) {
+            try {
+                const db = await idbOpen();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('handles', 'readwrite');
+                    const store = tx.objectStore('handles');
+                    const req = store.put(value, key);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+                return true;
+            } catch (_) { return false; }
+        }
+
+        async function getScoutDirectoryHandle() {
+            if (!window.showDirectoryPicker) return null;
+            let handle = await idbGetHandle('scoutDir');
+            if (handle) {
+                try {
+                    const perm = await handle.queryPermission({ mode: 'readwrite' });
+                    if (perm === 'granted') return handle;
+                    const req = await handle.requestPermission({ mode: 'readwrite' });
+                    if (req === 'granted') return handle;
+                } catch (_) {}
+            }
+            try {
+                handle = await window.showDirectoryPicker({ id: 'mvsScoutFolder', mode: 'readwrite', startIn: 'documents' });
+                if (handle) {
+                    try { await idbSetHandle('scoutDir', handle); } catch (_) {}
+                    return handle;
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        async function saveWorkbookLocal(wbArray, fileName) {
+            try {
+                const dirHandle = await getScoutDirectoryHandle();
+                if (!dirHandle) return false;
+                const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(wbArray);
+                await writable.close();
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function uploadWorkbookToCloud(blob, fileName) {
+            try {
+                const storage = await ensureFirebaseStorage();
+                if (!storage) return null;
+                const ref = storage.ref().child(`VOLLEY/scout/${fileName}`);
+                await ref.put(blob);
+                const url = await ref.getDownloadURL();
+                return { url, path: `VOLLEY/scout/${fileName}` };
+            } catch (_) {
+                return null;
+            }
+        }
+
         const XLSX = await ensureXlsxLoaded();
         if (!XLSX || !XLSX.utils) {
             alert('Libreria XLSX non disponibile');
@@ -2138,10 +2463,67 @@ async function exportAllSetsToExcel() {
             XLSX.utils.book_append_sheet(wb, ws, 'Set ' + setNum);
         }
 
-        const safeDate = String(matchDate || '').slice(0, 10).replace(/[^\d-]/g, '') || new Date().toISOString().slice(0, 10);
-        const safeOpp = String(opponent || 'Avversario').replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 32) || 'Avversario';
-        const fileName = `Partita_${safeDate}_vs_${safeOpp}.xlsx`;
-        XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+        const matchId = String(match?.id || sessionData?.id || Date.now()).trim();
+        const matchNumber = getMatchNumber(matchId);
+        const teamClubLabel = normalizeFileSegment(getTeamClubLabel(match), 48);
+        const eventLabel = normalizeFileSegment(eventType, 24) || 'Partita';
+        const opponentLabel = normalizeFileSegment(opponent, 32) || 'Avversario';
+        const wins = computeWins(match, actionsBySet, setStateBySet, match.setSummary || sessionData.setSummary || {}, location);
+        const outcomeLabel = (wins.myWins || wins.oppWins) ? (wins.myWins > wins.oppWins ? 'Vinto' : (wins.oppWins > wins.myWins ? 'Perso' : '')) : (matchOutcome || '');
+        const resultLabel = (wins.myWins || wins.oppWins) ? (location === 'casa' ? `${wins.myWins}${wins.oppWins}` : `${wins.oppWins}${wins.myWins}`) : String(finalResult || '').replace(/[^\d]/g, '').slice(0, 2);
+        const nameParts = [matchNumber, teamClubLabel, eventLabel, 'Vs', opponentLabel, outcomeLabel, resultLabel].filter(Boolean);
+        const fileName = `${nameParts.join(' ')}.xlsx`;
+        const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const savedLocal = await saveWorkbookLocal(wbArray, fileName);
+        if (!savedLocal) {
+            XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
+        }
+        const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const cloudMeta = await uploadWorkbookToCloud(blob, fileName);
+        const driveMeta = (window.mvsDrive && typeof window.mvsDrive.uploadFile === 'function')
+            ? await window.mvsDrive.uploadFile(blob, fileName, { kind: 'match-xlsx', matchId: matchId })
+            : null;
+        try {
+            const excelMeta = Object.assign(
+                { name: fileName, updatedAt: new Date().toISOString() },
+                cloudMeta ? { url: cloudMeta.url, path: cloudMeta.path } : {},
+                (driveMeta && driveMeta.success) ? { driveFileId: driveMeta.id, driveFileName: driveMeta.name, driveWebViewLink: driveMeta.webViewLink } : {}
+            );
+            const stored = safeJsonParse(localStorage.getItem('volleyMatches'), []);
+            if (Array.isArray(stored)) {
+                const idx = stored.findIndex(m => String(m?.id || '').trim() === matchId);
+                if (idx >= 0) {
+                    stored[idx] = Object.assign({}, stored[idx], { matchNumber, excelFileName: excelMeta.name, excelFileUrl: excelMeta.url || '', excelFilePath: excelMeta.path || '', excelDriveFileId: excelMeta.driveFileId || '', excelDriveFileName: excelMeta.driveFileName || '', excelDriveWebViewLink: excelMeta.driveWebViewLink || '' });
+                }
+                try { localStorage.setItem('volleyMatches', JSON.stringify(stored)); } catch (_) {}
+            }
+            try {
+                const sess = safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
+                sess.excelFileName = excelMeta.name;
+                if (excelMeta.url) sess.excelFileUrl = excelMeta.url;
+                if (excelMeta.path) sess.excelFilePath = excelMeta.path;
+                if (excelMeta.driveFileId) sess.excelDriveFileId = excelMeta.driveFileId;
+                if (excelMeta.driveFileName) sess.excelDriveFileName = excelMeta.driveFileName;
+                if (excelMeta.driveWebViewLink) sess.excelDriveWebViewLink = excelMeta.driveWebViewLink;
+                sess.matchNumber = matchNumber;
+                localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+            } catch (_) {}
+            try {
+                const teamId = match?.teamId || window.teamsModule?.getCurrentTeam?.()?.id || localStorage.getItem('selectedTeamId') || null;
+                if (teamId && window.firestoreService?.saveMatchTree) {
+                    await window.firestoreService.saveMatchTree(teamId, Object.assign({}, match, {
+                        id: matchId,
+                        matchNumber,
+                        excelFileName: excelMeta.name,
+                        excelFileUrl: excelMeta.url || '',
+                        excelFilePath: excelMeta.path || '',
+                        excelDriveFileId: excelMeta.driveFileId || '',
+                        excelDriveFileName: excelMeta.driveFileName || '',
+                        excelDriveWebViewLink: excelMeta.driveWebViewLink || ''
+                    }));
+                }
+            } catch (_) {}
+        } catch (_) {}
     } catch (e) {
         console.error('Errore exportAllSetsToExcel:', e);
         alert('Errore durante l\'esportazione della partita');
