@@ -267,22 +267,8 @@ class AuthModule {
             this.clearError(errorDiv);
             this.setButtonLoading(googleBtn, true);
             
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try { provider.addScope('https://www.googleapis.com/auth/drive.file'); } catch (_) {}
-            const result = await firebase.auth().signInWithPopup(provider);
-            try {
-                const cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-                const token = cred && cred.accessToken;
-                if (token) {
-                    const expiresAt = Date.now() + 50 * 60 * 1000;
-                    window.__mvsDriveToken = token;
-                    window.__mvsDriveTokenExpiresAt = expiresAt;
-                    try {
-                        sessionStorage.setItem('mvsDriveToken', token);
-                        sessionStorage.setItem('mvsDriveTokenExpiresAt', String(expiresAt));
-                    } catch (_) {}
-                }
-            } catch (_) {}
+            const provider = window.googleProvider || new firebase.auth.GoogleAuthProvider();
+            await firebase.auth().signInWithPopup(provider);
             
         } catch (error) {
             console.error('Errore nel login con Google:', error);
@@ -302,12 +288,6 @@ class AuthModule {
     async handleSignOut() {
         try {
             await firebase.auth().signOut();
-            try {
-                sessionStorage.removeItem('mvsDriveToken');
-                sessionStorage.removeItem('mvsDriveTokenExpiresAt');
-            } catch (_) {}
-            window.__mvsDriveToken = null;
-            window.__mvsDriveTokenExpiresAt = 0;
             console.log('Logout effettuato con successo');
         } catch (error) {
             console.error('Errore nel logout:', error);

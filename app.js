@@ -27,6 +27,7 @@ if (!window.appState) { window.appState = {
     replacePlayerMode: false,
     // Sopprime i prompt di fine set/inizio set durante operazioni automatiche (es. import)
     suppressSetPrompts: false,
+    allowUninitializedSet: null,
     // Filtro per set per ciascuna tabella del "Riepilogo All"
     allSetFilterByFundamental: {
         'Attacco': ['ALL'],
@@ -42,143 +43,6 @@ window.rotationSequence = window.rotationSequence || ['P1', 'P6', 'P5', 'P4', 'P
 var rotationSequence = window.rotationSequence;
 
 let __lastSavedCoreSignature = null;
-
-(function(){
-    if (window.mvsDrive) return;
-    const TOKEN_KEY = 'mvsDriveToken';
-    const EXPIRES_KEY = 'mvsDriveTokenExpiresAt';
-    const readToken = () => {
-        try {
-            let token = null;
-            let exp = 0;
-            try {
-                token = sessionStorage.getItem(TOKEN_KEY);
-                exp = Number(sessionStorage.getItem(EXPIRES_KEY) || 0);
-            } catch (_) {}
-            if (!token && window.__mvsDriveToken) {
-                token = window.__mvsDriveToken;
-                exp = Number(window.__mvsDriveTokenExpiresAt || 0);
-            }
-            if (token && exp && exp < Date.now()) {
-                try {
-                    sessionStorage.removeItem(TOKEN_KEY);
-                    sessionStorage.removeItem(EXPIRES_KEY);
-                } catch (_) {}
-                window.__mvsDriveToken = null;
-                window.__mvsDriveTokenExpiresAt = 0;
-                return null;
-            }
-            return token;
-        } catch (_) {
-            return null;
-        }
-    };
-    const storeToken = (token, expiresAt) => {
-        if (!token) return;
-        window.__mvsDriveToken = token;
-        window.__mvsDriveTokenExpiresAt = expiresAt;
-        try {
-            sessionStorage.setItem(TOKEN_KEY, token);
-            sessionStorage.setItem(EXPIRES_KEY, String(expiresAt));
-        } catch (_) {}
-    };
-    const ensureToken = async () => {
-        const existing = readToken();
-        if (existing) return existing;
-        try {
-            if (!window.auth || !window.googleProvider || !window.firebase || !firebase.auth || !firebase.auth.GoogleAuthProvider) return null;
-            const result = await window.auth.signInWithPopup(window.googleProvider);
-            const cred = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-            const token = cred && cred.accessToken;
-            if (token) {
-                storeToken(token, Date.now() + 50 * 60 * 1000);
-                return token;
-            }
-        } catch (_) {}
-        return null;
-    };
-    const driveFetch = async (url, options = {}) => {
-        const token = await ensureToken();
-        if (!token) return { ok: false, error: 'Token non disponibile' };
-        const headers = Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + token });
-        try {
-            const res = await fetch(url, Object.assign({}, options, { headers }));
-            if (!res.ok) {
-                let text = '';
-                try { text = await res.text(); } catch (_) {}
-                return { ok: false, status: res.status, error: text || res.statusText };
-            }
-            return { ok: true, response: res };
-        } catch (e) {
-            return { ok: false, error: e.message || String(e) };
-        }
-    };
-    const uploadFile = async (blob, fileName, appProps = {}) => {
-        try {
-            const token = await ensureToken();
-            if (!token || !blob) return { success: false, error: 'Token non disponibile' };
-            const mimeType = blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            const metadata = {
-                name: fileName,
-                mimeType,
-                appProperties: Object.assign({ mvs: '1' }, appProps || {})
-            };
-            const boundary = '-------314159265358979323846';
-            const delimiter = '\r\n--' + boundary + '\r\n';
-            const closeDelimiter = '\r\n--' + boundary + '--';
-            const body = new Blob([
-                delimiter,
-                'Content-Type: application/json; charset=UTF-8\r\n\r\n',
-                JSON.stringify(metadata),
-                delimiter,
-                'Content-Type: ' + mimeType + '\r\n\r\n',
-                blob,
-                closeDelimiter
-            ], { type: 'multipart/related; boundary=' + boundary });
-            const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,webViewLink', {
-                method: 'POST',
-                headers: { Authorization: 'Bearer ' + token },
-                body
-            });
-            if (!res.ok) {
-                let text = '';
-                try { text = await res.text(); } catch (_) {}
-                return { success: false, error: text || res.statusText };
-            }
-            const data = await res.json();
-            return { success: true, id: data.id, name: data.name, modifiedTime: data.modifiedTime, webViewLink: data.webViewLink };
-        } catch (e) {
-            return { success: false, error: e.message || String(e) };
-        }
-    };
-    const listFiles = async () => {
-        try {
-            const url = new URL('https://www.googleapis.com/drive/v3/files');
-            url.searchParams.set('q', "appProperties has { key='mvs' and value='1' } and trashed=false");
-            url.searchParams.set('fields', 'files(id,name,modifiedTime,size,webViewLink,iconLink,mimeType)');
-            url.searchParams.set('orderBy', 'modifiedTime desc');
-            url.searchParams.set('pageSize', '20');
-            const res = await driveFetch(url.toString());
-            if (!res.ok) return { success: false, error: res.error || 'Errore Drive' };
-            const data = await res.response.json();
-            return { success: true, files: data.files || [] };
-        } catch (e) {
-            return { success: false, error: e.message || String(e) };
-        }
-    };
-    const downloadFile = async (fileId) => {
-        try {
-            if (!fileId) return { success: false, error: 'File non valido' };
-            const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(fileId) + '?alt=media');
-            if (!res.ok) return { success: false, error: res.error || 'Errore download' };
-            const blob = await res.response.blob();
-            return { success: true, blob };
-        } catch (e) {
-            return { success: false, error: e.message || String(e) };
-        }
-    };
-    window.mvsDrive = { ensureToken, listFiles, uploadFile, downloadFile, readToken };
-})();
 
 function __stableStringify(value) {
     try {
@@ -830,10 +694,15 @@ function goToSet(setNumber, options) {
     if (!Number.isInteger(n) || n < 1 || n > 6) return;
     const opts = options || {};
     const updateHash = opts.updateHash !== false;
+    const allowUninitialized = !!opts.allowUninitialized;
 
     try {
-        if (!__getSetMetaPresence(n) && typeof window.openSetMetaDialog === 'function') {
-            window.openSetMetaDialog(n);
+        if (!allowUninitialized && !__getSetMetaPresence(n) && typeof window.openSetMetaDialog === 'function') {
+            window.openSetMetaDialog(n, {
+                onSkip: function(){
+                    try { goToSet(n, { updateHash, allowUninitialized: true }); } catch(_) {}
+                }
+            });
             return;
         }
     } catch (_) {}
@@ -844,6 +713,9 @@ function goToSet(setNumber, options) {
     try { appState.currentSet = n; } catch (_) {}
     try { __persistSetNumberToSession(n); } catch (_) {}
     try { __setActiveSetButton(n); } catch (_) {}
+    if (allowUninitialized) {
+        try { appState.allowUninitializedSet = n; } catch(_) {}
+    }
 
     if (updateHash) {
         const desired = '#/set/' + String(n);
@@ -2275,24 +2147,6 @@ async function exportAllSetsToExcel() {
             return { myWins, oppWins };
         }
 
-        async function ensureFirebaseStorage() {
-            try {
-                if (window.firebase && typeof window.firebase.storage === 'function') return window.firebase.storage();
-                await new Promise((resolve, reject) => {
-                    try {
-                        const s = document.createElement('script');
-                        s.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js';
-                        s.async = true;
-                        s.onload = () => resolve();
-                        s.onerror = () => reject(new Error('Impossibile caricare Firebase Storage'));
-                        document.head.appendChild(s);
-                    } catch (e) { reject(e); }
-                });
-                if (window.firebase && typeof window.firebase.storage === 'function') return window.firebase.storage();
-            } catch (_) {}
-            return null;
-        }
-
         async function idbOpen() {
             return new Promise((resolve, reject) => {
                 try {
@@ -2365,19 +2219,6 @@ async function exportAllSetsToExcel() {
                 return true;
             } catch (_) {
                 return false;
-            }
-        }
-
-        async function uploadWorkbookToCloud(blob, fileName) {
-            try {
-                const storage = await ensureFirebaseStorage();
-                if (!storage) return null;
-                const ref = storage.ref().child(`VOLLEY/scout/${fileName}`);
-                await ref.put(blob);
-                const url = await ref.getDownloadURL();
-                return { url, path: `VOLLEY/scout/${fileName}` };
-            } catch (_) {
-                return null;
             }
         }
 
@@ -2478,33 +2319,23 @@ async function exportAllSetsToExcel() {
         if (!savedLocal) {
             XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
         }
-        const blob = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const cloudMeta = await uploadWorkbookToCloud(blob, fileName);
-        const driveMeta = (window.mvsDrive && typeof window.mvsDrive.uploadFile === 'function')
-            ? await window.mvsDrive.uploadFile(blob, fileName, { kind: 'match-xlsx', matchId: matchId })
-            : null;
         try {
             const excelMeta = Object.assign(
-                { name: fileName, updatedAt: new Date().toISOString() },
-                cloudMeta ? { url: cloudMeta.url, path: cloudMeta.path } : {},
-                (driveMeta && driveMeta.success) ? { driveFileId: driveMeta.id, driveFileName: driveMeta.name, driveWebViewLink: driveMeta.webViewLink } : {}
+                { name: fileName, updatedAt: new Date().toISOString() }
             );
             const stored = safeJsonParse(localStorage.getItem('volleyMatches'), []);
             if (Array.isArray(stored)) {
                 const idx = stored.findIndex(m => String(m?.id || '').trim() === matchId);
                 if (idx >= 0) {
-                    stored[idx] = Object.assign({}, stored[idx], { matchNumber, excelFileName: excelMeta.name, excelFileUrl: excelMeta.url || '', excelFilePath: excelMeta.path || '', excelDriveFileId: excelMeta.driveFileId || '', excelDriveFileName: excelMeta.driveFileName || '', excelDriveWebViewLink: excelMeta.driveWebViewLink || '' });
+                    stored[idx] = Object.assign({}, stored[idx], { matchNumber, excelFileName: excelMeta.name, excelFileUrl: '', excelFilePath: '' });
                 }
                 try { localStorage.setItem('volleyMatches', JSON.stringify(stored)); } catch (_) {}
             }
             try {
                 const sess = safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
                 sess.excelFileName = excelMeta.name;
-                if (excelMeta.url) sess.excelFileUrl = excelMeta.url;
-                if (excelMeta.path) sess.excelFilePath = excelMeta.path;
-                if (excelMeta.driveFileId) sess.excelDriveFileId = excelMeta.driveFileId;
-                if (excelMeta.driveFileName) sess.excelDriveFileName = excelMeta.driveFileName;
-                if (excelMeta.driveWebViewLink) sess.excelDriveWebViewLink = excelMeta.driveWebViewLink;
+                sess.excelFileUrl = '';
+                sess.excelFilePath = '';
                 sess.matchNumber = matchNumber;
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
             } catch (_) {}
@@ -2515,11 +2346,8 @@ async function exportAllSetsToExcel() {
                         id: matchId,
                         matchNumber,
                         excelFileName: excelMeta.name,
-                        excelFileUrl: excelMeta.url || '',
-                        excelFilePath: excelMeta.path || '',
-                        excelDriveFileId: excelMeta.driveFileId || '',
-                        excelDriveFileName: excelMeta.driveFileName || '',
-                        excelDriveWebViewLink: excelMeta.driveWebViewLink || ''
+                        excelFileUrl: '',
+                        excelFilePath: ''
                     }));
                 }
             } catch (_) {}
@@ -2965,6 +2793,29 @@ function __mvsUnlockScroll() {
     }
 }
 
+function __mvsForceUnlockScroll() {
+    try {
+        __mvsEnsureScrollLockState();
+        const st = window.__mvsScrollLock;
+        st.count = 0;
+        document.body.style.overflow = st.bodyOverflow || '';
+        document.documentElement.style.overflow = st.htmlOverflow || '';
+        document.body.style.position = st.bodyPosition || '';
+        document.body.style.top = st.bodyTop || '';
+        document.body.style.width = st.bodyWidth || '';
+        const y = Number(st.scrollY || 0) || 0;
+        window.scrollTo(0, y);
+    } catch (_) {
+        try {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+        } catch (_) {}
+    }
+}
+
 function __mvsCloseModalElement(dlg) {
     try { if (dlg && dlg.parentNode) dlg.parentNode.removeChild(dlg); else if (dlg && typeof dlg.remove === 'function') dlg.remove(); } catch (_) {}
     try {
@@ -2972,6 +2823,7 @@ function __mvsCloseModalElement(dlg) {
         const anyOpen = document.querySelector('.dialog.is-open:not([hidden])');
         const st = window.__mvsScrollLock;
         if (anyOpen && (!st || !st.count)) __mvsLockScroll();
+        if (!anyOpen) __mvsForceUnlockScroll();
     } catch (_) { try { __mvsUnlockScroll(); } catch(_){} }
 }
 
@@ -3826,6 +3678,7 @@ function openQuartetStartDialog(invalidFundamental) {
 }
 
 function submitGuidedAction() {
+    if (!__ensureSetInitializedForScouting()) return;
     if (!appState.selectedPlayer) {
         alert('Errore: nessun giocatore selezionato');
         return;
@@ -3926,10 +3779,10 @@ function submitGuidedAction() {
     appState.overrideFundamental = null;
     appState.calculatedFundamental = null;
 
-    if (isPoint) checkSetEnd();
 }
 
 function submitOpponentError() {
+    if (!__ensureSetInitializedForScouting()) return;
     // Se non c'è ancora una quartina registrata e NON c'è selezione,
     // consenti comunque l'errore avversario: verrà registrato come "avv".
     // Se invece c'è già selezione (giocatore+valutazione), chiudi quella quartina
@@ -4038,7 +3891,6 @@ function submitOpponentError() {
         updateActionsLog();
         updateNextFundamental();
         showScoutingStep('step-player');
-        checkSetEnd();
 
     } catch (error) {
         alert(`Errore: ${error.message}`);
@@ -4330,9 +4182,10 @@ function startSet() {
         const __rotCfg2 = cfg.ourRotation;
         const hasMetaForSet = !!(sm && sm.ourRotation && sm.phase);
         const hasGlobalCfgValid = !!(__rotCfg2 && cfg.phase);
+        const allowUninitialized = !!(appState && appState.allowUninitializedSet === setNumber);
 
         // Se non abbiamo configurazione valida, apri il dialog di setup set e interrompi
-        if (!hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1)) {
+        if (!hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1) && !allowUninitialized) {
             try {
                 appState.currentSet = setNumber;
                 appState.homeScore = 0;
@@ -4357,6 +4210,10 @@ function startSet() {
             }
             // Aggiorna il display set corrente se presente, ma non proseguire
             return;
+        }
+
+        if (hasMetaForSet) {
+            try { appState.allowUninitializedSet = null; } catch(_) {}
         }
 
         rotation = hasMetaForSet
@@ -4616,6 +4473,7 @@ function submitAction() {
         console.warn('submitAction chiamata ma #action-string non è presente nel DOM');
         return;
     }
+    if (!__ensureSetInitializedForScouting()) return;
     
     if (!actionString) {
         alert('Inserisci una stringa di azione');
@@ -4683,10 +4541,6 @@ function submitAction() {
         
         // Pulisci input
         if (inputEl) inputEl.value = '';
-        
-        // Controlla fine set
-        checkSetEnd();
-        
     } catch (error) {
         alert(`Errore nella stringa: ${error.message}`);
     }
@@ -5670,6 +5524,19 @@ function __getSetMetaPresence(setNum){
     } catch(_) { return false; }
 }
 
+function __ensureSetInitializedForScouting(){
+    try {
+        const setNum = (appState && Number.isInteger(appState.currentSet)) ? appState.currentSet : 1;
+        if (__getSetMetaPresence(setNum)) return true;
+        if (typeof window.openSetMetaDialog === 'function') {
+            window.openSetMetaDialog(setNum, {
+                onSkip: function(){}
+            });
+        }
+    } catch(_) {}
+    return false;
+}
+
 function __getSetDataSnapshot(setNum){
     let actions = [];
     let home = 0, away = 0;
@@ -5967,7 +5834,8 @@ function openEndSetDialog(setNumber, winner, homeScore, awayScore){
     openDialog('end-set-dialog');
 }
 
-function openSetMetaDialog(setNumber){
+function openSetMetaDialog(setNumber, options){
+    var opts = options || {};
     var dlg = document.getElementById('set-meta-dialog');
     if (!dlg) {
         dlg = document.createElement('div');
@@ -6046,6 +5914,22 @@ function openSetMetaDialog(setNumber){
         btnCancel.className = 'btn';
         try{ btnCancel.style.background='#fff'; btnCancel.style.color='#0d6efd'; btnCancel.style.border='1px solid #0d6efd'; btnCancel.style.borderRadius='10px'; btnCancel.style.padding='6px 10px'; btnCancel.style.fontWeight='600'; }catch(_){ }
         btnCancel.addEventListener('click', function(){ closeDialog('set-meta-dialog'); });
+        var btnBypass = document.createElement('button');
+        btnBypass.type = 'button';
+        btnBypass.textContent = 'Non inizializzare set';
+        btnBypass.className = 'btn';
+        try{ btnBypass.style.background='#fff'; btnBypass.style.color='#dc3545'; btnBypass.style.border='1px solid #dc3545'; btnBypass.style.borderRadius='10px'; btnBypass.style.padding='6px 10px'; btnBypass.style.fontWeight='600'; }catch(_){ }
+        btnBypass.addEventListener('click', function(){
+            try {
+                if (dlg && typeof dlg.__onSkip === 'function') {
+                    dlg.__onSkip();
+                } else if (typeof goToSet === 'function') {
+                    var targetSet = (dlg && dlg.__setNumber) ? dlg.__setNumber : setNumber;
+                    goToSet(targetSet, { allowUninitialized: true });
+                }
+            } catch(_) {}
+            closeDialog('set-meta-dialog');
+        });
         var btnStart = document.createElement('button');
         btnStart.type = 'button';
         btnStart.textContent = 'Avvia Set';
@@ -6056,6 +5940,7 @@ function openSetMetaDialog(setNumber){
             var phase = selPhase.value || 'servizio';
             var ourRot = selRot.value || 'P1';
             var oppRot = selOpp.value || '';
+            var targetSet = (dlg && dlg.__setNumber) ? dlg.__setNumber : setNumber;
             try {
                 if (typeof cancelAutosave === 'function') cancelAutosave();
             } catch(_) {}
@@ -6075,12 +5960,12 @@ function openSetMetaDialog(setNumber){
             try {
                 var sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
                 sessionData.setMeta = sessionData.setMeta || {};
-                sessionData.setMeta[setNumber] = { ourRotation: ourRot, phase: phase, opponentRotation: oppRot || null };
+                sessionData.setMeta[targetSet] = { ourRotation: ourRot, phase: phase, opponentRotation: oppRot || null };
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
             } catch(_){ }
-            try { appState.currentSet = setNumber; } catch(_){ }
+            try { appState.currentSet = targetSet; } catch(_){ }
             try {
-                var desired = '#/set/' + String(setNumber);
+                var desired = '#/set/' + String(targetSet);
                 __lastHandledSetHash = desired;
                 if (location.hash !== desired) location.hash = desired;
             } catch(_){ }
@@ -6090,13 +5975,14 @@ function openSetMetaDialog(setNumber){
                 var list = document.getElementById('setToolbar');
                 if (list) {
                     list.querySelectorAll('.set-item').forEach(function(b){ b.classList.remove('active'); b.removeAttribute('aria-current'); });
-                    var btn = list.querySelector('.set-item[data-set="'+ String(setNumber) +'"]');
+                    var btn = list.querySelector('.set-item[data-set="'+ String(targetSet) +'"]');
                     if (btn) { btn.classList.add('active'); btn.setAttribute('aria-current','true'); }
                 }
             } catch(_){ }
             closeDialog('set-meta-dialog');
         });
         footer.appendChild(btnCancel);
+        footer.appendChild(btnBypass);
         footer.appendChild(btnStart);
         panel.appendChild(header);
         panel.appendChild(body);
@@ -6104,6 +5990,10 @@ function openSetMetaDialog(setNumber){
         dlg.appendChild(panel);
         document.body.appendChild(dlg);
     }
+    try {
+        dlg.__onSkip = (typeof opts.onSkip === 'function') ? opts.onSkip : null;
+        dlg.__setNumber = setNumber;
+    } catch(_) {}
     try {
         var sessionData = JSON.parse(localStorage.getItem('currentScoutingSession')||'{}');
         var sm = sessionData.setMeta && sessionData.setMeta[setNumber];

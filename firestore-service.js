@@ -431,7 +431,22 @@ const firestoreService = {
 
                     try {
                         const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
-                        const meta = firestoreService._sanitizeMatchMeta(Object.assign({}, m, { id: matchId }));
+                        const metaSource = (() => {
+                            const base = Object.assign({}, m);
+                            if (cloudMeta && typeof cloudMeta === 'object') {
+                                const fields = ['matchNumber','excelFileName','excelFileUrl','excelFilePath'];
+                                fields.forEach((f) => {
+                                    const lv = base[f];
+                                    const hasLocal = !(lv == null || String(lv).trim() === '');
+                                    if (!hasLocal) {
+                                        const cv = cloudMeta[f];
+                                        if (!(cv == null || String(cv).trim() === '')) base[f] = cv;
+                                    }
+                                });
+                            }
+                            return base;
+                        })();
+                        const meta = firestoreService._sanitizeMatchMeta(Object.assign({}, metaSource, { id: matchId }));
                         const matchDoc = matchesRef.doc(meta.id);
                         const metaPayload = Object.assign({}, meta, {
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
