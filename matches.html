@@ -285,6 +285,13 @@
         .match-line { flex: 1; }
         .card-actions { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .card-actions .icon-button { padding: 6px; }
+        .partial-saves { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; white-space: normal; }
+        .partial-saves-title { font-size: 12px; color: #64748b; font-weight: 700; letter-spacing: 0.02em; }
+        .partial-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .partial-save-btn { background: #f8fafc; color: #0f172a; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .partial-save-btn:hover { background: #eef2f7; border-color: #cbd5e1; }
+        .partial-save-meta { color: #64748b; font-size: 12px; }
+        .partial-save-delete { padding: 5px; }
 
         .btn {
             padding: 8px 16px;
@@ -1361,6 +1368,135 @@
             return `${dd}/${mm}/${yyyy}`;
         }
 
+        const PARTIAL_SAVES_KEY = 'mvsPartialSaves';
+
+        function getPartialSavesMap() {
+            try {
+                const raw = localStorage.getItem(PARTIAL_SAVES_KEY);
+                const parsed = raw ? JSON.parse(raw) : {};
+                return (parsed && typeof parsed === 'object') ? parsed : {};
+            } catch (_) { return {}; }
+        }
+
+        function setPartialSavesMap(map) {
+            try { localStorage.setItem(PARTIAL_SAVES_KEY, JSON.stringify(map || {})); } catch (_) {}
+        }
+
+        function getPartialSavesForMatch(matchId) {
+            const map = getPartialSavesMap();
+            const key = String(matchId || '').trim();
+            const list = Array.isArray(map[key]) ? map[key] : [];
+            return list;
+        }
+
+        function deletePartialSave(matchId, saveId) {
+            const map = getPartialSavesMap();
+            const key = String(matchId || '').trim();
+            const list = Array.isArray(map[key]) ? map[key] : [];
+            const next = list.filter(s => String(s?.id || '') !== String(saveId || ''));
+            if (next.length) map[key] = next; else delete map[key];
+            setPartialSavesMap(map);
+            return next;
+        }
+
+        function formatPartialSaveClock(raw) {
+            try {
+                const d = new Date(raw);
+                if (!(d instanceof Date) || isNaN(d)) return '';
+                return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            } catch (_) { return ''; }
+        }
+
+        function formatPartialSaveLabel(entry) {
+            const setLabel = entry?.setNumber ? `Set ${entry.setNumber}` : '';
+            const score = entry?.score ? `${Number(entry.score.home || 0)}-${Number(entry.score.away || 0)}` : '';
+            const date = formatItalianDateDisplay(entry?.createdAt || entry?.ts || '');
+            const time = formatPartialSaveClock(entry?.createdAt || entry?.ts || '');
+            return [setLabel, score, time, date].filter(Boolean).join(' • ');
+        }
+
+        function pickResumeSetFromSnapshot(actionsBySet, setStateBySet, setSummary, fallbackSet) {
+            let last = Number(fallbackSet || 1);
+            try {
+                const abKeys = Object.keys(actionsBySet || {}).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                for (const k of abKeys) { if (Array.isArray(actionsBySet[k]) && actionsBySet[k].length) last = Math.max(last, k); }
+                const stKeys = Object.keys(setStateBySet || {}).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                for (const k of stKeys) {
+                    const st = setStateBySet[k] || {};
+                    const hasData = !!(st.setStarted) || (((Number(st.homeScore)||0) + (Number(st.awayScore)||0)) > 0);
+                    if (hasData) last = Math.max(last, k);
+                }
+                const sumKeys = Object.keys(setSummary || {}).map(Number).filter(n => n >= 1 && n <= 6).sort((a,b)=>a-b);
+                for (const k of sumKeys) {
+                    const s = setSummary[k] || {};
+                    const hasSum = ((Number(s.home)||0) + (Number(s.away)||0)) > 0;
+                    if (hasSum) last = Math.max(last, k);
+                }
+            } catch(_) {}
+            return last;
+        }
+
+        function openPartialSave(matchId, saveId) {
+            try {
+                const list = getPartialSavesForMatch(matchId);
+                const entry = list.find(s => String(s?.id || '') === String(saveId || ''));
+                if (!entry) return alert('Salvataggio progressivo non trovato');
+                const payload = entry.payload || {};
+                const matchData = Object.assign({}, payload);
+                if (!matchData.id) matchData.id = String(matchId);
+                const abSet = matchData.actionsBySet || {};
+                const stBySet = matchData.setStateBySet || {};
+                const sumBySet = matchData.setSummary || {};
+                const resumeSet = pickResumeSetFromSnapshot(abSet, stBySet, sumBySet, entry.setNumber || 1);
+                const rosterArr = Array.isArray(matchData.roster) ? matchData.roster : [];
+                const opp = matchData.opponentTeam || matchData.opponent || '';
+                const sess = {
+                    id: matchData.id,
+                    opponentTeam: opp,
+                    matchDate: matchData.matchDate || matchData.date || new Date().toISOString().slice(0,10),
+                    matchType: matchData.matchType || matchData.eventType || '',
+                    homeAway: matchData.homeAway || matchData.location || null,
+                    description: matchData.description || '',
+                    actionsBySet: abSet,
+                    setMeta: matchData.setMeta || {},
+                    setStateBySet: stBySet,
+                    scoreHistoryBySet: matchData.scoreHistoryBySet || {},
+                    setSummary: sumBySet,
+                    setConfig: { set: resumeSet },
+                    roster: rosterArr
+                };
+                try {
+                    sess.setMeta = sess.setMeta || {};
+                    sess.setMeta[resumeSet] = sess.setMeta[resumeSet] || {};
+                    if (!sess.setMeta[resumeSet].ourRotation) sess.setMeta[resumeSet].ourRotation = 'P1';
+                    if (!sess.setMeta[resumeSet].phase) sess.setMeta[resumeSet].phase = 'servizio';
+                    if (Number(resumeSet) === 1) {
+                        sess.setConfig.ourRotation = sess.setMeta[1].ourRotation;
+                        sess.setConfig.phase = sess.setMeta[1].phase;
+                    }
+                } catch(_) {}
+                try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } catch(_) { localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); }
+                localStorage.setItem('selectedMatchId', String(matchData.id));
+                try {
+                    let teamId = localStorage.getItem('selectedTeamId');
+                    if (!teamId && matchData.teamId) {
+                        teamId = String(matchData.teamId);
+                        localStorage.setItem('selectedTeamId', teamId);
+                    }
+                } catch(_) {}
+                if (window.appState) window.appState.currentRoster = Array.isArray(sess.roster) ? sess.roster : [];
+                try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
+                try {
+                    window.location.href = `scouting.html#/set/${Number(resumeSet)}`;
+                } catch(_) {
+                    window.location.href = '/scouting.html';
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Errore nel ripristino del salvataggio progressivo');
+            }
+        }
+
         function computeMatchOutcome(match) {
             try {
                 const sum = match.setSummary || {};
@@ -1379,6 +1515,31 @@
                 const outcome = my > opp ? 'Vinto' : 'Perso';
                 return { label: `${my}-${opp}`, outcome };
             } catch(_) { return { label: '', outcome: '' }; }
+        }
+
+        function renderPartialSavesHtml(matchId) {
+            const list = getPartialSavesForMatch(matchId);
+            if (!list.length) return '';
+            const rows = list.map(entry => {
+                const label = formatPartialSaveLabel(entry) || 'Salvataggio progressivo';
+                return `
+                  <div class="partial-save-row" data-save-id="${entry.id}">
+                    <button class="partial-save-btn" type="button" data-action="partial-open" data-save-id="${entry.id}">${label}</button>
+                    <button class="icon-button partial-save-delete" type="button" data-action="partial-delete" data-save-id="${entry.id}" aria-label="Elimina salvataggio" title="Elimina salvataggio">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                  </div>`;
+            }).join('');
+            return `
+              <div class="partial-saves" data-match-id="${matchId}">
+                <div class="partial-saves-title">Salvataggi progressivi (${list.length})</div>
+                ${rows}
+              </div>`;
         }
 
         function isSetCompletedGeneric(setNum, match){
@@ -1555,6 +1716,8 @@
                 return '<span class="status-icon" title="'+statusLabel+'" aria-label="'+statusLabel+'" style="display:inline-flex;align-items:center;margin-right:6px;color:#9ca3af;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></span>';
             })();
 
+            const partialSavesHtml = renderPartialSavesHtml(match.id);
+
             // Riga con azioni a sinistra + testo
             card.innerHTML = `
               <div class="match-row">
@@ -1576,7 +1739,8 @@
                   </button>
                 </div>
                 <div class="match-line">${statusIcon}${dateLabel} • ${typeLabel} • ${opp}${res.label ? ` • ${res.label} ${res.outcome}` : ''}</div>
-              </div>`;
+              </div>
+              ${partialSavesHtml}`;
             card.style.cursor = 'pointer';
             // Apri configurazione set cliccando la card
             card.addEventListener('click', () => scoutMatch(match.id));
@@ -1585,6 +1749,8 @@
             const editBtn = card.querySelector('button[data-action="edit"]');
             const delBtn = card.querySelector('button[data-action="delete"]');
             const uploadBtn = null;
+            const partialOpenBtns = card.querySelectorAll('button[data-action="partial-open"]');
+            const partialDeleteBtns = card.querySelectorAll('button[data-action="partial-delete"]');
             if (editBtn) {
                 editBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1617,6 +1783,29 @@
                         console.error(err);
                         alert('Errore nell\'eliminazione della partita');
                     }
+                });
+            }
+            if (partialOpenBtns && partialOpenBtns.length) {
+                partialOpenBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const saveId = btn.getAttribute('data-save-id');
+                        openPartialSave(match.id, saveId);
+                    });
+                });
+            }
+            if (partialDeleteBtns && partialDeleteBtns.length) {
+                partialDeleteBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const saveId = btn.getAttribute('data-save-id');
+                        const ok = window.confirm('Eliminare questo salvataggio progressivo?');
+                        if (!ok) return;
+                        deletePartialSave(match.id, saveId);
+                        renderMatches();
+                    });
                 });
             }
             

@@ -79,6 +79,55 @@ function __coreSignatureFromPayload(payload) {
     }
 }
 
+const __PARTIAL_SAVES_KEY = 'mvsPartialSaves';
+
+function __readPartialSavesMap() {
+    try {
+        const raw = localStorage.getItem(__PARTIAL_SAVES_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function __writePartialSavesMap(map) {
+    try {
+        localStorage.setItem(__PARTIAL_SAVES_KEY, JSON.stringify(map || {}));
+    } catch (_) {}
+}
+
+function __appendPartialSaveSnapshot(payload) {
+    try {
+        if (!payload || typeof payload !== 'object') return;
+        const matchId = String(payload.id || '').trim();
+        if (!matchId) return;
+        const map = __readPartialSavesMap();
+        const list = Array.isArray(map[matchId]) ? map[matchId] : [];
+        const signature = __coreSignatureFromPayload(payload);
+        const last = list[0];
+        if (last && signature && last.signature === signature) return;
+        const now = new Date().toISOString();
+        const score = payload.score || {
+            home: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+            away: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0
+        };
+        const entry = {
+            id: 'ps_' + Date.now() + '_' + Math.floor(Math.random() * 1000000),
+            matchId,
+            createdAt: now,
+            setNumber: (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1,
+            score,
+            signature,
+            payload
+        };
+        list.unshift(entry);
+        if (list.length > 30) list.length = 30;
+        map[matchId] = list;
+        __writePartialSavesMap(map);
+    } catch (_) {}
+}
+
 // Normalizza una rotazione in formato coerente "P1".."P6"
 function normalizeRotation(rot) {
   if (!rot) return 'P1';
@@ -1890,6 +1939,8 @@ async function saveCurrentMatch() {
         const payloadId = String(payload.id || '').trim();
         if (payloadId) payload.id = payloadId;
 
+        try { __appendPartialSaveSnapshot(payloadBase); } catch(_) {}
+
         try {
             const userEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
             const teamIdRef = payload.teamId || (window.teamsModule?.getCurrentTeam?.()?.id != null ? String(window.teamsModule.getCurrentTeam().id) : null);
@@ -2266,8 +2317,8 @@ async function exportAllSetsToExcel() {
             const p = validPlayers[i] || {};
             const row = 3 + i;
             setCell(wsRoster, 'B' + row, formatJersey(p.number || p.num || p.jersey || p.maglia || ''));
-            setCell(wsRoster, 'C' + row, p.surname || p.cognome || '');
-            setCell(wsRoster, 'D' + row, p.name || p.nome || '');
+            setCell(wsRoster, 'C' + row, p.cognome || p.surname || p.lastName || p.cognomi || '');
+            setCell(wsRoster, 'D' + row, p.nome || p.name || p.firstName || p.nomi || '');
             setCell(wsRoster, 'E' + row, p.nickname || p.nick || p.soprannome || '');
             setCell(wsRoster, 'F' + row, p.role || p.ruolo || '');
         }
@@ -5931,6 +5982,7 @@ function openSetMetaDialog(setNumber, options){
             closeDialog('set-meta-dialog');
         });
         var btnStart = document.createElement('button');
+        btnStart.id = 'set-meta-start-btn';
         btnStart.type = 'button';
         btnStart.textContent = 'Avvia Set';
         btnStart.className = 'btn';
@@ -6008,6 +6060,8 @@ function openSetMetaDialog(setNumber, options){
         if (oppSel) oppSel.value = oppRot || '';
         var titleEl = dlg.querySelector('.dialog-header h3');
         if (titleEl) titleEl.textContent = 'Dati Set ' + String(setNumber);
+        var startBtn = dlg.querySelector('#set-meta-start-btn');
+        if (startBtn) startBtn.disabled = false;
     } catch(_){ }
     openDialog('set-meta-dialog');
 }

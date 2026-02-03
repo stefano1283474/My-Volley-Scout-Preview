@@ -724,14 +724,12 @@
         // --- Roster: selezione/import ---
         function openRosterSelectDialog(){ renderRosterList(); }
         function buildRosterOptions(){
-            let saved = []; let matches = []; let imported = [];
+            let saved = []; let imported = [];
             try { saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ }
-            try { matches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_){ }
             try { imported = JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ }
             const opts = [];
             if (imported && imported.length) opts.push({ id:'imported', label:'Ultimo import', roster:imported, source:'imported' });
-            saved.forEach((r,idx)=>{ opts.push({ id:'saved_'+idx, label:r.name||'Roster salvato', roster:Array.isArray(r.players)?r.players:[], source:'saved' }); });
-            matches.forEach(m=>{ if (Array.isArray(m.roster) && m.roster.length){ const date = (m.matchDate||m.date||'').toString().slice(0,10); const opp = m.opponentTeam||m.opponent||'Avversario'; opts.push({ id:String(m.id||date+opp), label:`Partita: ${date} vs ${opp}`, roster:m.roster, source:'match' }); } });
+            saved.forEach((r,idx)=>{ opts.push({ id:'saved_'+idx, label:r.name||r.label||'Roster salvato', roster:Array.isArray(r.players)?r.players:(Array.isArray(r.roster)?r.roster:[]), source:'saved' }); });
             return opts;
         }
         function renderRosterList(){
@@ -889,7 +887,7 @@
               goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
             }
         })();
-        function confirmCurrentRoster(){
+        async function confirmCurrentRoster(){
             const list = collectRosterFromEditor();
             if (!Array.isArray(list) || list.length === 0){ alert('Aggiungi almeno un giocatore prima di confermare'); return; }
             const teamName = (document.getElementById('myTeamInput')?.value.trim()) || (window.teamsModule?.getCurrentTeam?.()?.name || '') || 'Roster';
@@ -897,9 +895,18 @@
                 const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ return []; } })();
                 const key = String(teamName||'').toLowerCase();
                 const idx = saved.findIndex(r => String(r.name||'').toLowerCase() === key);
-                const entry = { name: teamName, players: list };
+                const entry = { name: teamName, label: teamName, players: list, roster: list, updatedAt: new Date().toISOString() };
                 if (idx >= 0) saved[idx] = entry; else saved.push(entry);
                 localStorage.setItem('savedRosters', JSON.stringify(saved));
+                try {
+                    if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveRoster) {
+                        const user = window.authFunctions.getCurrentUser();
+                        if (user) {
+                            if (window.firestoreService.deleteRostersByName) { await window.firestoreService.deleteRostersByName(teamName); }
+                            await window.firestoreService.saveRoster({ name: teamName, roster: list, players: list, updatedAt: new Date().toISOString() });
+                        }
+                    }
+                } catch(_){}
                 currentRoster = list;
                 const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
                 renderRosterList();
