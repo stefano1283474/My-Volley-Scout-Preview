@@ -8,6 +8,9 @@
     <style>
       .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
       .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+      .meta-input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; font-size:15px; }
+      .meta-actions { margin-top:12px; display:flex; gap:10px; justify-content:flex-end; align-items:center; }
+      .meta-status { font-weight:600; color:#0f172a; }
     </style>
   </head>
 <body>
@@ -45,6 +48,10 @@
     <section class="section-panel">
       <h2 class="section-title">Riepilogo Gara</h2>
       <div id="matchMeta" class="matches-list"></div>
+      <div class="meta-actions">
+        <div id="saveMatchMetaStatus" class="meta-status"></div>
+        <button id="saveMatchMetaBtn" class="btn btn-primary" type="button">Salva</button>
+      </div>
     </section>
 
     <section class="section-panel">
@@ -124,23 +131,41 @@
         } catch(_) { return getSession(); }
       }
       function normalizeHA(val){ const v=String(val||'').toLowerCase(); if(v==='casa'||v==='home') return 'home'; if(v==='trasferta'||v==='away') return 'away'; return ''; }
+      function normalizeDateInput(v){
+        if (!v) return '';
+        const s = String(v).trim();
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+        try {
+          const d = new Date(s);
+          if (!isNaN(d)) return d.toISOString().slice(0,10);
+        } catch(_) {}
+        return '';
+      }
       function isValidScore(h,a){ const hv = Number(h||0), av = Number(a||0); const bothZero = (hv===0 && av===0); const bothBlank = (String(h||'').trim()==='' && String(a||'').trim()===''); return !(bothZero || bothBlank); }
       function computeSetOutcome(h,a){ if(!isValidScore(h,a)) return ''; return (Number(h)>Number(a)) ? 'Vinto' : (Number(a)>Number(h) ? 'Perso' : ''); }
       function computeOverallOutcome(sess){ let my=0, opp=0; const sum = sess.setSummary || {}; const st = sess.setStateBySet || {}; for(let i=1;i<=6;i++){ const s = sum[i] || {}; const si = st[i] || {}; let h = s.home!=null ? Number(s.home||0) : Number(si.homeScore||0); let a = s.away!=null ? Number(s.away||0) : Number(si.awayScore||0); if (!isValidScore(h,a)) continue; const myScore = h; const oppScore = a; if (myScore>oppScore) my++; else if (oppScore>myScore) opp++; }
         const punteggio = `${my} a ${opp}`; const esito = my>opp ? 'Vinto' : (opp>my ? 'Perso' : ''); return { punteggio, esito };
       }
 
-      function renderMeta(sess){ const target = document.getElementById('matchMeta'); if (!target) return; const opponent = sess.opponent || sess.opponentTeam || ''; const date = sess.matchDate || sess.date || ''; const type = sess.eventType || sess.matchType || ''; const location = (sess.location || (normalizeHA(sess.homeAway)==='home'?'casa':'trasferta')) || '';
+      function renderMeta(sess){
+        const target = document.getElementById('matchMeta');
+        if (!target) return;
+        const opponent = sess.opponent || sess.opponentTeam || '';
+        const date = normalizeDateInput(sess.matchDate || sess.date || '');
+        const type = sess.eventType || sess.matchType || '';
+        const location = (sess.location || (normalizeHA(sess.homeAway)==='home'?'casa':'trasferta')) || '';
         const overall = computeOverallOutcome(sess);
-        const items = [
-          { label: 'Avversario', value: opponent },
-          { label: 'Data', value: date },
-          { label: 'Tipo Evento', value: type },
-          { label: 'Luogo', value: location },
-          { label: 'Punteggio', value: overall.punteggio },
-          { label: 'Esito', value: overall.esito }
-        ];
-        target.innerHTML = items.map(it => `<div class="match-item"><div class="match-title">${it.label}</div><div class="match-details">${it.value||'—'}</div></div>`).join('');
+        const finalResult = sess.finalResult || overall.punteggio || '';
+        const outcome = sess.matchOutcome || overall.esito || '';
+        target.innerHTML = [
+          `<div class="match-item"><div class="match-title">Avversario</div><div class="match-details"><input id="metaOpponent" class="meta-input" type="text" value="${String(opponent).replace(/"/g,'&quot;')}"></div></div>`,
+          `<div class="match-item"><div class="match-title">Data</div><div class="match-details"><input id="metaDate" class="meta-input" type="date" value="${date}"></div></div>`,
+          `<div class="match-item"><div class="match-title">Tipo Evento</div><div class="match-details"><input id="metaType" class="meta-input" type="text" value="${String(type).replace(/"/g,'&quot;')}"></div></div>`,
+          `<div class="match-item"><div class="match-title">Luogo</div><div class="match-details"><select id="metaLocation" class="meta-input"><option value="casa"${location==='casa'?' selected':''}>casa</option><option value="trasferta"${location==='trasferta'?' selected':''}>trasferta</option></select></div></div>`,
+          `<div class="match-item"><div class="match-title">Punteggio</div><div class="match-details"><input id="metaScore" class="meta-input" type="text" value="${String(finalResult).replace(/"/g,'&quot;')}"></div></div>`,
+          `<div class="match-item"><div class="match-title">Esito</div><div class="match-details"><input id="metaOutcome" class="meta-input" type="text" value="${String(outcome).replace(/"/g,'&quot;')}"></div></div>`
+        ].join('');
       }
 
       function renderSets(sess){ const target = document.getElementById('setsSummary'); if (!target) return; const sum = sess.setSummary || {}; const st = sess.setStateBySet || {};
@@ -158,10 +183,90 @@
 
       function renderRoster(sess){ const panel = document.getElementById('rosterTable'); if (!panel) return; let players = Array.isArray(sess.roster) ? sess.roster : []; if (!players || players.length === 0) { try { const matchId = sess.id || localStorage.getItem('selectedMatchId') || ''; const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); const found = matchId ? localMatches.find(m => String(m.id)===String(matchId)) : null; const rr = found ? (Array.isArray(found.roster)?found.roster:(Array.isArray(found.players)?found.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const raw = localStorage.getItem('importedRoster'); const arr = raw ? JSON.parse(raw) : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const arr = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const selId = localStorage.getItem('selectedTeamId'); const teams = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); const t = selId ? teams.find(x => String(x.id)===String(selId)) : null; const rr = t ? (Array.isArray(t.roster)?t.roster:(Array.isArray(t.players)?t.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const t = window.teamsModule?.getCurrentTeam?.(); const rr = Array.isArray(t?.players)?t.players:[]; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { panel.innerHTML = '<div class="match-item"><div class="match-details">Nessun giocatore presente</div></div>'; return; } function fmtNum(v){ const s = String(v||'').replace(/^'/,''); return s ? s.padStart(2,'0').slice(-2) : ''; } const rows = players.map(p => { const n = fmtNum(p.number); const name = p.name || p.firstName || ''; const surname = p.surname || p.lastName || ''; const nick = p.nickname || p.nick || ''; const role = p.role || ''; return `<tr><td style="width:6ch;">${n}</td><td>${name}</td><td>${surname}</td><td>${nick}</td><td>${role}</td></tr>`; }).join(''); const table = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">N°</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Nome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Cognome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Soprannome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Ruolo</th></tr></thead><tbody>${rows}</tbody></table>`; panel.innerHTML = table; }
 
+      let currentSession = null;
+      function goBackAfterSave(){
+        try {
+          if (history.length > 1) { history.back(); return; }
+        } catch(_) {}
+        try {
+          const qp = new URLSearchParams(location.search || '');
+          const arch = qp.get('archive') || localStorage.getItem('mvsSelectedArchive') || '';
+          if (arch) { location.href = '/matches.html?archive=' + encodeURIComponent(arch); }
+          else { location.href = '/matches.html'; }
+          return;
+        } catch(_) {}
+        location.href = '/matches.html';
+      }
+      async function saveMetaChanges(){
+        const status = document.getElementById('saveMatchMetaStatus');
+        if (status) status.textContent = '';
+        const matchId = String(currentSession?.id || localStorage.getItem('selectedMatchId') || '').trim();
+        const opponent = (document.getElementById('metaOpponent')?.value || '').trim();
+        const date = (document.getElementById('metaDate')?.value || '').trim();
+        const type = (document.getElementById('metaType')?.value || '').trim();
+        const location = (document.getElementById('metaLocation')?.value || '').trim();
+        const finalResult = (document.getElementById('metaScore')?.value || '').trim();
+        const matchOutcome = (document.getElementById('metaOutcome')?.value || '').trim();
+        const ha = location === 'trasferta' ? 'away' : 'home';
+        let teamName = '';
+        let teamId = currentSession?.teamId || null;
+        try {
+          const t = window.teamsModule?.getCurrentTeam?.();
+          if (!teamName) teamName = t?.teamName || t?.name || '';
+          if (!teamId && t?.id != null) teamId = String(t.id);
+        } catch(_) {}
+        if (!teamId) {
+          try { teamId = localStorage.getItem('selectedTeamId'); } catch(_) {}
+        }
+        const updatedAt = new Date().toISOString();
+        const base = Object.assign({}, currentSession || {});
+        const next = Object.assign({}, base, {
+          id: matchId || base.id || ('m_' + Date.now()),
+          teamId: teamId || base.teamId || null,
+          myTeam: base.myTeam || teamName || base.teamName || '',
+          opponentTeam: opponent || base.opponentTeam || base.opponent || '',
+          matchDate: date || base.matchDate || base.date || '',
+          date: date || base.date || base.matchDate || '',
+          matchType: type || base.matchType || base.eventType || '',
+          eventType: type || base.eventType || base.matchType || '',
+          homeAway: ha,
+          location: ha === 'home' ? 'casa' : 'trasferta',
+          finalResult: finalResult,
+          matchOutcome: matchOutcome,
+          updatedAt
+        });
+        if (next.myTeam || next.opponentTeam) {
+          next.homeTeam = ha === 'home' ? (next.myTeam || '') : (next.opponentTeam || '');
+          next.awayTeam = ha === 'home' ? (next.opponentTeam || '') : (next.myTeam || '');
+        }
+        try {
+          let list = [];
+          try { list = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { list = []; }
+          const idx = Array.isArray(list) ? list.findIndex(m => String(m?.id||'') === String(next.id)) : -1;
+          if (idx >= 0) list[idx] = Object.assign({}, list[idx], next);
+          else list = [next].concat(Array.isArray(list) ? list : []);
+          localStorage.setItem('volleyMatches', JSON.stringify(list));
+        } catch(_) {}
+        try {
+          const sess = Object.assign({}, getSession(), next);
+          localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+        } catch(_) {}
+        try { localStorage.setItem('selectedMatchId', String(next.id)); } catch(_) {}
+        currentSession = next;
+        if ((window.authModule?.isAuthenticated?.() === true || window.authFunctions?.getCurrentUser?.()) && teamId && window.firestoreService?.saveMatchTree) {
+          try {
+            await window.firestoreService.saveMatchTree(teamId, next);
+          } catch(_) {}
+        }
+        if (status) status.textContent = 'Salvato';
+        return true;
+      }
+
       getSelectedMatchSession().then(function(session){
-        renderMeta(session);
-        renderSets(session);
-        renderRoster(session);
+        currentSession = session || {};
+        renderMeta(currentSession);
+        renderSets(currentSession);
+        renderRoster(currentSession);
         (function(){
           try{
             var panel = document.getElementById('rosterTable');
@@ -179,6 +284,8 @@
             }
           }catch(_){ }
         })();
+        const saveBtn = document.getElementById('saveMatchMetaBtn');
+        if (saveBtn) saveBtn.addEventListener('click', async (e) => { e.preventDefault(); const ok = await saveMetaChanges(); if (ok) goBackAfterSave(); });
       });
 
       (function(){
