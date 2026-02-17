@@ -729,7 +729,7 @@
      </div>
  
       <!-- Loading Screen -->
-    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
@@ -828,6 +828,7 @@
         let __sortAsc = false;
         let currentArchive = 'local';
         const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
+        let __initRetryCount = 0;
 
         // Elementi DOM
         const teamName = document.getElementById('teamName');
@@ -894,6 +895,7 @@
         }
 
         function getInitialArchive() {
+            let syncSucceeded = false;
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 const urlArch = qp.get('archive');
@@ -914,7 +916,7 @@
             }
             currentArchive = v;
             try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
-            try { window.matchesModule?.setArchive?.(v, { reload: true }); } catch(_) {}
+            try { window.matchesModule?.setArchive?.(v, { reload: false }); } catch(_) {}
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 qp.set('archive', v);
@@ -971,37 +973,721 @@
             if (importStageOverlay) importStageOverlay.style.display = 'none';
         }
 
-        // Inizializzazione
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeMatchesPage();
-        });
+        function normalizeDateKey(raw){
+            let d = null;
+            if (raw instanceof Date) d = raw;
+            else if (typeof raw === 'string') {
+                const s = raw.trim();
+                const looksIso = s.length >= 10 && s[4] === '-' && s[7] === '-' &&
+                    !isNaN(Number(s.slice(0, 4))) &&
+                    !isNaN(Number(s.slice(5, 7))) &&
+                    !isNaN(Number(s.slice(8, 10)));
+                const looksDmy = s.length === 10 && s[2] === '/' && s[5] === '/' &&
+                    !isNaN(Number(s.slice(0, 2))) &&
+                    !isNaN(Number(s.slice(3, 5))) &&
+                    !isNaN(Number(s.slice(6, 10)));
+                if (looksIso) d = new Date(s);
+                else if (looksDmy) {
+                    const dd = Number(s.slice(0, 2));
+                    const mm = Number(s.slice(3, 5));
+                    const yyyy = Number(s.slice(6, 10));
+                    d = new Date(yyyy, mm - 1, dd);
+                } else if (!isNaN(Date.parse(s))) d = new Date(s);
+            } else if (typeof raw === 'number') d = new Date(raw);
+            else if (raw && raw.toDate) { try { d = raw.toDate(); } catch { d = null; } }
+            if (!(d instanceof Date) || isNaN(d)) return '';
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
 
-        function initializeMatchesPage() {
-            // Attendi che Firebase sia pronto
-            if (typeof window.authFunctions === 'undefined') {
-                setTimeout(initializeMatchesPage, 200);
+        function buildHeaderKey(match){
+            if (!match) return '';
+            let home = String(match.homeTeam || '').trim();
+            let away = String(match.awayTeam || '').trim();
+            if (!home && !away) {
+                const my = String(match.myTeam || match.teamName || '').trim();
+                const opp = String(match.opponentTeam || '').trim();
+                const ha = String(match.homeAway || '').trim().toLowerCase();
+                if (ha === 'away') {
+                    home = opp;
+                    away = my;
+                } else {
+                    home = my;
+                    away = opp;
+                }
+            }
+            const date = normalizeDateKey(match.date || match.matchDate || match.createdAt || '');
+            const type = String(match.matchType || match.eventType || 'partita').trim();
+            return [date, home, away, type].map(v => String(v || '').trim().toLowerCase()).join('|');
+        }
+
+        function getLocalMatchesForSelectedTeam(){
+            let local = [];
+            try {
+                local = JSON.parse(localStorage.getItem('volleyMatches') || '[]') || [];
+            } catch(_) { local = []; }
+            if (!selectedTeam || !selectedTeam.id) return Array.isArray(local) ? local : [];
+            const selId = String(selectedTeam.id);
+            const selName = selectedTeam.name;
+            return (Array.isArray(local) ? local : []).filter(m => {
+                const tId = m.teamId != null ? String(m.teamId) : null;
+                if (tId) return tId === selId;
+                const my = m.myTeam || m.teamName;
+                const home = m.homeTeam;
+                const away = m.awayTeam;
+                return (selName && (my === selName || home === selName || away === selName));
+            });
+        }
+
+        function resolveTeamDocId(){
+            let localTeams = [];
+            try { localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]') || []; } catch(_) { localTeams = []; }
+            const teamMap = new Map();
+            (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
+                const club = String(t.clubName||'').trim();
+                const squad = String(t.teamName||t.name||'').trim();
+                const combined = (squad + (club ? ` - ${club}` : '')).trim();
+                const localId = String(t.id || '').trim();
+                const docId = combined || localId;
+                const nameCombined = String(t.name || '').trim() || combined;
+                if (docId) {
+                    teamMap.set(nameCombined, docId);
+                    if (combined) teamMap.set(combined, docId);
+                    if (squad) teamMap.set(squad, docId);
+                    if (localId) teamMap.set(localId, docId);
+                }
+            });
+            const selId = selectedTeam?.id != null ? String(selectedTeam.id) : '';
+            const selName = String(selectedTeam?.name || '').trim();
+            const squad = String(selectedTeam?.teamName || selectedTeam?.name || '').trim();
+            const club = String(selectedTeam?.clubName || '').trim();
+            const combined = (squad + (club ? ` - ${club}` : '')).trim();
+            return teamMap.get(selId) || teamMap.get(selName) || teamMap.get(combined) || combined || selId;
+        }
+
+        function buildComparableMatch(match){
+            const base = Object.assign({}, match || {});
+            const full = mergeMatchForExport(base, base);
+            const meta = {
+                myTeam: full.myTeam || full.teamName || '',
+                opponentTeam: full.opponentTeam || '',
+                homeTeam: full.homeTeam || '',
+                awayTeam: full.awayTeam || '',
+                homeAway: full.homeAway || '',
+                matchType: full.matchType || full.eventType || 'partita',
+                date: normalizeDateKey(full.date || full.matchDate || full.createdAt || ''),
+                description: full.description || '',
+                status: full.status || '',
+                currentSet: full.currentSet || 1,
+                score: full.score || { home: 0, away: 0 },
+                matchNumber: full.matchNumber || full.matchNo || full.fileNumber || ''
+            };
+            const details = {
+                actionsBySet: full.actionsBySet || {},
+                scoreHistoryBySet: full.scoreHistoryBySet || {},
+                setMeta: full.setMeta || {},
+                setStateBySet: full.setStateBySet || {},
+                setSummary: full.setSummary || {}
+            };
+            const roster = Array.isArray(full.roster) ? full.roster : [];
+            return { meta, roster, details };
+        }
+
+        function stableStringify(value){
+            const seen = new Set();
+            const walk = (v) => {
+                if (v && typeof v === 'object') {
+                    if (seen.has(v)) return null;
+                    seen.add(v);
+                    if (Array.isArray(v)) return v.map(walk);
+                    const out = {};
+                    Object.keys(v).sort().forEach(k => { out[k] = walk(v[k]); });
+                    return out;
+                }
+                return v;
+            };
+            return JSON.stringify(walk(value));
+        }
+
+        function buildMatchLabelForCompare(match){
+            if (!match) return '—';
+            const date = formatItalianDateDisplay(match.date || match.matchDate || match.createdAt || '');
+            const home = match.homeTeam || match.myTeam || match.teamName || '';
+            const away = match.awayTeam || match.opponentTeam || '';
+            const rawType = match.matchType || match.eventType || 'partita';
+            const typeLabel = String(rawType || '').trim();
+            const vs = (home || away) ? `${home} vs ${away}` : '';
+            return [date, vs, typeLabel].filter(Boolean).join(' · ') || String(match.id || 'Partita');
+        }
+
+        function getRowColor(status){
+            if (status === 'equal') return '#e6f4ea';
+            if (status === 'diff') return '#fff8e1';
+            return '#ffffff';
+        }
+
+        function getSelectedMatchIdsFromCompareDialog(dlg){
+            if (!dlg) return [];
+            return Array.from(dlg.querySelectorAll('input.sync-local-check:checked'))
+                .map(el => el.getAttribute('data-match-id'))
+                .filter(Boolean);
+        }
+
+        function updateSyncCompareSelectionSummary(dlg, rows){
+            if (!dlg) return;
+            const status = dlg.querySelector('#syncCompareStatus');
+            const selectAll = dlg.querySelector('#syncCompareSelectAll');
+            const total = dlg.querySelectorAll('input.sync-local-check').length;
+            const selected = dlg.querySelectorAll('input.sync-local-check:checked').length;
+            let text = '';
+            if (!total) text = 'Nessuna partita locale disponibile';
+            else {
+                text = `Selezionate: ${selected} su ${total}`;
+                if (Array.isArray(rows)) {
+                    const onlyLocal = rows.filter(r => r.local && !r.cloud).length;
+                    const diff = rows.filter(r => r.local && r.cloud && r.status === 'diff').length;
+                    text += ` • Solo locali: ${onlyLocal} • Conflitti: ${diff}`;
+                }
+            }
+            if (status) status.textContent = text;
+            if (selectAll) {
+                selectAll.checked = total > 0 && selected === total;
+                selectAll.indeterminate = selected > 0 && selected < total;
+            }
+            const runBtn = dlg.querySelector('#syncCompareRun');
+            if (runBtn) runBtn.disabled = selected === 0;
+        }
+
+        function ensureSyncProgressDialog(){
+            let dlg = document.getElementById('syncProgressDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'syncProgressDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.top = '0';
+            dlg.style.left = '0';
+            dlg.style.right = '0';
+            dlg.style.bottom = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '10000';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(640px,92vw); max-height:82vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                        <div style="font-weight:700;">Invio partite in Cloud</div>
+                        <div style="display:flex; gap:8px;">
+                            <button id="syncProgressCancelAll" class="btn btn-light" style="padding:6px 12px;">Annulla tutto</button>
+                            <button id="syncProgressClose" class="btn btn-light" style="padding:6px 12px;">Chiudi</button>
+                        </div>
+                    </div>
+                    <div id="syncProgressSummary" style="margin-bottom:8px; font-size:13px; color:#666;"></div>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#444; margin-bottom:8px;">
+                        <input id="syncProgressAutoClose" type="checkbox" checked>
+                        Chiudi automaticamente al termine
+                    </label>
+                    <div style="height:8px; background:#e9ecef; border-radius:10px; overflow:hidden; margin-bottom:10px;">
+                        <div id="syncProgressOverallFill" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                    </div>
+                    <div id="syncProgressBody" style="overflow:auto; border:1px solid #e9ecef; border-radius:12px; padding:10px; background:#fafafa; flex:1 1 auto;"></div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            const closeBtn = dlg.querySelector('#syncProgressClose');
+            if (closeBtn) closeBtn.addEventListener('click', () => { dlg.style.display = 'none'; });
+            return dlg;
+        }
+
+        function renderSyncProgressRows(dlg, matches){
+            if (!dlg) return;
+            const body = dlg.querySelector('#syncProgressBody');
+            if (!body) return;
+            body.innerHTML = '';
+            (Array.isArray(matches) ? matches : []).forEach(m => {
+                const row = document.createElement('div');
+                row.style.border = '1px solid #e9ecef';
+                row.style.borderRadius = '10px';
+                row.style.padding = '10px';
+                row.style.background = '#ffffff';
+                row.style.marginBottom = '8px';
+                row.setAttribute('data-match-id', String(m?.id || ''));
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <div style="font-weight:600;">${buildMatchLabelForCompare(m)}</div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="sync-progress-status" style="font-size:12px; color:#666;">In attesa</div>
+                            <button class="sync-progress-cancel btn btn-light" style="padding:2px 8px; font-size:12px;">Annulla</button>
+                        </div>
+                    </div>
+                    <div style="height:6px; background:#f1f5f9; border-radius:8px; overflow:hidden; margin-top:6px;">
+                        <div class="sync-progress-fill" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                    </div>
+                `;
+                const cancelBtn = row.querySelector('.sync-progress-cancel');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const id = String(m?.id || '');
+                        if (!id) return;
+                        const started = dlg.__syncStartedIds && dlg.__syncStartedIds.has(id);
+                        if (started) return;
+                        if (!dlg.__syncCancelledIds) dlg.__syncCancelledIds = new Set();
+                        if (!dlg.__syncCancelledIds.has(id)) dlg.__syncCancelledIds.add(id);
+                        updateSyncProgressRow(dlg, { match: m, status: 'cancelled', index: dlg.__syncProgressState?.index || 0, total: dlg.__syncProgressState?.total || 0 });
+                        cancelBtn.disabled = true;
+                    });
+                }
+                body.appendChild(row);
+            });
+        }
+
+        function updateSyncProgressSummary(dlg){
+            if (!dlg) return;
+            const summary = dlg.querySelector('#syncProgressSummary');
+            const state = dlg.__syncProgressState || { total: 0, done: 0, skipped: 0, error: 0, cancelled: 0, index: 0 };
+            let text = '';
+            if (!state.total) text = 'Nessuna partita da inviare';
+            else {
+                text = `Partita ${Math.min(state.index, state.total)} di ${state.total}`;
+                text += ` • Completate: ${state.done} • Saltate: ${state.skipped} • Annullate: ${state.cancelled} • Errori: ${state.error}`;
+            }
+            if (summary) summary.textContent = text;
+            const fill = dlg.querySelector('#syncProgressOverallFill');
+            if (fill && state.total) {
+                const pct = Math.max(0, Math.min(100, Math.round((state.index / state.total) * 100)));
+                fill.style.width = pct + '%';
+            }
+        }
+
+        function updateSyncProgressRow(dlg, info){
+            if (!dlg || !info) return;
+            const { match, status, index, total } = info;
+            const row = dlg.querySelector(`[data-match-id="${String(match?.id || '')}"]`);
+            const state = dlg.__syncProgressState || { total: total || 0, done: 0, skipped: 0, error: 0, cancelled: 0, index: 0 };
+            state.total = total || state.total || 0;
+            state.index = index || state.index || 0;
+            if (row) {
+                const statusEl = row.querySelector('.sync-progress-status');
+                const fillEl = row.querySelector('.sync-progress-fill');
+                const cancelBtn = row.querySelector('.sync-progress-cancel');
+                const prevStatus = row.getAttribute('data-sync-status') || '';
+                if (prevStatus === status) return;
+                if (status === 'start') {
+                    if (statusEl) statusEl.textContent = 'In corso';
+                    if (fillEl) { fillEl.style.width = '40%'; fillEl.style.background = '#0d6efd'; }
+                } else if (status === 'done') {
+                    if (statusEl) statusEl.textContent = 'Completata';
+                    if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#22c55e'; }
+                    state.done += 1;
+                } else if (status === 'skipped') {
+                    if (statusEl) statusEl.textContent = 'Saltata';
+                    if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#94a3b8'; }
+                    state.skipped += 1;
+                } else if (status === 'cancelled') {
+                    if (statusEl) statusEl.textContent = 'Annullata';
+                    if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#94a3b8'; }
+                    state.cancelled += 1;
+                } else if (status === 'error') {
+                    if (statusEl) statusEl.textContent = 'Errore';
+                    if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#ef4444'; }
+                    state.error += 1;
+                }
+                if (status === 'start') {
+                    if (!dlg.__syncStartedIds) dlg.__syncStartedIds = new Set();
+                    const id = String(match?.id || '');
+                    if (id) dlg.__syncStartedIds.add(id);
+                }
+                if (cancelBtn && (status === 'start' || status === 'done' || status === 'skipped' || status === 'cancelled' || status === 'error')) {
+                    cancelBtn.disabled = true;
+                }
+                row.setAttribute('data-sync-status', status);
+            }
+            dlg.__syncProgressState = state;
+            updateSyncProgressSummary(dlg);
+        }
+
+        async function buildSyncCompareRows(){
+            const localMatches = getLocalMatchesForSelectedTeam();
+            const teamDocId = resolveTeamDocId();
+            let cloudMatches = [];
+            if (teamDocId && window.firestoreService?.loadTeamMatches) {
+                const res = await window.firestoreService.loadTeamMatches(teamDocId);
+                if (res?.success && Array.isArray(res.matches)) cloudMatches = res.matches;
+                else if (res?.success && Array.isArray(res.documents)) cloudMatches = res.documents;
+            }
+            const rows = [];
+            const localById = new Map();
+            const localByHeader = new Map();
+            localMatches.forEach(m => {
+                const id = String(m?.id || '').trim();
+                if (id) {
+                    const prev = localById.get(id);
+                    if (!prev) localById.set(id, m);
+                    else {
+                        const p = toEpochValue(prev.updatedAt || prev.scoutingEndTime || prev.createdAt);
+                        const n = toEpochValue(m.updatedAt || m.scoutingEndTime || m.createdAt);
+                        if (n >= p) localById.set(id, m);
+                    }
+                }
+                const key = buildHeaderKey(m);
+                if (!key) return;
+                const prevKey = localByHeader.get(key);
+                if (!prevKey) localByHeader.set(key, m);
+                else {
+                    const p = toEpochValue(prevKey.updatedAt || prevKey.scoutingEndTime || prevKey.createdAt);
+                    const n = toEpochValue(m.updatedAt || m.scoutingEndTime || m.createdAt);
+                    if (n >= p) localByHeader.set(key, m);
+                }
+            });
+            const cloudById = new Map();
+            const cloudByHeader = new Map();
+            cloudMatches.forEach(m => {
+                const id = String(m?.id || '').trim();
+                if (id) cloudById.set(id, m);
+                const key = buildHeaderKey(m);
+                if (!key) return;
+                const prev = cloudByHeader.get(key);
+                if (!prev) cloudByHeader.set(key, m);
+                else {
+                    const p = toEpochValue(prev.updatedAt || prev.scoutingEndTime || prev.createdAt);
+                    const n = toEpochValue(m.updatedAt || m.scoutingEndTime || m.createdAt);
+                    if (n >= p) cloudByHeader.set(key, m);
+                }
+            });
+            const usedCloudIds = new Set();
+            for (const [id, local] of localById.entries()) {
+                let cloud = cloudById.get(id) || null;
+                if (!cloud) {
+                    const key = buildHeaderKey(local);
+                    if (key) cloud = cloudByHeader.get(key) || null;
+                }
+                if (cloud && cloud.id != null) usedCloudIds.add(String(cloud.id));
+                let status = 'single';
+                if (local && cloud) {
+                    let cloudFull = cloud;
+                    if (window.firestoreService?.getMatchData) {
+                        const res = await window.firestoreService.getMatchData(teamDocId, cloud.id);
+                        if (res?.success) {
+                            cloudFull = Object.assign({}, cloud, res.meta || {}, { roster: res.roster || [] }, res.details || {});
+                        }
+                    }
+                    const localSig = stableStringify(buildComparableMatch(local));
+                    const cloudSig = stableStringify(buildComparableMatch(cloudFull));
+                    status = localSig === cloudSig ? 'equal' : 'diff';
+                }
+                rows.push({ key: id, local, cloud, status });
+            }
+            for (const [key, local] of localByHeader.entries()) {
+                const id = String(local?.id || '').trim();
+                if (id && localById.has(id)) continue;
+                let cloud = cloudByHeader.get(key) || null;
+                if (cloud && cloud.id != null && usedCloudIds.has(String(cloud.id))) cloud = null;
+                let status = 'single';
+                if (local && cloud) {
+                    let cloudFull = cloud;
+                    if (window.firestoreService?.getMatchData) {
+                        const res = await window.firestoreService.getMatchData(teamDocId, cloud.id);
+                        if (res?.success) {
+                            cloudFull = Object.assign({}, cloud, res.meta || {}, { roster: res.roster || [] }, res.details || {});
+                        }
+                    }
+                    const localSig = stableStringify(buildComparableMatch(local));
+                    const cloudSig = stableStringify(buildComparableMatch(cloudFull));
+                    status = localSig === cloudSig ? 'equal' : 'diff';
+                }
+                rows.push({ key, local, cloud, status });
+            }
+            cloudMatches.forEach(m => {
+                const id = String(m?.id || '').trim();
+                if (id && usedCloudIds.has(id)) return;
+                const key = id ? `cloud:${id}` : buildHeaderKey(m);
+                rows.push({ key, local: null, cloud: m, status: 'single' });
+            });
+            return rows;
+        }
+
+        function ensureSyncCompareDialog(){
+            let dlg = document.getElementById('syncCompareDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'syncCompareDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.top = '0';
+            dlg.style.left = '0';
+            dlg.style.right = '0';
+            dlg.style.bottom = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '9999';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(980px,92vw); max-height:82vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                        <div style="font-weight:700;">Confronto Partite Locale / Cloud</div>
+                        <div style="display:flex; gap:8px;">
+                            <button id="syncCompareRun" class="btn btn-primary" style="padding:6px 12px;">Aggiorna Cloud da Locale</button>
+                            <button id="syncCompareClose" class="btn btn-light" style="padding:6px 12px;">Chiudi</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#333;">
+                            <input id="syncCompareSelectAll" type="checkbox">
+                            Seleziona tutte le locali
+                        </label>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px; font-weight:600;">
+                        <div>Locale</div>
+                        <div>Cloud</div>
+                    </div>
+                    <div id="syncCompareBody" style="overflow:auto; border:1px solid #e9ecef; border-radius:12px; padding:10px; background:#fafafa; flex:1 1 auto;"></div>
+                    <div id="syncCompareStatus" style="margin-top:8px; font-size:13px; color:#666;"></div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            const closeBtn = dlg.querySelector('#syncCompareClose');
+            if (closeBtn) closeBtn.addEventListener('click', () => { dlg.style.display = 'none'; });
+            const runBtn = dlg.querySelector('#syncCompareRun');
+            if (runBtn) runBtn.addEventListener('click', async () => {
+                const selectedIds = getSelectedMatchIdsFromCompareDialog(dlg);
+                await performSyncLocalToCloud(selectedIds, dlg);
+            });
+            const selectAll = dlg.querySelector('#syncCompareSelectAll');
+            if (selectAll) selectAll.addEventListener('change', () => {
+                const inputs = dlg.querySelectorAll('input.sync-local-check');
+                inputs.forEach(i => { i.checked = selectAll.checked; });
+                updateSyncCompareSelectionSummary(dlg, dlg.__syncCompareRows || []);
+            });
+            return dlg;
+        }
+
+        async function openSyncCompareDialog(){
+            if (!isAuthenticated()) { alert('Accedi per usare il Cloud'); return; }
+            if (!selectedTeam) { alert('Seleziona una squadra'); return; }
+            const dlg = ensureSyncCompareDialog();
+            const body = dlg.querySelector('#syncCompareBody');
+            const status = dlg.querySelector('#syncCompareStatus');
+            const runBtn = dlg.querySelector('#syncCompareRun');
+            dlg.style.display = 'flex';
+            if (body) body.innerHTML = '';
+            if (status) status.textContent = 'Caricamento partite...';
+            if (runBtn) runBtn.disabled = true;
+            let rows = [];
+            try {
+                rows = await buildSyncCompareRows();
+            } catch (e) {
+                if (status) status.textContent = 'Errore nel caricamento delle partite';
+                if (runBtn) runBtn.disabled = false;
                 return;
             }
-
-            // Controlla autenticazione
-            let __authRedirectTimer = null;
-            window.authFunctions.onAuthStateChanged((user) => {
-                if (!user) {
-                    if (__authRedirectTimer) clearTimeout(__authRedirectTimer);
-                    __authRedirectTimer = setTimeout(() => {
-                        const stillNull = !window.authFunctions.getCurrentUser();
-                        if (stillNull) window.location.href = '/auth-login.html';
-                    }, 600);
-                    return;
+            dlg.__syncCompareRows = rows;
+            if (body) {
+                body.innerHTML = '';
+                if (!rows.length) {
+                    body.innerHTML = '<div style="padding:12px; color:#666;">Nessuna partita trovata.</div>';
+                } else {
+                    rows.forEach(row => {
+                        const line = document.createElement('div');
+                        line.style.display = 'grid';
+                        line.style.gridTemplateColumns = '1fr 1fr';
+                        line.style.gap = '10px';
+                        line.style.marginBottom = '8px';
+                        const color = getRowColor(row.status);
+                        const left = document.createElement('div');
+                        left.style.border = '1px solid #e9ecef';
+                        left.style.borderRadius = '10px';
+                        left.style.padding = '10px';
+                        left.style.background = row.local ? color : '#ffffff';
+                        if (row.local) {
+                            const wrap = document.createElement('div');
+                            wrap.style.display = 'flex';
+                            wrap.style.gap = '8px';
+                            wrap.style.alignItems = 'center';
+                            const cb = document.createElement('input');
+                            cb.type = 'checkbox';
+                            cb.className = 'sync-local-check';
+                            cb.setAttribute('data-match-id', String(row.local.id || ''));
+                            cb.checked = !row.cloud;
+                            cb.addEventListener('change', () => updateSyncCompareSelectionSummary(dlg, rows));
+                            const label = document.createElement('div');
+                            label.textContent = buildMatchLabelForCompare(row.local);
+                            wrap.appendChild(cb);
+                            wrap.appendChild(label);
+                            left.appendChild(wrap);
+                        } else {
+                            left.textContent = '—';
+                        }
+                        const right = document.createElement('div');
+                        right.style.border = '1px solid #e9ecef';
+                        right.style.borderRadius = '10px';
+                        right.style.padding = '10px';
+                        right.style.background = row.cloud ? color : '#ffffff';
+                        right.textContent = row.cloud ? buildMatchLabelForCompare(row.cloud) : '—';
+                        line.appendChild(left);
+                        line.appendChild(right);
+                        body.appendChild(line);
+                    });
                 }
-                if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
-                currentUser = user;
-                if (accountEmail) accountEmail.textContent = user.email;
-                loadSelectedTeam();
-                hideLoadingScreen();
-            });
+            }
+            updateSyncCompareSelectionSummary(dlg, rows);
+        }
 
-            // Event listeners
+        async function performSyncLocalToCloud(selectedIds, dlg){
+            if (!syncDataBtn) return;
+            const runBtn = dlg?.querySelector ? dlg.querySelector('#syncCompareRun') : null;
+            if (!Array.isArray(selectedIds) || !selectedIds.length) {
+                alert('Seleziona almeno una partita locale da inviare al Cloud.');
+                updateSyncCompareSelectionSummary(dlg, dlg?.__syncCompareRows || []);
+                return;
+            }
+            const localMatches = getLocalMatchesForSelectedTeam();
+            const byId = new Map((Array.isArray(localMatches) ? localMatches : []).map(m => [String(m?.id || ''), m]));
+            const matchesToSend = selectedIds.map(id => byId.get(String(id))).filter(Boolean);
+            const progressDlg = ensureSyncProgressDialog();
+            progressDlg.__syncProgressState = { total: matchesToSend.length, done: 0, skipped: 0, error: 0, cancelled: 0, index: 0 };
+            progressDlg.__syncCancelledIds = new Set();
+            progressDlg.__syncStartedIds = new Set();
+            progressDlg.__syncAllMatchIds = matchesToSend.map(m => String(m?.id || '')).filter(Boolean);
+            progressDlg.__syncCancelAll = false;
+            renderSyncProgressRows(progressDlg, matchesToSend);
+            updateSyncProgressSummary(progressDlg);
+            const progressClose = progressDlg.querySelector('#syncProgressClose');
+            if (progressClose) progressClose.disabled = true;
+            const cancelAllBtn = progressDlg.querySelector('#syncProgressCancelAll');
+            if (cancelAllBtn) {
+                cancelAllBtn.disabled = false;
+                cancelAllBtn.onclick = () => {
+                    if (progressDlg.__syncCancelAll) return;
+                    progressDlg.__syncCancelAll = true;
+                    cancelAllBtn.disabled = true;
+                    const ids = progressDlg.__syncAllMatchIds || [];
+                    ids.forEach(id => {
+                        if (!id) return;
+                        if (progressDlg.__syncStartedIds && progressDlg.__syncStartedIds.has(id)) return;
+                        if (!progressDlg.__syncCancelledIds) progressDlg.__syncCancelledIds = new Set();
+                        if (progressDlg.__syncCancelledIds.has(id)) return;
+                        progressDlg.__syncCancelledIds.add(id);
+                        updateSyncProgressRow(progressDlg, { match: { id }, status: 'cancelled', index: progressDlg.__syncProgressState?.index || 0, total: progressDlg.__syncProgressState?.total || 0 });
+                    });
+                    const buttons = progressDlg.querySelectorAll('.sync-progress-cancel');
+                    buttons.forEach(b => { b.disabled = true; });
+                };
+            }
+            progressDlg.style.display = 'flex';
+            try {
+                syncDataBtn.disabled = true;
+                syncDataBtn.textContent = 'Aggiorno Cloud...';
+                if (runBtn) {
+                    runBtn.disabled = true;
+                    runBtn.textContent = 'Invio in corso...';
+                }
+                try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
+                let tRes = null, mRes = null;
+                if (window.firestoreService?.syncLocalTeamsToFirestore) { 
+                    try {
+                        tRes = await window.firestoreService.syncLocalTeamsToFirestore({ conflictMode: 'ask' }); 
+                    } catch(e) { tRes = { success: false, error: e.message }; }
+                }
+                if (window.firestoreService?.syncLocalMatchesToFirestore) { 
+                    try {
+                        const shouldCancel = (match) => {
+                            if (!progressDlg) return false;
+                            if (progressDlg.__syncCancelAll) return true;
+                            const set = progressDlg.__syncCancelledIds;
+                            const id = String(match?.id || '');
+                            return !!(set && id && set.has(id));
+                        };
+                        mRes = await window.firestoreService.syncLocalMatchesToFirestore({ 
+                            conflictMode: 'ask', 
+                            matchIds: selectedIds,
+                            shouldCancel,
+                            onProgress: (info) => updateSyncProgressRow(progressDlg, info)
+                        }); 
+                    } catch(e) { mRes = { success: false, error: e.message }; }
+                }
+                try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+                const errors = [];
+                if (tRes && !tRes.success) errors.push('Squadre: ' + tRes.error);
+                if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
+                if (errors.length > 0) {
+                    alert('Errore durante la sincronizzazione:\\n' + errors.join('\\n'));
+                } else {
+                    const tCount = tRes?.synced || 0;
+                    const mCount = mRes?.synced || 0;
+                    alert(`Sincronizzazione completata.\\nSquadre inviate: ${tCount}\\nPartite inviate: ${mCount}`);
+                    syncSucceeded = true;
+                }
+            } catch(err){ 
+                console.error(err);
+                alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
+            }
+            finally {
+                syncDataBtn.disabled = false;
+                syncDataBtn.textContent = 'Aggiorna Cloud da Locale';
+                if (runBtn) runBtn.textContent = 'Aggiorna Cloud da Locale';
+                updateSyncCompareSelectionSummary(dlg, dlg?.__syncCompareRows || []);
+                const progressClose = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressClose') : null;
+                if (progressClose) progressClose.disabled = false;
+                const autoClose = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressAutoClose') : null;
+                const state = progressDlg?.__syncProgressState;
+                if (autoClose && autoClose.checked && state && state.total && state.index >= state.total) {
+                    setTimeout(() => { if (progressDlg) progressDlg.style.display = 'none'; }, 600);
+                }
+                if (syncSucceeded) {
+                    const compareDlg = dlg || document.getElementById('syncCompareDialog');
+                    if (compareDlg) compareDlg.style.display = 'none';
+                    if (typeof currentArchive !== 'undefined' && currentArchive === 'cloud') {
+                        setTimeout(() => { loadMatches(); }, 0);
+                    }
+                }
+                try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
+            }
+        }
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Matches Page: DOMContentLoaded');
+            
+            // GLOBAL SAFETY FALLBACK: force hide loading screen after 3 seconds
+            setTimeout(() => {
+                const ls = document.getElementById('loadingScreen');
+                if (ls) {
+                    console.warn('Matches Page: Force hiding loading screen due to GLOBAL timeout');
+                    ls.style.display = 'none';
+                    ls.style.visibility = 'hidden';
+                    ls.style.opacity = '0';
+                    ls.style.zIndex = '-9999';
+                }
+            }, 3000);
+            
+            // Check for redirect result from Google Auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().getRedirectResult()
+                    .then((result) => {
+                        if (result.user) {
+                            console.log('Matches Page: Redirect login successful', result.user.email);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Matches Page: Redirect login error', error);
+                        // Force hide if error occurs
+                        const ls = document.getElementById('loadingScreen');
+                        if (ls) ls.style.display = 'none';
+                    });
+            }
+
+            initializeMatchesPage();
+            try { hideLoadingScreen(); } catch(_) {}
+        });
+
+        let __matchesEventsBound = false;
+
+        function bindMatchesPageEventListeners() {
+            if (__matchesEventsBound) return;
+            __matchesEventsBound = true;
+
             bindTeamAnalysisFilters();
             bindTeamAnalysisChartTabs();
             bindTeamAnalysisFilterActions();
@@ -1012,7 +1698,6 @@
                     accountMenu.hidden = expanded;
                 });
                 document.addEventListener('click', (e) => {
-                    // Chiudi il menu solo se il click è fuori dal menu e fuori dal bottone (anche suoi figli)
                     if (!accountMenu.hidden && !accountMenu.contains(e.target) && !accountBtn.contains(e.target)){
                         accountMenu.hidden = true;
                         accountBtn.setAttribute('aria-expanded', 'false');
@@ -1087,46 +1772,7 @@
             if (syncDataBtn) {
                 syncDataBtn.addEventListener('click', async (e) => {
                     e.preventDefault(); e.stopPropagation();
-                    try {
-                        syncDataBtn.disabled = true;
-                        syncDataBtn.textContent = 'Aggiorno Cloud...';
-                        try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
-                        let tRes = null, mRes = null;
-                        
-                        if (window.firestoreService?.syncLocalTeamsToFirestore) { 
-                            try {
-                                tRes = await window.firestoreService.syncLocalTeamsToFirestore({ conflictMode: 'ask' }); 
-                            } catch(e) { tRes = { success: false, error: e.message }; }
-                        }
-                        
-                        if (window.firestoreService?.syncLocalMatchesToFirestore) { 
-                            try {
-                                mRes = await window.firestoreService.syncLocalMatchesToFirestore({ conflictMode: 'ask' }); 
-                            } catch(e) { mRes = { success: false, error: e.message }; }
-                        }
-                        
-                        try { window.teamsModule?.loadTeams?.(); } catch(_){ }
-                        
-                        const errors = [];
-                        if (tRes && !tRes.success) errors.push('Squadre: ' + tRes.error);
-                        if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
-                        
-                        if (errors.length > 0) {
-                            alert('Errore durante la sincronizzazione:\n' + errors.join('\n'));
-                        } else {
-                            const tCount = tRes?.synced || 0;
-                            const mCount = mRes?.synced || 0;
-                            alert(`Sincronizzazione completata.\nSquadre inviate: ${tCount}\nPartite inviate: ${mCount}`);
-                        }
-                    } catch(err){ 
-                        console.error(err);
-                        alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
-                    }
-                    finally {
-                        syncDataBtn.disabled = false;
-                        syncDataBtn.textContent = 'Aggiorna Cloud da Locale';
-                        try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
-                    }
+                    await openSyncCompareDialog();
                 });
             }
             const backBtn = document.getElementById('backBtn');
@@ -1146,15 +1792,11 @@
                     }
                 });
             }
-            // Azioni Elenco: nuova partita e import
-            // Apri una pagina intera per la creazione partita (no dialog)
             if (newMatchBtn) newMatchBtn.addEventListener('click', openNewMatchDialog);
             if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             const importBtn = document.getElementById('importMatchBtn');
             if (importBtn) importBtn.addEventListener('click', handleImportMatchClick);
-            // Form nuova partita (dialog)
             if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
-            // Mostra/nascondi campo torneo
             const matchTypeSelect = document.getElementById('match-type');
             if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
 
@@ -1176,6 +1818,48 @@
                 });
             }
             setMainSection('list');
+        }
+
+        function initializeMatchesPage() {
+            bindMatchesPageEventListeners();
+            // Attendi che Firebase sia pronto
+            if (typeof window.authFunctions === 'undefined') {
+                __initRetryCount += 1;
+                console.log('Matches Page: authFunctions undefined, retry', __initRetryCount);
+                if (__initRetryCount <= 20) { // Increased retries to 4 seconds
+                    setTimeout(initializeMatchesPage, 200);
+                    return;
+                }
+                console.warn('Matches Page: authFunctions timed out, proceeding in offline mode');
+                try {
+                    currentUser = null;
+                    loadSelectedTeam();
+                } catch(e) { console.error('Error loading team in offline fallback:', e); }
+                hideLoadingScreen();
+                return;
+            }
+
+            // Controlla autenticazione
+            let __authRedirectTimer = null;
+            console.log('Matches Page: setup auth listener');
+            window.authFunctions.onAuthStateChanged((user) => {
+                console.log('Matches Page: auth state changed', user ? user.email : 'null');
+                if (!user) {
+                    if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
+                    currentUser = null;
+                    try { if (accountEmail) accountEmail.textContent = 'Non autenticato'; } catch(_) {}
+                    try { setArchive('local', { reload: false }); } catch(_) {}
+                    loadSelectedTeam();
+                    // hideLoadingScreen(); // Rely on loadMatches to hide screen when ready
+                    return;
+                }
+                if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
+                currentUser = user;
+                if (accountEmail) accountEmail.textContent = user.email;
+                loadSelectedTeam();
+                // hideLoadingScreen(); // Rely on loadMatches to hide screen when ready
+            });
+
         }
 
         function loadSelectedTeam() {
@@ -1239,32 +1923,59 @@
             }
         }
 
+        let __matchesModuleRetry = 0;
         async function loadMatches() {
+            console.log('Matches Page: loadMatches called');
             try {
                 if (window.matchesModule) {
-                    try { window.matchesModule.setArchive?.(currentArchive, { reload: false }); } catch(_) {}
-                    try {
-                    } catch(_){ }
+                    console.log('Matches Page: matchesModule ready');
+                    try { window.matchesModule.setArchive?.(currentArchive, { reload: true }); } catch(_) {}
+                    
                     matches = window.matchesModule.getMatches();
                     if (!window.__matchesSubscribed) {
                         window.__matchesSubscribed = true;
+                        
                         window.matchesModule.onMatchesUpdate((updated) => {
+                            console.log('Matches Page: matches updated, hiding loader');
                             matches = updated;
                             renderMatches();
                             updateTeamInfo();
                             updateTeamAnalysisData();
+                            hideLoadingScreen();
                         });
+
+                        if (window.matchesModule.onError) {
+                            window.matchesModule.onError((err) => {
+                                console.error('Matches Page: MatchesModule reported error:', err);
+                                hideLoadingScreen();
+                            });
+                        }
+                    }
+
+                    // Se il modulo non sta caricando, mostra subito i dati e nascondi il loader
+                    if (window.matchesModule.isLoading && !window.matchesModule.isLoading()) {
+                         console.log('Matches Page: module not loading, forcing render and hide');
+                         renderMatches();
+                         updateTeamInfo();
+                         updateTeamAnalysisData();
+                         hideLoadingScreen();
                     }
                 } else {
-                    console.warn('matchesModule non ancora disponibile, riprovo...');
+                    __matchesModuleRetry++;
+                    if (__matchesModuleRetry > 50) { // ~10 secondi
+                        console.error('Matches Page: matchesModule not available after timeout');
+                        hideLoadingScreen();
+                        alert('Impossibile caricare il modulo partite. Verifica la connessione o ricarica la pagina.');
+                        return;
+                    }
+                    console.warn('matchesModule non ancora disponibile, riprovo (' + __matchesModuleRetry + ')...');
                     setTimeout(loadMatches, 200);
                     return;
                 }
-                renderMatches();
-                updateTeamAnalysisData();
             } catch (error) {
                 console.error('Errore nel caricamento partite:', error);
                 showEmptyMatches();
+                hideLoadingScreen();
             }
         }
 
@@ -1542,14 +2253,19 @@
             if (selectedTeam && selectedTeam.id) {
                 const selId = String(selectedTeam.id);
                 const selName = selectedTeam.name;
+                const selTeam = String(selectedTeam.teamName || '').trim();
+                const selClub = String(selectedTeam.clubName || '').trim();
+                const selCombined = (selTeam + (selClub ? ` - ${selClub}` : '')).trim() || selName;
                 relevant = relevant.filter(m => {
                     const tId = m.teamId != null ? String(m.teamId) : null;
-                    if (tId) return tId === selId;
-                    // Fallback per compatibilità
+                    if (tId) return tId === selId || (selCombined && tId === selCombined);
                     const my = m.myTeam || m.teamName;
                     const home = m.homeTeam;
                     const away = m.awayTeam;
-                    return (selName && (my === selName || home === selName || away === selName));
+                    if (selName && (my === selName || home === selName || away === selName)) return true;
+                    if (selCombined && (my === selCombined || home === selCombined || away === selCombined)) return true;
+                    if (selTeam && (my === selTeam || home === selTeam || away === selTeam)) return true;
+                    return false;
                 });
             }
 
@@ -1606,13 +2322,19 @@
             if (selectedTeam && selectedTeam.id) {
                 const selId = String(selectedTeam.id);
                 const selName = selectedTeam.name;
+                const selTeam = String(selectedTeam.teamName || '').trim();
+                const selClub = String(selectedTeam.clubName || '').trim();
+                const selCombined = (selTeam + (selClub ? ` - ${selClub}` : '')).trim() || selName;
                 relevant = relevant.filter(m => {
                     const tId = m.teamId != null ? String(m.teamId) : null;
-                    if (tId) return tId === selId;
+                    if (tId) return tId === selId || (selCombined && tId === selCombined);
                     const my = m.myTeam || m.teamName;
                     const home = m.homeTeam;
                     const away = m.awayTeam;
-                    return (selName && (my === selName || home === selName || away === selName));
+                    if (selName && (my === selName || home === selName || away === selName)) return true;
+                    if (selCombined && (my === selCombined || home === selCombined || away === selCombined)) return true;
+                    if (selTeam && (my === selTeam || home === selTeam || away === selTeam)) return true;
+                    return false;
                 });
             }
             const toTs = (m) => {
@@ -2921,12 +3643,20 @@
         function showEmptyMatches() {
             matchesList.innerHTML = '';
             emptyMatches.style.display = 'block';
+            hideLoadingScreen();
         }
 
         function hideLoadingScreen() {
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-            }, 500);
+            console.log('Matches Page: hideLoadingScreen called');
+            const ls = document.getElementById('loadingScreen');
+            if (ls) {
+                setTimeout(() => {
+                    ls.style.display = 'none';
+                    console.log('Matches Page: loadingScreen hidden');
+                }, 500);
+            } else {
+                console.warn('Matches Page: loadingScreen element not found');
+            }
         }
 
         // Funzioni partite
@@ -3608,8 +4338,15 @@
                 const actionsBySet = {};
                 const setMeta = {};
                 const setStateBySet = {};
+                const normalizeSetSheetName = (name) => String(name || '').toLowerCase().replace(/\s+/g, '');
+                const findSetSheetName = (wb, setIndex) => {
+                    const direct = `Set ${setIndex}`;
+                    if ((wb.SheetNames || []).includes(direct)) return direct;
+                    const target = `set${setIndex}`;
+                    return (wb.SheetNames || []).find(n => normalizeSetSheetName(n) === target);
+                };
                 for (let i=1;i<=6;i++){
-                    const name = (wb.SheetNames||[]).includes('Set '+i) ? ('Set '+i) : (wb.SheetNames||[]).find(n => new RegExp('^set\\s*'+i+'$','i').test(String(n||'')));
+                    const name = findSetSheetName(wb, i);
                     if (!name) continue;
                     const ws = wb.Sheets[name];
                     let oppRot = ws['A6'] && (ws['A6'].v != null ? String(ws['A6'].v).trim() : (ws['A6'].w ? String(ws['A6'].w).trim() : ''));

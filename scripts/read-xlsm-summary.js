@@ -63,8 +63,19 @@ function readMeta(ws){
   return { opponent, matchDate: String(matchDate||''), eventType, homeAway: (locLabel==='casa'?'home':(locLabel==='trasferta'?'away':'')), location: locLabel, description: notes, finalResult, matchOutcome };
 }
 
+function normalizeSetSheetName(name){
+  return String(name || '').toLowerCase().replace(/\s+/g, '');
+}
+
+function findSetSheetName(wb, setNum){
+  const direct = `Set ${setNum}`;
+  if ((wb.SheetNames||[]).includes(direct)) return direct;
+  const target = `set${setNum}`;
+  return (wb.SheetNames||[]).find(n => normalizeSetSheetName(n) === target);
+}
+
 function readSetSheet(wb, setNum){
-  const name = (wb.SheetNames||[]).includes('Set '+setNum) ? ('Set '+setNum) : (wb.SheetNames||[]).find(n => new RegExp('^set\\s*'+setNum+'$','i').test(String(n||'')));
+  const name = findSetSheetName(wb, setNum);
   if (!name) return null;
   const ws = wb.Sheets[name];
   const oppRot = ws['A6'] && (ws['A6'].v != null ? String(ws['A6'].v).trim() : (ws['A6'].w ? String(ws['A6'].w).trim() : ''));

@@ -23,6 +23,7 @@ const firestoreService = {
             dlg.id = dialogId;
             dlg.className = 'dialog';
             dlg.setAttribute('hidden', '');
+            try { dlg.style.zIndex = '11050'; } catch (_) {}
 
             const panel = document.createElement('div');
             panel.className = 'dialog-panel';
@@ -133,6 +134,7 @@ const firestoreService = {
         const setOpen = (v) => {
             try {
                 if (v) {
+                    try { dlg.style.zIndex = '11050'; } catch (_) {}
                     dlg.removeAttribute('hidden');
                     dlg.classList.add('is-open');
                     document.body.style.overflow = 'hidden';
@@ -330,18 +332,26 @@ const firestoreService = {
                 const club = String(t.clubName||'').trim();
                 const squad = String(t.teamName||t.name||'').trim();
                 const combined = (squad + (club ? ` - ${club}` : '')).trim();
-                const docId = String(t.id || '').trim() || combined;
+                const localId = String(t.id || '').trim();
+                const docId = combined || localId;
                 const nameCombined = String(t.name || '').trim() || combined;
                 if (docId) {
                     teamMap.set(nameCombined, docId);
                     if (combined) teamMap.set(combined, docId);
                     if (squad) teamMap.set(squad, docId);
+                    if (localId) teamMap.set(localId, docId);
                 }
             });
 
             let localMatches = [];
             try { localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_){ localMatches = []; }
             if (!Array.isArray(localMatches) || !localMatches.length) return { success: true, synced: 0 };
+            const onlyIdsRaw = Array.isArray(options?.matchIds) ? options.matchIds : null;
+            if (onlyIdsRaw && onlyIdsRaw.length) {
+                const onlyIds = new Set(onlyIdsRaw.map(v => String(v || '').trim()).filter(Boolean));
+                localMatches = localMatches.filter(m => onlyIds.has(String(m?.id || '').trim()));
+                if (!localMatches.length) return { success: true, synced: 0 };
+            }
 
             const toEpochMs = (v) => {
                 try {
@@ -367,20 +377,38 @@ const firestoreService = {
                 return `${vs}${date ? ` (${date})` : ''}`.trim() || String(m?.id || '').trim() || 'partita';
             };
 
+            const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
+            const shouldCancel = typeof options?.shouldCancel === 'function' ? options.shouldCancel : null;
             let synced = 0;
+            let index = 0;
+            const total = localMatches.length;
             for (const m of localMatches) {
-                let teamId = null;
-                try { if (m.teamId) teamId = String(m.teamId); } catch(_){}
-                if (!teamId) {
-                    const my = String(m.myTeam||m.teamName||'').trim();
-                    const home = String(m.homeTeam||'').trim();
-                    const away = String(m.awayTeam||'').trim();
-                    teamId = teamMap.get(my) || teamMap.get(home) || teamMap.get(away) || null;
+                index++;
+                if (shouldCancel && shouldCancel(m)) {
+                    if (onProgress) {
+                        try { onProgress({ match: m, index, total, status: 'cancelled' }); } catch(_){}
+                    }
+                    continue;
                 }
-                if (!teamId) continue;
+                let finalStatus = 'done';
+                if (onProgress) {
+                    try { onProgress({ match: m, index, total, status: 'start' }); } catch(_){}
+                }
                 try {
+                    let teamId = null;
+                    try { if (m.teamId) teamId = String(m.teamId); } catch(_){}
+                    if (teamId && teamMap.has(teamId)) {
+                        teamId = teamMap.get(teamId);
+                    }
+                    if (!teamId) {
+                        const my = String(m.myTeam||m.teamName||'').trim();
+                        const home = String(m.homeTeam||'').trim();
+                        const away = String(m.awayTeam||'').trim();
+                        teamId = teamMap.get(my) || teamMap.get(home) || teamMap.get(away) || null;
+                    }
+                    if (!teamId) { finalStatus = 'skipped'; continue; }
                     const matchId = String(m?.id || '').trim();
-                    if (!matchId) continue;
+                    if (!matchId) { finalStatus = 'skipped'; continue; }
 
                     let shouldWrite = true;
                     let shouldSetCreatedAt = true;
@@ -427,10 +455,11 @@ const firestoreService = {
                         }
                     }
 
-                    if (!shouldWrite) continue;
+                    if (!shouldWrite) { finalStatus = 'skipped'; continue; }
 
                     try {
-                        const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
+                        // Unifica logica di salvataggio usando saveMatchTree
+                        // Preserva metadati cloud esistenti se mancano in locale (opzionale, ma utile)
                         const metaSource = (() => {
                             const base = Object.assign({}, m);
                             if (cloudMeta && typeof cloudMeta === 'object') {
@@ -446,54 +475,23 @@ const firestoreService = {
                             }
                             return base;
                         })();
-                        const meta = firestoreService._sanitizeMatchMeta(Object.assign({}, metaSource, { id: matchId }));
-                        const matchDoc = matchesRef.doc(meta.id);
-                        const metaPayload = Object.assign({}, meta, {
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        if (shouldSetCreatedAt) metaPayload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                        await matchDoc.set(metaPayload, { merge: true });
 
-                        const subRef = matchDoc.collection('match_data').doc('main');
-                        await subRef.set({
-                            myTeam: meta.myTeam,
-                            opponentTeam: meta.opponentTeam,
-                            matchType: meta.matchType,
-                            date: meta.date,
-                            status: meta.status,
-                            score: meta.score,
-                            ts: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    } catch (_) {
-                        await firestoreService.saveMatchTree(teamId, Object.assign({}, m, { id: matchId }));
+                        // Usa saveMatchTree che gestisce automaticamente la creazione del documento unico
+                        // e la generazione di ID parlanti se necessario.
+                        await firestoreService.saveMatchTree(teamId, Object.assign({}, metaSource, { id: matchId }));
+                        synced++;
+                    } catch (e) {
+                        console.error('Sync error for match', matchId, e);
+                        finalStatus = 'error';
                     }
-
-                    const rosterArr = Array.isArray(m.roster) ? m.roster : (Array.isArray(m.players) ? m.players : []);
-                    if (Array.isArray(rosterArr) && rosterArr.length) {
-                        await firestoreService.saveMatchRosterTree(teamId, matchId, rosterArr);
+                } catch(_){ 
+                    finalStatus = 'error';
+                }
+                finally {
+                    if (onProgress) {
+                        try { onProgress({ match: m, index, total, status: finalStatus }); } catch(_){}
                     }
-                    if (firestoreService.saveMatchDetailsTree) {
-                        const hasAnyDetails =
-                            (m && typeof m === 'object') &&
-                            (
-                                (m.actionsBySet && Object.keys(m.actionsBySet || {}).length) ||
-                                (m.setMeta && Object.keys(m.setMeta || {}).length) ||
-                                (m.setStateBySet && Object.keys(m.setStateBySet || {}).length) ||
-                                (m.setSummary && Object.keys(m.setSummary || {}).length) ||
-                                (m.scoreHistoryBySet && Object.keys(m.scoreHistoryBySet || {}).length)
-                            );
-                        if (hasAnyDetails) {
-                            await firestoreService.saveMatchDetailsTree(teamId, matchId, {
-                                actionsBySet: m.actionsBySet || {},
-                                setMeta: m.setMeta || {},
-                                setStateBySet: m.setStateBySet || {},
-                                setSummary: m.setSummary || {},
-                                scoreHistoryBySet: m.scoreHistoryBySet || {}
-                            });
-                        }
-                    }
-                    synced++;
-                } catch(_){ }
+                }
             }
             return { success: true, synced };
         } catch (error) {
@@ -1128,64 +1126,171 @@ const firestoreService = {
         }
     },
 
+    // --- FUNZIONI DI SUPPORTO PER FORMATTAZIONE ID PARLANTI ---
+    _formatMatchDate: (dateStr) => {
+        try {
+            if (!dateStr) return '0000-00-00';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return String(dateStr).substring(0, 10);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        } catch (_) { return '0000-00-00'; }
+    },
+
+    _sanitizeForId: (str) => {
+        return String(str || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+    },
+
+    _generateMatchDocId: (match) => {
+        const date = firestoreService._formatMatchDate(match.date || match.matchDate || match.createdAt);
+        const time = (match.time || '00:00').replace(':', '');
+        const opp = firestoreService._sanitizeForId(match.opponentTeam || match.opponent || 'avversario');
+        // Usa data_ora_avversario per unicità deterministica
+        // Se non c'è ora, sarà 0000, che va bene per partite singole giornaliere.
+        // Se ci sono più partite lo stesso giorno contro lo stesso avversario senza orario, si sovrascriveranno.
+        // È un compromesso accettabile per avere ID parlanti.
+        return `${date}_${time}_${opp}`;
+    },
+
     saveMatchTree: async (teamId, match) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
+            // Determina il nuovo ID se non esiste, o mantieni quello esistente se valido (ma migra struttura)
+            // Se match.id è già nel formato nuovo, usalo. Altrimenti generane uno nuovo se è un ID vecchio stile (timestamp numerico)
+            // o se è vuoto.
+            let matchDocId = String(match.id || '').trim();
+            const isNewFormat = matchDocId.match(/^\d{4}-\d{2}-\d{2}_/);
+            
+            // Se non ha ID o ha un ID vecchio (non inizia con YYYY-MM-DD), generane uno nuovo PARLANTE
+            // NOTA: Questo creerà un nuovo documento se l'ID cambia, lasciando il vecchio orfano (che l'utente cancellerà)
+            if (!matchDocId || !isNewFormat) {
+                matchDocId = firestoreService._generateMatchDocId(match);
+            }
+
             const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
+            const matchDoc = matchesRef.doc(matchDocId);
+            
+            // Preparazione payload UNICO (single document)
             const meta = firestoreService._sanitizeMatchMeta(match);
-            const matchDoc = matchesRef.doc(meta.id);
+            
+            // Roster
+            const roster = Array.isArray(match.roster) ? firestoreService._sanitizeRosterPlayers(match.roster) : [];
+            
+            // Dettagli Sets
+            const setsData = {};
+            const actionsBySet = match.actionsBySet || {};
+            const setMeta = match.setMeta || {};
+            const setStateBySet = match.setStateBySet || {};
+            const setSummary = match.setSummary || {};
+            const scoreHistoryBySet = match.scoreHistoryBySet || {};
+            
+            // Unifica i dati dei set in un oggetto strutturato
+            for (let i = 1; i <= 6; i++) {
+                if (actionsBySet[i] || setMeta[i] || setStateBySet[i] || setSummary[i]) {
+                    setsData[i] = {
+                        actions: actionsBySet[i] || [],
+                        meta: setMeta[i] || {},
+                        state: setStateBySet[i] || {},
+                        summary: setSummary[i] || {},
+                        scoreHistory: scoreHistoryBySet[i] || []
+                    };
+                }
+            }
+
+            const payload = {
+                id: matchDocId,
+                // Metadati principali
+                date: meta.date,
+                matchDate: meta.date, // ridondanza utile
+                time: meta.time || '',
+                matchType: meta.matchType,
+                homeTeam: meta.homeTeam,
+                awayTeam: meta.awayTeam,
+                opponentTeam: meta.opponentTeam,
+                myTeam: meta.myTeam,
+                location: meta.location || '',
+                description: meta.description || '',
+                status: meta.status,
+                score: meta.score, // { home, away }
+                finalResult: meta.finalResult || '',
+                
+                // Roster completo
+                roster: roster,
+                
+                // Dettagli completi dei set
+                sets: setsData,
+                
+                // Timestamps
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Gestione createdAt
             let shouldSetCreatedAt = true;
             try {
                 const snap = await matchDoc.get();
                 if (snap.exists) shouldSetCreatedAt = false;
             } catch (_) {}
-            const payload = Object.assign({}, meta, {
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            if (shouldSetCreatedAt) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            
+            if (shouldSetCreatedAt) {
+                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            }
+
+            // Scrittura documento unico (sovrascrive o merge)
             await matchDoc.set(payload, { merge: true });
-            const subRef = matchDoc.collection('match_data').doc('main');
-            await subRef.set({
-                myTeam: meta.myTeam,
-                opponentTeam: meta.opponentTeam,
-                matchType: meta.matchType,
-                date: meta.date,
-                status: meta.status,
-                score: meta.score,
-                ts: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            return { success: true, id: meta.id };
+
+            return { success: true, id: matchDocId };
         } catch (error) {
+            console.error('SaveMatch error:', error);
             return { success: false, error: error.message };
         }
     },
 
+    // Funzione legacy mantenuta per compatibilità chiamate, ma ora usa saveMatchTree unificato
     saveMatchDetailsTree: async (teamId, matchId, details) => {
-        try {
-            const userRef = await firestoreService.getUserRefEnsured();
-            const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
-            const subRef = matchDoc.collection('match_data').doc('main');
-            const payload = {
-                actionsBySet: details?.actionsBySet || {},
-                setMeta: details?.setMeta || {},
-                setStateBySet: details?.setStateBySet || {},
-                setSummary: details?.setSummary || {},
-                scoreHistoryBySet: details?.scoreHistoryBySet || {},
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await subRef.set(payload, { merge: true });
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
+         // In questo nuovo schema, i dettagli sono parte del documento principale.
+         // Se viene chiamata questa funzione, dobbiamo aggiornare il documento principale.
+         // Richiede che 'details' contenga le chiavi corrette.
+         try {
+             const userRef = await firestoreService.getUserRefEnsured();
+             const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+             
+             // Mappa i dettagli nella nuova struttura 'sets'
+             const setsUpdate = {};
+             const keys = ['actionsBySet', 'setMeta', 'setStateBySet', 'setSummary', 'scoreHistoryBySet'];
+             
+             // Poiché Firestore merge non supporta facilmente deep merge di mappe nested senza dot notation,
+             // e qui stiamo ristrutturando, è meglio leggere prima o usare dot notation.
+             // Usiamo dot notation per aggiornare campi specifici
+             const updates = {
+                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+             };
+             
+             // Costruiamo updates con dot notation es: "sets.1.actions"
+             for (let i = 1; i <= 6; i++) {
+                 if (details.actionsBySet && details.actionsBySet[i]) updates[`sets.${i}.actions`] = details.actionsBySet[i];
+                 if (details.setMeta && details.setMeta[i]) updates[`sets.${i}.meta`] = details.setMeta[i];
+                 if (details.setStateBySet && details.setStateBySet[i]) updates[`sets.${i}.state`] = details.setStateBySet[i];
+                 if (details.setSummary && details.setSummary[i]) updates[`sets.${i}.summary`] = details.setSummary[i];
+                 if (details.scoreHistoryBySet && details.scoreHistoryBySet[i]) updates[`sets.${i}.scoreHistory`] = details.scoreHistoryBySet[i];
+             }
+             
+             await matchDoc.update(updates);
+             return { success: true };
+         } catch (error) {
+             return { success: false, error: error.message };
+         }
     },
 
     saveMatchRosterTree: async (teamId, matchId, rosterData) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
             const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
-            const subRef = matchDoc.collection('match_roster').doc('main');
-            await subRef.set({ roster: firestoreService._sanitizeRosterPlayers(rosterData), ts: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            await matchDoc.update({
+                roster: firestoreService._sanitizeRosterPlayers(rosterData),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -1194,63 +1299,123 @@ const firestoreService = {
 
     saveSetStartTree: async (teamId, matchId, setNumber, payload) => {
         try {
-            const userRef = await firestoreService.getUserRefEnsured();
-            const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
-            const subName = `set_${setNumber}_start`;
-            const subRef = matchDoc.collection(subName).doc('main');
-            await subRef.set({
-                setNumber: Number(setNumber)||1,
-                phase: payload?.phase||'servizio',
-                rotation: payload?.rotation||'P1',
-                opponentRotation: payload?.opponentRotation||'P1',
-                startTime: payload?.startTime||new Date().toISOString(),
-                ts: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            return { success: true };
+             const userRef = await firestoreService.getUserRefEnsured();
+             const matchDoc = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+             const key = `sets.${setNumber}.meta`; // Assumiamo che start info vada in meta
+             // Nota: payload contiene phase, rotation, opponentRotation, startTime
+             // Dobbiamo fare merge con esistente meta se c'è, ma update con dot notation sostituisce l'oggetto a quella chiave se non usiamo nested field paths.
+             // Per sicurezza usiamo set con merge su campi specifici se possibile, o update puntuali.
+             const updates = {
+                 [`sets.${setNumber}.meta.phase`]: payload?.phase || 'servizio',
+                 [`sets.${setNumber}.meta.rotation`]: payload?.rotation || 'P1',
+                 [`sets.${setNumber}.meta.opponentRotation`]: payload?.opponentRotation || 'P1',
+                 [`sets.${setNumber}.meta.startTime`]: payload?.startTime || new Date().toISOString(),
+                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+             };
+             await matchDoc.update(updates);
+             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
+
     loadTeamMatches: async (teamId) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
             const matchesSnap = await userRef.collection('teams').doc(String(teamId)).collection('matches').orderBy('createdAt','desc').get();
             const out = [];
-            matchesSnap.forEach(doc => { out.push({ id: doc.id, ...doc.data(), source: 'firestore_team' }); });
+            matchesSnap.forEach(doc => { 
+                const data = doc.data();
+                // Adatta la struttura per il frontend che si aspetta i campi "flat" per i dettagli se necessario,
+                // o lascia che il frontend gestisca la nuova struttura.
+                // Per compatibilità immediata, rimappiamo 'sets' nei vecchi oggetti *BySet se il frontend li usa.
+                const adapted = { id: doc.id, ...data, source: 'firestore_team' };
+                adapted.teamId = String(teamId);
+                
+                if (data.sets) {
+                    adapted.actionsBySet = {};
+                    adapted.setMeta = {};
+                    adapted.setStateBySet = {};
+                    adapted.setSummary = {};
+                    adapted.scoreHistoryBySet = {};
+                    
+                    Object.keys(data.sets).forEach(k => {
+                        const s = data.sets[k];
+                        if (s.actions) adapted.actionsBySet[k] = s.actions;
+                        if (s.meta) adapted.setMeta[k] = s.meta;
+                        if (s.state) adapted.setStateBySet[k] = s.state;
+                        if (s.summary) adapted.setSummary[k] = s.summary;
+                        if (s.scoreHistory) adapted.scoreHistoryBySet[k] = s.scoreHistory;
+                    });
+                }
+                out.push(adapted); 
+            });
             return { success: true, documents: out };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
+    
     deleteMatchTree: async (teamId, matchId, options = {}) => {
         try {
-            const maxSets = Number(options.maxSets || 6);
+            // Nuova struttura: cancella solo il documento principale
             const userRef = await firestoreService.getUserRefEnsured();
             const matchRef = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            
+            // Tenta di cancellare anche le vecchie sottocollezioni per pulizia (se presenti da vecchi dati)
             const deletes = [];
             deletes.push(matchRef.collection('match_data').doc('main').delete().catch(()=>{}));
             deletes.push(matchRef.collection('match_roster').doc('main').delete().catch(()=>{}));
-            for (let i = 1; i <= Math.max(1, Math.min(10, maxSets)); i++) {
-                const subName = `set_${i}_start`;
-                deletes.push(matchRef.collection(subName).doc('main').delete().catch(()=>{}));
+            const maxSets = 6;
+            for (let i = 1; i <= maxSets; i++) {
+                deletes.push(matchRef.collection(`set_${i}_start`).doc('main').delete().catch(()=>{}));
             }
             await Promise.all(deletes);
+            
             await matchRef.delete();
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
+
     getMatchData: async (teamId, matchId) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
             const matchRef = userRef.collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
-            const metaDoc = await matchRef.get();
-            const rosterDoc = await matchRef.collection('match_roster').doc('main').get();
-            const dataDoc = await matchRef.collection('match_data').doc('main').get();
-            const meta = metaDoc.exists ? { id: metaDoc.id, ...metaDoc.data() } : null;
-            const roster = rosterDoc.exists ? (rosterDoc.data()?.roster || []) : [];
-            const details = dataDoc.exists ? dataDoc.data() : {};
+            const doc = await matchRef.get();
+            
+            if (!doc.exists) return { success: false, error: 'Match not found' };
+            
+            const data = doc.data();
+            const meta = { id: doc.id, ...data }; // Meta include tutto ora
+            
+            // Estrai roster e details per compatibilità return
+            const roster = data.roster || [];
+            
+            const details = {
+                actionsBySet: {},
+                setMeta: {},
+                setStateBySet: {},
+                setSummary: {},
+                scoreHistoryBySet: {}
+            };
+            
+            if (data.sets) {
+                Object.keys(data.sets).forEach(k => {
+                    const s = data.sets[k];
+                    if (s.actions) details.actionsBySet[k] = s.actions;
+                    if (s.meta) details.setMeta[k] = s.meta;
+                    if (s.state) details.setStateBySet[k] = s.state;
+                    if (s.summary) details.setSummary[k] = s.summary;
+                    if (s.scoreHistory) details.scoreHistoryBySet[k] = s.scoreHistory;
+                });
+            } else {
+                 // Fallback per vecchi documenti (se non migrati) che usano subcollections?
+                 // Se stiamo "ripartendo da pulito", non serve, ma per robustezza potremmo controllare subcollections.
+                 // Per ora assumiamo nuova struttura.
+            }
+
             return { success: true, meta, roster, details };
         } catch (error) {
             return { success: false, error: error.message };

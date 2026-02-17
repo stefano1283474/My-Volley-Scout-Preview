@@ -129,7 +129,7 @@
     function setText(id,t){var el=document.getElementById(id);if(el)el.textContent=String(t)}
     function setStatus(id,t){var el=document.getElementById(id);if(el)el.textContent=t}
     function setProgress(p){var f=document.getElementById('progressFill');if(f)f.style.width=Math.max(0,Math.min(100,Math.round(p)))+'%'}
-    function iso(d){if(!d)return'';var s=String(d);var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return s.slice(0,10);try{var dt=new Date(s);if(!isNaN(dt))return dt.toISOString().slice(0,10)}catch(e){}return ''}
+    function iso(d){if(!d)return'';var s=String(d).trim();var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return s.slice(0,10);var m2=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(m2){return m2[3]+'-'+m2[2]+'-'+m2[1]}try{var dt=new Date(s);if(!isNaN(dt))return dt.toISOString().slice(0,10)}catch(e){}return ''}
     function pad2(n){n=Number(n)||0;return(n<10?'0':'')+n}
     function setDateFieldsFromISO(s){var d=document.getElementById('f_day');var m=document.getElementById('f_month');var y=document.getElementById('f_year');var mm=s&&s.slice(5,7);var dd=s&&s.slice(8,10);var yy=s&&s.slice(0,4);if(d)d.value=dd||'';if(m)m.value=mm?String(Number(mm)):'';if(y)y.value=yy||''}
     function updateISOFromFields(){var d=document.getElementById('f_day');var m=document.getElementById('f_month');var y=document.getElementById('f_year');var f=document.getElementById('f_date');var dd=d?Number(d.value):0;var mm=m?Number(m.value):0;var yy=y?Number(y.value):0;var ok=yy>=1900&&yy<=2100&&mm>=1&&mm<=12&&dd>=1&&dd<=31;if(f&&ok){f.value=String(yy)+'-'+pad2(mm)+'-'+pad2(dd)}}

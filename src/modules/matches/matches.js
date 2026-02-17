@@ -54,9 +54,12 @@ class MatchesModule {
 
     setArchive(next, options = {}) {
         const v = (next === 'cloud') ? 'cloud' : 'local';
-        if (this.state.archive === v && options.force !== true) return;
+        const changed = this.state.archive !== v;
+        if (!changed && options.force !== true && !options.reload) return;
+        
         this.state.archive = v;
         try { localStorage.setItem('mvsSelectedArchive', v); } catch (_) {}
+        
         if (options.reload !== false) {
             this.loadMatches();
         }
@@ -104,27 +107,63 @@ class MatchesModule {
     async loadMatches() {
         try {
             this.state.isLoading = true;
+            this.state.matches = []; // Clear matches to ensure no mixing
+            this.notifyMatchesUpdate(); // Notify clear immediately
+
             const archive = this.state.archive === 'cloud' ? 'cloud' : 'local';
             const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
             const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
             const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
             const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
 
+            console.log(`MatchesModule: Loading matches from ${archive} for team ${teamId}`);
+
             if (archive === 'cloud') {
                 if (!teamId || !isAuthed || !window.firestoreService?.loadTeamMatches) {
+                    console.warn('MatchesModule: Cloud load skipped (missing team, auth, or service)');
                     this.state.matches = [];
                     this.notifyMatchesUpdate();
                     return;
                 }
-                const resTeam = await window.firestoreService.loadTeamMatches(teamId);
-                const teamMatches = (resTeam?.success && Array.isArray(resTeam.documents)) ? resTeam.documents : [];
+
+                // Risoluzione ID Team per Firestore (gestione ID basati su nome combinato)
+                let targetTeamId = teamId;
+                try {
+                    const localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    const teamMap = new Map();
+                    (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
+                        const id = String(t.id || '').trim();
+                        const squad = String(t.teamName || t.name || '').trim();
+                        const club = String(t.clubName || '').trim();
+                        const combined = (squad + (club ? ` - ${club}` : '')).trim();
+                        const target = combined || id;
+                        if (id) teamMap.set(id, target);
+                        if (combined) teamMap.set(combined, target);
+                    });
+                    if (teamMap.has(teamId)) targetTeamId = teamMap.get(teamId);
+                    else {
+                        // Fallback se teamId non è nella mappa ma abbiamo l'oggetto team corrente
+                        const squad = String(currentTeam?.teamName || currentTeam?.name || '').trim();
+                        const club = String(currentTeam?.clubName || '').trim();
+                        const combined = (squad + (club ? ` - ${club}` : '')).trim();
+                        if (combined) targetTeamId = combined;
+                    }
+                } catch (e) { console.warn('MatchesModule: Error resolving team ID', e); }
+
+                console.log(`MatchesModule: Resolved teamId ${teamId} to ${targetTeamId}`);
+
+                const resTeam = await window.firestoreService.loadTeamMatches(targetTeamId);
+                const teamMatches = (resTeam?.success && Array.isArray(resTeam.matches)) ? resTeam.matches : ((resTeam?.success && Array.isArray(resTeam.documents)) ? resTeam.documents : []);
                 this.state.matches = this.deduplicateMatchesCloud(teamMatches);
+                console.log(`MatchesModule: Loaded ${this.state.matches.length} cloud matches`);
                 this.notifyMatchesUpdate();
                 return;
             }
 
+            // Local archive
             const localMatches = this.getLocalMatches();
             this.state.matches = this.deduplicateMatchesLocal(localMatches);
+            console.log(`MatchesModule: Loaded ${this.state.matches.length} local matches`);
             this.notifyMatchesUpdate();
             
         } catch (error) {
