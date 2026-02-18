@@ -972,6 +972,30 @@ function renderMatchStats() {
         if (sessionDataCache) candidates.push(sessionDataCache);
         if (storedMatch) candidates.push(storedMatch);
 
+        const summarySource = storedMatch || currentMatch || sessionDataCache || {};
+        const opponent = summarySource.opponent || summarySource.opponentTeam || '';
+        const rawDate = summarySource.matchDate || summarySource.date || summarySource.createdAt || '';
+        const type = summarySource.matchType || summarySource.eventType || summarySource.type || 'partita';
+        const formatItalianDate = (raw) => {
+            const s = String(raw || '').trim();
+            if (!s) return '';
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10).split('-').reverse().join('/');
+            const d = new Date(s);
+            if (Number.isFinite(d.getTime())) {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return [dd, mm, yyyy].join('/');
+            }
+            return s;
+        };
+        const oppEl = document.getElementById('ms-opponent');
+        const dateEl = document.getElementById('ms-date');
+        const typeEl = document.getElementById('ms-type');
+        if (oppEl) oppEl.textContent = opponent || '-';
+        if (dateEl) dateEl.textContent = rawDate ? formatItalianDate(rawDate) : '-';
+        if (typeEl) typeEl.textContent = String(type || 'partita');
+
         let merged = {};
         candidates.forEach((src) => {
             if (!src || typeof src !== 'object') return;
@@ -1199,7 +1223,24 @@ function buildHeaderHTML() {
 function buildPerPlayerTablesHTML(agg, roster) {
     const playerNameByNumber = {};
     if (Array.isArray(roster)) {
-        roster.forEach(p => { if (p?.number) playerNameByNumber[String(p.number)] = p?.name || ''; });
+        const pick = (obj, keys) => {
+            for (const k of keys) {
+                const v = obj && obj[k];
+                if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+            }
+            return '';
+        };
+        roster.forEach(p => {
+            const num = pick(p, ['number','numero','num','jersey','maglia']);
+            if (num != null && String(num).trim() !== '') {
+                const numStr = normalizeNumberStr(num);
+                const surname = pick(p, ['surname','cognome','lastName','cognomi']);
+                const name = pick(p, ['name','nome','firstName','nomi']);
+                const nickname = pick(p, ['nickname','soprannome','nick']);
+                const display = surname || name || nickname || '';
+                playerNameByNumber[String(numStr)] = display;
+            }
+        });
     }
     const tables = {};
     Object.keys(agg).forEach(fund => {
@@ -1278,16 +1319,27 @@ function buildSetFilterButtons(fund, selectedSets = ['ALL']) {
 
 // Versione All: colonne simboliche e metriche, righe = player
 function buildPerPlayerTablesAll(agg, roster) {
+    const pick = (obj, keys) => {
+        for (const k of keys) {
+            const v = obj && obj[k];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+        }
+        return '';
+    };
     const playerNameByNumber = {};
     const playerRoleByNumber = {};
     const rosterNumbers = [];
     if (Array.isArray(roster)) {
         roster.forEach(p => {
-            if (p?.number != null && p?.number !== '') {
-                const numStr = normalizeNumberStr(p.number);
-                const display = (p.nickname && String(p.nickname).trim()) || (p.surname && String(p.surname).trim()) || (p.name && String(p.name).trim()) || '';
+            const rawNum = pick(p, ['number','numero','num','jersey','maglia']);
+            if (rawNum != null && String(rawNum).trim() !== '') {
+                const numStr = normalizeNumberStr(rawNum);
+                const surname = pick(p, ['surname','cognome','lastName','cognomi']);
+                const name = pick(p, ['name','nome','firstName','nomi']);
+                const nickname = pick(p, ['nickname','soprannome','nick']);
+                const display = surname || name || nickname || '';
                 playerNameByNumber[numStr] = display;
-                const roleRaw = (p.role != null ? String(p.role) : '').trim();
+                const roleRaw = (pick(p, ['role','ruolo','position','posizione']) || '').trim();
                 const role = roleRaw ? roleRaw.toUpperCase().slice(0, 1) : '';
                 playerRoleByNumber[numStr] = role;
                 rosterNumbers.push(numStr);
@@ -2288,9 +2340,33 @@ async function exportAllSetsToExcel() {
         const setMeta = sessionData.setMeta || match.setMeta || {};
         const setStateBySet = sessionData.setStateBySet || match.setStateBySet || {};
 
-        let roster = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : [];
-        if (!roster.length) roster = Array.isArray(sessionData.roster) ? sessionData.roster : [];
-        if (!roster.length) roster = Array.isArray(match.roster) ? match.roster : [];
+        function pickRosterList() {
+            const candidates = [];
+            if (Array.isArray(window.appState?.currentRoster)) candidates.push(window.appState.currentRoster);
+            if (Array.isArray(sessionData.roster)) candidates.push(sessionData.roster);
+            if (Array.isArray(sessionData.players)) candidates.push(sessionData.players);
+            if (Array.isArray(match.roster)) candidates.push(match.roster);
+            if (Array.isArray(match.players)) candidates.push(match.players);
+            if (Array.isArray(currentMatch?.roster)) candidates.push(currentMatch.roster);
+            if (Array.isArray(currentMatch?.players)) candidates.push(currentMatch.players);
+            try {
+                const setup = safeJsonParse(localStorage.getItem('currentMatchSetup'), {});
+                if (Array.isArray(setup?.roster)) candidates.push(setup.roster);
+                if (Array.isArray(setup?.players)) candidates.push(setup.players);
+            } catch (_) {}
+            try {
+                const imported = safeJsonParse(localStorage.getItem('importedRoster'), []);
+                if (Array.isArray(imported)) candidates.push(imported);
+            } catch (_) {}
+            for (const list of candidates) {
+                if (Array.isArray(list) && list.some(p => p && (p.number || p.name || p.surname || p.nickname || p.role || p.nome || p.cognome || p.soprannome || p.ruolo))) {
+                    return list;
+                }
+            }
+            return [];
+        }
+
+        let roster = pickRosterList();
 
         const opponent = sessionData.opponent || sessionData.opponentTeam || match.opponentTeam || match.opponent || match.awayTeam || 'Avversario';
         const matchDate = sessionData.matchDate || match.matchDate || match.date || new Date().toISOString().slice(0, 10);
@@ -2312,15 +2388,30 @@ async function exportAllSetsToExcel() {
         setCell(wsRoster, 'D25', finalResult);
         setCell(wsRoster, 'D26', matchOutcome);
 
-        const validPlayers = (roster || []).filter(p => p && (p.number != null || p.name || p.surname || p.nickname || p.role));
+        function pickField(obj, keys) {
+            for (const k of keys) {
+                const v = obj && obj[k];
+                if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+            }
+            return '';
+        }
+
+        const validPlayers = (roster || []).map(p => {
+            const number = pickField(p, ['number', 'numero', 'num', 'jersey', 'jerseyNumber', 'maglia']);
+            const surname = pickField(p, ['surname', 'cognome', 'lastName', 'cognomi']);
+            const name = pickField(p, ['name', 'nome', 'firstName', 'nomi']);
+            const nickname = pickField(p, ['nickname', 'nick', 'soprannome']);
+            const role = pickField(p, ['role', 'ruolo', 'position', 'posizione']);
+            return { number, surname, name, nickname, role };
+        }).filter(p => p && (p.number || p.name || p.surname || p.nickname || p.role));
         for (let i = 0; i < validPlayers.length; i++) {
             const p = validPlayers[i] || {};
             const row = 3 + i;
-            setCell(wsRoster, 'B' + row, formatJersey(p.number || p.num || p.jersey || p.maglia || ''));
-            setCell(wsRoster, 'C' + row, p.cognome || p.surname || p.lastName || p.cognomi || '');
-            setCell(wsRoster, 'D' + row, p.nome || p.name || p.firstName || p.nomi || '');
-            setCell(wsRoster, 'E' + row, p.nickname || p.nick || p.soprannome || '');
-            setCell(wsRoster, 'F' + row, p.role || p.ruolo || '');
+            setCell(wsRoster, 'B' + row, formatJersey(p.number || ''));
+            setCell(wsRoster, 'C' + row, p.surname || '');
+            setCell(wsRoster, 'D' + row, p.name || '');
+            setCell(wsRoster, 'E' + row, p.nickname || '');
+            setCell(wsRoster, 'F' + row, p.role || '');
         }
         XLSX.utils.book_append_sheet(wb, wsRoster, 'El. Gioc.');
 
