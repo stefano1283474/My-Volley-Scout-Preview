@@ -671,7 +671,7 @@ const firestoreService = {
         }
     },
 
-    hydrateTeamsFromFirestore: async () => {
+    hydrateTeamsFromFirestore: async (options = {}) => {
         try {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
@@ -722,6 +722,8 @@ const firestoreService = {
                 if (id) byId.set(id, t);
             }
 
+            const conflictMode = String(options?.conflictMode || 'ask');
+            const defaultChoice = options?.defaultChoice === 'cloud' ? 'cloud' : 'local';
             let merged = 0;
             for (const doc of (Array.isArray(res.documents) ? res.documents : [])) {
                 const fsTeam = normalizeTeamFromFs(doc);
@@ -753,26 +755,32 @@ const firestoreService = {
 
                     let useLocal = true;
                     if (hasDiff) {
-                        let msg = `Conflitto dati squadra:\n${fsTeam.name || existing.name || id}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
-                        if (localUpdated && fsUpdated) {
-                            const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
-                            if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                        if (conflictMode === 'preferCloud') {
+                            useLocal = false;
+                        } else if (conflictMode === 'preferLocal') {
+                            useLocal = true;
+                        } else {
+                            let msg = `Conflitto dati squadra:\n${fsTeam.name || existing.name || id}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
+                            if (localUpdated && fsUpdated) {
+                                const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
+                                if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                            }
+                            try {
+                                const hint = (localUpdated && fsUpdated)
+                                    ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
+                                    : '';
+                                const choice = await firestoreService._chooseLocalOrCloud({
+                                    title: 'Conflitto dati squadra',
+                                    subtitle: String(fsTeam.name || existing.name || id),
+                                    message: '',
+                                    hint,
+                                    localLabel: 'Usa dati locali',
+                                    cloudLabel: 'Usa dati Cloud',
+                                    defaultChoice
+                                });
+                                useLocal = choice !== 'cloud';
+                            } catch (_) { useLocal = true; }
                         }
-                        try {
-                            const hint = (localUpdated && fsUpdated)
-                                ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
-                                : '';
-                            const choice = await firestoreService._chooseLocalOrCloud({
-                                title: 'Conflitto dati squadra',
-                                subtitle: String(fsTeam.name || existing.name || id),
-                                message: '',
-                                hint,
-                                localLabel: 'Usa dati locali',
-                                cloudLabel: 'Usa dati Cloud',
-                                defaultChoice: 'local'
-                            });
-                            useLocal = choice !== 'cloud';
-                        } catch (_) { useLocal = true; }
                     }
 
                     const chosen = useLocal
@@ -850,10 +858,13 @@ const firestoreService = {
             }
 
             const fsDocs = Array.isArray(res.documents) ? res.documents : [];
+            const matchIds = Array.isArray(options?.matchIds) ? options.matchIds.map(v => String(v || '').trim()).filter(Boolean) : [];
+            const matchIdSet = matchIds.length ? new Set(matchIds) : null;
             const fsById = new Map();
             for (const d of fsDocs) {
                 const id = String(d?.id || '').trim();
                 if (!id) continue;
+                if (matchIdSet && !matchIdSet.has(id)) continue;
                 const dateStr = String(d?.date || d?.matchDate || '').trim();
                 const matchType = d?.matchType || d?.eventType || '';
                 const base = Object.assign({}, d);
@@ -889,6 +900,8 @@ const firestoreService = {
                 return `${vs}${date ? ` (${date})` : ''}`.trim() || String(m?.id || '').trim() || 'partita';
             };
 
+            const conflictMode = String(options?.conflictMode || 'ask');
+            const defaultChoice = options?.defaultChoice === 'cloud' ? 'cloud' : 'local';
             const mergedTeam = [];
             for (const [id, fsMatch] of fsById.entries()) {
                 const existing = localById.get(id);
@@ -913,26 +926,32 @@ const firestoreService = {
 
                     let useLocal = true;
                     if (hasDiff) {
-                        let msg = `Conflitto dati partita:\n${matchLabel(existing) || matchLabel(fsMatch)}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
-                        if (localUpdated && fsUpdated) {
-                            const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
-                            if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                        if (conflictMode === 'preferCloud') {
+                            useLocal = false;
+                        } else if (conflictMode === 'preferLocal') {
+                            useLocal = true;
+                        } else {
+                            let msg = `Conflitto dati partita:\n${matchLabel(existing) || matchLabel(fsMatch)}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
+                            if (localUpdated && fsUpdated) {
+                                const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
+                                if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                            }
+                            try {
+                                const hint = (localUpdated && fsUpdated)
+                                    ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
+                                    : '';
+                                const choice = await firestoreService._chooseLocalOrCloud({
+                                    title: 'Conflitto dati partita',
+                                    subtitle: String(matchLabel(existing) || matchLabel(fsMatch)),
+                                    message: '',
+                                    hint,
+                                    localLabel: 'Usa dati locali',
+                                    cloudLabel: 'Usa dati Cloud',
+                                    defaultChoice
+                                });
+                                useLocal = choice !== 'cloud';
+                            } catch (_) { useLocal = true; }
                         }
-                        try {
-                            const hint = (localUpdated && fsUpdated)
-                                ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
-                                : '';
-                            const choice = await firestoreService._chooseLocalOrCloud({
-                                title: 'Conflitto dati partita',
-                                subtitle: String(matchLabel(existing) || matchLabel(fsMatch)),
-                                message: '',
-                                hint,
-                                localLabel: 'Usa dati locali',
-                                cloudLabel: 'Usa dati Cloud',
-                                defaultChoice: 'local'
-                            });
-                            useLocal = choice !== 'cloud';
-                        } catch (_) { useLocal = true; }
                     }
 
                     const mergedMatch = useLocal
@@ -1097,7 +1116,7 @@ const firestoreService = {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
 
-            const teamsRes = await firestoreService.hydrateTeamsFromFirestore();
+            const teamsRes = await firestoreService.hydrateTeamsFromFirestore(options);
             if (!teamsRes?.success) return teamsRes;
 
             const hydrateMatches = options?.hydrateMatches === true;

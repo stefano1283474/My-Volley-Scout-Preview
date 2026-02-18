@@ -635,7 +635,12 @@
           try {
             hydrateDataBtn.disabled = true;
             hydrateDataBtn.textContent = 'Aggiorno Locale...';
-            const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
+            const res = await window.firestoreService?.hydrateUserDataToLocal?.({
+              hydrateMatches: true,
+              detailsMode: 'all',
+              conflictMode: 'ask',
+              defaultChoice: 'cloud'
+            });
             try { window.teamsModule?.loadTeams?.(); } catch(_){ }
             try { renderLocalTeamsList(); } catch(_){ }
             try { await loadCloudTeams(); } catch(_){}

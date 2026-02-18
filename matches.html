@@ -1934,7 +1934,12 @@
                     try {
                         hydrateDataBtn.disabled = true;
                         hydrateDataBtn.textContent = 'Aggiorno Locale...';
-                        const res = await window.firestoreService?.hydrateUserDataToLocal?.({ hydrateMatches: true, detailsMode: 'recent', maxDetails: 5 });
+                        const res = await window.firestoreService?.hydrateUserDataToLocal?.({
+                            hydrateMatches: true,
+                            detailsMode: 'all',
+                            conflictMode: 'ask',
+                            defaultChoice: 'cloud'
+                        });
                         try { window.teamsModule?.loadTeams?.(); } catch(_){ }
                         try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
                         loadSelectedTeam();
@@ -2819,7 +2824,7 @@
             return ids.slice().sort((a, b) => {
                 const ta = data.matchMeta?.[a]?.ts || 0;
                 const tb = data.matchMeta?.[b]?.ts || 0;
-                return tb - ta;
+                return ta - tb;
             });
         }
 
@@ -2985,23 +2990,27 @@
 
             if (sumMode) {
                 matchIds = getMatchOrder(data, getSelectedValues(teamAnalysisMatch));
-                const seriesMap = new Map();
-                valuesToPlot.forEach(val => {
-                    seriesMap.set(val, {
-                        key: `sum__${val}`,
-                        value: val,
-                        label: `Valore ${val}`,
-                        points: matchIds.map(id => ({ matchId: id, y: 0 }))
-                    });
-                });
+                const totalsByMatch = new Map();
+                const countsByMatch = new Map();
                 list.forEach(action => {
                     const ev = Number(action.evaluation || 0);
-                    const ser = seriesMap.get(ev);
-                    if (!ser) return;
-                    const idx = matchIds.indexOf(String(action.matchId));
-                    if (idx >= 0) ser.points[idx].y++;
+                    const matchId = String(action.matchId || '');
+                    if (!matchId || !ev) return;
+                    totalsByMatch.set(matchId, (totalsByMatch.get(matchId) || 0) + ev);
+                    countsByMatch.set(matchId, (countsByMatch.get(matchId) || 0) + 1);
                 });
-                series = Array.from(seriesMap.values());
+                series = [{
+                    key: 'sum__avg',
+                    value: 'avg',
+                    label: 'Media valori',
+                    color: '#334155',
+                    points: matchIds.map(id => {
+                        const count = countsByMatch.get(id) || 0;
+                        if (!count) return { matchId: id, y: null };
+                        const total = totalsByMatch.get(id) || 0;
+                        return { matchId: id, y: total / count };
+                    })
+                }];
             } else {
                 const players = getSelectedValues(teamAnalysisPlayer);
                 if (!players.length) {
@@ -3012,6 +3021,14 @@
                 }
                 matchIds = getMatchOrder(data, getSelectedValues(teamAnalysisMatch));
                 const playerLabelMap = new Map((data.playerOptions || []).map(o => [String(o.value), o.label]));
+                const playerMatchTotals = new Map();
+                list.forEach(action => {
+                    const p = String(action.playerKey || '');
+                    const m = String(action.matchId || '');
+                    if (!p || !m) return;
+                    const key = `${p}__${m}`;
+                    playerMatchTotals.set(key, (playerMatchTotals.get(key) || 0) + 1);
+                });
                 series = [];
                 players.forEach(player => {
                     valuesToPlot.forEach(val => {
@@ -3020,7 +3037,10 @@
                             player,
                             value: val,
                             label: `${playerLabelMap.get(String(player)) || player} · ${val}`,
-                            points: matchIds.map(id => ({ matchId: id, y: 0 }))
+                            points: matchIds.map(id => {
+                                const total = playerMatchTotals.get(`${player}__${id}`) || 0;
+                                return { matchId: id, y: total > 0 ? 0 : null };
+                            })
                         });
                     });
                 });
@@ -3030,11 +3050,23 @@
                     const ser = seriesMap.get(key);
                     if (!ser) return;
                     const idx = matchIds.indexOf(String(action.matchId));
-                    if (idx >= 0) ser.points[idx].y++;
+                    if (idx >= 0) {
+                        if (ser.points[idx].y == null) ser.points[idx].y = 0;
+                        ser.points[idx].y++;
+                    }
                 });
             }
 
-            const maxY = Math.max(1, ...series.flatMap(s => s.points.map(p => p.y)));
+            const allValues = series
+                .flatMap(s => s.points.map(p => p.y))
+                .filter(v => typeof v === 'number' && !isNaN(v));
+            if (!allValues.length) {
+                setEmpty('Nessun dato con i filtri selezionati.');
+                const ctx = teamAnalysisLines.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, teamAnalysisLines.width, teamAnalysisLines.height);
+                return;
+            }
+            const maxY = Math.max(1, ...allValues);
             const setup = setupCanvas(teamAnalysisLines);
             if (!setup) return;
             hideEmpty();
@@ -3066,12 +3098,16 @@
             const xStep = matchIds.length > 1 ? plotW / (matchIds.length - 1) : plotW;
             const valueColors = {
                 1: '#ef4444',
-                2: '#fdba74',
-                3: '#facc15',
-                4: '#5eead4',
-                5: '#7CFC00'
+                2: '#fb923c',
+                3: '#f2c200',
+                4: '#86efac',
+                5: '#15803d'
             };
             const palette = ['#1d4ed8', '#9333ea', '#0f766e', '#be123c', '#ea580c', '#16a34a', '#0ea5e9', '#a21caf', '#c026d3', '#15803d'];
+            const resolveSeriesColor = (ser, idx) => {
+                if (ser && ser.color) return ser.color;
+                return valueColors[Number(ser.value)] || palette[idx % palette.length];
+            };
             const shorten = (label) => {
                 const s = String(label || '').trim();
                 if (s.length <= 14) return s;
@@ -3079,19 +3115,29 @@
             };
 
             series.forEach((ser, idx) => {
-                const color = valueColors[Number(ser.value)] || palette[idx % palette.length];
+                const color = resolveSeriesColor(ser, idx);
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
+                let started = false;
                 ser.points.forEach((pt, i) => {
+                    if (pt.y == null) {
+                        started = false;
+                        return;
+                    }
                     const x = padLeft + xStep * i;
                     const y = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
                 });
                 ctx.stroke();
                 ctx.fillStyle = color;
                 ser.points.forEach((pt, i) => {
+                    if (pt.y == null) return;
                     const x = padLeft + xStep * i;
                     const y = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
                     ctx.beginPath();
@@ -3106,10 +3152,11 @@
                 ctx.font = '10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
                 ctx.textBaseline = 'middle';
                 series.forEach((ser, idx) => {
-                    const color = valueColors[Number(ser.value)] || palette[idx % palette.length];
+                    const color = resolveSeriesColor(ser, idx);
                     const labelText = shorten(ser.label || '');
                     if (!labelText) return;
                     const drawAt = (pt, i) => {
+                        if (pt.y == null) return;
                         const x = padLeft + xStep * i;
                         const yBase = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
                         const isRight = x > padLeft + plotW - 50;
@@ -3118,8 +3165,15 @@
                         ctx.fillStyle = color;
                         ctx.fillText(labelText, isRight ? x - 6 : x + 6, y);
                     };
-                    if (labelMode === 'all') ser.points.forEach(drawAt);
-                    else if (ser.points.length) drawAt(ser.points[ser.points.length - 1], ser.points.length - 1);
+                    if (labelMode === 'all') {
+                        ser.points.forEach(drawAt);
+                    } else {
+                        for (let i = ser.points.length - 1; i >= 0; i--) {
+                            if (ser.points[i].y == null) continue;
+                            drawAt(ser.points[i], i);
+                            break;
+                        }
+                    }
                 });
                 ctx.restore();
             }
