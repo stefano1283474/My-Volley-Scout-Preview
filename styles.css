@@ -276,6 +276,21 @@ body {
 .dialog .dialog-footer { display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
 .dialog .dialog-footer .primary-btn,
 .dialog .dialog-footer .secondary-btn { flex: 1 1 160px; min-width: 140px; padding: clamp(10px, 2.8vw, 14px); border-radius: 10px; }
+.dialog .dialog-footer .primary-btn,
+.dialog .dialog-footer .secondary-btn,
+.dialog .dialog-footer .mvs-actions-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.dialog .dialog-footer .mvs-actions-add-btn {
+  flex: 0 0 44px;
+  min-width: 44px;
+  padding: 8px 0;
+  font-size: 20px;
+  line-height: 1;
+}
 .icon-btn { width: 40px; height: 40px; border: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; transition: background-color .2s ease; }
 .icon-btn:hover { background-color: #f8fafc; }
 .icon-btn svg { display: block; }
@@ -309,6 +324,15 @@ body {
 .mvs-action-row:hover { background: #f8f9fa; }
 .mvs-action-row.point-home { background: #e8f5e8; border-left: 4px solid #4caf50; }
 .mvs-action-row.point-away { background: #ffebee; border-left: 4px solid #f44336; }
+@keyframes mvs-actions-insert-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(147,197,253,0.1); border-color: #93c5fd; }
+  50% { box-shadow: 0 0 0 3px rgba(147,197,253,0.6); border-color: #60a5fa; }
+  100% { box-shadow: 0 0 0 0 rgba(147,197,253,0.1); border-color: #93c5fd; }
+}
+.mvs-actions-insert-mode .mvs-action-row {
+  animation: mvs-actions-insert-pulse 1.2s ease-in-out infinite;
+  border-color: #93c5fd;
+}
 .mvs-action-meta { font-weight: 800; color: #1976d2; font-size: 0.9em; white-space: nowrap; }
 .mvs-action-str {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -502,6 +526,19 @@ body {
   width: var(--sidebar-width); 
   position: sticky; 
 }
+.set-sidebar .sidebar-back-btn {
+  background: #f9fafb;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.set-sidebar .sidebar-back-btn:hover { background: #f3f4f6; }
 .sidebar-resizer { position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; border-right: 2px solid rgba(37,99,235,0.35); }
 .sidebar-resizer:hover { border-right-color: rgba(37,99,235,0.6); }
 .set-sidebar-header { 

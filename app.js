@@ -5100,6 +5100,53 @@ function __mvsOpenEvaluationMenuForSpan(span) {
     ]);
 }
 
+function __mvsSetActionsInsertMode(dlg, on) {
+    try {
+        window.__mvsInsertActionMode = !!on;
+        if (dlg) {
+            if (on) dlg.classList.add('mvs-actions-insert-mode');
+            else dlg.classList.remove('mvs-actions-insert-mode');
+        }
+    } catch(_) {}
+}
+
+function __mvsSelectInsertAfter(idx) {
+    try {
+        window.__mvsInsertAfterIndex = Number.isInteger(idx) ? idx : null;
+        window.__mvsInsertAfterSet = __getActiveSetNumber();
+        window.__mvsForceNewActionEditor = true;
+        var dlg = document.getElementById('actions-dialog');
+        __mvsSetActionsInsertMode(dlg, false);
+        window.openActionEditor(null);
+    } catch(_) {}
+}
+
+function __mvsResolveInsertIndex(setNumber, afterIndex) {
+    const logs = (window.appState && Array.isArray(window.appState.actionsLog)) ? window.appState.actionsLog : [];
+    if (!logs.length) return 0;
+    const hasTagged = logs.some(l => l && typeof l === 'object' && l.setNumber != null);
+    if (!hasTagged) {
+        if (!Number.isInteger(afterIndex)) return logs.length;
+        const idx = Math.max(0, Math.min(logs.length - 1, afterIndex));
+        return idx + 1;
+    }
+    const sn = Number(setNumber);
+    let count = -1;
+    let lastIdx = -1;
+    for (let i = 0; i < logs.length; i++) {
+        const l = logs[i];
+        if (l && typeof l === 'object' && Number(l.setNumber) === sn) {
+            lastIdx = i;
+            count++;
+            if (Number.isInteger(afterIndex) && count === afterIndex) {
+                return i + 1;
+            }
+        }
+    }
+    if (lastIdx >= 0) return lastIdx + 1;
+    return logs.length;
+}
+
 window.openActionsDialog = function(){
     try {
         var dlg = document.getElementById('actions-dialog');
@@ -5136,25 +5183,43 @@ window.openActionsDialog = function(){
             body.appendChild(list);
             var footer = document.createElement('div');
             footer.className = 'dialog-footer';
+            var addBtn = document.createElement('button');
+            addBtn.className = 'secondary-btn mvs-actions-add-btn';
+            addBtn.textContent = '+';
+            addBtn.addEventListener('click', function(){
+                try {
+                    var currentLogs = __getActionsLogForSet(__getActiveSetNumber());
+                    if (!currentLogs.length) {
+                        window.__mvsInsertAfterIndex = -1;
+                        window.__mvsInsertAfterSet = __getActiveSetNumber();
+                        __mvsSetActionsInsertMode(dlg, false);
+                        window.openActionEditor(null);
+                        return;
+                    }
+                    __mvsSetActionsInsertMode(dlg, !window.__mvsInsertActionMode);
+                } catch(_) {}
+            });
             var cancelBtn = document.createElement('button');
             cancelBtn.className = 'secondary-btn';
             cancelBtn.textContent = 'Annulla';
-            cancelBtn.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
+            cancelBtn.addEventListener('click', function(){ try{ __mvsSetActionsInsertMode(dlg, false); __mvsCloseModalElement(dlg); }catch(_){} });
             var saveBtn = document.createElement('button');
             saveBtn.className = 'primary-btn';
             saveBtn.textContent = 'Salva';
-            saveBtn.addEventListener('click', function(){ try{ recomputeFromActionsLog(); __mvsCloseModalElement(dlg); }catch(_){} });
+            saveBtn.addEventListener('click', function(){ try{ __mvsSetActionsInsertMode(dlg, false); recomputeFromActionsLog(); __mvsCloseModalElement(dlg); }catch(_){} });
+            footer.appendChild(addBtn);
             footer.appendChild(cancelBtn);
             footer.appendChild(saveBtn);
             panel.appendChild(header);
             panel.appendChild(body);
             panel.appendChild(footer);
             dlg.appendChild(panel);
-            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ __mvsCloseModalElement(dlg); }catch(_){} } });
-            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ __mvsCloseModalElement(dlg); }catch(_){} document.removeEventListener('keydown', onKey); } });
+            dlg.addEventListener('click', function(e){ if (e.target === dlg) { try{ __mvsSetActionsInsertMode(dlg, false); __mvsCloseModalElement(dlg); }catch(_){} } });
+            document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ try{ __mvsSetActionsInsertMode(dlg, false); __mvsCloseModalElement(dlg); }catch(_){} document.removeEventListener('keydown', onKey); } });
             document.body.appendChild(dlg);
             try{ __mvsLockScroll(); }catch(_){ try{ document.body.style.overflow='hidden'; }catch(_){ } }
         }
+        __mvsSetActionsInsertMode(dlg, !!window.__mvsInsertActionMode);
         var totalEl = document.getElementById('actions-total');
         if (totalEl) totalEl.textContent = 'Totale azioni: ' + String(logs.length);
         var container = document.getElementById('actions-list-container');
@@ -5166,15 +5231,25 @@ window.openActionsDialog = function(){
                 empty.textContent = 'Nessuna azione';
                 container.appendChild(empty);
             } else {
+                var homeScore = 0;
+                var awayScore = 0;
                 logs.forEach(function(item, idx){
                     var card = document.createElement('div');
                     var rr = String(item && item.result && item.result.result ? item.result.result : '');
+                    if (!rr) {
+                        try {
+                            var parsed = parseAction(String(item && item.action ? item.action : ''));
+                            rr = String(parsed && parsed.result ? parsed.result : '');
+                        } catch(_) { rr = ''; }
+                    }
                     var cls = 'mvs-action-row';
                     if (rr === 'home_point') cls += ' point-home';
                     else if (rr === 'away_point') cls += ' point-away';
                     card.className = cls;
                     var meta = document.createElement('div');
-                    var score = String(item.score || '0-0');
+                    if (rr === 'home_point') homeScore += 1;
+                    else if (rr === 'away_point') awayScore += 1;
+                    var score = String(homeScore) + '-' + String(awayScore);
                     var phase = String(item.phase || appState.currentPhase || '');
                     var rot = String(item.rotation || '');
                     var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
@@ -5190,19 +5265,30 @@ window.openActionsDialog = function(){
                     editBtn.className = 'icon-btn mvs-icon-btn';
                     editBtn.setAttribute('aria-label','Modifica quartine');
                     editBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3L16.5 4.5a2.1 2.1 0 0 0-3 0L3 15v5z" stroke="#0d6efd" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
-                    editBtn.addEventListener('click', function(ev){ ev.stopPropagation(); window.openActionEditor(idx); });
+                    editBtn.addEventListener('click', function(ev){
+                        ev.stopPropagation();
+                        if (window.__mvsInsertActionMode) { __mvsSelectInsertAfter(idx); return; }
+                        window.openActionEditor(idx);
+                    });
                     var delBtn = document.createElement('button');
                     delBtn.type = 'button';
                     delBtn.className = 'icon-btn mvs-icon-btn';
                     delBtn.setAttribute('aria-label','Elimina azione');
                     delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 6h18" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M8 6v-2h8v2" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/><path d="M14 11v6" stroke="#0d6efd" stroke-width="2" stroke-linecap="round"/></svg>';
-                    delBtn.addEventListener('click', function(ev){ ev.stopPropagation(); try { appState.actionsLog.splice(idx, 1); recomputeFromActionsLog(); openActionsDialog(); } catch(_){} });
+                    delBtn.addEventListener('click', function(ev){
+                        ev.stopPropagation();
+                        if (window.__mvsInsertActionMode) { __mvsSelectInsertAfter(idx); return; }
+                        try { appState.actionsLog.splice(idx, 1); recomputeFromActionsLog(); openActionsDialog(); } catch(_){} 
+                    });
                     actions.appendChild(editBtn);
                     actions.appendChild(delBtn);
                     card.appendChild(meta);
                     card.appendChild(actionText);
                     card.appendChild(actions);
-                    card.addEventListener('click', function(){ window.openActionViewer(idx); });
+                    card.addEventListener('click', function(){
+                        if (window.__mvsInsertActionMode) { __mvsSelectInsertAfter(idx); return; }
+                        window.openActionViewer(idx);
+                    });
                     container.appendChild(card);
                 });
             }
@@ -5284,17 +5370,34 @@ window.openActionViewer = function(index){
             var footer = document.createElement('div');
             footer.className = 'dialog-footer';
             footer.style.display = 'flex';
-            footer.style.justifyContent = 'flex-end';
+            footer.style.justifyContent = 'space-between';
             footer.style.gap = '8px';
             footer.style.padding = '10px 12px';
             footer.style.position = 'sticky';
             footer.style.bottom = '0';
             footer.style.background = '#fff';
+            var addFull = document.createElement('button');
+            addFull.type = 'button';
+            addFull.textContent = 'Aggiungi intera azione';
+            addFull.addEventListener('click', function(){
+                try {
+                    var rawIdx = dlg && dlg.dataset ? dlg.dataset.actionIndex : null;
+                    var idx = rawIdx != null ? parseInt(rawIdx, 10) : NaN;
+                    if (!Number.isFinite(idx)) return;
+                    window.__mvsInsertAfterIndex = idx;
+                    window.__mvsInsertAfterSet = __getActiveSetNumber();
+                    window.__mvsForceNewActionEditor = true;
+                    __mvsCloseModalElement(dlg);
+                    window.openActionEditor(null);
+                } catch(_) {}
+            });
+            try{ addFull.style.background='#fff'; addFull.style.color='#0d6efd'; addFull.style.border='1px solid #0d6efd'; addFull.style.borderRadius='10px'; addFull.style.padding='6px 10px'; addFull.style.fontWeight='600'; }catch(_){}
             var close2 = document.createElement('button');
             close2.type = 'button';
             close2.textContent = 'Chiudi';
             close2.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             try{ close2.style.background='#fff'; close2.style.color='#0d6efd'; close2.style.border='1px solid #0d6efd'; close2.style.borderRadius='10px'; close2.style.padding='6px 10px'; close2.style.fontWeight='600'; }catch(_){}
+            footer.appendChild(addFull);
             footer.appendChild(close2);
             panel.appendChild(header);
             panel.appendChild(body);
@@ -5327,16 +5430,24 @@ window.openActionViewer = function(index){
                 body.appendChild(action);
             }
         }
+        try { if (dlg) dlg.dataset.actionIndex = String(index); } catch(_) {}
     } catch(_){}
 };
 
 window.openActionEditor = function(index){
     try {
         var logs = Array.isArray(appState.actionsLog) ? appState.actionsLog : [];
-        var item = logs[index] || {};
+        var forceNew = !!window.__mvsForceNewActionEditor;
+        window.__mvsForceNewActionEditor = false;
+        var isNew = forceNew || !Number.isInteger(index) || index < 0;
+        var item = (!isNew && logs[index]) ? logs[index] : {};
         var actionStr = String(item.action || '');
         var parsed = parseAction(actionStr);
         var hasAvv = /(^|\s)avv(\s|$)/i.test(actionStr);
+        var insertAfterIndex = window.__mvsInsertAfterIndex;
+        var insertAfterSet = window.__mvsInsertAfterSet;
+        window.__mvsInsertAfterIndex = null;
+        window.__mvsInsertAfterSet = null;
         var dlg = document.getElementById('action-editor-dialog');
         if (!dlg) {
             dlg = document.createElement('div');
@@ -5414,7 +5525,35 @@ window.openActionEditor = function(index){
                     if (invalid) { try{ alert('Compila tutti i campi prima di confermare.'); }catch(_){} return; }
                     if (hasAvv) parts.push('avv');
                     var updated = parts.join(' ');
-                    if (logs[index]) logs[index].action = updated;
+                    if (!hasAvv) {
+                        var lastPart = parts.length ? String(parts[parts.length - 1]) : '';
+                        var lastFund = lastPart.length >= 3 ? String(lastPart.charAt(2)).toLowerCase() : '';
+                        var lastEval = lastPart.length >= 4 ? parseInt(lastPart.charAt(3), 10) : NaN;
+                        var closes = (lastEval === 1) || (lastEval === 5 && (lastFund === 'b' || lastFund === 'a' || lastFund === 'm'));
+                        if (!closes) {
+                            alert('L’azione deve terminare con 1, Avv, oppure 5 se il fondamentale è Servizio, Attacco o Muro.');
+                            return;
+                        }
+                    }
+                    var parsedUpdated = parseAction(updated);
+                    if (isNew) {
+                        var insertAt = logs.length;
+                        if (Number.isInteger(insertAfterIndex)) {
+                            insertAt = __mvsResolveInsertIndex(insertAfterSet, insertAfterIndex);
+                        }
+                        var entry = {
+                            action: updated,
+                            result: parsedUpdated,
+                            timestamp: new Date().toLocaleTimeString('it-IT'),
+                            setNumber: Number.isInteger(insertAfterSet) ? insertAfterSet : ((appState && appState.currentSet) ? appState.currentSet : 1),
+                            rotation: normalizeRotation(appState.currentRotation)
+                        };
+                        if (insertAt >= logs.length) logs.push(entry);
+                        else logs.splice(insertAt, 0, entry);
+                    } else if (logs[index]) {
+                        logs[index].action = updated;
+                        logs[index].result = parsedUpdated;
+                    }
                     recomputeFromActionsLog();
                     try { __mvsCloseModalElement(dlg); } catch(_){}
                     openActionsDialog();

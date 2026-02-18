@@ -370,7 +370,11 @@
         .team-analysis-card { background:#ffffff; border:1px solid #e9ecef; border-radius:12px; padding:12px; }
         .team-analysis-card .label { font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase; }
         .team-analysis-card .value { font-size:20px; font-weight:700; color:#111; margin-top:4px; }
-        .team-analysis-filters { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin: 6px 0 16px 0; }
+        .team-analysis-filters-panel { background:#ffffff; border:1px solid #e9ecef; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:12px; }
+        .team-analysis-filters-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .team-analysis-filters-title { font-weight:700; color:#111; }
+        .team-analysis-filters-close { display:none; border:1px solid #e9ecef; background:#fff; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:600; color:#0d6efd; }
+        .team-analysis-filters { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; }
         .team-analysis-filter { display:flex; flex-direction:column; gap:6px; }
         .team-analysis-filter label { font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase; }
         .team-analysis-filter-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -385,7 +389,60 @@
         .team-analysis-chart-legend { display:flex; gap:12px; align-items:center; margin: 2px 0 10px 0; font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
         .team-analysis-chart-legend span { display:inline-flex; align-items:center; gap:6px; }
         .team-analysis-chart-dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
+        .team-analysis-line-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 2px 0 10px 0; }
+        .team-analysis-line-controls .team-analysis-chart-legend { margin:0; }
+        .team-analysis-line-labels { display:inline-flex; align-items:center; gap:8px; color:#475569; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+        .team-analysis-line-labels-toggle { display:inline-flex; gap:6px; }
+        .line-labels-btn { padding:4px 8px; border-radius:8px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; font-size:12px; }
+        .line-labels-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
         .team-analysis-chart-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:14px; background:rgba(255,255,255,0.9); }
+        .team-analysis-layout { display:grid; grid-template-columns: 1fr; gap:16px; }
+        .team-analysis-panel { display:flex; flex-direction:column; gap:12px; min-width:0; }
+        .team-analysis-charts-panel { display:flex; flex-direction:column; gap:12px; min-width:0; width:100%; }
+        .team-analysis-actions { margin-left:auto; display:flex; align-items:center; gap:8px; }
+        .analysis-landscape-btn { padding:6px 10px; border-radius:10px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; }
+        .analysis-landscape-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
+        .analysis-filters-btn { padding:6px 10px; border-radius:10px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; }
+        .analysis-filters-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
+        .analysis-filters-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); display:none; z-index:30; }
+
+        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-filters-panel { display:none; }
+        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
+
+        @media (max-width: 720px) {
+            .section-title-row { flex-wrap:wrap; gap:10px; }
+            .team-analysis-actions { width:100%; justify-content:flex-end; }
+            .team-analysis-filters { grid-template-columns: 1fr; }
+            .team-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .team-analysis-chart canvas { height:260px; }
+            .team-analysis-filter select[multiple] { min-height:90px; }
+            .analysis-filters-overlay { display:none; }
+            body.analysis-filters-open .analysis-filters-overlay { display:block; }
+            body.analysis-filters-open #teamAnalysisSection .team-analysis-filters-panel {
+                position:fixed;
+                inset:64px 12px 12px 12px;
+                z-index:40;
+                overflow:auto;
+                box-shadow:0 12px 32px rgba(0,0,0,0.2);
+            }
+            body.analysis-filters-open #teamAnalysisSection .team-analysis-filters-close { display:inline-flex; }
+            body.analysis-filters-open #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
+            body:not(.analysis-filters-open) #teamAnalysisSection .team-analysis-filters-panel { display:none; }
+        }
+
+        @media (min-width: 721px) and (max-width: 1100px) {
+            .team-analysis-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .team-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .team-analysis-chart canvas { height:320px; }
+        }
+
+        @media (orientation: landscape) and (max-width: 1100px) {
+            #teamAnalysisSection .team-analysis-layout { grid-template-columns: minmax(240px, 340px) 1fr; }
+        }
+
+        body.analysis-landscape #teamAnalysisSection .team-analysis-layout { grid-template-columns: minmax(240px, 360px) 1fr; }
+        body.analysis-landscape #teamAnalysisSection .team-analysis-chart canvas { height:300px; }
+        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
 
         /* Animazione uniforme per elementi cliccabili (stile card squadra) */
         .btn,
@@ -559,8 +616,20 @@
                   <button class="tab-button" type="button" data-main-section="list">Elenco Partite</button>
                   <button class="tab-button active" type="button" data-main-section="analysis">Analisi Team</button>
                 </div>
+                <div class="team-analysis-actions">
+                    <button id="analysisFiltersToggle" class="analysis-filters-btn" type="button" aria-pressed="false">Filtri</button>
+                    <button id="analysisLandscapeToggle" class="analysis-landscape-btn" type="button" aria-pressed="false">Landscape</button>
+                </div>
             </div>
             <p class="section-hint" style="margin:8px 0 12px 0;">Seleziona un player e visualizza l’andamento per partita con filtri dedicati.</p>
+            <div class="analysis-filters-overlay" id="analysisFiltersOverlay"></div>
+            <div class="team-analysis-layout">
+            <div class="team-analysis-panel">
+            <div class="team-analysis-filters-panel">
+            <div class="team-analysis-filters-bar">
+                <div class="team-analysis-filters-title">Filtri</div>
+                <button id="analysisFiltersClose" class="team-analysis-filters-close" type="button">Chiudi</button>
+            </div>
             <div class="team-analysis-filters">
                 <div class="team-analysis-filter">
                     <div class="team-analysis-filter-head">
@@ -700,7 +769,9 @@
                     <div class="value" id="teamAnalysisSetsWon">—</div>
                 </div>
             </div>
-            <div style="margin-top:16px;">
+            </div>
+            </div>
+            <div class="team-analysis-charts-panel">
                 <div class="tabs" role="tablist" aria-label="Grafici Analisi Team">
                     <button class="tab-button active" type="button" data-analysis-chart="hist">Istogramma</button>
                     <button class="tab-button" type="button" data-analysis-chart="line">Linee</button>
@@ -717,9 +788,27 @@
                     <div id="teamAnalysisHistogramEmpty" class="team-analysis-chart-empty" style="display:none;">Seleziona un player per visualizzare l’andamento.</div>
                 </div>
                 <div class="team-analysis-chart" id="teamAnalysisLineWrap" style="display:none;">
+                    <div class="team-analysis-line-controls">
+                        <div class="team-analysis-chart-legend">
+                            <span><i class="team-analysis-chart-dot" style="background:#ef4444;"></i>1</span>
+                            <span><i class="team-analysis-chart-dot" style="background:#fdba74;"></i>2</span>
+                            <span><i class="team-analysis-chart-dot" style="background:#facc15;"></i>3</span>
+                            <span><i class="team-analysis-chart-dot" style="background:#5eead4;"></i>4</span>
+                            <span><i class="team-analysis-chart-dot" style="background:#7CFC00;"></i>5</span>
+                        </div>
+                        <div class="team-analysis-line-labels">
+                            <span>Etichette</span>
+                            <div class="team-analysis-line-labels-toggle">
+                                <button class="line-labels-btn" type="button" data-line-labels="off">Off</button>
+                                <button class="line-labels-btn" type="button" data-line-labels="on">On</button>
+                                <button class="line-labels-btn" type="button" data-line-labels="all">All</button>
+                            </div>
+                        </div>
+                    </div>
                     <canvas id="teamAnalysisLines"></canvas>
                     <div id="teamAnalysisLinesEmpty" class="team-analysis-chart-empty" style="display:none;">Seleziona un player per visualizzare l’andamento.</div>
                 </div>
+            </div>
             </div>
         </div>
         
@@ -829,6 +918,8 @@
         let currentArchive = 'local';
         const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
         let __initRetryCount = 0;
+        let __analysisResizeTimer = null;
+        let __analysisIsSmall = null;
 
         // Elementi DOM
         const teamName = document.getElementById('teamName');
@@ -873,10 +964,15 @@
         const teamAnalysisHistogramWrap = document.getElementById('teamAnalysisHistogramWrap');
         const teamAnalysisLineWrap = document.getElementById('teamAnalysisLineWrap');
         const teamAnalysisChartTabs = Array.from(document.querySelectorAll('[data-analysis-chart]'));
+        const teamAnalysisLineLabelButtons = Array.from(document.querySelectorAll('[data-line-labels]'));
         const teamAnalysisTotal = document.getElementById('teamAnalysisTotal');
         const teamAnalysisWins = document.getElementById('teamAnalysisWins');
         const teamAnalysisLosses = document.getElementById('teamAnalysisLosses');
         const teamAnalysisSetsWon = document.getElementById('teamAnalysisSetsWon');
+        const analysisLandscapeToggle = document.getElementById('analysisLandscapeToggle');
+        const analysisFiltersToggle = document.getElementById('analysisFiltersToggle');
+        const analysisFiltersClose = document.getElementById('analysisFiltersClose');
+        const analysisFiltersOverlay = document.getElementById('analysisFiltersOverlay');
 
         function setMainSection(next) {
             const target = next === 'analysis' ? 'analysis' : 'list';
@@ -888,6 +984,43 @@
                     btn.classList.toggle('active', isActive);
                 });
             }
+        }
+
+        function setAnalysisLandscapeState(next, options = {}) {
+            const enabled = !!next;
+            document.body.classList.toggle('analysis-landscape', enabled);
+            if (analysisLandscapeToggle) {
+                analysisLandscapeToggle.classList.toggle('is-active', enabled);
+                analysisLandscapeToggle.setAttribute('aria-pressed', enabled.toString());
+                analysisLandscapeToggle.textContent = enabled ? 'Landscape On' : 'Landscape';
+            }
+            try { localStorage.setItem('mvsAnalysisLandscape', enabled ? '1' : '0'); } catch(_) {}
+            if (options.skipRerender) return;
+            try {
+                if (typeof renderTeamAnalysisCharts === 'function') {
+                    requestAnimationFrame(() => renderTeamAnalysisCharts(__teamAnalysisCache));
+                }
+            } catch(_) {}
+        }
+
+        function setAnalysisFiltersState(next, options = {}) {
+            const enabled = !!next;
+            const isSmall = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+            document.body.classList.toggle('analysis-filters-open', enabled && isSmall);
+            document.body.classList.toggle('analysis-filters-collapsed', !enabled && !isSmall);
+            if (analysisFiltersToggle) {
+                analysisFiltersToggle.classList.toggle('is-active', enabled);
+                analysisFiltersToggle.setAttribute('aria-pressed', enabled.toString());
+                analysisFiltersToggle.textContent = enabled ? 'Filtri On' : 'Filtri';
+            }
+            if (analysisFiltersOverlay) analysisFiltersOverlay.style.display = (enabled && isSmall) ? 'block' : 'none';
+            try { localStorage.setItem('mvsAnalysisFiltersOpen', enabled ? '1' : '0'); } catch(_) {}
+            if (options.skipRerender) return;
+            try {
+                if (typeof renderTeamAnalysisCharts === 'function') {
+                    requestAnimationFrame(() => renderTeamAnalysisCharts(__teamAnalysisCache));
+                }
+            } catch(_) {}
         }
 
         function isAuthenticated() {
@@ -1691,6 +1824,54 @@
             bindTeamAnalysisFilters();
             bindTeamAnalysisChartTabs();
             bindTeamAnalysisFilterActions();
+            bindTeamAnalysisLineLabels();
+            if (analysisLandscapeToggle) {
+                let storedLandscape = '';
+                try { storedLandscape = localStorage.getItem('mvsAnalysisLandscape') || ''; } catch(_) {}
+                setAnalysisLandscapeState(storedLandscape === '1', { skipRerender: true });
+                analysisLandscapeToggle.addEventListener('click', () => {
+                    const nextState = !document.body.classList.contains('analysis-landscape');
+                    setAnalysisLandscapeState(nextState);
+                });
+            } else {
+                let storedLandscape = '';
+                try { storedLandscape = localStorage.getItem('mvsAnalysisLandscape') || ''; } catch(_) {}
+                if (storedLandscape === '1') setAnalysisLandscapeState(true, { skipRerender: true });
+            }
+            if (analysisFiltersToggle) {
+                let storedFilters = '';
+                try { storedFilters = localStorage.getItem('mvsAnalysisFiltersOpen') || ''; } catch(_) {}
+                const isSmall = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+                __analysisIsSmall = isSmall;
+                const initialOpen = storedFilters ? (storedFilters === '1') : !isSmall;
+                setAnalysisFiltersState(initialOpen, { skipRerender: true });
+                analysisFiltersToggle.addEventListener('click', () => {
+                    const isSmallNow = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+                    const nowOpen = isSmallNow ? document.body.classList.contains('analysis-filters-open') : !document.body.classList.contains('analysis-filters-collapsed');
+                    setAnalysisFiltersState(!nowOpen);
+                });
+            }
+            if (analysisFiltersClose) {
+                analysisFiltersClose.addEventListener('click', () => setAnalysisFiltersState(false));
+            }
+            if (analysisFiltersOverlay) {
+                analysisFiltersOverlay.addEventListener('click', () => setAnalysisFiltersState(false));
+            }
+            window.addEventListener('resize', () => {
+                if (!teamAnalysisSection || teamAnalysisSection.style.display === 'none') return;
+                const isSmallNow = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+                if (__analysisIsSmall !== isSmallNow) {
+                    __analysisIsSmall = isSmallNow;
+                    let storedFilters = '';
+                    try { storedFilters = localStorage.getItem('mvsAnalysisFiltersOpen') || ''; } catch(_) {}
+                    const nextOpen = storedFilters ? (storedFilters === '1') : !isSmallNow;
+                    setAnalysisFiltersState(nextOpen, { skipRerender: true });
+                }
+                if (__analysisResizeTimer) clearTimeout(__analysisResizeTimer);
+                __analysisResizeTimer = setTimeout(() => {
+                    try { renderTeamAnalysisCharts(__teamAnalysisCache); } catch(_) {}
+                }, 120);
+            });
             if (accountBtn && accountMenu){
                 accountBtn.addEventListener('click', () => {
                     const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
@@ -2311,6 +2492,7 @@
         let __teamAnalysisSumMode = false;
         let __teamAnalysisSumLabel = '';
         let __teamAnalysisSumTarget = '';
+        let __teamAnalysisLineLabelsMode = 'off';
 
         function getAnalysisRelevantMatches() {
             let relevant = Array.isArray(matches) ? matches.slice() : [];
@@ -2882,6 +3064,13 @@
             }
 
             const xStep = matchIds.length > 1 ? plotW / (matchIds.length - 1) : plotW;
+            const valueColors = {
+                1: '#ef4444',
+                2: '#fdba74',
+                3: '#facc15',
+                4: '#5eead4',
+                5: '#7CFC00'
+            };
             const palette = ['#1d4ed8', '#9333ea', '#0f766e', '#be123c', '#ea580c', '#16a34a', '#0ea5e9', '#a21caf', '#c026d3', '#15803d'];
             const shorten = (label) => {
                 const s = String(label || '').trim();
@@ -2890,7 +3079,7 @@
             };
 
             series.forEach((ser, idx) => {
-                const color = palette[idx % palette.length];
+                const color = valueColors[Number(ser.value)] || palette[idx % palette.length];
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -2910,6 +3099,30 @@
                     ctx.fill();
                 });
             });
+
+            const labelMode = __teamAnalysisLineLabelsMode || 'off';
+            if (labelMode !== 'off') {
+                ctx.save();
+                ctx.font = '10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+                ctx.textBaseline = 'middle';
+                series.forEach((ser, idx) => {
+                    const color = valueColors[Number(ser.value)] || palette[idx % palette.length];
+                    const labelText = shorten(ser.label || '');
+                    if (!labelText) return;
+                    const drawAt = (pt, i) => {
+                        const x = padLeft + xStep * i;
+                        const yBase = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
+                        const isRight = x > padLeft + plotW - 50;
+                        const y = yBase < padTop + 10 ? yBase + 10 : yBase - 8;
+                        ctx.textAlign = isRight ? 'right' : 'left';
+                        ctx.fillStyle = color;
+                        ctx.fillText(labelText, isRight ? x - 6 : x + 6, y);
+                    };
+                    if (labelMode === 'all') ser.points.forEach(drawAt);
+                    else if (ser.points.length) drawAt(ser.points[ser.points.length - 1], ser.points.length - 1);
+                });
+                ctx.restore();
+            }
 
             matchIds.forEach((id, i) => {
                 const label = shorten(data.matchMeta?.[id]?.label || id);
@@ -3054,6 +3267,34 @@
                     setTeamAnalysisChartTab(tab);
                 });
                 btn.__teamAnalysisChartBound = true;
+            });
+        }
+
+        function setTeamAnalysisLineLabelsMode(mode) {
+            const next = mode === 'all' ? 'all' : mode === 'on' ? 'on' : 'off';
+            __teamAnalysisLineLabelsMode = next;
+            try { localStorage.setItem('mvsAnalysisLineLabels', next); } catch(_) {}
+            if (teamAnalysisLineLabelButtons.length) {
+                teamAnalysisLineLabelButtons.forEach(btn => {
+                    const isActive = btn.getAttribute('data-line-labels') === next;
+                    btn.classList.toggle('is-active', isActive);
+                });
+            }
+            renderTeamAnalysisCharts(__teamAnalysisCache);
+        }
+
+        function bindTeamAnalysisLineLabels() {
+            if (!teamAnalysisLineLabelButtons.length) return;
+            let stored = '';
+            try { stored = localStorage.getItem('mvsAnalysisLineLabels') || ''; } catch(_) {}
+            setTeamAnalysisLineLabelsMode(stored || 'off');
+            teamAnalysisLineLabelButtons.forEach(btn => {
+                if (btn.__teamAnalysisLineLabelsBound) return;
+                btn.addEventListener('click', () => {
+                    const mode = btn.getAttribute('data-line-labels');
+                    setTeamAnalysisLineLabelsMode(mode);
+                });
+                btn.__teamAnalysisLineLabelsBound = true;
             });
         }
 
