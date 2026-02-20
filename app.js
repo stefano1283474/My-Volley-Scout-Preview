@@ -80,6 +80,23 @@ function __coreSignatureFromPayload(payload) {
 }
 
 const __PARTIAL_SAVES_KEY = 'mvsPartialSaves';
+const __APP_SETTINGS_KEY = 'appSettings';
+const __setStatusCache = {};
+
+function __readAppSettings() {
+    try {
+        const raw = localStorage.getItem(__APP_SETTINGS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function __isAutoSaveCleanupEnabled() {
+    const settings = __readAppSettings();
+    return settings.autoSaveCleanupOnSetCompleted !== false;
+}
 
 function __readPartialSavesMap() {
     try {
@@ -126,6 +143,44 @@ function __appendPartialSaveSnapshot(payload) {
         map[matchId] = list;
         __writePartialSavesMap(map);
     } catch (_) {}
+}
+
+function __cleanupPartialSavesForSet(matchId, setNum) {
+    try {
+        const key = String(matchId || '').trim();
+        if (!key) return false;
+        const target = Number(setNum);
+        if (!Number.isFinite(target)) return false;
+        const map = __readPartialSavesMap();
+        const list = Array.isArray(map[key]) ? map[key] : [];
+        if (!list.length) return false;
+        const next = list.filter(entry => Number(entry?.setNumber) !== target);
+        if (next.length === list.length) return false;
+        if (next.length) map[key] = next; else delete map[key];
+        __writePartialSavesMap(map);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function __getCurrentMatchIdForCleanup() {
+    try {
+        const raw = localStorage.getItem('currentScoutingSession');
+        if (raw) {
+            const session = JSON.parse(raw);
+            if (session && session.id) return String(session.id);
+        }
+    } catch (_) {}
+    try {
+        const sel = localStorage.getItem('selectedMatchId');
+        if (sel) return String(sel);
+    } catch (_) {}
+    try {
+        const id = window.appState?.currentMatch?.id;
+        if (id) return String(id);
+    } catch (_) {}
+    return null;
 }
 
 // Normalizza una rotazione in formato coerente "P1".."P6"
@@ -5901,6 +5956,8 @@ function updateSetSidebarColors(){
         const list = document.getElementById('setToolbar');
         if (!list) return;
         const items = list.querySelectorAll('.set-item');
+        const matchId = __getCurrentMatchIdForCleanup();
+        const allowCleanup = !!matchId && __isAutoSaveCleanupEnabled();
         items.forEach(btn => {
             const ds = btn.dataset && btn.dataset.set;
             const n = Number.parseInt(ds, 10);
@@ -5909,6 +5966,17 @@ function updateSetSidebarColors(){
             const status = __computeSetStatus(n);
             if (status === 'completed') btn.classList.add('status-completed');
             else if (status === 'partial') btn.classList.add('status-partial');
+            if (allowCleanup && status === 'completed') {
+                const cacheKey = matchId + ':' + String(n);
+                const prev = __setStatusCache[cacheKey];
+                if (prev !== 'completed') {
+                    __cleanupPartialSavesForSet(matchId, n);
+                }
+                __setStatusCache[cacheKey] = 'completed';
+            } else if (matchId) {
+                const cacheKey = matchId + ':' + String(n);
+                __setStatusCache[cacheKey] = status;
+            }
         });
     } catch(e) {
         console.warn('updateSetSidebarColors fallita:', e);

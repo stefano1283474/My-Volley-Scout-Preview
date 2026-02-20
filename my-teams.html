@@ -130,6 +130,14 @@
           <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
           <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci dati locali</button>
+          <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
+          <label class="menu-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
+            <span style="display:flex;flex-direction:column;gap:2px;">
+              <span>Salvataggi automatici</span>
+              <span style="font-size:12px;color:#64748b;">Pulisci i progressivi a set concluso</span>
+            </span>
+            <input type="checkbox" id="autoSavesToggle" />
+          </label>
           <button class="menu-item" id="accountExit">Esci</button>
           <button class="menu-item" id="accountLogout">Logout</button>
           <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -255,6 +263,7 @@
     const accountLogout = document.getElementById('accountLogout');
     const syncDataBtn = document.getElementById('syncDataBtn');
     const hydrateDataBtn = document.getElementById('hydrateDataBtn');
+    const autoSavesToggle = document.getElementById('autoSavesToggle');
     const createTeamDialog = document.getElementById('createTeamDialog');
     const createTeamForm = document.getElementById('createTeamForm');
     const teamInput = document.getElementById('teamInput');
@@ -273,6 +282,29 @@
     let isEditingTeam = false;
     let editingTeamId = null;
     const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
+
+    function readAppSettings() {
+      try {
+        const raw = localStorage.getItem('appSettings');
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch(_) { return {}; }
+    }
+
+    function writeAppSettings(settings) {
+      try { localStorage.setItem('appSettings', JSON.stringify(settings || {})); } catch(_) {}
+    }
+
+    function initAutoSavesToggle() {
+      if (!autoSavesToggle) return;
+      const settings = readAppSettings();
+      autoSavesToggle.checked = settings.autoSaveCleanupOnSetCompleted !== false;
+      autoSavesToggle.addEventListener('change', () => {
+        const next = readAppSettings();
+        next.autoSaveCleanupOnSetCompleted = !!autoSavesToggle.checked;
+        writeAppSettings(next);
+      });
+    }
 
     function isAuthenticated() {
       return (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
@@ -613,6 +645,7 @@
         });
       }
       initMyTeams();
+      initAutoSavesToggle();
 
       if (accountBtn && accountMenu){
         accountBtn.addEventListener('click', () => {

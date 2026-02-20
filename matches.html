@@ -366,83 +366,10 @@
         .section-hint { color: #555; font-size: 0.95rem; }
         .section-hint.inline { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
         .tab-panel { margin-top: 0; }
-        .team-analysis-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
-        .team-analysis-card { background:#ffffff; border:1px solid #e9ecef; border-radius:12px; padding:12px; }
-        .team-analysis-card .label { font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase; }
-        .team-analysis-card .value { font-size:20px; font-weight:700; color:#111; margin-top:4px; }
-        .team-analysis-filters-panel { background:#ffffff; border:1px solid #e9ecef; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:12px; }
-        .team-analysis-filters-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-        .team-analysis-filters-title { font-weight:700; color:#111; }
-        .team-analysis-filters-close { display:none; border:1px solid #e9ecef; background:#fff; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:600; color:#0d6efd; }
-        .team-analysis-filters { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; }
-        .team-analysis-filter { display:flex; flex-direction:column; gap:6px; }
-        .team-analysis-filter label { font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase; }
-        .team-analysis-filter-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-        .team-analysis-filter-actions { display:inline-flex; gap:6px; }
-        .team-analysis-filter-action { border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:8px; padding:2px 6px; font-size:12px; line-height:1; cursor:pointer; }
-        .team-analysis-filter-action:hover { background:#f1f5f9; }
-        .team-analysis-filter-action.is-active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
-        .team-analysis-filter select { width:100%; padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-size:14px; min-height:44px; }
-        .team-analysis-filter select[multiple] { min-height:110px; }
-        .team-analysis-chart { position: relative; background:#ffffff; border:1px solid #e9ecef; border-radius:12px; padding:12px; overflow:hidden; }
-        .team-analysis-chart canvas { width:100%; height:340px; display:block; }
-        .team-analysis-chart-legend { display:flex; gap:12px; align-items:center; margin: 2px 0 10px 0; font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
-        .team-analysis-chart-legend span { display:inline-flex; align-items:center; gap:6px; }
-        .team-analysis-chart-dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
-        .team-analysis-line-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 2px 0 10px 0; }
-        .team-analysis-line-controls .team-analysis-chart-legend { margin:0; }
-        .team-analysis-line-labels { display:inline-flex; align-items:center; gap:8px; color:#475569; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
-        .team-analysis-line-labels-toggle { display:inline-flex; gap:6px; }
-        .line-labels-btn { padding:4px 8px; border-radius:8px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; font-size:12px; }
-        .line-labels-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
-        .team-analysis-chart-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:14px; background:rgba(255,255,255,0.9); }
-        .team-analysis-layout { display:grid; grid-template-columns: 1fr; gap:16px; }
-        .team-analysis-panel { display:flex; flex-direction:column; gap:12px; min-width:0; }
-        .team-analysis-charts-panel { display:flex; flex-direction:column; gap:12px; min-width:0; width:100%; }
-        .team-analysis-actions { margin-left:auto; display:flex; align-items:center; gap:8px; }
-        .analysis-landscape-btn { padding:6px 10px; border-radius:10px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; }
-        .analysis-landscape-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
-        .analysis-filters-btn { padding:6px 10px; border-radius:10px; border:1px solid #e9ecef; background:#ffffff; color:#0d6efd; font-weight:600; cursor:pointer; }
-        .analysis-filters-btn.is-active { background:#0d6efd; color:#ffffff; border-color:#0d6efd; }
-        .analysis-filters-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); display:none; z-index:30; }
-
-        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-filters-panel { display:none; }
-        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
 
         @media (max-width: 720px) {
             .section-title-row { flex-wrap:wrap; gap:10px; }
-            .team-analysis-actions { width:100%; justify-content:flex-end; }
-            .team-analysis-filters { grid-template-columns: 1fr; }
-            .team-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .team-analysis-chart canvas { height:260px; }
-            .team-analysis-filter select[multiple] { min-height:90px; }
-            .analysis-filters-overlay { display:none; }
-            body.analysis-filters-open .analysis-filters-overlay { display:block; }
-            body.analysis-filters-open #teamAnalysisSection .team-analysis-filters-panel {
-                position:fixed;
-                inset:64px 12px 12px 12px;
-                z-index:40;
-                overflow:auto;
-                box-shadow:0 12px 32px rgba(0,0,0,0.2);
-            }
-            body.analysis-filters-open #teamAnalysisSection .team-analysis-filters-close { display:inline-flex; }
-            body.analysis-filters-open #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
-            body:not(.analysis-filters-open) #teamAnalysisSection .team-analysis-filters-panel { display:none; }
         }
-
-        @media (min-width: 721px) and (max-width: 1100px) {
-            .team-analysis-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .team-analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .team-analysis-chart canvas { height:320px; }
-        }
-
-        @media (orientation: landscape) and (max-width: 1100px) {
-            #teamAnalysisSection .team-analysis-layout { grid-template-columns: minmax(240px, 340px) 1fr; }
-        }
-
-        body.analysis-landscape #teamAnalysisSection .team-analysis-layout { grid-template-columns: minmax(240px, 360px) 1fr; }
-        body.analysis-landscape #teamAnalysisSection .team-analysis-chart canvas { height:300px; }
-        body.analysis-filters-collapsed #teamAnalysisSection .team-analysis-layout { grid-template-columns: 1fr; }
 
         /* Animazione uniforme per elementi cliccabili (stile card squadra) */
         .btn,
@@ -507,6 +434,13 @@
         .archive-badge { display:inline-flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:999px; padding:6px 10px; background:#ffffff; color:#0f172a; font-weight:800; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
         .archive-badge.local { border-color:#2563eb; }
         .archive-badge.cloud { border-color:#0ea5e9; }
+        .import-dialog { border:1px solid #e9ecef; border-radius:14px; padding:14px; max-width:720px; width:95%; }
+        .import-dialog-grid { display:grid; gap:10px; }
+        .import-dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
+        .import-file-list { border:1px solid #e5e7eb; border-radius:12px; padding:8px; max-height:260px; overflow:auto; display:grid; gap:6px; }
+        .import-file-row { display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:8px; background:#f8fafc; }
+        .import-file-name { flex:1; font-size:13px; color:#334155; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .import-summary { font-size:12px; color:#64748b; font-weight:600; }
 </style>
 </head>
 <body>
@@ -540,6 +474,14 @@
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
                     <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
                     <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
+                    <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
+                    <label class="menu-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
+                      <span style="display:flex;flex-direction:column;gap:2px;">
+                        <span>Salvataggi automatici</span>
+                        <span style="font-size:12px;color:#64748b;">Pulisci i progressivi a set concluso</span>
+                      </span>
+                      <input type="checkbox" id="autoSavesToggle" />
+                    </label>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
                     <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -547,40 +489,37 @@
             </div>
         </div>
 
-        <!-- Toolbar Elenco (pulsanti in alto a destra) -->
+        <div class="section-title-row">
+            <div class="tabs" role="tablist" aria-label="Sezioni">
+              <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">Elenco Partite</button>
+              <button id="tabAnalysis" class="tab-button" type="button" role="tab" aria-selected="false">Analisi Team</button>
+            </div>
+            <div class="list-actions" id="listActions" style="display:flex;align-items:center;gap:8px;">
+              <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M7 4h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M7 10h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M7 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M17 16l2 2 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button id="importMatchBtn" class="icon-button" aria-label="Importa Partita (Xls)" title="Importa Partita (Xls)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M12 4v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M8 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M4 18h16a2 2 0 0 0 2-2v-2H2v2a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button id="newMatchBtn" class="icon-button" aria-label="Nuova partita" title="Nuova partita">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+        </div>
 
-        
-        
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:block;">
-            <div class="section-title-row">
-                <div class="tabs" role="tablist" aria-label="Sezioni">
-                  <button id="matchesArchiveTitle" class="tab-button active" type="button" data-main-section="list">Elenco Partite</button>
-                  <button class="tab-button" type="button" data-main-section="analysis">Analisi Team</button>
-                </div>
-                <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
-                  <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M7 4h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M7 10h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M7 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M17 16l2 2 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button id="importMatchBtn" class="icon-button" aria-label="Importa Partita (Xls)" title="Importa Partita (Xls)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M12 4v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M8 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M4 18h16a2 2 0 0 0 2-2v-2H2v2a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button id="newMatchBtn" class="icon-button" aria-label="Nuova partita" title="Nuova partita">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </button>
-                </div>
-            </div>
             <div class="archive-tabs" role="tablist" aria-label="Archivio dati partite">
                 <button id="matchesArchiveTabLocal" class="archive-tab active" type="button" role="tab" aria-selected="true">Locale</button>
                 <button id="matchesArchiveTabCloud" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud</button>
@@ -610,211 +549,156 @@
             </div>
         </div>
 
+        <!-- Tab: Analisi Team -->
         <div id="teamAnalysisSection" class="matches-section tab-panel" style="display:none;">
-            <div class="section-title-row">
-                <div class="tabs" role="tablist" aria-label="Sezioni">
-                  <button class="tab-button" type="button" data-main-section="list">Elenco Partite</button>
-                  <button class="tab-button active" type="button" data-main-section="analysis">Analisi Team</button>
-                </div>
-                <div class="team-analysis-actions">
-                    <button id="analysisFiltersToggle" class="analysis-filters-btn" type="button" aria-pressed="false">Filtri</button>
-                    <button id="analysisLandscapeToggle" class="analysis-landscape-btn" type="button" aria-pressed="false">Landscape</button>
-                </div>
+            <div class="section-hint" style="margin:8px 0 12px 0;">
+                Analisi delle prestazioni dei giocatori sulle partite del team selezionato.
             </div>
-            <p class="section-hint" style="margin:8px 0 12px 0;">Seleziona un player e visualizza l’andamento per partita con filtri dedicati.</p>
-            <div class="analysis-filters-overlay" id="analysisFiltersOverlay"></div>
-            <div class="team-analysis-layout">
-            <div class="team-analysis-panel">
-            <div class="team-analysis-filters-panel">
-            <div class="team-analysis-filters-bar">
-                <div class="team-analysis-filters-title">Filtri</div>
-                <button id="analysisFiltersClose" class="team-analysis-filters-close" type="button">Chiudi</button>
-            </div>
-            <div class="team-analysis-filters">
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisPlayer">Player</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisPlayer" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisPlayer" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisPlayer" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisPlayer" multiple>
-                        <option value="">Tutti i player</option>
+
+            <!-- Barra controlli Analisi Team (viewport + filtri) -->
+            <div class="panel" style="margin-bottom:8px; padding:8px 10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;">
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                    <label for="teamAnalysisViewportMode" style="font-size:0.85rem; color:#475569; font-weight:600;">Vista dispositivo</label>
+                    <select id="teamAnalysisViewportMode" style="min-width:130px; font-size:0.85rem; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                        <option value="auto">Auto (schermo corrente)</option>
+                        <option value="phone-portrait">Smartphone verticale</option>
+                        <option value="phone-landscape">Smartphone orizzontale</option>
+                        <option value="tablet">Tablet</option>
                     </select>
                 </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisMatch">Partite</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisMatch" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisMatch" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisMatch" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisMatch" multiple>
-                        <option value="">Tutte le partite</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisFundamental">Fondamentali</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisFundamental" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisFundamental" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisFundamental" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisFundamental" multiple>
-                        <option value="servizio">Servizio</option>
-                        <option value="ricezione">Ricezione</option>
-                        <option value="attacco">Attacco</option>
-                        <option value="muro">Muro</option>
-                        <option value="difesa">Difesa</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisValue">Valori</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisValue" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisValue" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisValue" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisValue" multiple>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisRole">Ruolo</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisRole" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisRole" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisRole" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisRole" multiple>
-                        <option value="">Tutti i ruoli</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisRotation">Rotazione</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisRotation" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisRotation" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisRotation" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisRotation" multiple>
-                        <option value="P1">P1</option>
-                        <option value="P2">P2</option>
-                        <option value="P3">P3</option>
-                        <option value="P4">P4</option>
-                        <option value="P5">P5</option>
-                        <option value="P6">P6</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisPhase">Fase</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisPhase" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisPhase" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisPhase" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisPhase" multiple>
-                        <option value="servizio">Servizio</option>
-                        <option value="ricezione">Ricezione</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filter">
-                    <div class="team-analysis-filter-head">
-                        <label for="teamAnalysisAttackPrev">Attacco preceduto da</label>
-                        <div class="team-analysis-filter-actions">
-                            <button class="team-analysis-filter-action" type="button" title="Seleziona tutti" data-select-target="teamAnalysisAttackPrev" data-select-action="all">✓</button>
-                            <button class="team-analysis-filter-action" type="button" title="Deseleziona tutti" data-select-target="teamAnalysisAttackPrev" data-select-action="none">✕</button>
-                            <button class="team-analysis-filter-action" type="button" title="Somma valori" data-select-target="teamAnalysisAttackPrev" data-select-action="sum">Σ</button>
-                        </div>
-                    </div>
-                    <select id="teamAnalysisAttackPrev" multiple>
-                        <option value="ricezione">Ricezione</option>
-                        <option value="difesa">Difesa</option>
-                    </select>
-                </div>
-            </div>
-            <div class="team-analysis-grid">
-                <div class="team-analysis-card">
-                    <div class="label">Partite locali</div>
-                    <div class="value" id="teamAnalysisTotal">—</div>
-                </div>
-                <div class="team-analysis-card">
-                    <div class="label">Vittorie</div>
-                    <div class="value" id="teamAnalysisWins">—</div>
-                </div>
-                <div class="team-analysis-card">
-                    <div class="label">Sconfitte</div>
-                    <div class="value" id="teamAnalysisLosses">—</div>
-                </div>
-                <div class="team-analysis-card">
-                    <div class="label">Set vinti</div>
-                    <div class="value" id="teamAnalysisSetsWon">—</div>
-                </div>
-            </div>
-            </div>
-            </div>
-            <div class="team-analysis-charts-panel">
-                <div class="tabs" role="tablist" aria-label="Grafici Analisi Team">
-                    <button class="tab-button active" type="button" data-analysis-chart="hist">Istogramma</button>
-                    <button class="tab-button" type="button" data-analysis-chart="line">Linee</button>
-                </div>
-                <div class="team-analysis-chart" id="teamAnalysisHistogramWrap">
-                    <div class="team-analysis-chart-legend">
-                        <span><i class="team-analysis-chart-dot" style="background:#ef4444;"></i>1</span>
-                        <span><i class="team-analysis-chart-dot" style="background:#f97316;"></i>2</span>
-                        <span><i class="team-analysis-chart-dot" style="background:#facc15;"></i>3</span>
-                        <span><i class="team-analysis-chart-dot" style="background:#a3e635;"></i>4</span>
-                        <span><i class="team-analysis-chart-dot" style="background:#16a34a;"></i>5</span>
-                    </div>
-                    <canvas id="teamAnalysisHistogram"></canvas>
-                    <div id="teamAnalysisHistogramEmpty" class="team-analysis-chart-empty" style="display:none;">Seleziona un player per visualizzare l’andamento.</div>
-                </div>
-                <div class="team-analysis-chart" id="teamAnalysisLineWrap" style="display:none;">
-                    <div class="team-analysis-line-controls">
-                        <div class="team-analysis-chart-legend">
-                            <span><i class="team-analysis-chart-dot" style="background:#ef4444;"></i>1</span>
-                            <span><i class="team-analysis-chart-dot" style="background:#fdba74;"></i>2</span>
-                            <span><i class="team-analysis-chart-dot" style="background:#facc15;"></i>3</span>
-                            <span><i class="team-analysis-chart-dot" style="background:#5eead4;"></i>4</span>
-                            <span><i class="team-analysis-chart-dot" style="background:#7CFC00;"></i>5</span>
-                        </div>
-                        <div class="team-analysis-line-labels">
-                            <span>Etichette</span>
-                            <div class="team-analysis-line-labels-toggle">
-                                <button class="line-labels-btn" type="button" data-line-labels="off">Off</button>
-                                <button class="line-labels-btn" type="button" data-line-labels="on">On</button>
-                                <button class="line-labels-btn" type="button" data-line-labels="all">All</button>
+                <div class="team-analysis-filters" style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;">
+                    <div class="team-analysis-filter-box" data-filter="player">
+                        <div class="team-analysis-filter-header">
+                            <span>Player</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="player" title="Usa Player come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="player" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="player" data-mode="none" title="Deseleziona tutto">✕</button>
                             </div>
                         </div>
+                        <select id="teamAnalysisFilterPlayer" multiple style="min-width:140px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutti i giocatori</option>
+                        </select>
                     </div>
-                    <canvas id="teamAnalysisLines"></canvas>
-                    <div id="teamAnalysisLinesEmpty" class="team-analysis-chart-empty" style="display:none;">Seleziona un player per visualizzare l’andamento.</div>
+                    <div class="team-analysis-filter-box" data-filter="role">
+                        <div class="team-analysis-filter-header">
+                            <span>Ruolo</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="role" title="Usa Ruolo come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="role" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="role" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterRole" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutti i ruoli</option>
+                            <option value="Palleggiatore">Palleggiatore</option>
+                            <option value="Schiacciatore">Schiacciatore</option>
+                            <option value="Centrale">Centrale</option>
+                            <option value="Opposto">Opposto</option>
+                            <option value="Libero">Libero</option>
+                        </select>
+                    </div>
+                    <div class="team-analysis-filter-box" data-filter="fundamental">
+                        <div class="team-analysis-filter-header">
+                            <span>Fondamentale</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="fundamental" title="Usa Fondamentale come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="fundamental" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="fundamental" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterFundamental" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutti i fondamentali</option>
+                            <option value="Attacco">Attacco</option>
+                            <option value="Servizio">Servizio</option>
+                            <option value="Muro">Muro</option>
+                            <option value="Ricezione">Ricezione</option>
+                            <option value="Difesa">Difesa</option>
+                        </select>
+                    </div>
+                    <div class="team-analysis-filter-box" data-filter="rotation">
+                        <div class="team-analysis-filter-header">
+                            <span>Rotazione</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="rotation" title="Usa Rotazione come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="rotation" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="rotation" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterRotation" multiple style="min-width:110px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutte le rotazioni</option>
+                            <option value="P1">P1</option>
+                            <option value="P2">P2</option>
+                            <option value="P3">P3</option>
+                            <option value="P4">P4</option>
+                            <option value="P5">P5</option>
+                            <option value="P6">P6</option>
+                        </select>
+                    </div>
+                    <div class="team-analysis-filter-box" data-filter="phase">
+                        <div class="team-analysis-filter-header">
+                            <span>Fase</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="phase" title="Usa Fase come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="phase" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="phase" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterPhase" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutte le fasi</option>
+                            <option value="servizio">Fase servizio</option>
+                            <option value="ricezione">Fase ricezione</option>
+                        </select>
+                    </div>
+                    <div class="team-analysis-filter-box" data-filter="values">
+                        <div class="team-analysis-filter-header">
+                            <span>Valori</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="values" title="Usa Valori come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="values" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="values" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterValues" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutti i valori</option>
+                            <option value="ge3">Media ≥ 3</option>
+                            <option value="ge4">Media ≥ 4</option>
+                            <option value="ge45">Media ≥ 4.5</option>
+                        </select>
+                    </div>
+                    <div class="team-analysis-filter-box" data-filter="matches">
+                        <div class="team-analysis-filter-header">
+                            <span>Partite</span>
+                            <div class="filter-header-right">
+                                <input type="checkbox" class="filter-dataset-checkbox" data-filter="matches" title="Usa Partite come dataset">
+                                <button type="button" class="filter-icon-btn" data-filter="matches" data-mode="all" title="Seleziona tutto">⬚</button>
+                                <button type="button" class="filter-icon-btn" data-filter="matches" data-mode="none" title="Deseleziona tutto">✕</button>
+                            </div>
+                        </div>
+                        <select id="teamAnalysisFilterMatches" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                            <option value="all">Tutte le partite</option>
+                            <option value="last5">Ultime 5</option>
+                            <option value="last10">Ultime 10</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            </div>
-        </div>
-        
-        
 
-        
+            <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
+                <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
+                    <div id="teamAnalysisChartEmpty" style="color:#64748b;">
+                        Seleziona una squadra con almeno una partita per vedere il grafico.
+                    </div>
+                    <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
+                </div>
+                <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
+            </div>
+
+            <p class="section-hint" style="margin-top:6px; font-size:0.85rem; color:#64748b;">
+                Ogni linea rappresenta la valutazione media (1–5) di un giocatore per partita.
+            </p>
+        </div>
+
      </div>
  
       <!-- Loading Screen -->
@@ -884,12 +768,135 @@
         </div>
     </div>
 
-    
+    <dialog id="importMatchDialog" class="import-dialog">
+        <form method="dialog" class="dialog-form" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="font-size:18px; font-weight:700; color:#0f172a;">Importa partite</div>
+                <button type="button" class="close-btn" id="importDialogCloseBtn" aria-label="Chiudi">✕</button>
+            </div>
+            <div class="import-dialog-grid">
+                <div class="import-dialog-actions">
+                    <button type="button" class="btn btn-primary" id="importFolderBtn">Seleziona cartella</button>
+                    <button type="button" class="btn btn-secondary" id="importFilesBtn">Seleziona file</button>
+                </div>
+                <div class="import-summary" id="importSelectionSummary">Nessun file selezionato</div>
+                <div class="import-file-list" id="importFilesList"></div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" id="importDialogCancelBtn">Annulla</button>
+                    <button type="button" class="btn btn-primary" id="importDialogRunBtn">Importa selezionati</button>
+                </div>
+            </div>
+        </form>
+        <input id="importFolderInput" type="file" webkitdirectory multiple style="display:none;">
+        <input id="importFilesInput" type="file" accept=".xls,.xlsx,.xlsm" multiple style="display:none;">
+    </dialog>
 
+    
+    
     <style>
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .team-analysis-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .team-analysis-filter-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: #f8fafc;
+        }
+
+        .team-analysis-filter-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: #475569;
+        }
+
+        .filter-header-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .filter-dataset-checkbox {
+            cursor: pointer;
+        }
+
+        .filter-icon-btn {
+            border: none;
+            background: transparent;
+            padding: 0 2px;
+            cursor: pointer;
+            font-size: 0.70rem;
+            color: #64748b;
+        }
+
+        .filter-icon-btn:hover {
+            color: #0f172a;
+        }
+
+        .team-analysis-filter-box.active {
+            border-color: #0d6efd;
+            background: #eff6ff;
+        }
+
+        .team-analysis-chart-wrapper {
+            min-height: 260px;
+            overflow-x: auto;
+        }
+
+        .team-analysis-legend {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .team-analysis-layout-auto {
+            margin: 0;
+        }
+
+        .team-analysis-layout-phone-portrait {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .team-analysis-layout-phone-landscape {
+            max-width: 820px;
+            margin: 0 auto;
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .team-analysis-layout-tablet {
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 900px) {
+            .team-analysis-layout-auto {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            .team-analysis-layout-auto .team-analysis-chart-wrapper {
+                flex: 2 1 0;
+            }
+            .team-analysis-layout-auto .team-analysis-legend {
+                flex: 1 1 0;
+            }
         }
     </style>
 
@@ -916,11 +923,9 @@
         let matches = [];
         let __sortAsc = false;
         let currentArchive = 'local';
+        let importCandidateFiles = [];
         const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
         let __initRetryCount = 0;
-        let __analysisResizeTimer = null;
-        let __analysisIsSmall = null;
-
         // Elementi DOM
         const teamName = document.getElementById('teamName');
         const teamStats = document.getElementById('teamStats');
@@ -931,96 +936,85 @@
         const accountLogout = document.getElementById('accountLogout');
         const hydrateDataBtn = document.getElementById('hydrateDataBtn');
         const syncDataBtn = document.getElementById('syncDataBtn');
+        const autoSavesToggle = document.getElementById('autoSavesToggle');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
         const loadingScreen = document.getElementById('loadingScreen');
         const importStageOverlay = document.getElementById('importStageOverlay');
-        const tabNew = document.getElementById('tabNew');
+        const importMatchDialog = document.getElementById('importMatchDialog');
+        const importFolderInput = document.getElementById('importFolderInput');
+        const importFilesInput = document.getElementById('importFilesInput');
+        const importFolderBtn = document.getElementById('importFolderBtn');
+        const importFilesBtn = document.getElementById('importFilesBtn');
+        const importDialogCloseBtn = document.getElementById('importDialogCloseBtn');
+        const importDialogCancelBtn = document.getElementById('importDialogCancelBtn');
+        const importDialogRunBtn = document.getElementById('importDialogRunBtn');
+        const importFilesList = document.getElementById('importFilesList');
+        const importSelectionSummary = document.getElementById('importSelectionSummary');
         const tabList = document.getElementById('tabList');
-        const newMatchSection = document.getElementById('newMatchSection');
+        const tabAnalysis = document.getElementById('tabAnalysis');
         const listSection = document.getElementById('listSection');
         const teamAnalysisSection = document.getElementById('teamAnalysisSection');
         const rootContainer = document.querySelector('.container');
         const inlineMatchForm = document.getElementById('inlineMatchForm');
         const newMatchBtn = document.getElementById('newMatchBtn');
         const sortByDateBtn = document.getElementById('sortByDateBtn');
-        const matchesArchiveTitle = document.getElementById('matchesArchiveTitle');
+        const listActions = document.getElementById('listActions');
         const matchesArchiveBadge = document.getElementById('matchesArchiveBadge');
         const matchesArchiveTabLocal = document.getElementById('matchesArchiveTabLocal');
         const matchesArchiveTabCloud = document.getElementById('matchesArchiveTabCloud');
-        const mainSectionButtons = Array.from(document.querySelectorAll('[data-main-section]'));
-        const teamAnalysisPlayer = document.getElementById('teamAnalysisPlayer');
-        const teamAnalysisMatch = document.getElementById('teamAnalysisMatch');
-        const teamAnalysisFundamental = document.getElementById('teamAnalysisFundamental');
-        const teamAnalysisValue = document.getElementById('teamAnalysisValue');
-        const teamAnalysisRole = document.getElementById('teamAnalysisRole');
-        const teamAnalysisRotation = document.getElementById('teamAnalysisRotation');
-        const teamAnalysisPhase = document.getElementById('teamAnalysisPhase');
-        const teamAnalysisAttackPrev = document.getElementById('teamAnalysisAttackPrev');
-        const teamAnalysisHistogram = document.getElementById('teamAnalysisHistogram');
-        const teamAnalysisHistogramEmpty = document.getElementById('teamAnalysisHistogramEmpty');
-        const teamAnalysisLines = document.getElementById('teamAnalysisLines');
-        const teamAnalysisLinesEmpty = document.getElementById('teamAnalysisLinesEmpty');
-        const teamAnalysisHistogramWrap = document.getElementById('teamAnalysisHistogramWrap');
-        const teamAnalysisLineWrap = document.getElementById('teamAnalysisLineWrap');
-        const teamAnalysisChartTabs = Array.from(document.querySelectorAll('[data-analysis-chart]'));
-        const teamAnalysisLineLabelButtons = Array.from(document.querySelectorAll('[data-line-labels]'));
-        const teamAnalysisTotal = document.getElementById('teamAnalysisTotal');
-        const teamAnalysisWins = document.getElementById('teamAnalysisWins');
-        const teamAnalysisLosses = document.getElementById('teamAnalysisLosses');
-        const teamAnalysisSetsWon = document.getElementById('teamAnalysisSetsWon');
-        const analysisLandscapeToggle = document.getElementById('analysisLandscapeToggle');
-        const analysisFiltersToggle = document.getElementById('analysisFiltersToggle');
-        const analysisFiltersClose = document.getElementById('analysisFiltersClose');
-        const analysisFiltersOverlay = document.getElementById('analysisFiltersOverlay');
+        const teamAnalysisChart = document.getElementById('teamAnalysisChart');
+        const teamAnalysisChartEmpty = document.getElementById('teamAnalysisChartEmpty');
+        const teamAnalysisLegend = document.getElementById('teamAnalysisLegend');
+        const teamAnalysisLayout = document.getElementById('teamAnalysisLayout');
+        const teamAnalysisViewportMode = document.getElementById('teamAnalysisViewportMode');
+        const teamAnalysisFilterPlayer = document.getElementById('teamAnalysisFilterPlayer');
+        const teamAnalysisFilterRole = document.getElementById('teamAnalysisFilterRole');
+        const teamAnalysisFilterFundamental = document.getElementById('teamAnalysisFilterFundamental');
+        const teamAnalysisFilterRotation = document.getElementById('teamAnalysisFilterRotation');
+        const teamAnalysisFilterPhase = document.getElementById('teamAnalysisFilterPhase');
+        const teamAnalysisFilterValues = document.getElementById('teamAnalysisFilterValues');
+        const teamAnalysisFilterMatches = document.getElementById('teamAnalysisFilterMatches');
+        const teamAnalysisFilterBoxes = document.querySelectorAll('.team-analysis-filter-box');
+        const teamAnalysisDatasetCheckboxes = document.querySelectorAll('.filter-dataset-checkbox');
 
-        function setMainSection(next) {
-            const target = next === 'analysis' ? 'analysis' : 'list';
-            if (listSection) listSection.style.display = target === 'list' ? 'block' : 'none';
-            if (teamAnalysisSection) teamAnalysisSection.style.display = target === 'analysis' ? 'block' : 'none';
-            if (mainSectionButtons.length) {
-                mainSectionButtons.forEach(btn => {
-                    const isActive = btn.getAttribute('data-main-section') === target;
-                    btn.classList.toggle('active', isActive);
-                });
-            }
+        const teamAnalysisFilters = {
+            dataset: 'player',
+            players: [],
+            roles: [],
+            fundamentals: [],
+            rotations: [],
+            phases: [],
+            valueThresholds: [],
+            matchesScopes: []
+        };
+
+        let teamAnalysisRosterCache = {
+            players: [],
+            roleByNumber: {}
+        };
+
+        function readAppSettings() {
+            try {
+                const raw = localStorage.getItem('appSettings');
+                const parsed = raw ? JSON.parse(raw) : {};
+                return (parsed && typeof parsed === 'object') ? parsed : {};
+            } catch(_) { return {}; }
         }
 
-        function setAnalysisLandscapeState(next, options = {}) {
-            const enabled = !!next;
-            document.body.classList.toggle('analysis-landscape', enabled);
-            if (analysisLandscapeToggle) {
-                analysisLandscapeToggle.classList.toggle('is-active', enabled);
-                analysisLandscapeToggle.setAttribute('aria-pressed', enabled.toString());
-                analysisLandscapeToggle.textContent = enabled ? 'Landscape On' : 'Landscape';
-            }
-            try { localStorage.setItem('mvsAnalysisLandscape', enabled ? '1' : '0'); } catch(_) {}
-            if (options.skipRerender) return;
-            try {
-                if (typeof renderTeamAnalysisCharts === 'function') {
-                    requestAnimationFrame(() => renderTeamAnalysisCharts(__teamAnalysisCache));
-                }
-            } catch(_) {}
+        function writeAppSettings(settings) {
+            try { localStorage.setItem('appSettings', JSON.stringify(settings || {})); } catch(_) {}
         }
 
-        function setAnalysisFiltersState(next, options = {}) {
-            const enabled = !!next;
-            const isSmall = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-            document.body.classList.toggle('analysis-filters-open', enabled && isSmall);
-            document.body.classList.toggle('analysis-filters-collapsed', !enabled && !isSmall);
-            if (analysisFiltersToggle) {
-                analysisFiltersToggle.classList.toggle('is-active', enabled);
-                analysisFiltersToggle.setAttribute('aria-pressed', enabled.toString());
-                analysisFiltersToggle.textContent = enabled ? 'Filtri On' : 'Filtri';
-            }
-            if (analysisFiltersOverlay) analysisFiltersOverlay.style.display = (enabled && isSmall) ? 'block' : 'none';
-            try { localStorage.setItem('mvsAnalysisFiltersOpen', enabled ? '1' : '0'); } catch(_) {}
-            if (options.skipRerender) return;
-            try {
-                if (typeof renderTeamAnalysisCharts === 'function') {
-                    requestAnimationFrame(() => renderTeamAnalysisCharts(__teamAnalysisCache));
-                }
-            } catch(_) {}
+        function initAutoSavesToggle() {
+            if (!autoSavesToggle) return;
+            const settings = readAppSettings();
+            autoSavesToggle.checked = settings.autoSaveCleanupOnSetCompleted !== false;
+            autoSavesToggle.addEventListener('change', () => {
+                const next = readAppSettings();
+                next.autoSaveCleanupOnSetCompleted = !!autoSavesToggle.checked;
+                writeAppSettings(next);
+            });
         }
 
         function isAuthenticated() {
@@ -1056,7 +1050,6 @@
                 const nextUrl = window.location.pathname + '?' + qp.toString();
                 window.history.replaceState(null, '', nextUrl);
             } catch(_) {}
-            if (matchesArchiveTitle) matchesArchiveTitle.textContent = 'Elenco Partite';
             if (matchesArchiveTabLocal) {
                 matchesArchiveTabLocal.classList.toggle('active', v === 'local');
                 matchesArchiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
@@ -1811,6 +1804,7 @@
                     });
             }
 
+            initAutoSavesToggle();
             initializeMatchesPage();
             try { hideLoadingScreen(); } catch(_) {}
         });
@@ -1820,58 +1814,6 @@
         function bindMatchesPageEventListeners() {
             if (__matchesEventsBound) return;
             __matchesEventsBound = true;
-
-            bindTeamAnalysisFilters();
-            bindTeamAnalysisChartTabs();
-            bindTeamAnalysisFilterActions();
-            bindTeamAnalysisLineLabels();
-            if (analysisLandscapeToggle) {
-                let storedLandscape = '';
-                try { storedLandscape = localStorage.getItem('mvsAnalysisLandscape') || ''; } catch(_) {}
-                setAnalysisLandscapeState(storedLandscape === '1', { skipRerender: true });
-                analysisLandscapeToggle.addEventListener('click', () => {
-                    const nextState = !document.body.classList.contains('analysis-landscape');
-                    setAnalysisLandscapeState(nextState);
-                });
-            } else {
-                let storedLandscape = '';
-                try { storedLandscape = localStorage.getItem('mvsAnalysisLandscape') || ''; } catch(_) {}
-                if (storedLandscape === '1') setAnalysisLandscapeState(true, { skipRerender: true });
-            }
-            if (analysisFiltersToggle) {
-                let storedFilters = '';
-                try { storedFilters = localStorage.getItem('mvsAnalysisFiltersOpen') || ''; } catch(_) {}
-                const isSmall = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-                __analysisIsSmall = isSmall;
-                const initialOpen = storedFilters ? (storedFilters === '1') : !isSmall;
-                setAnalysisFiltersState(initialOpen, { skipRerender: true });
-                analysisFiltersToggle.addEventListener('click', () => {
-                    const isSmallNow = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-                    const nowOpen = isSmallNow ? document.body.classList.contains('analysis-filters-open') : !document.body.classList.contains('analysis-filters-collapsed');
-                    setAnalysisFiltersState(!nowOpen);
-                });
-            }
-            if (analysisFiltersClose) {
-                analysisFiltersClose.addEventListener('click', () => setAnalysisFiltersState(false));
-            }
-            if (analysisFiltersOverlay) {
-                analysisFiltersOverlay.addEventListener('click', () => setAnalysisFiltersState(false));
-            }
-            window.addEventListener('resize', () => {
-                if (!teamAnalysisSection || teamAnalysisSection.style.display === 'none') return;
-                const isSmallNow = window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-                if (__analysisIsSmall !== isSmallNow) {
-                    __analysisIsSmall = isSmallNow;
-                    let storedFilters = '';
-                    try { storedFilters = localStorage.getItem('mvsAnalysisFiltersOpen') || ''; } catch(_) {}
-                    const nextOpen = storedFilters ? (storedFilters === '1') : !isSmallNow;
-                    setAnalysisFiltersState(nextOpen, { skipRerender: true });
-                }
-                if (__analysisResizeTimer) clearTimeout(__analysisResizeTimer);
-                __analysisResizeTimer = setTimeout(() => {
-                    try { renderTeamAnalysisCharts(__teamAnalysisCache); } catch(_) {}
-                }, 120);
-            });
             if (accountBtn && accountMenu){
                 accountBtn.addEventListener('click', () => {
                     const expanded = accountBtn.getAttribute('aria-expanded') === 'true';
@@ -1979,12 +1921,67 @@
                 });
             }
             if (newMatchBtn) newMatchBtn.addEventListener('click', openNewMatchDialog);
+            if (tabList) tabList.addEventListener('click', (e) => { e.preventDefault(); switchTab('list'); });
+            if (tabAnalysis) tabAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('analysis'); });
             if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             const importBtn = document.getElementById('importMatchBtn');
             if (importBtn) importBtn.addEventListener('click', handleImportMatchClick);
+            if (importFolderBtn) importFolderBtn.addEventListener('click', () => { if (importFolderInput) importFolderInput.click(); });
+            if (importFilesBtn) importFilesBtn.addEventListener('click', () => { if (importFilesInput) importFilesInput.click(); });
+            if (importFolderInput) importFolderInput.addEventListener('change', () => { setImportDialogFiles(importFolderInput.files); });
+            if (importFilesInput) importFilesInput.addEventListener('change', () => { setImportDialogFiles(importFilesInput.files); });
+            if (importDialogCloseBtn) importDialogCloseBtn.addEventListener('click', closeImportMatchDialog);
+            if (importDialogCancelBtn) importDialogCancelBtn.addEventListener('click', closeImportMatchDialog);
+            if (importDialogRunBtn) importDialogRunBtn.addEventListener('click', handleImportDialogRun);
             if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
             const matchTypeSelect = document.getElementById('match-type');
             if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
+
+            if (teamAnalysisViewportMode && teamAnalysisLayout) {
+                teamAnalysisViewportMode.addEventListener('change', () => {
+                    applyTeamAnalysisViewportMode();
+                });
+                applyTeamAnalysisViewportMode();
+            }
+            if (teamAnalysisFilterPlayer) teamAnalysisFilterPlayer.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterRole) teamAnalysisFilterRole.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterFundamental) teamAnalysisFilterFundamental.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterRotation) teamAnalysisFilterRotation.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterPhase) teamAnalysisFilterPhase.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterValues) teamAnalysisFilterValues.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (teamAnalysisFilterMatches) teamAnalysisFilterMatches.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+
+            if (teamAnalysisFilterBoxes && teamAnalysisFilterBoxes.length) {
+                teamAnalysisFilterBoxes.forEach((box) => {
+                    const name = box.getAttribute('data-filter');
+                    box.addEventListener('click', (e) => {
+                        if (e.target && e.target.classList && e.target.classList.contains('filter-icon-btn')) {
+                            const target = e.target.getAttribute('data-filter');
+                            const mode = e.target.getAttribute('data-mode');
+                            if (target && mode) {
+                                setTeamAnalysisFilterSelection(target, mode);
+                            }
+                            e.stopPropagation();
+                            return;
+                        }
+                    });
+                });
+            }
+
+            if (teamAnalysisDatasetCheckboxes && teamAnalysisDatasetCheckboxes.length) {
+                teamAnalysisDatasetCheckboxes.forEach((cb) => {
+                    cb.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const name = cb.getAttribute('data-filter');
+                        if (name) {
+                            setTeamAnalysisDataset(name);
+                            renderTeamAnalysisChart();
+                        }
+                    });
+                });
+            }
+
+            setTeamAnalysisDataset(teamAnalysisFilters.dataset || 'player');
 
             currentArchive = getInitialArchive();
             setArchive(currentArchive, { reload: false });
@@ -1994,16 +1991,6 @@
             if (matchesArchiveTabCloud) {
                 matchesArchiveTabCloud.addEventListener('click', (e) => { e.preventDefault(); setArchive('cloud'); });
             }
-            if (mainSectionButtons.length) {
-                mainSectionButtons.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMainSection(btn.getAttribute('data-main-section'));
-                    });
-                });
-            }
-            setMainSection('list');
         }
 
         function initializeMatchesPage() {
@@ -2126,7 +2113,6 @@
                             matches = updated;
                             renderMatches();
                             updateTeamInfo();
-                            updateTeamAnalysisData();
                             hideLoadingScreen();
                         });
 
@@ -2143,7 +2129,6 @@
                          console.log('Matches Page: module not loading, forcing render and hide');
                          renderMatches();
                          updateTeamInfo();
-                         updateTeamAnalysisData();
                          hideLoadingScreen();
                     }
                 } else {
@@ -2166,24 +2151,40 @@
         }
 
         function switchTab(tab){
-            const isNew = tab === 'new';
-            if (newMatchSection && listSection){
-                newMatchSection.style.display = isNew ? 'block' : 'none';
-                listSection.style.display = isNew ? 'none' : 'block';
+            const isList = tab === 'list';
+            const isAnalysis = tab === 'analysis';
+            if (listSection){
+                listSection.style.display = isList ? 'block' : 'none';
             }
             if (teamAnalysisSection){
-                teamAnalysisSection.style.display = isNew ? 'none' : teamAnalysisSection.style.display;
+                teamAnalysisSection.style.display = isAnalysis ? 'block' : 'none';
             }
-            if (tabNew && tabList){
-                tabNew.classList.toggle('active', isNew);
-                tabList.classList.toggle('active', !isNew);
+            if (tabList){
+                tabList.classList.toggle('active', isList);
+                tabList.setAttribute('aria-selected', isList ? 'true' : 'false');
             }
-            // Solo quando è attiva "Nuova partita" blocchiamo lo scroll della pagina e abilitiamo lo scroll interno
+            if (tabAnalysis){
+                tabAnalysis.classList.toggle('active', isAnalysis);
+                tabAnalysis.setAttribute('aria-selected', isAnalysis ? 'true' : 'false');
+            }
             if (rootContainer){
-                if (isNew){
-                    rootContainer.classList.add('full-height');
+                rootContainer.classList.remove('full-height');
+            }
+            if (isAnalysis){
+                refreshTeamAnalysisFilterOptions();
+                updateTeamAnalysisFiltersFromControls();
+                applyTeamAnalysisViewportMode();
+                const relevant = getRelevantMatchesForSelectedTeam();
+                if (!relevant.length) {
+                    if (teamAnalysisChart && teamAnalysisChartEmpty) {
+                        teamAnalysisChart.style.display = 'none';
+                        teamAnalysisChart.innerHTML = '';
+                        teamAnalysisChartEmpty.textContent = 'Seleziona una squadra con almeno una partita per vedere il grafico.';
+                        teamAnalysisChartEmpty.style.display = 'block';
+                    }
+                    if (teamAnalysisLegend) teamAnalysisLegend.innerHTML = '';
                 } else {
-                    rootContainer.classList.remove('full-height');
+                    renderTeamAnalysisChart(relevant);
                 }
             }
         }
@@ -2425,17 +2426,9 @@
             const dlg = document.getElementById('newMatchDialog');
             if (dlg) { try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); } }
         }
-        
-        function renderMatches() {
+
+        function getRelevantMatchesForSelectedTeam() {
             let relevant = Array.isArray(matches) ? matches.slice() : [];
-
-            relevant = relevant.filter(m => {
-                const src = String(m?.source || '').toLowerCase();
-                const isCloud = src.startsWith('firestore');
-                return currentArchive === 'cloud' ? isCloud : !isCloud;
-            });
-
-            // Filtra per squadra selezionata (come da logica backend Firestore: matches <-> team)
             if (selectedTeam && selectedTeam.id) {
                 const selId = String(selectedTeam.id);
                 const selName = selectedTeam.name;
@@ -2454,14 +2447,12 @@
                     return false;
                 });
             }
+            return relevant;
+        }
 
-            if (relevant.length === 0) {
-                showEmptyMatches();
-                return;
-            }
-
-            const toTs = (m) => {
-                const raw = m.date || m.matchDate || m.createdAt || '';
+        function getMatchDateEpoch(match) {
+            try {
+                const raw = match.date || match.matchDate || match.createdAt || '';
                 let d = null;
                 if (raw instanceof Date) d = raw;
                 else if (typeof raw === 'string') {
@@ -2474,11 +2465,28 @@
                 } else if (typeof raw === 'number') d = new Date(raw);
                 else if (raw && raw.toDate) { try { d = raw.toDate(); } catch { d = null; } }
                 return (d instanceof Date && !isNaN(d)) ? d.getTime() : 0;
-            };
+            } catch (_) {
+                return 0;
+            }
+        }
+
+        function renderMatches() {
+            const relevant = getRelevantMatchesForSelectedTeam();
+            if (relevant.length === 0) {
+                showEmptyMatches();
+                if (teamAnalysisChart && teamAnalysisChartEmpty) {
+                    teamAnalysisChart.style.display = 'none';
+                    teamAnalysisChart.innerHTML = '';
+                    teamAnalysisChartEmpty.textContent = 'Seleziona una squadra con almeno una partita per vedere il grafico.';
+                    teamAnalysisChartEmpty.style.display = 'block';
+                }
+                if (teamAnalysisLegend) teamAnalysisLegend.innerHTML = '';
+                return;
+            }
 
             relevant.sort((a, b) => {
-                const ta = toTs(a);
-                const tb = toTs(b);
+                const ta = getMatchDateEpoch(a);
+                const tb = getMatchDateEpoch(b);
                 return __sortAsc ? (ta - tb) : (tb - ta);
             });
 
@@ -2489,866 +2497,8 @@
                 const matchCard = createMatchCard(match);
                 matchesList.appendChild(matchCard);
             });
-        }
 
-        let __teamAnalysisCache = { matches: [], actions: [], matchMeta: {}, playerOptions: [], matchOptions: [], roleOptions: [] };
-        let __teamAnalysisChartTab = 'hist';
-        let __teamAnalysisFiltersInitialized = false;
-        let __teamAnalysisSumMode = false;
-        let __teamAnalysisSumLabel = '';
-        let __teamAnalysisSumTarget = '';
-        let __teamAnalysisLineLabelsMode = 'off';
-
-        function getAnalysisRelevantMatches() {
-            let relevant = Array.isArray(matches) ? matches.slice() : [];
-            relevant = relevant.filter(m => {
-                const src = String(m?.source || '').toLowerCase();
-                const isCloud = src.startsWith('firestore');
-                return currentArchive === 'cloud' ? isCloud : !isCloud;
-            });
-            if (selectedTeam && selectedTeam.id) {
-                const selId = String(selectedTeam.id);
-                const selName = selectedTeam.name;
-                const selTeam = String(selectedTeam.teamName || '').trim();
-                const selClub = String(selectedTeam.clubName || '').trim();
-                const selCombined = (selTeam + (selClub ? ` - ${selClub}` : '')).trim() || selName;
-                relevant = relevant.filter(m => {
-                    const tId = m.teamId != null ? String(m.teamId) : null;
-                    if (tId) return tId === selId || (selCombined && tId === selCombined);
-                    const my = m.myTeam || m.teamName;
-                    const home = m.homeTeam;
-                    const away = m.awayTeam;
-                    if (selName && (my === selName || home === selName || away === selName)) return true;
-                    if (selCombined && (my === selCombined || home === selCombined || away === selCombined)) return true;
-                    if (selTeam && (my === selTeam || home === selTeam || away === selTeam)) return true;
-                    return false;
-                });
-            }
-            const toTs = (m) => {
-                const raw = m.date || m.matchDate || m.createdAt || '';
-                let d = null;
-                if (raw instanceof Date) d = raw;
-                else if (typeof raw === 'string') {
-                    const s = raw.trim();
-                    if (/^\d{4}-\d{2}-\d{2}/.test(s)) d = new Date(s);
-                    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-                        const [dd, mm, yyyy] = s.split('/').map(Number);
-                        d = new Date(yyyy, mm - 1, dd);
-                    } else if (!isNaN(Date.parse(s))) d = new Date(s);
-                } else if (typeof raw === 'number') d = new Date(raw);
-                else if (raw && raw.toDate) { try { d = raw.toDate(); } catch { d = null; } }
-                return (d instanceof Date && !isNaN(d)) ? d.getTime() : 0;
-            };
-            relevant.sort((a, b) => {
-                const ta = toTs(a);
-                const tb = toTs(b);
-                return tb - ta;
-            });
-            return relevant;
-        }
-
-        function normalizePlayerNumber(v) {
-            const raw = String(v || '').replace(/\D/g, '');
-            if (!raw) return '';
-            const normalized = String(Number(raw));
-            return normalized === '0' ? '' : normalized;
-        }
-
-        function buildPlayerLabel(number, name) {
-            const n = String(name || '').trim();
-            const num = String(number || '').trim();
-            if (num && n) return `${num} · ${n}`;
-            if (num) return num;
-            return n || '';
-        }
-
-        function getFundamentalLabel(code) {
-            if (typeof __mvsFundamentalLabel === 'function') {
-                const label = __mvsFundamentalLabel(code);
-                if (label) return label;
-            }
-            const map = { b: 'Servizio', r: 'Ricezione', a: 'Attacco', m: 'Muro', d: 'Difesa' };
-            return map[String(code || '').toLowerCase()] || '';
-        }
-
-        function getMatchLabel(match) {
-            const date = formatItalianDateDisplay(match?.date || match?.matchDate || match?.createdAt || '');
-            const home = match?.homeTeam || match?.myTeam || match?.teamName || '';
-            const away = match?.awayTeam || match?.opponentTeam || '';
-            const vs = (home || away) ? `${home} vs ${away}` : '';
-            return [date, vs].filter(Boolean).join(' · ') || String(match?.id || 'Partita');
-        }
-
-        function getRosterNameMap(match) {
-            const map = {};
-            const fromTeam = Array.isArray(selectedTeam?.players) ? selectedTeam.players : [];
-            const fromMatch = Array.isArray(match?.roster) ? match.roster : [];
-            [...fromTeam, ...fromMatch].forEach(p => {
-                const number = normalizePlayerNumber(p?.number || p?.num || p?.playerNumber || p?.id || '');
-                const name = String(p?.name || p?.surname || p?.fullName || p?.playerName || '').trim();
-                if (number && name && !map[number]) map[number] = name;
-            });
-            return map;
-        }
-
-        function normalizeRole(value) {
-            const v = String(value || '').trim().toLowerCase();
-            if (!v) return '';
-            if (v.startsWith('palleg')) return 'P';
-            if (v.startsWith('schiacc')) return 'S';
-            if (v.startsWith('oppos')) return 'O';
-            if (v.startsWith('centr')) return 'C';
-            if (v.startsWith('liber')) return 'L';
-            return String(value || '').trim().toUpperCase();
-        }
-
-        function getRosterRoleMap(match) {
-            const map = {};
-            const fromTeam = Array.isArray(selectedTeam?.players) ? selectedTeam.players : [];
-            const fromMatch = Array.isArray(match?.roster) ? match.roster : [];
-            [...fromTeam, ...fromMatch].forEach(p => {
-                const number = normalizePlayerNumber(p?.number || p?.num || p?.playerNumber || p?.id || '');
-                const role = normalizeRole(p?.role || p?.ruolo || '');
-                if (number && role && !map[number]) map[number] = role;
-            });
-            return map;
-        }
-
-        function getMatchWithDetails(match) {
-            const base = Object.assign({}, match || {});
-            try {
-                const localAll = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                const localMatch = Array.isArray(localAll) ? localAll.find(x => String(x?.id || '') === String(base.id || '')) : null;
-                if (localMatch && typeof localMatch === 'object') {
-                    const localUpdated = toEpochValue(localMatch.updatedAt || localMatch.scoutingEndTime || localMatch.createdAt);
-                    const matchUpdated = toEpochValue(base.updatedAt || base.scoutingEndTime || base.createdAt);
-                    if ((localUpdated && (!matchUpdated || localUpdated > matchUpdated)) || (hasAnyDetailsForExport(localMatch) && !hasAnyDetailsForExport(base))) {
-                        Object.assign(base, mergeMatchForExport(base, localMatch));
-                    } else {
-                        Object.assign(base, mergeMatchForExport(localMatch, base));
-                    }
-                }
-            } catch(_) {}
-            return base;
-        }
-
-        function buildTeamAnalysisData() {
-            const relevant = getAnalysisRelevantMatches();
-            const actions = [];
-            const playerMap = new Map();
-            const roleMap = new Map();
-            const matchOptions = [];
-            const matchMeta = {};
-            const fundValueMap = { servizio: 'b', ricezione: 'r', attacco: 'a', muro: 'm', difesa: 'd' };
-
-            relevant.forEach(match => {
-                const full = getMatchWithDetails(match);
-                const matchId = String(full?.id || match?.id || '');
-                const matchLabel = getMatchLabel(full);
-                matchOptions.push({ value: matchId, label: matchLabel });
-                matchMeta[matchId] = {
-                    label: matchLabel,
-                    ts: toEpochValue(full?.date || full?.matchDate || full?.createdAt || 0)
-                };
-                const rosterMap = getRosterNameMap(full);
-                const rosterRoleMap = getRosterRoleMap(full);
-                Object.entries(rosterMap).forEach(([num, name]) => {
-                    const label = buildPlayerLabel(num, name);
-                    if (label && !playerMap.has(num)) playerMap.set(num, label);
-                });
-                Object.entries(rosterRoleMap).forEach(([num, role]) => {
-                    if (num && role && !roleMap.has(role)) roleMap.set(role, role);
-                });
-                const actionsBySet = full?.actionsBySet || full?.details?.actionsBySet || {};
-                const setMeta = full?.setMeta || full?.details?.setMeta || {};
-                if (!actionsBySet || typeof actionsBySet !== 'object') return;
-                Object.keys(actionsBySet).forEach(setKey => {
-                    const setActions = Array.isArray(actionsBySet[setKey]) ? actionsBySet[setKey] : [];
-                    const meta = setMeta?.[setKey] || {};
-                    setActions.forEach(entry => {
-                        const actionString = (entry && typeof entry.action === 'string') ? entry.action : (typeof entry === 'string' ? entry : '');
-                        if (!actionString || typeof parseAction !== 'function') return;
-                        let parsed;
-                        try { parsed = parseAction(actionString); } catch(_) { return; }
-                        const acts = Array.isArray(parsed?.actions) ? parsed.actions : [];
-                        acts.forEach((act, idx) => {
-                            const playerNumber = normalizePlayerNumber(act?.player || act?.playerNumber || '');
-                            const playerName = String(act?.playerName || rosterMap[playerNumber] || '').trim();
-                            const playerKey = playerNumber || playerName;
-                            if (!playerKey) return;
-                            const playerLabel = buildPlayerLabel(playerNumber, playerName || playerKey);
-                            if (playerLabel && !playerMap.has(playerKey)) playerMap.set(playerKey, playerLabel);
-                            const fundamental = String(act?.fundamental || '').toLowerCase();
-                            const evaluation = Number(act?.evaluation || 0);
-                            const fundamentalLabel = getFundamentalLabel(fundamental);
-                            const prevFundamental = idx > 0 ? String(acts[idx - 1]?.fundamental || '').toLowerCase() : '';
-                            const rotation = entry && (entry.rotation || entry.rot || entry.ourRotation || meta?.ourRotation || meta?.rotation || '');
-                            const phase = entry && (entry.phase || entry.rallyStartPhase || meta?.phase || '');
-                            const role = rosterRoleMap[playerNumber] || '';
-                            actions.push({
-                                matchId,
-                                matchLabel,
-                                playerKey,
-                                playerLabel,
-                                fundamental,
-                                fundamentalLabel,
-                                evaluation,
-                                rotation: rotation ? String(rotation) : '',
-                                phase: phase ? String(phase).toLowerCase() : '',
-                                role,
-                                prevFundamental,
-                                setNumber: Number(entry?.setNumber || setKey || 0)
-                            });
-                        });
-                    });
-                });
-            });
-
-            const playerOptions = Array.from(playerMap.entries()).map(([value, label]) => ({ value, label }));
-            playerOptions.sort((a, b) => {
-                const na = Number(a.value);
-                const nb = Number(b.value);
-                if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-                return a.label.localeCompare(b.label);
-            });
-
-            const roleOptions = Array.from(roleMap.values()).map(value => ({ value, label: value }));
-            roleOptions.sort((a, b) => a.label.localeCompare(b.label));
-
-            return { matches: relevant, actions, matchMeta, playerOptions, matchOptions, roleOptions, fundValueMap };
-        }
-
-        function setSelectOptions(select, options, placeholderLabel) {
-            if (!select) return;
-            const isMulti = !!select.multiple;
-            const selectedValues = isMulti ? Array.from(select.selectedOptions || []).map(o => o.value) : [select.value];
-            select.innerHTML = '';
-            if (!isMulti && placeholderLabel) {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = placeholderLabel;
-                select.appendChild(opt);
-            }
-            (options || []).forEach(o => {
-                const item = document.createElement('option');
-                item.value = o.value;
-                item.textContent = o.label;
-                select.appendChild(item);
-            });
-            if (isMulti) {
-                Array.from(select.options).forEach(o => {
-                    if (selectedValues.includes(o.value)) o.selected = true;
-                });
-            } else {
-                const current = selectedValues[0];
-                if (current && Array.from(select.options).some(o => o.value === current)) {
-                    select.value = current;
-                }
-            }
-        }
-
-        function updateTeamAnalysisFilters(data) {
-            if (!data) return;
-            setSelectOptions(teamAnalysisPlayer, data.playerOptions, 'Tutti i player');
-            setSelectOptions(teamAnalysisMatch, data.matchOptions, 'Tutte le partite');
-            setSelectOptions(teamAnalysisRole, data.roleOptions, 'Tutti i ruoli');
-        }
-
-        function updateTeamAnalysisSummary(data) {
-            if (!data) return;
-            const total = data.matches.length;
-            let wins = 0;
-            let losses = 0;
-            let setsWon = 0;
-            data.matches.forEach(m => {
-                const res = computeMatchOutcome(m);
-                if (res.outcome === 'Vinto') wins++;
-                else if (res.outcome === 'Perso') losses++;
-                if (res.label && res.label.includes('-')) {
-                    const parts = res.label.split('-').map(n => Number(n));
-                    if (Number.isFinite(parts[0])) setsWon += parts[0];
-                }
-            });
-            if (teamAnalysisTotal) teamAnalysisTotal.textContent = String(total);
-            if (teamAnalysisWins) teamAnalysisWins.textContent = String(wins);
-            if (teamAnalysisLosses) teamAnalysisLosses.textContent = String(losses);
-            if (teamAnalysisSetsWon) teamAnalysisSetsWon.textContent = String(setsWon);
-        }
-
-        function getSelectedValues(select) {
-            if (!select) return [];
-            return Array.from(select.selectedOptions || []).map(o => o.value).filter(v => v !== '');
-        }
-
-        function normalizeRotationValue(value) {
-            const v = String(value || '').trim();
-            if (!v) return '';
-            return v.startsWith('P') ? v : `P${v}`;
-        }
-
-        function filterTeamAnalysisActions(data) {
-            if (!data || !Array.isArray(data.actions)) return [];
-            const players = getSelectedValues(teamAnalysisPlayer);
-            const matchesSel = getSelectedValues(teamAnalysisMatch);
-            const fundamentals = getSelectedValues(teamAnalysisFundamental);
-            const values = getSelectedValues(teamAnalysisValue).map(v => Number(v));
-            const roles = getSelectedValues(teamAnalysisRole);
-            const rotations = getSelectedValues(teamAnalysisRotation).map(normalizeRotationValue);
-            const phases = getSelectedValues(teamAnalysisPhase).map(v => String(v).toLowerCase());
-            const attackPrev = getSelectedValues(teamAnalysisAttackPrev).map(v => String(v).toLowerCase());
-
-            const fundamentalCodes = fundamentals.map(f => data.fundValueMap?.[f]).filter(Boolean);
-
-            let list = data.actions.slice();
-            if (players.length) list = list.filter(a => players.includes(String(a.playerKey)));
-            if (matchesSel.length) list = list.filter(a => matchesSel.includes(String(a.matchId)));
-            if (fundamentalCodes.length) list = list.filter(a => fundamentalCodes.includes(a.fundamental));
-            if (values.length) list = list.filter(a => values.includes(Number(a.evaluation)));
-            if (roles.length) list = list.filter(a => roles.includes(String(a.role || '').toUpperCase()));
-            if (rotations.length) list = list.filter(a => rotations.includes(normalizeRotationValue(a.rotation)));
-            if (phases.length) list = list.filter(a => phases.includes(String(a.phase || '').toLowerCase()));
-            if (attackPrev.length) {
-                list = list.filter(a => {
-                    if (String(a.fundamental || '') !== 'a') return false;
-                    const prev = String(a.prevFundamental || '').toLowerCase();
-                    return (attackPrev.includes('ricezione') && prev === 'r') || (attackPrev.includes('difesa') && prev === 'd');
-                });
-            }
-            return list;
-        }
-
-        function getMatchOrder(data, selectedMatchIds) {
-            const ids = selectedMatchIds && selectedMatchIds.length
-                ? selectedMatchIds
-                : Object.keys(data.matchMeta || {});
-            return ids.slice().sort((a, b) => {
-                const ta = data.matchMeta?.[a]?.ts || 0;
-                const tb = data.matchMeta?.[b]?.ts || 0;
-                return ta - tb;
-            });
-        }
-
-        function setupCanvas(canvas) {
-            if (!canvas) return null;
-            const ctx = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
-            const cssWidth = Math.max(320, rect.width || 640);
-            const cssHeight = Math.max(220, rect.height || 340);
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = Math.round(cssWidth * dpr);
-            canvas.height = Math.round(cssHeight * dpr);
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.clearRect(0, 0, cssWidth, cssHeight);
-            return { ctx, cssWidth, cssHeight };
-        }
-
-        function renderHistogramChart(data) {
-            if (!teamAnalysisHistogram) return;
-            const emptyEl = teamAnalysisHistogramEmpty;
-            const setEmpty = (message) => {
-                if (emptyEl) {
-                    emptyEl.textContent = message;
-                    emptyEl.style.display = 'flex';
-                }
-            };
-            const hideEmpty = () => {
-                if (emptyEl) emptyEl.style.display = 'none';
-            };
-            if (!data || !Array.isArray(data.actions) || data.actions.length === 0) {
-                setEmpty('Nessun dato disponibile.');
-                const ctx = teamAnalysisHistogram.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisHistogram.width, teamAnalysisHistogram.height);
-                return;
-            }
-
-            const list = filterTeamAnalysisActions(data);
-            if (list.length === 0) {
-                setEmpty('Nessun dato con i filtri selezionati.');
-                const ctx = teamAnalysisHistogram.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisHistogram.width, teamAnalysisHistogram.height);
-                return;
-            }
-
-            const selectedValues = getSelectedValues(teamAnalysisValue).map(v => Number(v));
-            const valuesToPlot = selectedValues.length ? selectedValues : [1, 2, 3, 4, 5];
-            const matchIds = getMatchOrder(data, getSelectedValues(teamAnalysisMatch));
-            const grouped = new Map();
-            matchIds.forEach(id => grouped.set(id, { matchId: id, label: data.matchMeta?.[id]?.label || id, counts: { 1:0, 2:0, 3:0, 4:0, 5:0 } }));
-            list.forEach(action => {
-                const key = String(action.matchId || '');
-                if (!grouped.has(key)) {
-                    grouped.set(key, { matchId: key, label: action.matchLabel || '', counts: { 1:0, 2:0, 3:0, 4:0, 5:0 } });
-                }
-                const g = grouped.get(key);
-                const ev = Number(action.evaluation || 0);
-                if (g.counts[ev] != null) g.counts[ev]++;
-            });
-            const rows = Array.from(grouped.values()).filter(r => r && r.matchId);
-            if (!rows.length) {
-                setEmpty('Nessun dato con i filtri selezionati.');
-                const ctx = teamAnalysisHistogram.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisHistogram.width, teamAnalysisHistogram.height);
-                return;
-            }
-
-            const setup = setupCanvas(teamAnalysisHistogram);
-            if (!setup) return;
-            hideEmpty();
-            const { ctx, cssWidth, cssHeight } = setup;
-
-            const padLeft = 46;
-            const padRight = 14;
-            const padTop = 12;
-            const padBottom = 44;
-            const plotW = cssWidth - padLeft - padRight;
-            const plotH = cssHeight - padTop - padBottom;
-            const maxTotal = Math.max(1, ...rows.map(r => valuesToPlot.reduce((acc, v) => acc + (r.counts[v] || 0), 0)));
-            const steps = 4;
-            const stepVal = Math.max(1, Math.ceil(maxTotal / steps));
-            const axisMax = stepVal * steps;
-
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.fillStyle = '#64748b';
-            ctx.font = '11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-            for (let i = 0; i <= steps; i++) {
-                const y = padTop + plotH - (plotH * (i / steps));
-                ctx.beginPath();
-                ctx.moveTo(padLeft, y);
-                ctx.lineTo(padLeft + plotW, y);
-                ctx.stroke();
-                const val = String(axisMax * (i / steps));
-                ctx.fillText(val, 6, y + 4);
-            }
-
-            const barCount = rows.length;
-            const baseGap = 10;
-            const barW = Math.max(18, Math.min(46, (plotW - baseGap * (barCount + 1)) / Math.max(1, barCount)));
-            const gap = Math.max(6, (plotW - barW * barCount) / (barCount + 1));
-            const colors = { 1:'#ef4444', 2:'#f97316', 3:'#facc15', 4:'#a3e635', 5:'#16a34a' };
-            const shorten = (label) => {
-                const s = String(label || '').trim();
-                if (s.length <= 14) return s;
-                return s.slice(0, 12) + '…';
-            };
-
-            rows.forEach((row, i) => {
-                const x = padLeft + gap * (i + 1) + barW * i;
-                let y = padTop + plotH;
-                const total = valuesToPlot.reduce((acc, v) => acc + (row.counts[v] || 0), 0);
-                if (!total) return;
-                valuesToPlot.forEach(v => {
-                    const val = row.counts[v] || 0;
-                    if (!val) return;
-                    const h = (val / axisMax) * plotH;
-                    y -= h;
-                    ctx.fillStyle = colors[v];
-                    ctx.fillRect(x, y, barW, h);
-                });
-                const label = shorten(row.label || data.matchMeta?.[row.matchId]?.label || row.matchId);
-                ctx.save();
-                ctx.translate(x + barW / 2, padTop + plotH + 16);
-                ctx.rotate(-Math.PI / 6);
-                ctx.fillStyle = '#475569';
-                ctx.textAlign = 'right';
-                ctx.fillText(label, 0, 0);
-                ctx.restore();
-            });
-        }
-
-        function renderLineChart(data) {
-            if (!teamAnalysisLines) return;
-            const emptyEl = teamAnalysisLinesEmpty;
-            const setEmpty = (message) => {
-                if (emptyEl) {
-                    emptyEl.textContent = message;
-                    emptyEl.style.display = 'flex';
-                }
-            };
-            const hideEmpty = () => {
-                if (emptyEl) emptyEl.style.display = 'none';
-            };
-            if (!data || !Array.isArray(data.actions) || data.actions.length === 0) {
-                setEmpty('Nessun dato disponibile.');
-                const ctx = teamAnalysisLines.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisLines.width, teamAnalysisLines.height);
-                return;
-            }
-
-            const list = filterTeamAnalysisActions(data);
-            if (list.length === 0) {
-                setEmpty('Nessun dato con i filtri selezionati.');
-                const ctx = teamAnalysisLines.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisLines.width, teamAnalysisLines.height);
-                return;
-            }
-
-            const selectedValues = getSelectedValues(teamAnalysisValue).map(v => Number(v));
-            const valuesToPlot = selectedValues.length ? selectedValues : [1, 2, 3, 4, 5];
-            const sumMode = __teamAnalysisSumMode;
-            let matchIds = [];
-            let series = [];
-
-            if (sumMode) {
-                matchIds = getMatchOrder(data, getSelectedValues(teamAnalysisMatch));
-                const totalsByMatch = new Map();
-                const countsByMatch = new Map();
-                list.forEach(action => {
-                    const ev = Number(action.evaluation || 0);
-                    const matchId = String(action.matchId || '');
-                    if (!matchId || !ev) return;
-                    totalsByMatch.set(matchId, (totalsByMatch.get(matchId) || 0) + ev);
-                    countsByMatch.set(matchId, (countsByMatch.get(matchId) || 0) + 1);
-                });
-                series = [{
-                    key: 'sum__avg',
-                    value: 'avg',
-                    label: 'Media valori',
-                    color: '#334155',
-                    points: matchIds.map(id => {
-                        const count = countsByMatch.get(id) || 0;
-                        if (!count) return { matchId: id, y: null };
-                        const total = totalsByMatch.get(id) || 0;
-                        return { matchId: id, y: total / count };
-                    })
-                }];
-            } else {
-                const players = getSelectedValues(teamAnalysisPlayer);
-                if (!players.length) {
-                    setEmpty('Seleziona almeno un player.');
-                    const ctx = teamAnalysisLines.getContext('2d');
-                    if (ctx) ctx.clearRect(0, 0, teamAnalysisLines.width, teamAnalysisLines.height);
-                    return;
-                }
-                matchIds = getMatchOrder(data, getSelectedValues(teamAnalysisMatch));
-                const playerLabelMap = new Map((data.playerOptions || []).map(o => [String(o.value), o.label]));
-                const playerMatchTotals = new Map();
-                list.forEach(action => {
-                    const p = String(action.playerKey || '');
-                    const m = String(action.matchId || '');
-                    if (!p || !m) return;
-                    const key = `${p}__${m}`;
-                    playerMatchTotals.set(key, (playerMatchTotals.get(key) || 0) + 1);
-                });
-                series = [];
-                players.forEach(player => {
-                    valuesToPlot.forEach(val => {
-                        series.push({
-                            key: `${player}__${val}`,
-                            player,
-                            value: val,
-                            label: `${playerLabelMap.get(String(player)) || player} · ${val}`,
-                            points: matchIds.map(id => {
-                                const total = playerMatchTotals.get(`${player}__${id}`) || 0;
-                                return { matchId: id, y: total > 0 ? 0 : null };
-                            })
-                        });
-                    });
-                });
-                const seriesMap = new Map(series.map(s => [s.key, s]));
-                list.forEach(action => {
-                    const key = `${String(action.playerKey)}__${Number(action.evaluation || 0)}`;
-                    const ser = seriesMap.get(key);
-                    if (!ser) return;
-                    const idx = matchIds.indexOf(String(action.matchId));
-                    if (idx >= 0) {
-                        if (ser.points[idx].y == null) ser.points[idx].y = 0;
-                        ser.points[idx].y++;
-                    }
-                });
-            }
-
-            const allValues = series
-                .flatMap(s => s.points.map(p => p.y))
-                .filter(v => typeof v === 'number' && !isNaN(v));
-            if (!allValues.length) {
-                setEmpty('Nessun dato con i filtri selezionati.');
-                const ctx = teamAnalysisLines.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, teamAnalysisLines.width, teamAnalysisLines.height);
-                return;
-            }
-            const maxY = Math.max(1, ...allValues);
-            const setup = setupCanvas(teamAnalysisLines);
-            if (!setup) return;
-            hideEmpty();
-            const { ctx, cssWidth, cssHeight } = setup;
-
-            const padLeft = 46;
-            const padRight = 20;
-            const padTop = 12;
-            const padBottom = 56;
-            const plotW = cssWidth - padLeft - padRight;
-            const plotH = cssHeight - padTop - padBottom;
-            const steps = 4;
-            const stepVal = Math.max(1, Math.ceil(maxY / steps));
-            const axisMax = stepVal * steps;
-
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.fillStyle = '#64748b';
-            ctx.font = '11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-            for (let i = 0; i <= steps; i++) {
-                const y = padTop + plotH - (plotH * (i / steps));
-                ctx.beginPath();
-                ctx.moveTo(padLeft, y);
-                ctx.lineTo(padLeft + plotW, y);
-                ctx.stroke();
-                const val = String(axisMax * (i / steps));
-                ctx.fillText(val, 6, y + 4);
-            }
-
-            const xStep = matchIds.length > 1 ? plotW / (matchIds.length - 1) : plotW;
-            const valueColors = {
-                1: '#ef4444',
-                2: '#fb923c',
-                3: '#f2c200',
-                4: '#86efac',
-                5: '#15803d'
-            };
-            const palette = ['#1d4ed8', '#9333ea', '#0f766e', '#be123c', '#ea580c', '#16a34a', '#0ea5e9', '#a21caf', '#c026d3', '#15803d'];
-            const resolveSeriesColor = (ser, idx) => {
-                if (ser && ser.color) return ser.color;
-                return valueColors[Number(ser.value)] || palette[idx % palette.length];
-            };
-            const shorten = (label) => {
-                const s = String(label || '').trim();
-                if (s.length <= 14) return s;
-                return s.slice(0, 12) + '…';
-            };
-
-            series.forEach((ser, idx) => {
-                const color = resolveSeriesColor(ser, idx);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                let started = false;
-                ser.points.forEach((pt, i) => {
-                    if (pt.y == null) {
-                        return;
-                    }
-                    const x = padLeft + xStep * i;
-                    const y = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
-                    if (!started) {
-                        ctx.moveTo(x, y);
-                        started = true;
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                ctx.stroke();
-                ctx.fillStyle = color;
-                ser.points.forEach((pt, i) => {
-                    if (pt.y == null) return;
-                    const x = padLeft + xStep * i;
-                    const y = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-            });
-
-            const labelMode = __teamAnalysisLineLabelsMode || 'off';
-            if (labelMode !== 'off') {
-                ctx.save();
-                ctx.font = '10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-                ctx.textBaseline = 'middle';
-                series.forEach((ser, idx) => {
-                    const color = resolveSeriesColor(ser, idx);
-                    const labelText = shorten(ser.label || '');
-                    if (!labelText) return;
-                    const drawAt = (pt, i) => {
-                        if (pt.y == null) return;
-                        const x = padLeft + xStep * i;
-                        const yBase = padTop + plotH - ((pt.y || 0) / axisMax) * plotH;
-                        const isRight = x > padLeft + plotW - 50;
-                        const y = yBase < padTop + 10 ? yBase + 10 : yBase - 8;
-                        ctx.textAlign = isRight ? 'right' : 'left';
-                        ctx.fillStyle = color;
-                        ctx.fillText(labelText, isRight ? x - 6 : x + 6, y);
-                    };
-                    if (labelMode === 'all') {
-                        ser.points.forEach(drawAt);
-                    } else {
-                        for (let i = ser.points.length - 1; i >= 0; i--) {
-                            if (ser.points[i].y == null) continue;
-                            drawAt(ser.points[i], i);
-                            break;
-                        }
-                    }
-                });
-                ctx.restore();
-            }
-
-            matchIds.forEach((id, i) => {
-                const label = shorten(data.matchMeta?.[id]?.label || id);
-                const x = padLeft + xStep * i;
-                ctx.save();
-                ctx.translate(x, padTop + plotH + 20);
-                ctx.rotate(-Math.PI / 6);
-                ctx.fillStyle = '#475569';
-                ctx.textAlign = 'right';
-                ctx.fillText(label, 0, 0);
-                ctx.restore();
-            });
-        }
-
-        function renderTeamAnalysisCharts(data) {
-            if (__teamAnalysisChartTab === 'line') renderLineChart(data);
-            else renderHistogramChart(data);
-        }
-
-        function updateTeamAnalysisData() {
-            if (!teamAnalysisSection) return;
-            const data = buildTeamAnalysisData();
-            __teamAnalysisCache = data;
-            updateTeamAnalysisFilters(data);
-            if (!__teamAnalysisFiltersInitialized) {
-                const multiEls = [
-                    teamAnalysisPlayer,
-                    teamAnalysisMatch,
-                    teamAnalysisFundamental,
-                    teamAnalysisValue,
-                    teamAnalysisRole,
-                    teamAnalysisRotation,
-                    teamAnalysisPhase,
-                    teamAnalysisAttackPrev
-                ];
-                multiEls.forEach(el => {
-                    if (!el || !el.multiple) return;
-                    Array.from(el.options || []).forEach(o => { o.selected = false; });
-                    try { el.selectedIndex = -1; } catch(_) {}
-                });
-                __teamAnalysisFiltersInitialized = true;
-            }
-            updateTeamAnalysisSummary(data);
-            renderTeamAnalysisCharts(data);
-        }
-
-        function bindTeamAnalysisFilters() {
-            const els = [
-                teamAnalysisPlayer,
-                teamAnalysisMatch,
-                teamAnalysisFundamental,
-                teamAnalysisValue,
-                teamAnalysisRole,
-                teamAnalysisRotation,
-                teamAnalysisPhase,
-                teamAnalysisAttackPrev
-            ];
-            els.forEach(el => {
-                if (!el || el.__teamAnalysisBound) return;
-                enableMultiSelectToggle(el);
-                el.addEventListener('change', () => renderTeamAnalysisCharts(__teamAnalysisCache));
-                el.__teamAnalysisBound = true;
-            });
-        }
-
-        function enableMultiSelectToggle(select) {
-            if (!select || !select.multiple || select.__multiToggleEnabled) return;
-            select.addEventListener('mousedown', (event) => {
-                if (!event.target || event.target.tagName !== 'OPTION') return;
-                event.preventDefault();
-                const option = event.target;
-                option.selected = !option.selected;
-                const changeEvent = new Event('change', { bubbles: true });
-                select.dispatchEvent(changeEvent);
-            });
-            select.__multiToggleEnabled = true;
-        }
-
-        function setMultiSelectState(select, state) {
-            if (!select || !select.multiple) return;
-            Array.from(select.options || []).forEach(opt => {
-                if (state === 'all') {
-                    if (opt.value !== '') opt.selected = true;
-                } else {
-                    opt.selected = false;
-                }
-            });
-            const changeEvent = new Event('change', { bubbles: true });
-            select.dispatchEvent(changeEvent);
-        }
-
-        function setTeamAnalysisSumMode(targetId, button) {
-            const nextActive = !__teamAnalysisSumMode || __teamAnalysisSumTarget !== targetId;
-            __teamAnalysisSumMode = nextActive;
-            __teamAnalysisSumTarget = nextActive ? targetId : '';
-            const label = targetId ? document.querySelector(`label[for="${targetId}"]`) : null;
-            __teamAnalysisSumLabel = nextActive ? (label?.textContent?.trim() || 'Totale') : '';
-            const sumButtons = teamAnalysisSection ? teamAnalysisSection.querySelectorAll('[data-select-action="sum"]') : [];
-            sumButtons.forEach(btn => btn.classList.remove('is-active'));
-            if (nextActive && button) button.classList.add('is-active');
-            renderTeamAnalysisCharts(__teamAnalysisCache);
-        }
-
-        function bindTeamAnalysisFilterActions() {
-            if (!teamAnalysisSection || teamAnalysisSection.__filterActionBound) return;
-            teamAnalysisSection.addEventListener('click', (event) => {
-                const btn = event.target?.closest?.('[data-select-target][data-select-action]');
-                if (!btn) return;
-                const targetId = btn.getAttribute('data-select-target');
-                const action = btn.getAttribute('data-select-action');
-                const select = targetId ? document.getElementById(targetId) : null;
-                if (action === 'sum') {
-                    setTeamAnalysisSumMode(targetId, btn);
-                    return;
-                }
-                if (!select) return;
-                setMultiSelectState(select, action);
-            });
-            teamAnalysisSection.__filterActionBound = true;
-        }
-
-        function setTeamAnalysisChartTab(next) {
-            const target = next === 'line' ? 'line' : 'hist';
-            __teamAnalysisChartTab = target;
-            if (teamAnalysisHistogramWrap) teamAnalysisHistogramWrap.style.display = target === 'hist' ? 'block' : 'none';
-            if (teamAnalysisLineWrap) teamAnalysisLineWrap.style.display = target === 'line' ? 'block' : 'none';
-            if (teamAnalysisChartTabs.length) {
-                teamAnalysisChartTabs.forEach(btn => {
-                    const isActive = btn.getAttribute('data-analysis-chart') === target;
-                    btn.classList.toggle('active', isActive);
-                });
-            }
-            renderTeamAnalysisCharts(__teamAnalysisCache);
-        }
-
-        function bindTeamAnalysisChartTabs() {
-            if (!teamAnalysisChartTabs.length) return;
-            teamAnalysisChartTabs.forEach(btn => {
-                if (btn.__teamAnalysisChartBound) return;
-                btn.addEventListener('click', () => {
-                    const tab = btn.getAttribute('data-analysis-chart');
-                    setTeamAnalysisChartTab(tab);
-                });
-                btn.__teamAnalysisChartBound = true;
-            });
-        }
-
-        function setTeamAnalysisLineLabelsMode(mode) {
-            const next = mode === 'all' ? 'all' : mode === 'on' ? 'on' : 'off';
-            __teamAnalysisLineLabelsMode = next;
-            try { localStorage.setItem('mvsAnalysisLineLabels', next); } catch(_) {}
-            if (teamAnalysisLineLabelButtons.length) {
-                teamAnalysisLineLabelButtons.forEach(btn => {
-                    const isActive = btn.getAttribute('data-line-labels') === next;
-                    btn.classList.toggle('is-active', isActive);
-                });
-            }
-            renderTeamAnalysisCharts(__teamAnalysisCache);
-        }
-
-        function bindTeamAnalysisLineLabels() {
-            if (!teamAnalysisLineLabelButtons.length) return;
-            let stored = '';
-            try { stored = localStorage.getItem('mvsAnalysisLineLabels') || ''; } catch(_) {}
-            setTeamAnalysisLineLabelsMode(stored || 'off');
-            teamAnalysisLineLabelButtons.forEach(btn => {
-                if (btn.__teamAnalysisLineLabelsBound) return;
-                btn.addEventListener('click', () => {
-                    const mode = btn.getAttribute('data-line-labels');
-                    setTeamAnalysisLineLabelsMode(mode);
-                });
-                btn.__teamAnalysisLineLabelsBound = true;
-            });
+            renderTeamAnalysisChart(relevant);
         }
 
         function formatItalianDateDisplay(raw) {
@@ -3619,6 +2769,727 @@
                 const t = d.getTime();
                 return Number.isFinite(t) ? t : 0;
             } catch(_) { return 0; }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, function(ch) {
+                switch (ch) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    case '\'': return '&#39;';
+                    default: return ch;
+                }
+            });
+        }
+
+        function computePlayerAveragesForMatch(match, filters) {
+            try {
+                const f = filters || teamAnalysisFilters || {};
+                const rotationFilters = Array.isArray(f.rotations) ? f.rotations.map(v => String(v).toUpperCase()) : [];
+                const phaseFilters = Array.isArray(f.phases) ? f.phases.map(v => String(v).toLowerCase()) : [];
+                const fundamentalFilters = Array.isArray(f.fundamentals) ? f.fundamentals.slice() : [];
+                const playerFiltersRaw = Array.isArray(f.players) ? f.players.slice() : [];
+                const raw = match && match.actionsBySet ? match.actionsBySet : {};
+                if (!raw || typeof raw !== 'object') return null;
+                let normalized = raw;
+                try {
+                    if (typeof window.__normalizePerSetCollections === 'function') {
+                        normalized = window.__normalizePerSetCollections(normalized || {});
+                    }
+                } catch(_) {}
+                const setMeta = (match && match.setMeta && typeof match.setMeta === 'object') ? match.setMeta : {};
+                const setStateBySet = (match && match.setStateBySet && typeof match.setStateBySet === 'object') ? match.setStateBySet : {};
+                const perSet = {};
+                Object.keys(normalized || {}).forEach((k) => {
+                    const v = normalized[k];
+                    if (Array.isArray(v)) perSet[k] = v;
+                    else if (v && typeof v === 'object') {
+                        const arr = [];
+                        const idx = Object.keys(v).filter(x => String(Number(x)) === x).map(Number).sort((a,b)=>a-b);
+                        if (idx.length) idx.forEach(i => { if (v[i] != null) arr.push(v[i]); });
+                        else Object.keys(v).forEach(key => { arr.push(v[key]); });
+                        perSet[k] = arr;
+                    }
+                });
+                const normalizeRotationCode = (value) => {
+                    const rawVal = String(value || '').trim();
+                    if (!rawVal) return '';
+                    const upper = rawVal.toUpperCase();
+                    if (upper.startsWith('P')) return upper;
+                    if (/^\d+$/.test(upper)) return `P${upper}`;
+                    return upper;
+                };
+                const rotationSeq = Array.isArray(window.rotationSequence) && window.rotationSequence.length
+                    ? window.rotationSequence.slice()
+                    : ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+                const rotateRotation = (current) => {
+                    const cur = normalizeRotationCode(current);
+                    if (!cur) return '';
+                    const idx = rotationSeq.indexOf(cur);
+                    if (idx < 0) return cur;
+                    return rotationSeq[(idx + 1) % rotationSeq.length];
+                };
+                const logs = [];
+                Object.keys(perSet || {})
+                    .sort((a,b)=>Number(a)-Number(b))
+                    .forEach((k) => {
+                        const setNum = Number(k);
+                        const arr = Array.isArray(perSet[k]) ? perSet[k] : [];
+                        const meta = setMeta && setMeta[setNum] ? setMeta[setNum] : {};
+                        const state = setStateBySet && setStateBySet[setNum] ? setStateBySet[setNum] : {};
+                        const setRotationRaw = meta.ourRotation || meta.rotation || state.currentRotation || '';
+                        const setPhaseRaw = meta.phase || state.currentPhase || '';
+                        let currentRotation = normalizeRotationCode(setRotationRaw);
+                        let currentPhase = String(setPhaseRaw || '').toLowerCase();
+                        if (!currentPhase) currentPhase = 'servizio';
+                        let rallyStartPhase = currentPhase;
+                        arr.forEach((entry) => {
+                            const actionString = (entry && typeof entry === 'object' && !Array.isArray(entry))
+                                ? entry.action
+                                : (typeof entry === 'string' ? entry : '');
+                            const calcRotation = currentRotation;
+                            const calcPhase = rallyStartPhase || currentPhase || '';
+                            if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+                                entry.__calcRotation = calcRotation;
+                                entry.__calcPhase = calcPhase;
+                                if (!entry.rotation && setRotationRaw) entry.__setRotation = setRotationRaw;
+                                if (!entry.phase && setPhaseRaw) entry.__setPhase = setPhaseRaw;
+                                logs.push(entry);
+                            } else if (typeof entry === 'string') {
+                                logs.push({
+                                    action: entry,
+                                    __setNumber: setNum,
+                                    __setRotation: setRotationRaw,
+                                    __setPhase: setPhaseRaw,
+                                    __calcRotation: calcRotation,
+                                    __calcPhase: calcPhase
+                                });
+                            }
+                            if (actionString && typeof parseAction === 'function') {
+                                let parsed;
+                                try { parsed = parseAction(actionString); } catch(_) { parsed = null; }
+                                const res = parsed && parsed.result ? parsed.result : '';
+                                if (res === 'home_point') {
+                                    if (rallyStartPhase === 'ricezione') {
+                                        currentRotation = rotateRotation(currentRotation);
+                                    }
+                                    currentPhase = 'servizio';
+                                    rallyStartPhase = currentPhase;
+                                } else if (res === 'away_point') {
+                                    currentPhase = 'ricezione';
+                                    rallyStartPhase = currentPhase;
+                                }
+                            }
+                        });
+                    });
+                if (!logs.length || typeof window.aggregateByPlayerAndFundamental !== 'function') return null;
+                const filteredLogs = logs.filter((entry) => {
+                    if (rotationFilters.length) {
+                        const rot = normalizeRotationCode(entry.__calcRotation || entry.rotation || entry.__setRotation || '');
+                        if (!rot || !rotationFilters.includes(rot)) return false;
+                    }
+                    if (phaseFilters.length) {
+                        const ph = String(entry.__calcPhase || entry.phase || entry.__setPhase || '').toLowerCase();
+                        if (!ph || !phaseFilters.includes(ph)) return false;
+                    }
+                    return true;
+                });
+                if (!filteredLogs.length) return null;
+                const agg = window.aggregateByPlayerAndFundamental(filteredLogs);
+                const players = {};
+                const fundamentalsAgg = {};
+                Object.keys(agg || {}).forEach(fund => {
+                    if (fundamentalFilters.length && !fundamentalFilters.includes(fund)) return;
+                    const bucket = agg[fund];
+                    if (!bucket) return;
+                    Object.entries(bucket).forEach(([key, data]) => {
+                        if (key === 'teamTotal') return;
+                        if (playerFiltersRaw.length) {
+                            const numKey = normalizePlayerNumberForKey(data.number || key);
+                            const nameKey = String(data.name || key || '').trim();
+                            const candidates = [];
+                            if (numKey) candidates.push(numKey);
+                            if (nameKey) candidates.push(nameKey);
+                            try {
+                                if (numKey) {
+                                    const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                                    const rp = rosterPlayers.find(rp => normalizePlayerNumberForKey(rp.number) === numKey);
+                                    if (rp) {
+                                        const disp = String(rp.nickname || rp.surname || rp.lastName || rp.name || rp.firstName || '').trim();
+                                        if (disp) candidates.push(`${numKey} ${disp}`.trim());
+                                    }
+                                }
+                            } catch(_) {}
+                            const includePlayer = playerFiltersRaw.some(v => candidates.includes(String(v)));
+                            if (!includePlayer) return;
+                        }
+                        const counts = data && data.counts ? data.counts : {};
+                        const c1 = Number(counts[1] || 0);
+                        const c2 = Number(counts[2] || 0);
+                        const c3 = Number(counts[3] || 0);
+                        const c4 = Number(counts[4] || 0);
+                        const c5 = Number(counts[5] || 0);
+                        const tot = c1 + c2 + c3 + c4 + c5;
+                        if (!tot) return;
+                        const sum = 1*c1 + 2*c2 + 3*c3 + 4*c4 + 5*c5;
+                        if (!players[key]) {
+                            players[key] = {
+                                number: data.number || '',
+                                name: data.name || key,
+                                sum: 0,
+                                tot: 0
+                            };
+                        }
+                        players[key].sum += sum;
+                        players[key].tot += tot;
+
+                        if (!fundamentalsAgg[fund]) {
+                            fundamentalsAgg[fund] = { sum: 0, tot: 0 };
+                        }
+                        fundamentalsAgg[fund].sum += sum;
+                        fundamentalsAgg[fund].tot += tot;
+                    });
+                });
+                const outPlayers = {};
+                Object.entries(players).forEach(([key, p]) => {
+                    const avg = p.tot ? (p.sum / p.tot) : 0;
+                    outPlayers[key] = {
+                        number: p.number || '',
+                        name: p.name || key,
+                        avg,
+                        sum: p.sum || 0,
+                        tot: p.tot || 0
+                    };
+                });
+                const outFundamentals = {};
+                Object.entries(fundamentalsAgg).forEach(([fund, data]) => {
+                    const avg = data.tot ? (data.sum / data.tot) : 0;
+                    outFundamentals[fund] = {
+                        name: fund,
+                        avg,
+                        sum: data.sum || 0,
+                        tot: data.tot || 0
+                    };
+                });
+                return {
+                    players: outPlayers,
+                    fundamentals: outFundamentals
+                };
+            } catch(_) {
+                return null;
+            }
+        }
+
+        function normalizePlayerNumberForKey(v) {
+            const raw = String(v ?? '').trim();
+            if (!raw) return '';
+            const num = Number(raw.replace(/\D/g, '') || '0');
+            return num ? String(num) : '';
+        }
+
+        function normalizePlayerRoleLabel(role) {
+            const s = String(role || '').trim().toUpperCase();
+            if (!s) return '';
+            if (s === 'P' || s.startsWith('PAL')) return 'Palleggiatore';
+            if (s === 'O' || s.startsWith('OPP')) return 'Opposto';
+            if (s === 'S' || s.startsWith('SCH')) return 'Schiacciatore';
+            if (s === 'C' || s.startsWith('CEN')) return 'Centrale';
+            if (s === 'L' || s.startsWith('LIB')) return 'Libero';
+            return s.charAt(0) === 'P' ? 'Palleggiatore' : s;
+        }
+
+        function getRosterForAnalysis() {
+            try {
+                const candidates = [];
+                if (Array.isArray(appState.currentRoster) && appState.currentRoster.length) {
+                    candidates.push(appState.currentRoster);
+                }
+                try {
+                    const sessRaw = localStorage.getItem('currentScoutingSession');
+                    const sess = sessRaw ? JSON.parse(sessRaw) : {};
+                    if (Array.isArray(sess.roster) && sess.roster.length) {
+                        candidates.push(sess.roster);
+                    }
+                } catch (_) {}
+                try {
+                    const selId = localStorage.getItem('selectedTeamId');
+                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    const team = selId ? storedTeams.find(t => String(t.id) === String(selId)) : null;
+                    const teamPlayers = Array.isArray(team?.players) ? team.players : [];
+                    if (teamPlayers.length) candidates.push(teamPlayers);
+                } catch (_) {}
+                const pick = (lists) => {
+                    let best = null;
+                    let bestScore = -1;
+                    lists.forEach(r => {
+                        const score = (r || []).reduce((acc, p) => {
+                            if (!p) return acc;
+                            const hasName = (p.name && String(p.name).trim()) || (p.surname && String(p.surname).trim()) || (p.firstName && String(p.firstName).trim()) || (p.lastName && String(p.lastName).trim());
+                            return acc + (hasName ? 1 : 0);
+                        }, 0);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            best = r;
+                        }
+                    });
+                    return Array.isArray(best) ? best : [];
+                };
+                const roster = pick(candidates);
+                const valid = (roster || []).filter(p => p && (p.number || p.surname || p.lastName || p.name || p.firstName || p.nickname));
+                return valid;
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function refreshTeamAnalysisRosterCache() {
+            const players = getRosterForAnalysis();
+            const roleByNumber = {};
+            (players || []).forEach((p) => {
+                const numKey = normalizePlayerNumberForKey(p.number);
+                if (!numKey) return;
+                const roleLabel = (p && p.role != null) ? String(p.role).trim() : '';
+                if (!roleLabel) return;
+                roleByNumber[numKey] = roleLabel;
+            });
+            teamAnalysisRosterCache = { players, roleByNumber };
+        }
+
+        function refreshTeamAnalysisFilterOptions() {
+            if (!teamAnalysisFilterPlayer || !teamAnalysisFilterRole || !teamAnalysisFilterFundamental || !teamAnalysisFilterRotation || !teamAnalysisFilterPhase || !teamAnalysisFilterValues || !teamAnalysisFilterMatches) {
+                return;
+            }
+            refreshTeamAnalysisRosterCache();
+            const players = teamAnalysisRosterCache.players || [];
+            const prevPlayers = Array.isArray(teamAnalysisFilters.players) ? teamAnalysisFilters.players.slice() : [];
+            const prevRoles = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.slice() : [];
+
+            while (teamAnalysisFilterPlayer.options.length > 1) {
+                teamAnalysisFilterPlayer.remove(1);
+            }
+            while (teamAnalysisFilterRole.options.length > 1) {
+                teamAnalysisFilterRole.remove(1);
+            }
+
+            const addedValues = new Set();
+            players.forEach((p) => {
+                const numKey = normalizePlayerNumberForKey(p.number);
+                const displayName = String(p.surname || p.lastName || p.name || p.firstName || p.nickname || '').trim();
+                const val = numKey || displayName;
+                if (!val || addedValues.has(val)) return;
+                addedValues.add(val);
+                const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : displayName;
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = label || val;
+                if (prevPlayers.includes(val)) opt.selected = true;
+                teamAnalysisFilterPlayer.appendChild(opt);
+            });
+
+            if (!prevPlayers.length) {
+                teamAnalysisFilterPlayer.value = 'all';
+            }
+
+            const roleSet = new Set();
+            players.forEach((p) => {
+                const roleLabel = (p && p.role != null) ? String(p.role).trim() : '';
+                if (!roleLabel) return;
+                roleSet.add(roleLabel);
+            });
+            roleSet.forEach((roleLabel) => {
+                const opt = document.createElement('option');
+                opt.value = roleLabel;
+                opt.textContent = roleLabel;
+                if (prevRoles.includes(roleLabel)) opt.selected = true;
+                teamAnalysisFilterRole.appendChild(opt);
+            });
+
+            if (!prevRoles.length) {
+                teamAnalysisFilterRole.value = 'all';
+            }
+        }
+
+        function applyTeamAnalysisViewportMode() {
+            if (!teamAnalysisLayout || !teamAnalysisViewportMode) return;
+            const mode = teamAnalysisViewportMode.value || 'auto';
+            teamAnalysisLayout.classList.remove(
+                'team-analysis-layout-auto',
+                'team-analysis-layout-phone-portrait',
+                'team-analysis-layout-phone-landscape',
+                'team-analysis-layout-tablet'
+            );
+            let cls = 'team-analysis-layout-auto';
+            if (mode === 'phone-portrait') cls = 'team-analysis-layout-phone-portrait';
+            else if (mode === 'phone-landscape') cls = 'team-analysis-layout-phone-landscape';
+            else if (mode === 'tablet') cls = 'team-analysis-layout-tablet';
+            teamAnalysisLayout.classList.add(cls);
+        }
+
+        function updateTeamAnalysisFiltersFromControls() {
+            if (!teamAnalysisFilterPlayer || !teamAnalysisFilterRole || !teamAnalysisFilterFundamental || !teamAnalysisFilterRotation || !teamAnalysisFilterPhase || !teamAnalysisFilterValues || !teamAnalysisFilterMatches) {
+                return;
+            }
+            const selPlayers = Array.from(teamAnalysisFilterPlayer.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selRoles = Array.from(teamAnalysisFilterRole.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selFunds = Array.from(teamAnalysisFilterFundamental.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selRots = Array.from(teamAnalysisFilterRotation.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selPhases = Array.from(teamAnalysisFilterPhase.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selValues = Array.from(teamAnalysisFilterValues.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selMatches = Array.from(teamAnalysisFilterMatches.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+
+            teamAnalysisFilters.players = selPlayers;
+            teamAnalysisFilters.roles = selRoles;
+            teamAnalysisFilters.fundamentals = selFunds;
+            teamAnalysisFilters.rotations = selRots;
+            teamAnalysisFilters.phases = selPhases;
+            teamAnalysisFilters.valueThresholds = selValues;
+            teamAnalysisFilters.matchesScopes = selMatches;
+        }
+
+        function setTeamAnalysisFilterSelection(filterName, mode) {
+            let el = null;
+            if (filterName === 'player') el = teamAnalysisFilterPlayer;
+            else if (filterName === 'role') el = teamAnalysisFilterRole;
+            else if (filterName === 'fundamental') el = teamAnalysisFilterFundamental;
+            else if (filterName === 'rotation') el = teamAnalysisFilterRotation;
+            else if (filterName === 'phase') el = teamAnalysisFilterPhase;
+            else if (filterName === 'values') el = teamAnalysisFilterValues;
+            else if (filterName === 'matches') el = teamAnalysisFilterMatches;
+            if (!el) return;
+            const opts = Array.from(el.options || []);
+            if (mode === 'all') {
+                opts.forEach(o => { o.selected = (o.value !== 'all'); });
+            } else {
+                opts.forEach(o => { o.selected = (o.value === 'all'); });
+            }
+            updateTeamAnalysisFiltersFromControls();
+            renderTeamAnalysisChart();
+        }
+
+        function setTeamAnalysisDataset(filterName) {
+            teamAnalysisFilters.dataset = filterName;
+            if (teamAnalysisFilterBoxes && teamAnalysisFilterBoxes.length) {
+                teamAnalysisFilterBoxes.forEach((box) => {
+                    const name = box.getAttribute('data-filter');
+                    if (name === filterName) box.classList.add('active');
+                    else box.classList.remove('active');
+                });
+            }
+            if (teamAnalysisDatasetCheckboxes && teamAnalysisDatasetCheckboxes.length) {
+                teamAnalysisDatasetCheckboxes.forEach((cb) => {
+                    const name = cb.getAttribute('data-filter');
+                    cb.checked = (name === filterName);
+                });
+            }
+        }
+
+        function buildTeamAnalysisData(matchesListForAnalysis) {
+            const allMatches = Array.isArray(matchesListForAnalysis) ? matchesListForAnalysis.slice() : [];
+            if (!allMatches.length) return { labels: [], series: {} };
+
+            allMatches.sort((a, b) => getMatchDateEpoch(a) - getMatchDateEpoch(b));
+
+            let relevant = allMatches;
+            const scopes = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes : [];
+            let effectiveScope = 'all';
+            if (scopes.length) {
+                if (scopes.includes('all')) {
+                    effectiveScope = 'all';
+                } else if (scopes.includes('last10')) {
+                    effectiveScope = 'last10';
+                } else if (scopes.includes('last5')) {
+                    effectiveScope = 'last5';
+                }
+            }
+            if (effectiveScope === 'last5' && allMatches.length > 5) {
+                relevant = allMatches.slice(-5);
+            } else if (effectiveScope === 'last10' && allMatches.length > 10) {
+                relevant = allMatches.slice(-10);
+            }
+
+            const labels = relevant.map((m) => {
+                const rawDate = m.date || m.matchDate || m.createdAt || '';
+                const dateLabel = formatItalianDateDisplay(rawDate) || '';
+                const opp = m.opponent || m.opponentTeam || ((m.homeTeam || m.awayTeam) ? ((m.homeTeam === (selectedTeam?.name || '')) ? m.awayTeam : m.homeTeam) : '');
+                const cleanOpp = String(opp || '').trim();
+                return cleanOpp ? `${dateLabel} • ${cleanOpp}` : dateLabel || 'Partita';
+            });
+
+            const series = {};
+            const dataset = teamAnalysisFilters.dataset || 'player';
+            const rolesFilter = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.slice() : [];
+            const rotationsFilter = Array.isArray(teamAnalysisFilters.rotations) ? teamAnalysisFilters.rotations.slice() : [];
+            const phasesFilter = Array.isArray(teamAnalysisFilters.phases) ? teamAnalysisFilters.phases.slice() : [];
+            const valueThresholds = Array.isArray(teamAnalysisFilters.valueThresholds) ? teamAnalysisFilters.valueThresholds.slice() : [];
+
+            function passesValueThreshold(avg) {
+                if (typeof avg !== 'number' || !isFinite(avg) || !valueThresholds.length) return true;
+                const thresholds = valueThresholds.map(v => {
+                    if (v === 'ge3') return 3;
+                    if (v === 'ge4') return 4;
+                    if (v === 'ge45') return 4.5;
+                    return 0;
+                }).filter(x => x > 0);
+                if (!thresholds.length) return true;
+                const minThreshold = Math.min(...thresholds);
+                return avg >= minThreshold;
+            }
+
+            function ensureSeries(key, label) {
+                if (!series[key]) {
+                    series[key] = { label, points: [] };
+                }
+            }
+
+            relevant.forEach((match, index) => {
+                if (dataset === 'player' || dataset === 'fundamental') {
+                    const metrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                    if (!metrics) return;
+                    const source =
+                        dataset === 'fundamental'
+                            ? (metrics.fundamentals || {})
+                            : (metrics.players || metrics || {});
+
+                    Object.entries(source).forEach(([key, p]) => {
+                        if (dataset === 'player' && Array.isArray(teamAnalysisFilters.players) && teamAnalysisFilters.players.length) {
+                            const numKey = p.number ? String(p.number) : '';
+                            const displayName = p.name || key;
+                            const matchVal = numKey || displayName;
+                            const selected = teamAnalysisFilters.players;
+                            if (!selected.includes(matchVal)) return;
+                        }
+
+                        if (dataset === 'player' && rolesFilter.length) {
+                            const numKey = p.number ? String(p.number) : '';
+                            const roleLabel = numKey ? (teamAnalysisRosterCache.roleByNumber[String(numKey)] || '') : '';
+                            if (!roleLabel || !rolesFilter.includes(String(roleLabel))) return;
+                        }
+
+                        if (!passesValueThreshold(p.avg)) return;
+
+                        if (!series[key]) {
+                            let label;
+                            if ((teamAnalysisFilters.dataset || 'player') === 'player') {
+                                const numKey = p.number ? String(p.number) : '';
+                                let displayName = '';
+                                try {
+                                    const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                                    const matchPlayer = rosterPlayers.find(rp => normalizePlayerNumberForKey(rp.number) === numKey);
+                                    if (matchPlayer) {
+                                        displayName = String(
+                                            matchPlayer.nickname ||
+                                            matchPlayer.surname ||
+                                            matchPlayer.lastName ||
+                                            matchPlayer.name ||
+                                            matchPlayer.firstName ||
+                                            ''
+                                        ).trim();
+                                    }
+                                } catch(_) {}
+                                if (!displayName) {
+                                    displayName = p.name || key;
+                                }
+                                label = numKey ? `${numKey} ${displayName}`.trim() : (displayName || numKey || key);
+                            } else {
+                                label = p.number ? `${p.number} ${p.name || ''}`.trim() : (p.name || key);
+                            }
+                            series[key] = { label, points: [] };
+                        }
+                        series[key].points.push({ x: index, y: p.avg });
+                    });
+                    return;
+                }
+
+                if (dataset === 'role') {
+                    const metrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                    if (!metrics || !metrics.players) return;
+                    const accByRole = {};
+                    Object.entries(metrics.players).forEach(([key, p]) => {
+                        const numKey = p.number ? normalizePlayerNumberForKey(p.number) : '';
+                        if (!numKey) return;
+                        const roleLabelRaw = teamAnalysisRosterCache.roleByNumber ? teamAnalysisRosterCache.roleByNumber[numKey] : undefined;
+                        const roleLabel = roleLabelRaw ? String(roleLabelRaw).trim() : '';
+                        if (!roleLabel) return;
+                        if (rolesFilter.length && !rolesFilter.includes(roleLabel)) return;
+                        if (!passesValueThreshold(p.avg)) return;
+                        if (!accByRole[roleLabel]) accByRole[roleLabel] = { sum: 0, tot: 0 };
+                        const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
+                        const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
+                        accByRole[roleLabel].sum += sum;
+                        accByRole[roleLabel].tot += tot;
+                    });
+                    Object.entries(accByRole).forEach(([role, agg]) => {
+                        if (!agg.tot) return;
+                        const avg = agg.sum / agg.tot;
+                        if (!isFinite(avg)) return;
+                        ensureSeries(role, role);
+                        series[role].points.push({ x: index, y: avg });
+                    });
+                    return;
+                }
+
+                if (dataset === 'rotation' || dataset === 'phase') {
+                    const isRotation = dataset === 'rotation';
+                    const keysArr = isRotation
+                        ? (rotationsFilter.length ? rotationsFilter : ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'])
+                        : (phasesFilter.length ? phasesFilter : ['servizio', 'ricezione']);
+
+                    keysArr.forEach((code) => {
+                        const filtersForCall = Object.assign({}, teamAnalysisFilters);
+                        if (isRotation) {
+                            filtersForCall.rotations = [code];
+                        } else {
+                            filtersForCall.phases = [code];
+                        }
+                        const metrics = computePlayerAveragesForMatch(match, filtersForCall);
+                        if (!metrics || !metrics.players) return;
+                        let sumAll = 0;
+                        let totAll = 0;
+                        Object.values(metrics.players).forEach((p) => {
+                            if (!passesValueThreshold(p.avg)) return;
+                            const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
+                            const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
+                            sumAll += sum;
+                            totAll += tot;
+                        });
+                        if (!totAll) return;
+                        const avgAll = sumAll / totAll;
+                        if (!isFinite(avgAll)) return;
+                        let key = String(code);
+                        let label = key;
+                        if (!isRotation) {
+                            const lower = key.toLowerCase();
+                            if (lower === 'servizio') label = 'Fase servizio';
+                            else if (lower === 'ricezione') label = 'Fase ricezione';
+                        }
+                        ensureSeries(key, label);
+                        series[key].points.push({ x: index, y: avgAll });
+                    });
+                    return;
+                }
+
+                const fallbackMetrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                if (!fallbackMetrics || !fallbackMetrics.players) return;
+                Object.entries(fallbackMetrics.players).forEach(([key, p]) => {
+                    if (!passesValueThreshold(p.avg)) return;
+                    ensureSeries(key, p.name || key);
+                    series[key].points.push({ x: index, y: p.avg });
+                });
+            });
+
+            return { labels, series };
+        }
+
+        function renderTeamAnalysisChart(matchesListForAnalysis) {
+            if (!teamAnalysisChart || !teamAnalysisChartEmpty || !teamAnalysisLegend) return;
+            const data = buildTeamAnalysisData(matchesListForAnalysis || getRelevantMatchesForSelectedTeam());
+            const labels = data.labels || [];
+            const series = data.series || {};
+            const keys = Object.keys(series).filter(k => Array.isArray(series[k].points) && series[k].points.length);
+            if (!labels.length || !keys.length) {
+                teamAnalysisChart.style.display = 'none';
+                teamAnalysisChart.innerHTML = '';
+                teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
+                teamAnalysisChartEmpty.style.display = 'block';
+                teamAnalysisLegend.innerHTML = '';
+                return;
+            }
+            let yMin = 5;
+            let yMax = 1;
+            keys.forEach((k) => {
+                series[k].points.forEach((p) => {
+                    if (typeof p.y !== 'number' || !isFinite(p.y)) return;
+                    yMin = Math.min(yMin, p.y);
+                    yMax = Math.max(yMax, p.y);
+                });
+            });
+            if (!isFinite(yMin) || !isFinite(yMax)) {
+                teamAnalysisChart.style.display = 'none';
+                teamAnalysisChart.innerHTML = '';
+                teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
+                teamAnalysisChartEmpty.style.display = 'block';
+                teamAnalysisLegend.innerHTML = '';
+                return;
+            }
+            const hardMin = 1;
+            const hardMax = 5;
+            const pad = 0.2;
+            yMin = Math.max(hardMin, yMin - pad);
+            yMax = Math.min(hardMax, yMax + pad);
+            if (yMax <= yMin) {
+                yMax = yMin + 1;
+            }
+            const width = 800;
+            const height = 320;
+            const paddingLeft = 60;
+            const paddingRight = 20;
+            const paddingTop = 20;
+            const paddingBottom = 70;
+            const innerWidth = width - paddingLeft - paddingRight;
+            const innerHeight = height - paddingTop - paddingBottom;
+            const xCount = labels.length;
+            const xStep = xCount > 1 ? innerWidth / (xCount - 1) : 0;
+            const xScale = (idx) => paddingLeft + (xCount <= 1 ? 0 : idx * xStep);
+            const yScale = (val) => {
+                const t = (val - yMin) / (yMax - yMin || 1);
+                return paddingTop + (1 - t) * innerHeight;
+            };
+            let svg = '';
+            const xAxisY = paddingTop + innerHeight;
+            svg += `<line x1="${paddingLeft}" y1="${xAxisY}" x2="${paddingLeft + innerWidth}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
+            svg += `<line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
+            const yTicksStart = Math.ceil(yMin);
+            const yTicksEnd = Math.floor(yMax);
+            for (let v = yTicksStart; v <= yTicksEnd; v++) {
+                const y = yScale(v);
+                svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
+                svg += `<text x="${paddingLeft - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(0)}</text>`;
+            }
+            if (xCount === 1) {
+                const x = xScale(0);
+                svg += `<line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${xAxisY}" stroke="#e5e7eb" stroke-width="1" />`;
+                svg += `<text x="${x}" y="${xAxisY + 18}" text-anchor="middle" font-size="9" fill="#64748b" transform="rotate(-35 ${x} ${xAxisY + 18})">${escapeHtml(labels[0])}</text>`;
+            } else {
+                labels.forEach((label, idx) => {
+                    const x = xScale(idx);
+                    svg += `<line x1="${x}" y1="${xAxisY}" x2="${x}" y2="${xAxisY + 4}" stroke="#94a3b8" stroke-width="1" />`;
+                    svg += `<text x="${x}" y="${xAxisY + 18}" text-anchor="middle" font-size="9" fill="#64748b" transform="rotate(-35 ${x} ${xAxisY + 18})">${escapeHtml(label)}</text>`;
+                });
+            }
+            const palette = ['#2563eb','#16a34a','#e11d48','#f97316','#0d9488','#7c3aed','#9333ea','#059669','#ea580c','#0f766e'];
+            keys.forEach((key, idx) => {
+                const color = palette[idx % palette.length];
+                const pts = series[key].points.slice().sort((a,b)=>a.x-b.x);
+                let d = '';
+                pts.forEach((p, i) => {
+                    const xx = xScale(p.x);
+                    const yy = yScale(p.y);
+                    d += (i === 0 ? `M${xx} ${yy}` : ` L${xx} ${yy}`);
+                });
+                if (d) {
+                    svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+                }
+                pts.forEach((p) => {
+                    const xx = xScale(p.x);
+                    const yy = yScale(p.y);
+                    svg += `<circle cx="${xx}" cy="${yy}" r="3" fill="${color}" stroke="#ffffff" stroke-width="1" />`;
+                });
+                series[key].color = color;
+            });
+            svg += `<text x="${paddingLeft + innerWidth / 2}" y="${height - 24}" text-anchor="middle" font-size="11" fill="#475569">Partite (in ordine cronologico)</text>`;
+            svg += `<text x="${18}" y="${paddingTop + innerHeight / 2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${paddingTop + innerHeight / 2})">Valutazione media 1–5</text>`;
+            teamAnalysisChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            teamAnalysisChart.innerHTML = svg;
+            teamAnalysisChart.style.display = 'block';
+            teamAnalysisChartEmpty.style.display = 'none';
+            teamAnalysisLegend.innerHTML = keys.map((key) => {
+                const s = series[key];
+                const color = s.color || '#64748b';
+                const label = escapeHtml(s.label || key);
+                return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span style="width:10px;height:10px;border-radius:999px;background:${color};"></span><span>${label}</span></span>`;
+            }).join('');
         }
 
         function hasStateDataForExport(st){
@@ -4533,39 +4404,108 @@
 
         
 
-        async function handleImportMatchClick(){
-            
-            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (("ontouchstart" in window) && (navigator.maxTouchPoints||0) > 0);
-            if (window.showOpenFilePicker && !isMobile){
-                try {
-                    const [handle] = await window.showOpenFilePicker({
-                        multiple: false,
-                        types: [{
-                            description: 'Excel',
-                            accept: {
-                                'application/vnd.ms-excel': ['.xls'],
-                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-                                'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm']
-                            }
-                        }]
-                    });
-                    const file = await handle.getFile();
-                    showImportStages(file && file.name);
-                    await importMatchFromExcelFile(file);
-                    return;
-                } catch(_){}
-            }
-            const inp = document.createElement('input');
-            inp.type = 'file';
-            inp.accept = '.xls,.xlsx,.xlsm';
-            inp.onchange = async (e) => {
-                const f = e.target.files && e.target.files[0];
-                if (f) { showImportStages(f && f.name); await importMatchFromExcelFile(f); }
-            };
-            inp.click();
+        function isExcelFileName(name){
+            return /\.(xls|xlsx|xlsm)$/i.test(String(name||''));
         }
 
-        async function importMatchFromExcelFile(file){
+        function setImportDialogFiles(fileList){
+            const files = Array.from(fileList || []).filter(f => isExcelFileName(f && f.name));
+            importCandidateFiles = files.map(f => ({ file: f, selected: true, label: f.webkitRelativePath || f.name || 'File' }));
+            renderImportFilesList();
+        }
+
+        function renderImportFilesList(){
+            if (!importFilesList) return;
+            importFilesList.innerHTML = '';
+            if (!importCandidateFiles.length){
+                importFilesList.innerHTML = '<div style="color:#64748b; font-size:13px;">Nessun file Excel trovato</div>';
+                updateImportSelectionSummary();
+                return;
+            }
+            importCandidateFiles.forEach((item) => {
+                const row = document.createElement('label');
+                row.className = 'import-file-row';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = !!item.selected;
+                checkbox.onchange = () => { item.selected = checkbox.checked; updateImportSelectionSummary(); };
+                const nameEl = document.createElement('div');
+                nameEl.className = 'import-file-name';
+                nameEl.textContent = item.label;
+                row.appendChild(checkbox);
+                row.appendChild(nameEl);
+                importFilesList.appendChild(row);
+            });
+            updateImportSelectionSummary();
+        }
+
+        function updateImportSelectionSummary(){
+            if (!importSelectionSummary) return;
+            const total = importCandidateFiles.length;
+            const selected = importCandidateFiles.filter(x => x.selected).length;
+            if (!total) importSelectionSummary.textContent = 'Nessun file selezionato';
+            else importSelectionSummary.textContent = 'Selezionati ' + selected + ' di ' + total + ' file';
+        }
+
+        function openImportMatchDialog(){
+            if (!importMatchDialog) return;
+            setImportDialogFiles([]);
+            if (!importMatchDialog.open) importMatchDialog.showModal();
+        }
+
+        function closeImportMatchDialog(){
+            if (!importMatchDialog) return;
+            if (importMatchDialog.open) importMatchDialog.close();
+        }
+
+        function getSelectedImportFiles(){
+            return importCandidateFiles.filter(x => x.selected).map(x => x.file);
+        }
+
+        async function handleImportDialogRun(){
+            const files = getSelectedImportFiles();
+            if (!files.length){
+                alert('Seleziona almeno un file da importare');
+                return;
+            }
+            closeImportMatchDialog();
+            await importMatchesFromFiles(files);
+        }
+
+        async function importMatchesFromFiles(files){
+            if (!files || !files.length) return;
+            const queue = [];
+            const failed = [];
+            for (const file of files){
+                try {
+                    showImportStages(file && file.name);
+                    const payload = await importMatchFromExcelFile(file, { deferRedirect: true });
+                    if (payload) queue.push(payload);
+                } catch(e){
+                    failed.push(file && file.name ? file.name : 'File');
+                }
+            }
+            if (!queue.length){
+                hideImportStages();
+                alert('Nessun file importabile');
+                return;
+            }
+            try {
+                sessionStorage.setItem('pendingImportQueue', JSON.stringify(queue));
+                sessionStorage.setItem('pendingImportIndex', '0');
+                sessionStorage.setItem('pendingImportMatch', JSON.stringify(queue[0]));
+            } catch(_){}
+            if (failed.length){
+                alert('Alcuni file non sono stati importati:\n' + failed.map(f => '• ' + f).join('\n'));
+            }
+            window.location.href = '/import-match.html';
+        }
+
+        async function handleImportMatchClick(){
+            openImportMatchDialog();
+        }
+
+        async function importMatchFromExcelFile(file, options = {}){
             try {
                 if (!selectedTeam){
                     alert('Seleziona una squadra prima di importare una partita');
@@ -4694,6 +4634,7 @@
                 };
                 try { if (file && file.name) match.excelFileName = String(file.name || ''); } catch (_) {}
                 const payload = { matchDraft: match, roster: importedRoster, sourceFileName: file.name || '' };
+                if (options && options.deferRedirect) return payload;
                 try { sessionStorage.setItem('pendingImportMatch', JSON.stringify(payload)); } catch(_){}
                 setImportStatus('is_s5','In corso');
                 setImportStageProgress('is_p5', 60);

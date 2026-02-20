@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "lint": "eslint . --ext .js,.html"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-html": "^8.1.1"
+  },
   "dependencies": {
     "serve": "^14.2.5",
     "xlsx": "^0.18.5"
