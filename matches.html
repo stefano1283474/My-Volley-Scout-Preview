@@ -47,12 +47,12 @@
         .logo-icon {
             width: 100%;       /* occupa tutta la card */
             max-width: 576px;  /* stessa dimensione del login/welcome */
-            height: 180px;     /* stessa altezza del login/welcome */
-            overflow: hidden;  /* ritaglia spazi vuoti/trasparenze */
+            height: auto;
+            overflow: visible;
             display: block;
             margin: 0 auto 0;  /* centrato, nessun padding extra */
         }
-        .logo-icon img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
+        .logo-icon img { width: 100%; height: auto; max-height: 180px; object-fit: contain; object-position: center; display: block; }
         .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
         .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
         .icon-button {
@@ -450,7 +450,7 @@
         <div class="header">
             <div class="logo">
                 <div class="logo-icon" aria-hidden="true">
-                    <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
+                    <img src="/c:/Users/STEFANO/Desktop/Progetti App/My-Volley-Scout/Immagini/Scritta con Pallone e campo.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./Immagini/Scritta con Pallone e campo.png';" />
                 </div>
             </div>
             <div class="back-actions">
@@ -555,18 +555,20 @@
                 Analisi delle prestazioni dei giocatori sulle partite del team selezionato.
             </div>
 
-            <!-- Barra controlli Analisi Team (viewport + filtri) -->
-            <div class="panel" style="margin-bottom:8px; padding:8px 10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between;">
-                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-                    <label for="teamAnalysisViewportMode" style="font-size:0.85rem; color:#475569; font-weight:600;">Vista dispositivo</label>
-                    <select id="teamAnalysisViewportMode" style="min-width:130px; font-size:0.85rem; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
-                        <option value="auto">Auto (schermo corrente)</option>
-                        <option value="phone-portrait">Smartphone verticale</option>
-                        <option value="phone-landscape">Smartphone orizzontale</option>
-                        <option value="tablet">Tablet</option>
-                    </select>
-                </div>
-                <div class="team-analysis-filters" style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;">
+            <div id="teamAnalysisViewportLayout" class="team-analysis-viewport">
+                <div class="panel team-analysis-panel" style="padding:8px 10px; display:flex; flex-direction:column; gap:8px;">
+                    <div class="team-analysis-controls">
+                        <div class="team-analysis-viewport-group">
+                            <span class="team-analysis-viewport-label">Vista dispositivo</span>
+                            <div class="team-analysis-viewport-buttons">
+                                <button type="button" class="team-analysis-viewport-btn" data-mode="phone-portrait">Smartphone verticale</button>
+                                <button type="button" class="team-analysis-viewport-btn" data-mode="phone-landscape">Smartphone orizzontale</button>
+                                <button type="button" class="team-analysis-viewport-btn" data-mode="tablet">Tablet</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisFiltersToggle">Filtri: On</button>
+                    </div>
+                    <div id="teamAnalysisFilters" class="team-analysis-filters" style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;">
                     <div class="team-analysis-filter-box" data-filter="player">
                         <div class="team-analysis-filter-header">
                             <span>Player</span>
@@ -661,9 +663,6 @@
                         </div>
                         <select id="teamAnalysisFilterValues" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
                             <option value="all">Tutti i valori</option>
-                            <option value="ge3">Media ≥ 3</option>
-                            <option value="ge4">Media ≥ 4</option>
-                            <option value="ge45">Media ≥ 4.5</option>
                         </select>
                     </div>
                     <div class="team-analysis-filter-box" data-filter="matches">
@@ -677,21 +676,20 @@
                         </div>
                         <select id="teamAnalysisFilterMatches" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
                             <option value="all">Tutte le partite</option>
-                            <option value="last5">Ultime 5</option>
-                            <option value="last10">Ultime 10</option>
                         </select>
                     </div>
-                </div>
-            </div>
-
-            <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
-                <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
-                    <div id="teamAnalysisChartEmpty" style="color:#64748b;">
-                        Seleziona una squadra con almeno una partita per vedere il grafico.
                     </div>
-                    <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
                 </div>
-                <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
+
+                <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
+                    <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
+                        <div id="teamAnalysisChartEmpty" style="color:#64748b;">
+                            Seleziona una squadra con almeno una partita per vedere il grafico.
+                        </div>
+                        <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
+                    </div>
+                    <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
+                </div>
             </div>
 
             <p class="section-hint" style="margin-top:6px; font-size:0.85rem; color:#64748b;">
@@ -806,6 +804,81 @@
             width: 100%;
         }
 
+        .team-analysis-viewport {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .team-analysis-viewport-landscape {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .team-analysis-panel {
+            flex: 0 0 auto;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-panel {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .team-analysis-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .team-analysis-viewport-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .team-analysis-viewport-label {
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .team-analysis-viewport-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .team-analysis-viewport-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        .team-analysis-viewport-btn.active {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #ffffff;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-filters {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-filter-box select {
+            min-width: 0;
+            width: 100%;
+        }
+
         .team-analysis-filter-box {
             display: flex;
             flex-direction: column;
@@ -856,6 +929,7 @@
         .team-analysis-chart-wrapper {
             min-height: 260px;
             overflow-x: auto;
+            padding: 6px;
         }
 
         .team-analysis-legend {
@@ -863,6 +937,13 @@
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
+            width: 100%;
+            order: 2;
+        }
+
+        .team-analysis-chart-wrapper {
+            width: 100%;
+            order: 1;
         }
 
         .team-analysis-layout-auto {
@@ -877,8 +958,8 @@
         .team-analysis-layout-phone-landscape {
             max-width: 820px;
             margin: 0 auto;
-            flex-direction: row;
-            align-items: flex-start;
+            flex-direction: column;
+            align-items: stretch;
         }
 
         .team-analysis-layout-tablet {
@@ -888,14 +969,14 @@
 
         @media (min-width: 900px) {
             .team-analysis-layout-auto {
-                flex-direction: row;
-                align-items: flex-start;
+                flex-direction: column;
+                align-items: stretch;
             }
             .team-analysis-layout-auto .team-analysis-chart-wrapper {
-                flex: 2 1 0;
+                flex: 1 1 auto;
             }
             .team-analysis-layout-auto .team-analysis-legend {
-                flex: 1 1 0;
+                flex: 0 0 auto;
             }
         }
     </style>
@@ -966,8 +1047,12 @@
         const teamAnalysisChart = document.getElementById('teamAnalysisChart');
         const teamAnalysisChartEmpty = document.getElementById('teamAnalysisChartEmpty');
         const teamAnalysisLegend = document.getElementById('teamAnalysisLegend');
+        const teamAnalysisViewportLayout = document.getElementById('teamAnalysisViewportLayout');
+        const teamAnalysisPanel = document.querySelector('.team-analysis-panel');
         const teamAnalysisLayout = document.getElementById('teamAnalysisLayout');
-        const teamAnalysisViewportMode = document.getElementById('teamAnalysisViewportMode');
+        const teamAnalysisViewportButtons = document.querySelectorAll('.team-analysis-viewport-btn');
+        const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
+        const teamAnalysisFiltersWrapper = document.getElementById('teamAnalysisFilters');
         const teamAnalysisFilterPlayer = document.getElementById('teamAnalysisFilterPlayer');
         const teamAnalysisFilterRole = document.getElementById('teamAnalysisFilterRole');
         const teamAnalysisFilterFundamental = document.getElementById('teamAnalysisFilterFundamental');
@@ -993,6 +1078,9 @@
             players: [],
             roleByNumber: {}
         };
+
+        let teamAnalysisViewportModeValue = 'tablet';
+        let teamAnalysisFiltersVisible = true;
 
         function readAppSettings() {
             try {
@@ -1937,11 +2025,24 @@
             const matchTypeSelect = document.getElementById('match-type');
             if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
 
-            if (teamAnalysisViewportMode && teamAnalysisLayout) {
-                teamAnalysisViewportMode.addEventListener('change', () => {
-                    applyTeamAnalysisViewportMode();
+            if (teamAnalysisViewportButtons && teamAnalysisViewportButtons.length) {
+                teamAnalysisViewportButtons.forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const mode = btn.getAttribute('data-mode');
+                        setTeamAnalysisViewportMode(mode);
+                    });
                 });
+                initTeamAnalysisViewportMode();
+            } else {
                 applyTeamAnalysisViewportMode();
+            }
+            if (teamAnalysisFiltersToggle) {
+                teamAnalysisFiltersToggle.addEventListener('click', () => {
+                    setTeamAnalysisFiltersVisible(!teamAnalysisFiltersVisible);
+                });
+                initTeamAnalysisFiltersToggle();
+            } else {
+                setTeamAnalysisFiltersVisible(true);
             }
             if (teamAnalysisFilterPlayer) teamAnalysisFilterPlayer.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterRole) teamAnalysisFilterRole.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
@@ -2468,6 +2569,59 @@
             } catch (_) {
                 return 0;
             }
+        }
+
+        function getTeamAnalysisMatchLabel(match) {
+            const rawDate = match.date || match.matchDate || match.createdAt || '';
+            const dateLabel = formatItalianDateDisplay(rawDate) || '';
+            const opp = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === (selectedTeam?.name || '')) ? match.awayTeam : match.homeTeam) : '');
+            const cleanOpp = String(opp || '').trim();
+            return cleanOpp ? `${dateLabel} • ${cleanOpp}` : dateLabel || 'Partita';
+        }
+
+        function getTeamAnalysisMatchKey(match, index) {
+            const rawId = match && (match.id ?? match.matchId ?? match.uid ?? match._id);
+            const id = rawId != null ? String(rawId).trim() : '';
+            if (id) return id;
+            const epoch = getMatchDateEpoch(match);
+            const opp = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === (selectedTeam?.name || '')) ? match.awayTeam : match.homeTeam) : '');
+            const cleanOpp = String(opp || '').trim();
+            return `${epoch || 0}|${cleanOpp || ''}|${index}`;
+        }
+
+        function collectTeamAnalysisLogsForMatch(match) {
+            const raw = match && match.actionsBySet ? match.actionsBySet : {};
+            if (!raw || typeof raw !== 'object') return [];
+            let normalized = raw;
+            try {
+                if (typeof window.__normalizePerSetCollections === 'function') {
+                    normalized = window.__normalizePerSetCollections(normalized || {});
+                }
+            } catch(_) {}
+            const perSet = {};
+            Object.keys(normalized || {}).forEach((k) => {
+                const v = normalized[k];
+                if (Array.isArray(v)) perSet[k] = v;
+                else if (v && typeof v === 'object') {
+                    const arr = [];
+                    const idx = Object.keys(v).filter(x => String(Number(x)) === x).map(Number).sort((a,b)=>a-b);
+                    if (idx.length) idx.forEach(i => { if (v[i] != null) arr.push(v[i]); });
+                    else Object.keys(v).forEach(key => { arr.push(v[key]); });
+                    perSet[k] = arr;
+                }
+            });
+            const logs = [];
+            Object.keys(perSet || {}).sort((a,b)=>Number(a)-Number(b)).forEach((k) => {
+                const arr = Array.isArray(perSet[k]) ? perSet[k] : [];
+                arr.forEach((entry) => {
+                    if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+                        logs.push(entry);
+                    } else if (typeof entry === 'string') {
+                        logs.push({ action: entry });
+                    }
+                });
+            });
+            return logs;
         }
 
         function renderMatches() {
@@ -3065,6 +3219,8 @@
             const players = teamAnalysisRosterCache.players || [];
             const prevPlayers = Array.isArray(teamAnalysisFilters.players) ? teamAnalysisFilters.players.slice() : [];
             const prevRoles = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.slice() : [];
+            const prevValues = Array.isArray(teamAnalysisFilters.valueThresholds) ? teamAnalysisFilters.valueThresholds.slice() : [];
+            const prevMatches = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes.slice() : [];
 
             while (teamAnalysisFilterPlayer.options.length > 1) {
                 teamAnalysisFilterPlayer.remove(1);
@@ -3109,22 +3265,139 @@
             if (!prevRoles.length) {
                 teamAnalysisFilterRole.value = 'all';
             }
+
+            while (teamAnalysisFilterValues.options.length > 1) {
+                teamAnalysisFilterValues.remove(1);
+            }
+            while (teamAnalysisFilterMatches.options.length > 1) {
+                teamAnalysisFilterMatches.remove(1);
+            }
+
+            const relevantMatches = getRelevantMatchesForSelectedTeam();
+            const sortedMatches = (relevantMatches || []).slice().sort((a, b) => getMatchDateEpoch(a) - getMatchDateEpoch(b));
+
+            const allLogs = [];
+            let selectedMatchesFound = false;
+            sortedMatches.forEach((match, index) => {
+                const key = getTeamAnalysisMatchKey(match, index);
+                const label = getTeamAnalysisMatchLabel(match);
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = label;
+                if (prevMatches.includes(key)) {
+                    opt.selected = true;
+                    selectedMatchesFound = true;
+                }
+                teamAnalysisFilterMatches.appendChild(opt);
+                const logs = collectTeamAnalysisLogsForMatch(match);
+                if (logs.length) allLogs.push(...logs);
+            });
+
+            const valueCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            if (allLogs.length && typeof window.aggregateByPlayerAndFundamental === 'function') {
+                const agg = window.aggregateByPlayerAndFundamental(allLogs);
+                Object.values(agg || {}).forEach((bucket) => {
+                    const totals = bucket && bucket.teamTotal ? bucket.teamTotal : {};
+                    [1,2,3,4,5].forEach((v) => {
+                        valueCounts[v] += Number(totals[v] || 0);
+                    });
+                });
+            }
+            const availableValues = [1,2,3,4,5].filter(v => valueCounts[v] > 0);
+            let selectedValuesFound = false;
+            availableValues.forEach((v) => {
+                const val = String(v);
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                if (prevValues.includes(val)) {
+                    opt.selected = true;
+                    selectedValuesFound = true;
+                }
+                teamAnalysisFilterValues.appendChild(opt);
+            });
+
+            if (!prevMatches.length || !selectedMatchesFound) {
+                teamAnalysisFilterMatches.value = 'all';
+            }
+            if (!prevValues.length || !selectedValuesFound) {
+                teamAnalysisFilterValues.value = 'all';
+            }
+        }
+
+        function syncTeamAnalysisViewportButtons() {
+            if (!teamAnalysisViewportButtons || !teamAnalysisViewportButtons.length) return;
+            teamAnalysisViewportButtons.forEach((btn) => {
+                const mode = btn.getAttribute('data-mode');
+                if (mode === teamAnalysisViewportModeValue) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
         }
 
         function applyTeamAnalysisViewportMode() {
-            if (!teamAnalysisLayout || !teamAnalysisViewportMode) return;
-            const mode = teamAnalysisViewportMode.value || 'auto';
+            if (!teamAnalysisLayout) return;
+            const mode = teamAnalysisViewportModeValue || 'tablet';
             teamAnalysisLayout.classList.remove(
                 'team-analysis-layout-auto',
                 'team-analysis-layout-phone-portrait',
                 'team-analysis-layout-phone-landscape',
                 'team-analysis-layout-tablet'
             );
-            let cls = 'team-analysis-layout-auto';
-            if (mode === 'phone-portrait') cls = 'team-analysis-layout-phone-portrait';
+            let cls = 'team-analysis-layout-tablet';
+            if (mode === 'auto') cls = 'team-analysis-layout-auto';
+            else if (mode === 'phone-portrait') cls = 'team-analysis-layout-phone-portrait';
             else if (mode === 'phone-landscape') cls = 'team-analysis-layout-phone-landscape';
             else if (mode === 'tablet') cls = 'team-analysis-layout-tablet';
             teamAnalysisLayout.classList.add(cls);
+            if (teamAnalysisViewportLayout) {
+                teamAnalysisViewportLayout.classList.toggle('team-analysis-viewport-landscape', mode === 'phone-landscape');
+            }
+        }
+
+        function setTeamAnalysisViewportMode(mode) {
+            if (!mode) return;
+            teamAnalysisViewportModeValue = mode;
+            syncTeamAnalysisViewportButtons();
+            applyTeamAnalysisViewportMode();
+            const settings = readAppSettings();
+            settings.teamAnalysisViewportMode = mode;
+            writeAppSettings(settings);
+        }
+
+        function initTeamAnalysisViewportMode() {
+            let initial = 'tablet';
+            const settings = readAppSettings();
+            if (settings.teamAnalysisViewportMode) {
+                initial = settings.teamAnalysisViewportMode === 'auto' ? 'tablet' : settings.teamAnalysisViewportMode;
+            } else {
+                const w = window.innerWidth || 0;
+                initial = w <= 600 ? 'phone-portrait' : 'tablet';
+            }
+            setTeamAnalysisViewportMode(initial);
+        }
+
+        function setTeamAnalysisFiltersVisible(isVisible) {
+            teamAnalysisFiltersVisible = isVisible !== false;
+            if (teamAnalysisFiltersWrapper) {
+                teamAnalysisFiltersWrapper.style.display = teamAnalysisFiltersVisible ? 'flex' : 'none';
+            }
+            if (teamAnalysisFiltersToggle) {
+                teamAnalysisFiltersToggle.textContent = teamAnalysisFiltersVisible ? 'Filtri: On' : 'Filtri: Off';
+                teamAnalysisFiltersToggle.setAttribute('aria-pressed', String(teamAnalysisFiltersVisible));
+            }
+            const settings = readAppSettings();
+            settings.teamAnalysisFiltersVisible = teamAnalysisFiltersVisible;
+            writeAppSettings(settings);
+        }
+
+        function initTeamAnalysisFiltersToggle() {
+            const settings = readAppSettings();
+            if (typeof settings.teamAnalysisFiltersVisible === 'boolean') {
+                teamAnalysisFiltersVisible = settings.teamAnalysisFiltersVisible;
+            } else {
+                teamAnalysisFiltersVisible = true;
+            }
+            setTeamAnalysisFiltersVisible(teamAnalysisFiltersVisible);
         }
 
         function updateTeamAnalysisFiltersFromControls() {
@@ -3192,30 +3465,12 @@
             allMatches.sort((a, b) => getMatchDateEpoch(a) - getMatchDateEpoch(b));
 
             let relevant = allMatches;
-            const scopes = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes : [];
-            let effectiveScope = 'all';
-            if (scopes.length) {
-                if (scopes.includes('all')) {
-                    effectiveScope = 'all';
-                } else if (scopes.includes('last10')) {
-                    effectiveScope = 'last10';
-                } else if (scopes.includes('last5')) {
-                    effectiveScope = 'last5';
-                }
-            }
-            if (effectiveScope === 'last5' && allMatches.length > 5) {
-                relevant = allMatches.slice(-5);
-            } else if (effectiveScope === 'last10' && allMatches.length > 10) {
-                relevant = allMatches.slice(-10);
+            const matchSelections = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes.slice() : [];
+            if (matchSelections.length && !matchSelections.includes('all')) {
+                relevant = allMatches.filter((match, index) => matchSelections.includes(getTeamAnalysisMatchKey(match, index)));
             }
 
-            const labels = relevant.map((m) => {
-                const rawDate = m.date || m.matchDate || m.createdAt || '';
-                const dateLabel = formatItalianDateDisplay(rawDate) || '';
-                const opp = m.opponent || m.opponentTeam || ((m.homeTeam || m.awayTeam) ? ((m.homeTeam === (selectedTeam?.name || '')) ? m.awayTeam : m.homeTeam) : '');
-                const cleanOpp = String(opp || '').trim();
-                return cleanOpp ? `${dateLabel} • ${cleanOpp}` : dateLabel || 'Partita';
-            });
+            const labels = relevant.map((m) => getTeamAnalysisMatchLabel(m));
 
             const series = {};
             const dataset = teamAnalysisFilters.dataset || 'player';
@@ -3223,18 +3478,13 @@
             const rotationsFilter = Array.isArray(teamAnalysisFilters.rotations) ? teamAnalysisFilters.rotations.slice() : [];
             const phasesFilter = Array.isArray(teamAnalysisFilters.phases) ? teamAnalysisFilters.phases.slice() : [];
             const valueThresholds = Array.isArray(teamAnalysisFilters.valueThresholds) ? teamAnalysisFilters.valueThresholds.slice() : [];
+            const valueSelections = valueThresholds.map(v => Number(v)).filter(v => v >= 1 && v <= 5);
 
             function passesValueThreshold(avg) {
-                if (typeof avg !== 'number' || !isFinite(avg) || !valueThresholds.length) return true;
-                const thresholds = valueThresholds.map(v => {
-                    if (v === 'ge3') return 3;
-                    if (v === 'ge4') return 4;
-                    if (v === 'ge45') return 4.5;
-                    return 0;
-                }).filter(x => x > 0);
-                if (!thresholds.length) return true;
-                const minThreshold = Math.min(...thresholds);
-                return avg >= minThreshold;
+                if (!valueSelections.length) return true;
+                if (typeof avg !== 'number' || !isFinite(avg)) return false;
+                const bucket = Math.min(5, Math.max(1, Math.round(avg)));
+                return valueSelections.includes(bucket);
             }
 
             function ensureSeries(key, label) {
