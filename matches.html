@@ -551,10 +551,6 @@
 
         <!-- Tab: Analisi Team -->
         <div id="teamAnalysisSection" class="matches-section tab-panel" style="display:none;">
-            <div class="section-hint" style="margin:8px 0 12px 0;">
-                Analisi delle prestazioni dei giocatori sulle partite del team selezionato.
-            </div>
-
             <div id="teamAnalysisViewportLayout" class="team-analysis-viewport">
                 <div class="panel team-analysis-panel" style="padding:8px 10px; display:flex; flex-direction:column; gap:8px;">
                     <div class="team-analysis-controls">
@@ -568,7 +564,20 @@
                         </div>
                         <button type="button" class="btn btn-secondary" id="teamAnalysisFiltersToggle">Filtri: On</button>
                     </div>
-                    <div id="teamAnalysisFilters" class="team-analysis-filters" style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;">
+                </div>
+
+                <div id="teamAnalysisContent" class="team-analysis-content">
+                    <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
+                        <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
+                            <div id="teamAnalysisChartEmpty" style="color:#64748b;">
+                                Seleziona una squadra con almeno una partita per vedere il grafico.
+                            </div>
+                            <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
+                        </div>
+                        <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
+                    </div>
+
+                    <div id="teamAnalysisFilters" class="team-analysis-filters" style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
                     <div class="team-analysis-filter-box" data-filter="player">
                         <div class="team-analysis-filter-header">
                             <span>Player</span>
@@ -679,16 +688,6 @@
                         </select>
                     </div>
                     </div>
-                </div>
-
-                <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
-                    <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
-                        <div id="teamAnalysisChartEmpty" style="color:#64748b;">
-                            Seleziona una squadra con almeno una partita per vedere il grafico.
-                        </div>
-                        <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
-                    </div>
-                    <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
                 </div>
             </div>
 
@@ -808,6 +807,23 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+        }
+
+        .team-analysis-content {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .team-analysis-content .team-analysis-layout {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .team-analysis-content .team-analysis-filters {
+            flex: 0 0 280px;
+            max-width: 320px;
         }
 
         .team-analysis-viewport-landscape {
@@ -1053,6 +1069,7 @@
         const teamAnalysisLegend = document.getElementById('teamAnalysisLegend');
         const teamAnalysisViewportLayout = document.getElementById('teamAnalysisViewportLayout');
         const teamAnalysisPanel = document.querySelector('.team-analysis-panel');
+        const teamAnalysisContent = document.getElementById('teamAnalysisContent');
         const teamAnalysisLayout = document.getElementById('teamAnalysisLayout');
         const teamAnalysisViewportButtons = document.querySelectorAll('.team-analysis-viewport-btn');
         const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
@@ -2580,7 +2597,10 @@
             const dateLabel = formatItalianDateDisplay(rawDate) || '';
             const opp = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === (selectedTeam?.name || '')) ? match.awayTeam : match.homeTeam) : '');
             const cleanOpp = String(opp || '').trim();
-            return cleanOpp ? `${dateLabel} • ${cleanOpp}` : dateLabel || 'Partita';
+            if (cleanOpp) {
+                return dateLabel ? `${cleanOpp} • ${dateLabel}` : cleanOpp;
+            }
+            return dateLabel || 'Partita';
         }
 
         function getTeamAnalysisMatchKey(match, index) {
@@ -3385,6 +3405,9 @@
             if (teamAnalysisFiltersWrapper) {
                 teamAnalysisFiltersWrapper.style.display = teamAnalysisFiltersVisible ? 'flex' : 'none';
             }
+            if (teamAnalysisContent) {
+                teamAnalysisContent.classList.toggle('has-filters', teamAnalysisFiltersVisible);
+            }
             if (teamAnalysisFiltersToggle) {
                 teamAnalysisFiltersToggle.textContent = teamAnalysisFiltersVisible ? 'Filtri: On' : 'Filtri: Off';
                 teamAnalysisFiltersToggle.setAttribute('aria-pressed', String(teamAnalysisFiltersVisible));
@@ -3732,7 +3755,6 @@
                 });
                 series[key].color = color;
             });
-            svg += `<text x="${paddingLeft + innerWidth / 2}" y="${height - 24}" text-anchor="middle" font-size="11" fill="#475569">Partite (in ordine cronologico)</text>`;
             svg += `<text x="${18}" y="${paddingTop + innerHeight / 2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${paddingTop + innerHeight / 2})">Valutazione media 1–5</text>`;
             teamAnalysisChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
             teamAnalysisChart.innerHTML = svg;
