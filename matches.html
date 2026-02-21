@@ -552,14 +552,12 @@
         <!-- Tab: Analisi Team -->
         <div id="teamAnalysisSection" class="matches-section tab-panel" style="display:none;">
             <div id="teamAnalysisViewportLayout" class="team-analysis-viewport">
-                <div class="panel team-analysis-panel" style="padding:8px 10px; display:flex; flex-direction:column; gap:8px;">
+                <div class="panel team-analysis-panel" style="padding:4px 5px; display:flex; flex-direction:column; gap:8px;">
                     <div class="team-analysis-controls">
                         <div class="team-analysis-viewport-group">
-                            <span class="team-analysis-viewport-label">Vista dispositivo</span>
                             <div class="team-analysis-viewport-buttons">
-                                <button type="button" class="team-analysis-viewport-btn" data-mode="phone-portrait">Smartphone verticale</button>
-                                <button type="button" class="team-analysis-viewport-btn" data-mode="phone-landscape">Smartphone orizzontale</button>
-                                <button type="button" class="team-analysis-viewport-btn" data-mode="tablet">Tablet</button>
+                                <button type="button" class="btn btn-secondary" id="teamAnalysisDeviceToggle">Phone</button>
+                                <button type="button" class="btn btn-secondary" id="teamAnalysisOrientationToggle">Vert.</button>
                             </div>
                         </div>
                         <button type="button" class="btn btn-secondary" id="teamAnalysisFiltersToggle">Filtri: On</button>
@@ -567,6 +565,11 @@
                 </div>
 
                 <div id="teamAnalysisContent" class="team-analysis-content">
+                    <div id="teamAnalysisRotator" class="team-analysis-rotator">
+                    <div id="teamAnalysisSelector" class="team-analysis-selector">
+                        <div id="teamAnalysisSelectorTabs" class="team-analysis-selector-tabs"></div>
+                        <div id="teamAnalysisSelectorList" class="team-analysis-selector-list"></div>
+                    </div>
                     <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
                         <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
                             <div id="teamAnalysisChartEmpty" style="color:#64748b;">
@@ -686,6 +689,7 @@
                         <select id="teamAnalysisFilterMatches" multiple style="min-width:120px; font-size:0.80rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
                             <option value="all">Tutte le partite</option>
                         </select>
+                    </div>
                     </div>
                     </div>
                 </div>
@@ -810,10 +814,17 @@
         }
 
         .team-analysis-content {
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .team-analysis-rotator {
             display: flex;
             gap: 8px;
             align-items: stretch;
             width: 100%;
+            overflow: auto;
         }
 
         .team-analysis-content .team-analysis-layout {
@@ -829,10 +840,179 @@
         .team-analysis-viewport-landscape {
             flex-direction: column;
             align-items: stretch;
-            width: 100vh;
-            height: 100vw;
-            transform: rotate(90deg) translateY(-100%);
-            transform-origin: top left;
+            width: 100%;
+            height: auto;
+            transform: none;
+            transform-origin: initial;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-content {
+            height: auto;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-rotator {
+            width: 100%;
+            height: auto;
+            transform: none;
+            transform-origin: initial;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape {
+            flex-direction: row;
+            align-items: stretch;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector {
+            display: flex;
+            order: 0;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-layout {
+            flex-direction: row;
+            align-items: stretch;
+            flex: 1 1 auto;
+            order: 1;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-chart-wrapper {
+            flex: 1 1 auto;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-legend {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            margin-top: 0;
+            align-content: flex-start;
+            align-items: flex-start;
+            width: max-content;
+            max-width: 220px;
+            overflow: auto;
+            order: 2;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-legend-item {
+            justify-content: flex-start;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-filters {
+            flex: 0 0 240px;
+            max-width: 260px;
+            align-self: stretch;
+            order: 3;
+        }
+
+        .team-analysis-selector {
+            display: none;
+            flex: 0 0 auto;
+            width: calc(8ch + 24px);
+            max-width: calc(8ch + 24px);
+            min-width: calc(8ch + 24px);
+            gap: 6px;
+            flex-direction: column;
+            align-items: flex-start;
+            overflow: auto;
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+        }
+
+        .team-analysis-selector-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .team-analysis-selector-tab {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+        }
+
+        .team-analysis-selector-tab.active {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #ffffff;
+        }
+
+        .team-analysis-selector-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .team-analysis-selector-item {
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.78rem;
+            padding: 4px 6px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #334155;
+            width: 8ch;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-analysis-selector-item.active {
+            border-color: #0d6efd;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+            color: #0f172a;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-selector {
+            display: flex;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-layout {
+            flex-direction: row;
+            align-items: stretch;
+            width: auto;
+            flex: 1 1 auto;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-chart-wrapper {
+            flex: 1 1 auto;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-legend {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            margin-top: 0;
+            align-content: flex-start;
+            align-items: flex-start;
+            width: max-content;
+            max-width: 220px;
+            overflow: auto;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-legend-item {
+            justify-content: flex-start;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-analysis-viewport-landscape .team-analysis-filters {
+            flex: 0 0 240px;
+            max-width: 260px;
+            align-self: stretch;
         }
 
         .team-analysis-panel {
@@ -850,6 +1030,7 @@
             gap: 8px;
             align-items: center;
             justify-content: space-between;
+            padding: 4px 6px;
         }
 
         .team-analysis-viewport-group {
@@ -867,7 +1048,7 @@
 
         .team-analysis-viewport-buttons {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
             align-items: center;
         }
@@ -948,8 +1129,10 @@
 
         .team-analysis-chart-wrapper {
             min-height: 260px;
-            overflow-x: auto;
+            overflow: auto;
             padding: 6px;
+            resize: both;
+            min-width: 240px;
         }
 
         .team-analysis-legend {
@@ -986,9 +1169,9 @@
         }
 
         .team-analysis-layout-phone-landscape {
-            max-width: 820px;
-            margin: 0 auto;
-            flex-direction: column;
+            max-width: none;
+            margin: 0;
+            flex-direction: row;
             align-items: stretch;
         }
 
@@ -1077,14 +1260,20 @@
         const teamAnalysisChart = document.getElementById('teamAnalysisChart');
         const teamAnalysisChartEmpty = document.getElementById('teamAnalysisChartEmpty');
         const teamAnalysisLegend = document.getElementById('teamAnalysisLegend');
+        const teamAnalysisSelector = document.getElementById('teamAnalysisSelector');
+        const teamAnalysisSelectorTabs = document.getElementById('teamAnalysisSelectorTabs');
+        const teamAnalysisSelectorList = document.getElementById('teamAnalysisSelectorList');
+        const teamAnalysisRotator = document.getElementById('teamAnalysisRotator');
         const teamAnalysisViewportLayout = document.getElementById('teamAnalysisViewportLayout');
         const teamAnalysisPanel = document.querySelector('.team-analysis-panel');
         const teamAnalysisContent = document.getElementById('teamAnalysisContent');
         const teamAnalysisLayout = document.getElementById('teamAnalysisLayout');
-        const teamAnalysisViewportButtons = document.querySelectorAll('.team-analysis-viewport-btn');
+        const teamAnalysisDeviceToggle = document.getElementById('teamAnalysisDeviceToggle');
+        const teamAnalysisOrientationToggle = document.getElementById('teamAnalysisOrientationToggle');
         const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
         const teamAnalysisFiltersWrapper = document.getElementById('teamAnalysisFilters');
         let teamAnalysisLegendFocusKey = null;
+        let teamAnalysisSelectorMode = 'player';
         let teamAnalysisLastMatches = null;
         let teamAnalysisLegendClearBound = false;
         const teamAnalysisFilterPlayer = document.getElementById('teamAnalysisFilterPlayer');
@@ -1113,7 +1302,9 @@
             roleByNumber: {}
         };
 
-        let teamAnalysisViewportModeValue = 'tablet';
+        let teamAnalysisViewportModeValue = 'tablet-portrait';
+        let teamAnalysisViewportDeviceType = 'phone';
+        let teamAnalysisViewportOrientation = 'portrait';
         let teamAnalysisFiltersVisible = true;
 
         function readAppSettings() {
@@ -2059,13 +2250,19 @@
             const matchTypeSelect = document.getElementById('match-type');
             if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
 
-            if (teamAnalysisViewportButtons && teamAnalysisViewportButtons.length) {
-                teamAnalysisViewportButtons.forEach((btn) => {
-                    btn.addEventListener('click', () => {
-                        const mode = btn.getAttribute('data-mode');
-                        setTeamAnalysisViewportMode(mode);
+            if (teamAnalysisDeviceToggle || teamAnalysisOrientationToggle) {
+                if (teamAnalysisDeviceToggle) {
+                    teamAnalysisDeviceToggle.addEventListener('click', () => {
+                        const next = teamAnalysisViewportDeviceType === 'phone' ? 'tablet' : 'phone';
+                        setTeamAnalysisViewportState(next, teamAnalysisViewportOrientation);
                     });
-                });
+                }
+                if (teamAnalysisOrientationToggle) {
+                    teamAnalysisOrientationToggle.addEventListener('click', () => {
+                        const next = teamAnalysisViewportOrientation === 'landscape' ? 'portrait' : 'landscape';
+                        setTeamAnalysisViewportState(teamAnalysisViewportDeviceType, next);
+                    });
+                }
                 initTeamAnalysisViewportMode();
             } else {
                 applyTeamAnalysisViewportMode();
@@ -3362,18 +3559,33 @@
             }
         }
 
-        function syncTeamAnalysisViewportButtons() {
-            if (!teamAnalysisViewportButtons || !teamAnalysisViewportButtons.length) return;
-            teamAnalysisViewportButtons.forEach((btn) => {
-                const mode = btn.getAttribute('data-mode');
-                if (mode === teamAnalysisViewportModeValue) btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
+        function normalizeTeamAnalysisViewportMode(mode) {
+            if (!mode) return 'tablet-portrait';
+            if (mode === 'tablet') return 'tablet-portrait';
+            if (mode === 'auto') return 'tablet-portrait';
+            const allowed = new Set(['phone-portrait', 'phone-landscape', 'tablet-portrait', 'tablet-landscape']);
+            if (allowed.has(mode)) return mode;
+            return 'tablet-portrait';
+        }
+
+        function syncTeamAnalysisViewportToggles() {
+            if (teamAnalysisDeviceToggle) {
+                const isPhone = teamAnalysisViewportDeviceType === 'phone';
+                teamAnalysisDeviceToggle.textContent = isPhone ? 'Phone' : 'Tablet';
+                teamAnalysisDeviceToggle.setAttribute('aria-pressed', String(!isPhone));
+            }
+            if (teamAnalysisOrientationToggle) {
+                const isLandscape = teamAnalysisViewportOrientation === 'landscape';
+                teamAnalysisOrientationToggle.textContent = isLandscape ? 'Orizz.' : 'Vert.';
+                teamAnalysisOrientationToggle.setAttribute('aria-pressed', String(isLandscape));
+            }
         }
 
         function applyTeamAnalysisViewportMode() {
             if (!teamAnalysisLayout) return;
-            const mode = teamAnalysisViewportModeValue || 'tablet';
+            const mode = normalizeTeamAnalysisViewportMode(teamAnalysisViewportModeValue);
+            const isLandscape = mode.endsWith('landscape');
+            const isPhone = mode.startsWith('phone');
             teamAnalysisLayout.classList.remove(
                 'team-analysis-layout-auto',
                 'team-analysis-layout-phone-portrait',
@@ -3381,34 +3593,48 @@
                 'team-analysis-layout-tablet'
             );
             let cls = 'team-analysis-layout-tablet';
-            if (mode === 'auto') cls = 'team-analysis-layout-auto';
-            else if (mode === 'phone-portrait') cls = 'team-analysis-layout-phone-portrait';
-            else if (mode === 'phone-landscape') cls = 'team-analysis-layout-phone-landscape';
-            else if (mode === 'tablet') cls = 'team-analysis-layout-tablet';
+            if (isPhone && isLandscape) cls = 'team-analysis-layout-phone-landscape';
+            else if (isPhone) cls = 'team-analysis-layout-phone-portrait';
             teamAnalysisLayout.classList.add(cls);
             if (teamAnalysisViewportLayout) {
-                teamAnalysisViewportLayout.classList.toggle('team-analysis-viewport-landscape', mode === 'phone-landscape');
+                teamAnalysisViewportLayout.classList.toggle('team-analysis-viewport-landscape', isLandscape);
             }
+            if (teamAnalysisRotator) {
+                teamAnalysisRotator.classList.toggle('team-analysis-mode-landscape', isLandscape);
+                teamAnalysisRotator.style.flexDirection = isLandscape ? 'row' : 'column';
+            }
+            teamAnalysisLayout.style.flexDirection = isLandscape ? 'row' : 'column';
         }
 
         function setTeamAnalysisViewportMode(mode) {
-            if (!mode) return;
-            teamAnalysisViewportModeValue = mode;
-            syncTeamAnalysisViewportButtons();
+            const normalized = normalizeTeamAnalysisViewportMode(mode);
+            teamAnalysisViewportModeValue = normalized;
+            teamAnalysisViewportDeviceType = normalized.startsWith('phone') ? 'phone' : 'tablet';
+            teamAnalysisViewportOrientation = normalized.endsWith('landscape') ? 'landscape' : 'portrait';
+            syncTeamAnalysisViewportToggles();
             applyTeamAnalysisViewportMode();
             const settings = readAppSettings();
-            settings.teamAnalysisViewportMode = mode;
+            settings.teamAnalysisViewportMode = normalized;
             writeAppSettings(settings);
         }
 
+        function setTeamAnalysisViewportState(deviceType, orientation) {
+            const device = deviceType === 'tablet' ? 'tablet' : 'phone';
+            const orient = orientation === 'landscape' ? 'landscape' : 'portrait';
+            const mode = device === 'phone'
+                ? (orient === 'landscape' ? 'phone-landscape' : 'phone-portrait')
+                : (orient === 'landscape' ? 'tablet-landscape' : 'tablet-portrait');
+            setTeamAnalysisViewportMode(mode);
+        }
+
         function initTeamAnalysisViewportMode() {
-            let initial = 'tablet';
+            let initial = 'tablet-portrait';
             const settings = readAppSettings();
             if (settings.teamAnalysisViewportMode) {
-                initial = settings.teamAnalysisViewportMode === 'auto' ? 'tablet' : settings.teamAnalysisViewportMode;
+                initial = normalizeTeamAnalysisViewportMode(settings.teamAnalysisViewportMode);
             } else {
                 const w = window.innerWidth || 0;
-                initial = w <= 600 ? 'phone-portrait' : 'tablet';
+                initial = w <= 600 ? 'phone-portrait' : 'tablet-portrait';
             }
             setTeamAnalysisViewportMode(initial);
         }
@@ -3483,6 +3709,9 @@
 
         function setTeamAnalysisDataset(filterName) {
             teamAnalysisFilters.dataset = filterName;
+            if (['player','role','fundamental','rotation','phase'].includes(filterName)) {
+                teamAnalysisSelectorMode = filterName;
+            }
             if (teamAnalysisFilterBoxes && teamAnalysisFilterBoxes.length) {
                 teamAnalysisFilterBoxes.forEach((box) => {
                     const name = box.getAttribute('data-filter');
@@ -3672,6 +3901,110 @@
             return { labels, series };
         }
 
+        function extractLeadingNumber(value) {
+            const s = String(value || '').trim();
+            if (!s) return '';
+            const m = s.match(/^(\d{1,2})\b/);
+            if (!m) return '';
+            return String(Number(m[1] || 0) || '');
+        }
+
+        function bindTeamAnalysisFocusPress(el, key) {
+            if (!el || !key) return;
+            let pressTimer = null;
+            const clearTimer = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+            const onPress = () => {
+                clearTimer();
+                pressTimer = setTimeout(() => {
+                    teamAnalysisLegendFocusKey = key;
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                }, 420);
+            };
+            const onRelease = () => {
+                clearTimer();
+                if (teamAnalysisLegendFocusKey === key) {
+                    teamAnalysisLegendFocusKey = null;
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                }
+            };
+            el.addEventListener('pointerdown', onPress);
+            el.addEventListener('pointerup', onRelease);
+            el.addEventListener('pointerleave', onRelease);
+            el.addEventListener('pointercancel', onRelease);
+        }
+
+        function getTeamAnalysisSelectorCategories() {
+            return [
+                { key: 'player', label: 'Player', select: teamAnalysisFilterPlayer },
+                { key: 'role', label: 'Ruolo', select: teamAnalysisFilterRole },
+                { key: 'fundamental', label: 'Fondam.', select: teamAnalysisFilterFundamental },
+                { key: 'rotation', label: 'Rotazione', select: teamAnalysisFilterRotation },
+                { key: 'phase', label: 'Fase', select: teamAnalysisFilterPhase }
+            ].filter(item => item.select);
+        }
+
+        function renderTeamAnalysisSelector(keys, series, activeFocusKey) {
+            if (!teamAnalysisSelectorTabs || !teamAnalysisSelectorList) return;
+            const categories = getTeamAnalysisSelectorCategories();
+            if (!categories.length) {
+                teamAnalysisSelectorTabs.innerHTML = '';
+                teamAnalysisSelectorList.innerHTML = '';
+                return;
+            }
+            const validKeys = new Set(categories.map(c => c.key));
+            if (!validKeys.has(teamAnalysisSelectorMode)) {
+                const fallback = teamAnalysisFilters.dataset || categories[0].key;
+                teamAnalysisSelectorMode = validKeys.has(fallback) ? fallback : categories[0].key;
+            }
+            const seriesKeyByLabel = new Map();
+            const seriesKeyByNumber = new Map();
+            keys.forEach((key) => {
+                const entry = series[key];
+                const label = entry && entry.label ? String(entry.label).trim().toLowerCase() : '';
+                if (label) seriesKeyByLabel.set(label, key);
+                const numKey = extractLeadingNumber(entry && entry.label ? entry.label : key);
+                if (numKey) seriesKeyByNumber.set(numKey, key);
+            });
+            teamAnalysisSelectorTabs.innerHTML = '';
+            categories.forEach((cat) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'team-analysis-selector-tab' + (cat.key === teamAnalysisSelectorMode ? ' active' : '');
+                btn.textContent = cat.label;
+                btn.addEventListener('click', () => {
+                    if (teamAnalysisSelectorMode === cat.key) return;
+                    teamAnalysisSelectorMode = cat.key;
+                    setTeamAnalysisDataset(cat.key);
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                });
+                teamAnalysisSelectorTabs.appendChild(btn);
+            });
+            teamAnalysisSelectorList.innerHTML = '';
+            const current = categories.find(c => c.key === teamAnalysisSelectorMode) || categories[0];
+            const options = Array.from(current.select.options || []).filter(o => o && o.value !== 'all');
+            options.forEach((opt) => {
+                const label = String(opt.textContent || opt.value || '').trim();
+                if (!label) return;
+                const lower = label.toLowerCase();
+                const valueLower = String(opt.value || '').trim().toLowerCase();
+                let key = seriesKeyByLabel.get(lower) || seriesKeyByLabel.get(valueLower);
+                if (!key) {
+                    const num = extractLeadingNumber(label) || extractLeadingNumber(opt.value);
+                    if (num && seriesKeyByNumber.has(num)) key = seriesKeyByNumber.get(num);
+                }
+                if (!key && series[opt.value]) key = opt.value;
+                const item = document.createElement('div');
+                item.className = 'team-analysis-selector-item' + (key && key === activeFocusKey ? ' active' : '');
+                item.textContent = label;
+                if (key) {
+                    item.setAttribute('data-key', key);
+                    item.title = 'Tieni premuto per confronto con media squadra';
+                    bindTeamAnalysisFocusPress(item, key);
+                }
+                teamAnalysisSelectorList.appendChild(item);
+            });
+        }
+
         function renderTeamAnalysisChart(matchesListForAnalysis) {
             if (!teamAnalysisChart || !teamAnalysisChartEmpty || !teamAnalysisLegend) return;
             const sourceMatches = matchesListForAnalysis || getRelevantMatchesForSelectedTeam();
@@ -3686,6 +4019,8 @@
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
                 teamAnalysisLegend.innerHTML = '';
+                if (teamAnalysisSelectorTabs) teamAnalysisSelectorTabs.innerHTML = '';
+                if (teamAnalysisSelectorList) teamAnalysisSelectorList.innerHTML = '';
                 return;
             }
             const activeFocusKey = teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey] ? teamAnalysisLegendFocusKey : null;
@@ -3715,6 +4050,8 @@
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
                 teamAnalysisLegend.innerHTML = '';
+                if (teamAnalysisSelectorTabs) teamAnalysisSelectorTabs.innerHTML = '';
+                if (teamAnalysisSelectorList) teamAnalysisSelectorList.innerHTML = '';
                 return;
             }
             const hardMin = 1;
@@ -3829,28 +4166,10 @@
                 Array.from(teamAnalysisLegend.children).forEach((el) => {
                     const key = el.getAttribute('data-key');
                     if (!key) return;
-                    let pressTimer = null;
-                    const clearTimer = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
-                    const onPress = () => {
-                        clearTimer();
-                        pressTimer = setTimeout(() => {
-                            teamAnalysisLegendFocusKey = key;
-                            renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
-                        }, 420);
-                    };
-                    const onRelease = () => {
-                        clearTimer();
-                        if (teamAnalysisLegendFocusKey === key) {
-                            teamAnalysisLegendFocusKey = null;
-                            renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
-                        }
-                    };
-                    el.addEventListener('pointerdown', onPress);
-                    el.addEventListener('pointerup', onRelease);
-                    el.addEventListener('pointerleave', onRelease);
-                    el.addEventListener('pointercancel', onRelease);
+                    bindTeamAnalysisFocusPress(el, key);
                 });
             }
+            renderTeamAnalysisSelector(keys, series, activeFocusKey);
             if (!teamAnalysisLegendClearBound) {
                 teamAnalysisLegendClearBound = true;
                 document.addEventListener('pointerup', () => {
