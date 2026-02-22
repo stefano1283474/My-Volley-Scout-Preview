@@ -209,12 +209,43 @@ class MatchesModule {
 
     deduplicateMatchesLocal(matches) {
         const out = [];
-        const seen = new Set();
-        for (const m of (Array.isArray(matches) ? matches : [])) {
+        const indexByKey = new Map();
+        const score = (m) => {
+            let s = 0;
+            try {
+                if (Array.isArray(m?.roster) && m.roster.length) s += 6;
+                if (m?.actionsBySet && typeof m.actionsBySet === 'object' && Object.keys(m.actionsBySet).length) s += 8;
+                if (m?.setMeta && typeof m.setMeta === 'object' && Object.keys(m.setMeta).length) s += 4;
+                if (m?.setStateBySet && typeof m.setStateBySet === 'object' && Object.keys(m.setStateBySet).length) s += 3;
+                if (m?.setSummary && typeof m.setSummary === 'object' && Object.keys(m.setSummary).length) s += 3;
+                if (m?.scoreHistoryBySet && typeof m.scoreHistoryBySet === 'object' && Object.keys(m.scoreHistoryBySet).length) s += 2;
+                if (Array.isArray(m?.sets) && m.sets.length) s += 1;
+                const scoreObj = m?.score;
+                if (scoreObj && typeof scoreObj === 'object' && (Number(scoreObj.home || 0) || Number(scoreObj.away || 0))) s += 1;
+            } catch (_) { }
+            return s;
+        };
+        const keyOf = (m) => {
+            const date = String(m?.matchDate || m?.date || '').trim();
+            const status = String(m?.status || '').trim();
+            const type = String(m?.eventType || m?.matchType || '').trim();
+            const home = String(m?.homeTeam || m?.myTeam || m?.teamName || '').trim();
+            const away = String(m?.awayTeam || m?.opponentTeam || '').trim();
+            if (date || home || away || status || type) return `sig:${date}|${home}|${away}|${status}|${type}`;
             const id = String(m?.id || '').trim();
-            if (!id || seen.has(id)) continue;
-            seen.add(id);
-            out.push(m);
+            if (id) return `id:${id}`;
+            return `raw:${String(m?.createdAt || m?.updatedAt || '')}`;
+        };
+        for (const m of (Array.isArray(matches) ? matches : [])) {
+            const key = keyOf(m);
+            const idx = indexByKey.get(key);
+            if (idx == null) {
+                indexByKey.set(key, out.length);
+                out.push(m);
+            } else {
+                const current = out[idx];
+                out[idx] = score(m) >= score(current) ? Object.assign({}, current, m) : Object.assign({}, m, current);
+            }
         }
         return out;
     }

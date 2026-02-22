@@ -570,6 +570,7 @@
                         <div id="teamAnalysisSelectorTabs" class="team-analysis-selector-tabs"></div>
                         <div id="teamAnalysisSelectorList" class="team-analysis-selector-list"></div>
                     </div>
+                    <div id="teamAnalysisSelectorResizer" class="team-analysis-selector-resizer" aria-hidden="true"></div>
                     <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
                         <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
                             <div id="teamAnalysisChartEmpty" style="color:#64748b;">
@@ -849,6 +850,119 @@
             overflow: auto;
         }
 
+        .team-analysis-rotator.team-analysis-mode-phone-portrait {
+            display: grid;
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, 1fr) minmax(0, 15ch);
+            grid-template-rows: auto minmax(0, 1fr);
+            align-items: stretch;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-layout {
+            display: contents;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-chart-wrapper {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            width: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector {
+            grid-column: 1;
+            grid-row: 2;
+            width: 100%;
+            max-width: none;
+            display: grid;
+            grid-template-columns: minmax(0, 8ch) minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr);
+            gap: 6px;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-resizer {
+            display: block;
+            grid-column: 2;
+            grid-row: 2;
+            width: 8px;
+            cursor: col-resize;
+            justify-self: stretch;
+            align-self: stretch;
+            border-right: 2px solid rgba(37,99,235,0.35);
+            touch-action: none;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-legend {
+            grid-column: 3;
+            grid-row: 2;
+            width: 100%;
+            max-width: none;
+            align-items: stretch;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex-direction: column;
+            flex-wrap: nowrap;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-filters {
+            grid-column: 4;
+            grid-row: 2;
+            width: 15ch;
+            max-width: 15ch;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-phone-portrait {
+            --team-analysis-selector-width: calc(50% - 4px);
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, 1fr);
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-filters {
+            width: 0;
+            max-width: 0;
+            flex-basis: 0;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-resizer {
+            grid-column: 2;
+        }
+
+        .team-analysis-content.has-filters .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto minmax(0, 1fr);
+        }
+
+        .team-analysis-content.has-filters .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-tabs {
+            grid-column: 1;
+            grid-row: 1;
+            height: auto;
+        }
+
+        .team-analysis-content.has-filters .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-list {
+            grid-column: 1;
+            grid-row: 2;
+            height: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-tabs {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            grid-column: 1;
+            grid-row: 1;
+            height: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-list {
+            width: 100%;
+            max-height: none;
+            overflow: auto;
+            grid-column: 2;
+            grid-row: 1;
+            height: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-legend-item {
+            width: 100%;
+        }
+
         .team-analysis-content .team-analysis-layout {
             flex: 1 1 auto;
             min-width: 0;
@@ -881,15 +995,19 @@
 
         .team-analysis-rotator.team-analysis-mode-landscape {
             display: grid;
-            grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px) minmax(0, 260px);
+            grid-template-columns: minmax(0, 160px) minmax(0, 15ch) minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto;
             align-items: stretch;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector {
             display: flex;
-            order: 0;
-            grid-column: 1;
+            grid-column: 3;
+            grid-row: 2;
             min-width: 0;
+            width: 100%;
+            max-width: none;
+            align-items: stretch;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-layout {
@@ -898,22 +1016,23 @@
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-chart-wrapper {
             flex: 1 1 auto;
-            grid-column: 2;
+            grid-column: 3;
+            grid-row: 1;
             min-width: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-legend {
-            flex-direction: row;
+            flex-direction: column;
             flex-wrap: nowrap;
             margin-top: 0;
             align-content: flex-start;
-            align-items: center;
+            align-items: stretch;
             width: 100%;
             max-width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
+            overflow: auto;
             order: 2;
-            grid-column: 3;
+            grid-column: 1;
+            grid-row: 1 / span 2;
             min-width: 0;
         }
 
@@ -926,42 +1045,78 @@
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-filters {
-            flex: 0 0 240px;
-            max-width: 260px;
+            flex: 0 0 15ch;
+            max-width: 15ch;
+            width: 15ch;
             align-self: stretch;
             order: 3;
-            grid-column: 4;
+            grid-column: 2;
+            grid-row: 1 / span 2;
             min-width: 0;
         }
 
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape {
+            grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-chart-wrapper {
+            grid-column: 2;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector {
+            grid-column: 2;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-filters {
+            width: 0;
+            max-width: 0;
+            flex-basis: 0;
+        }
+
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape {
-            grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
-            grid-template-rows: minmax(0, 1fr) auto auto;
+            grid-template-columns: minmax(0, 120px) minmax(0, 15ch) minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-chart-wrapper {
-            grid-column: 2;
+            grid-column: 3;
             grid-row: 1;
             height: 100%;
             min-height: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-legend {
-            grid-column: 2;
-            grid-row: 2;
-            flex-direction: row;
+            grid-column: 1;
+            grid-row: 1 / span 2;
+            flex-direction: column;
             flex-wrap: nowrap;
             width: 100%;
             max-width: none;
-            overflow-x: auto;
-            overflow-y: hidden;
+            overflow: auto;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-filters {
-            grid-column: 1 / -1;
-            grid-row: 3;
-            max-width: none;
-            width: 100%;
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            max-width: 15ch;
+            width: 15ch;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape {
+            grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-chart-wrapper {
+            grid-column: 2;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector {
+            grid-column: 2;
         }
 
         .team-analysis-selector {
@@ -978,6 +1133,25 @@
             border-radius: 10px;
             border: 1px solid #e5e7eb;
             background: #ffffff;
+        }
+
+        .team-analysis-selector-resizer {
+            display: none;
+        }
+
+        .team-analysis-rotator:not(.team-analysis-mode-landscape) .team-analysis-selector {
+            display: flex;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector {
+            display: grid;
+            grid-template-columns: minmax(0, 8ch) minmax(0, 1fr);
+            align-items: stretch;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-tabs {
+            flex-direction: column;
+            align-items: stretch;
         }
 
         .team-analysis-selector-tabs {
@@ -1029,6 +1203,9 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .team-analysis-selector-item.active {
@@ -1039,6 +1216,34 @@
 
         .team-analysis-viewport-landscape .team-analysis-selector {
             display: flex;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector-list {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            max-height: none;
+            overflow-x: auto;
+            overflow-y: hidden;
+            width: 100%;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector-item {
+            width: auto;
+            min-width: 7ch;
+        }
+
+        .team-analysis-selector-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            flex: 0 0 auto;
         }
 
         .team-analysis-viewport-landscape .team-analysis-layout {
@@ -1072,8 +1277,9 @@
         }
 
         .team-analysis-viewport-landscape .team-analysis-filters {
-            flex: 0 0 240px;
-            max-width: 260px;
+            flex: 0 0 15ch;
+            max-width: 15ch;
+            width: 15ch;
             align-self: stretch;
         }
 
@@ -1135,6 +1341,12 @@
         .team-analysis-viewport-landscape .team-analysis-filters {
             flex-direction: column;
             align-items: stretch;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-filters select {
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
         }
 
         .team-analysis-viewport-landscape .team-analysis-filter-box select {
@@ -1343,6 +1555,7 @@
         const teamAnalysisSelector = document.getElementById('teamAnalysisSelector');
         const teamAnalysisSelectorTabs = document.getElementById('teamAnalysisSelectorTabs');
         const teamAnalysisSelectorList = document.getElementById('teamAnalysisSelectorList');
+        const teamAnalysisSelectorResizer = document.getElementById('teamAnalysisSelectorResizer');
         const teamAnalysisRotator = document.getElementById('teamAnalysisRotator');
         const teamAnalysisViewportLayout = document.getElementById('teamAnalysisViewportLayout');
         const teamAnalysisPanel = document.querySelector('.team-analysis-panel');
@@ -1353,7 +1566,9 @@
         const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
         const teamAnalysisFiltersWrapper = document.getElementById('teamAnalysisFilters');
         let teamAnalysisLegendFocusKey = null;
+        let teamAnalysisLegendFocusPlayerKey = null;
         let teamAnalysisSelectorMode = 'player';
+        let teamAnalysisSelectorUserSized = false;
         let teamAnalysisLastMatches = null;
         let teamAnalysisLegendClearBound = false;
         const teamAnalysisFilterPlayer = document.getElementById('teamAnalysisFilterPlayer');
@@ -2355,6 +2570,7 @@
             } else {
                 setTeamAnalysisFiltersVisible(true);
             }
+            initTeamAnalysisSelectorResize();
             if (teamAnalysisFilterPlayer) teamAnalysisFilterPlayer.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterRole) teamAnalysisFilterRole.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterFundamental) teamAnalysisFilterFundamental.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
@@ -2586,6 +2802,7 @@
                 refreshTeamAnalysisFilterOptions();
                 updateTeamAnalysisFiltersFromControls();
                 applyTeamAnalysisViewportMode();
+                setTeamAnalysisFiltersVisible(teamAnalysisFiltersVisible);
                 const relevant = getRelevantMatchesForSelectedTeam();
                 if (!relevant.length) {
                     if (teamAnalysisChart && teamAnalysisChartEmpty) {
@@ -3700,13 +3917,18 @@
             if (teamAnalysisRotator) {
                 teamAnalysisRotator.classList.toggle('team-analysis-mode-landscape', isLandscape);
                 teamAnalysisRotator.classList.toggle('team-analysis-mode-phone-landscape', isPhone && isLandscape);
+                teamAnalysisRotator.classList.toggle('team-analysis-mode-phone-portrait', isPhone && !isLandscape);
                 teamAnalysisRotator.style.flexDirection = isLandscape ? 'row' : 'column';
             }
             // Use row layout only for tablet landscape; phone landscape stays column (stacked) but content rotates
             teamAnalysisLayout.style.flexDirection = (isLandscape && !isPhone) ? 'row' : 'column';
+            if (!isLandscape && isPhone && !teamAnalysisFiltersVisible && !teamAnalysisSelectorUserSized && teamAnalysisRotator) {
+                teamAnalysisRotator.style.setProperty('--team-analysis-selector-width', 'calc(50% - 4px)');
+            }
             
             // Update rotator dimensions
             requestAnimationFrame(updateTeamAnalysisRotatorSize);
+            requestAnimationFrame(clampTeamAnalysisSelectorWidth);
         }
 
         function setTeamAnalysisViewportMode(mode) {
@@ -3747,6 +3969,66 @@
             });
         }
 
+        function clampTeamAnalysisSelectorWidth() {
+            if (!teamAnalysisRotator || !teamAnalysisSelector || !teamAnalysisSelectorResizer) return;
+            if (!teamAnalysisRotator.classList.contains('team-analysis-mode-phone-portrait')) return;
+            const minWidth = 90;
+            const minLegendWidth = 120;
+            const rotatorWidth = teamAnalysisRotator.clientWidth || 0;
+            const filtersWidth = (teamAnalysisFiltersVisible && teamAnalysisFiltersWrapper && teamAnalysisFiltersWrapper.style.display !== 'none')
+                ? teamAnalysisFiltersWrapper.offsetWidth
+                : 0;
+            const dividerWidth = teamAnalysisSelectorResizer.offsetWidth || 8;
+            const maxWidth = Math.max(minWidth, rotatorWidth - filtersWidth - dividerWidth - minLegendWidth);
+            const current = parseFloat(getComputedStyle(teamAnalysisRotator).getPropertyValue('--team-analysis-selector-width')) || teamAnalysisSelector.offsetWidth || minWidth;
+            const next = Math.min(maxWidth, Math.max(minWidth, current));
+            teamAnalysisRotator.style.setProperty('--team-analysis-selector-width', next + 'px');
+        }
+
+        function initTeamAnalysisSelectorResize() {
+            if (!teamAnalysisSelectorResizer || !teamAnalysisRotator || !teamAnalysisSelector) return;
+            let dragging = false;
+
+            const onPointerMove = (e) => {
+                if (!dragging) return;
+                const rect = teamAnalysisRotator.getBoundingClientRect();
+                const minWidth = 90;
+                const minLegendWidth = 120;
+                const filtersWidth = (teamAnalysisFiltersVisible && teamAnalysisFiltersWrapper && teamAnalysisFiltersWrapper.style.display !== 'none')
+                    ? teamAnalysisFiltersWrapper.offsetWidth
+                    : 0;
+                const dividerWidth = teamAnalysisSelectorResizer.offsetWidth || 8;
+                const maxWidth = Math.max(minWidth, (rect.width || 0) - filtersWidth - dividerWidth - minLegendWidth);
+                const next = Math.min(maxWidth, Math.max(minWidth, e.clientX - rect.left));
+                teamAnalysisRotator.style.setProperty('--team-analysis-selector-width', next + 'px');
+            };
+
+            const stopDragging = () => {
+                if (!dragging) return;
+                dragging = false;
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', stopDragging);
+                window.removeEventListener('pointercancel', stopDragging);
+            };
+
+            teamAnalysisSelectorResizer.addEventListener('pointerdown', (e) => {
+                if (!teamAnalysisRotator.classList.contains('team-analysis-mode-phone-portrait')) return;
+                dragging = true;
+                teamAnalysisSelectorUserSized = true;
+                try { teamAnalysisSelectorResizer.setPointerCapture(e.pointerId); } catch(_) {}
+                onPointerMove(e);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', stopDragging);
+                window.addEventListener('pointercancel', stopDragging);
+            });
+
+            window.addEventListener('resize', () => {
+                requestAnimationFrame(clampTeamAnalysisSelectorWidth);
+            });
+
+            clampTeamAnalysisSelectorWidth();
+        }
+
         function setTeamAnalysisFiltersVisible(isVisible) {
             teamAnalysisFiltersVisible = isVisible !== false;
             if (teamAnalysisFiltersWrapper) {
@@ -3755,10 +4037,16 @@
             if (teamAnalysisContent) {
                 teamAnalysisContent.classList.toggle('has-filters', teamAnalysisFiltersVisible);
             }
+            if (!teamAnalysisFiltersVisible && teamAnalysisRotator) {
+                if (!teamAnalysisSelectorUserSized) {
+                    teamAnalysisRotator.style.setProperty('--team-analysis-selector-width', 'calc(50% - 4px)');
+                }
+            }
             if (teamAnalysisFiltersToggle) {
                 teamAnalysisFiltersToggle.textContent = teamAnalysisFiltersVisible ? 'Filtri: On' : 'Filtri: Off';
                 teamAnalysisFiltersToggle.setAttribute('aria-pressed', String(teamAnalysisFiltersVisible));
             }
+            requestAnimationFrame(clampTeamAnalysisSelectorWidth);
             const settings = readAppSettings();
             settings.teamAnalysisFiltersVisible = teamAnalysisFiltersVisible;
             writeAppSettings(settings);
@@ -3835,14 +4123,15 @@
             }
         }
 
-        function buildTeamAnalysisData(matchesListForAnalysis) {
+        function buildTeamAnalysisData(matchesListForAnalysis, filtersOverride) {
             const allMatches = Array.isArray(matchesListForAnalysis) ? matchesListForAnalysis.slice() : [];
             if (!allMatches.length) return { labels: [], series: {} };
 
             allMatches.sort((a, b) => getMatchDateEpoch(a) - getMatchDateEpoch(b));
 
+            const filters = Object.assign({}, teamAnalysisFilters, (filtersOverride && typeof filtersOverride === 'object') ? filtersOverride : {});
             let relevant = allMatches;
-            const matchSelections = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes.slice() : [];
+            const matchSelections = Array.isArray(filters.matchesScopes) ? filters.matchesScopes.slice() : [];
             if (matchSelections.length && !matchSelections.includes('all')) {
                 relevant = allMatches.filter((match, index) => matchSelections.includes(getTeamAnalysisMatchKey(match, index)));
             }
@@ -3850,11 +4139,11 @@
             const labels = relevant.map((m) => getTeamAnalysisMatchLabel(m));
 
             const series = {};
-            const dataset = teamAnalysisFilters.dataset || 'player';
-            const rolesFilter = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.slice() : [];
-            const rotationsFilter = Array.isArray(teamAnalysisFilters.rotations) ? teamAnalysisFilters.rotations.slice() : [];
-            const phasesFilter = Array.isArray(teamAnalysisFilters.phases) ? teamAnalysisFilters.phases.slice() : [];
-            const valueThresholds = Array.isArray(teamAnalysisFilters.valueThresholds) ? teamAnalysisFilters.valueThresholds.slice() : [];
+            const dataset = filters.dataset || 'player';
+            const rolesFilter = Array.isArray(filters.roles) ? filters.roles.slice() : [];
+            const rotationsFilter = Array.isArray(filters.rotations) ? filters.rotations.slice() : [];
+            const phasesFilter = Array.isArray(filters.phases) ? filters.phases.slice() : [];
+            const valueThresholds = Array.isArray(filters.valueThresholds) ? filters.valueThresholds.slice() : [];
             const valueSelections = valueThresholds.map(v => Number(v)).filter(v => v >= 1 && v <= 5);
 
             function passesValueThreshold(avg) {
@@ -3872,7 +4161,7 @@
 
             relevant.forEach((match, index) => {
                 if (dataset === 'player' || dataset === 'fundamental') {
-                    const metrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                    const metrics = computePlayerAveragesForMatch(match, filters);
                     if (!metrics) return;
                     const source =
                         dataset === 'fundamental'
@@ -3880,11 +4169,11 @@
                             : (metrics.players || metrics || {});
 
                     Object.entries(source).forEach(([key, p]) => {
-                        if (dataset === 'player' && Array.isArray(teamAnalysisFilters.players) && teamAnalysisFilters.players.length) {
+                        if (dataset === 'player' && Array.isArray(filters.players) && filters.players.length) {
                             const numKey = p.number ? String(p.number) : '';
                             const displayName = p.name || key;
                             const matchVal = numKey || displayName;
-                            const selected = teamAnalysisFilters.players;
+                            const selected = filters.players;
                             if (!selected.includes(matchVal)) return;
                         }
 
@@ -3930,7 +4219,7 @@
                 }
 
                 if (dataset === 'role') {
-                    const metrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                    const metrics = computePlayerAveragesForMatch(match, filters);
                     if (!metrics || !metrics.players) return;
                     const accByRole = {};
                     Object.entries(metrics.players).forEach(([key, p]) => {
@@ -3997,7 +4286,7 @@
                     return;
                 }
 
-                const fallbackMetrics = computePlayerAveragesForMatch(match, teamAnalysisFilters);
+                const fallbackMetrics = computePlayerAveragesForMatch(match, filters);
                 if (!fallbackMetrics || !fallbackMetrics.players) return;
                 Object.entries(fallbackMetrics.players).forEach(([key, p]) => {
                     if (!passesValueThreshold(p.avg)) return;
@@ -4024,6 +4313,7 @@
             const onPress = () => {
                 clearTimer();
                 pressTimer = setTimeout(() => {
+                    teamAnalysisLegendFocusPlayerKey = null;
                     teamAnalysisLegendFocusKey = key;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
                 }, 420);
@@ -4032,6 +4322,31 @@
                 clearTimer();
                 if (teamAnalysisLegendFocusKey === key) {
                     teamAnalysisLegendFocusKey = null;
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                }
+            };
+            el.addEventListener('pointerdown', onPress);
+            el.addEventListener('pointerup', onRelease);
+            el.addEventListener('pointerleave', onRelease);
+            el.addEventListener('pointercancel', onRelease);
+        }
+
+        function bindTeamAnalysisPlayerFocusPress(el, playerKey) {
+            if (!el || !playerKey) return;
+            let pressTimer = null;
+            const clearTimer = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+            const onPress = () => {
+                clearTimer();
+                pressTimer = setTimeout(() => {
+                    teamAnalysisLegendFocusKey = null;
+                    teamAnalysisLegendFocusPlayerKey = playerKey;
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                }, 420);
+            };
+            const onRelease = () => {
+                clearTimer();
+                if (teamAnalysisLegendFocusPlayerKey === playerKey) {
+                    teamAnalysisLegendFocusPlayerKey = null;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
                 }
             };
@@ -4103,7 +4418,14 @@
                 if (!key && series[opt.value]) key = opt.value;
                 const item = document.createElement('div');
                 item.className = 'team-analysis-selector-item' + (key && key === activeFocusKey ? ' active' : '');
-                item.textContent = label;
+                const color = key && series[key] && series[key].color ? series[key].color : '#cbd5e1';
+                const dot = document.createElement('span');
+                dot.className = 'team-analysis-selector-dot';
+                dot.style.background = color;
+                const text = document.createElement('span');
+                text.textContent = label;
+                item.appendChild(dot);
+                item.appendChild(text);
                 if (key) {
                     item.setAttribute('data-key', key);
                     item.title = 'Tieni premuto per confronto con media squadra';
@@ -4117,7 +4439,15 @@
             if (!teamAnalysisChart || !teamAnalysisChartEmpty || !teamAnalysisLegend) return;
             const sourceMatches = matchesListForAnalysis || getRelevantMatchesForSelectedTeam();
             teamAnalysisLastMatches = sourceMatches;
-            const data = buildTeamAnalysisData(sourceMatches);
+            const baseData = buildTeamAnalysisData(sourceMatches);
+            const focusPlayerKey = teamAnalysisLegendFocusPlayerKey;
+            let data = baseData;
+            if (focusPlayerKey) {
+                const focusData = buildTeamAnalysisData(sourceMatches, Object.assign({}, teamAnalysisFilters, { players: [focusPlayerKey] }));
+                if (focusData.labels && focusData.labels.length && focusData.series && Object.keys(focusData.series).length) {
+                    data = focusData;
+                }
+            }
             const labels = data.labels || [];
             const series = data.series || {};
             const keys = Object.keys(series).filter(k => Array.isArray(series[k].points) && series[k].points.length);
@@ -4126,13 +4456,23 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                teamAnalysisLegend.innerHTML = '';
-                if (teamAnalysisSelectorTabs) teamAnalysisSelectorTabs.innerHTML = '';
-                if (teamAnalysisSelectorList) teamAnalysisSelectorList.innerHTML = '';
+                const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                const legendRows = rosterPlayers.map((p) => {
+                    const numKey = normalizePlayerNumberForKey(p.number);
+                    const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
+                    const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
+                    if (!label) return '';
+                    return `<span class="team-analysis-legend-item" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span><span>${escapeHtml(label)}</span></span>`;
+                }).filter(Boolean);
+                teamAnalysisLegend.innerHTML = legendRows.join('');
+                renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
-            const activeFocusKey = teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey] ? teamAnalysisLegendFocusKey : null;
+            const focusMode = !!(focusPlayerKey && data !== baseData);
+            const activeFocusKey = (!focusMode && teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey]) ? teamAnalysisLegendFocusKey : null;
             const keysToRender = activeFocusKey ? [activeFocusKey] : keys.slice();
+            const averageSeries = focusMode ? (baseData.series || {}) : series;
+            const averageKeys = Object.keys(averageSeries).filter(k => Array.isArray(averageSeries[k].points) && averageSeries[k].points.length);
             let yMin = 5;
             let yMax = 1;
             keysToRender.forEach((k) => {
@@ -4142,10 +4482,9 @@
                     yMax = Math.max(yMax, p.y);
                 });
             });
-            if (activeFocusKey) {
-                keys.forEach((k) => {
-                    if (k === activeFocusKey) return;
-                    series[k].points.forEach((p) => {
+            if (activeFocusKey || focusMode) {
+                averageKeys.forEach((k) => {
+                    averageSeries[k].points.forEach((p) => {
                         if (typeof p.y !== 'number' || !isFinite(p.y)) return;
                         yMin = Math.min(yMin, p.y);
                         yMax = Math.max(yMax, p.y);
@@ -4157,9 +4496,16 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                teamAnalysisLegend.innerHTML = '';
-                if (teamAnalysisSelectorTabs) teamAnalysisSelectorTabs.innerHTML = '';
-                if (teamAnalysisSelectorList) teamAnalysisSelectorList.innerHTML = '';
+                const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                const legendRows = rosterPlayers.map((p) => {
+                    const numKey = normalizePlayerNumberForKey(p.number);
+                    const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
+                    const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
+                    if (!label) return '';
+                    return `<span class="team-analysis-legend-item" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span><span>${escapeHtml(label)}</span></span>`;
+                }).filter(Boolean);
+                teamAnalysisLegend.innerHTML = legendRows.join('');
+                renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
             const hardMin = 1;
@@ -4186,11 +4532,11 @@
                 return paddingTop + (1 - t) * innerHeight;
             };
             let averagePoints = null;
-            if (activeFocusKey) {
+            if (activeFocusKey || focusMode) {
                 const totals = new Array(xCount).fill(0);
                 const counts = new Array(xCount).fill(0);
-                keys.forEach((k) => {
-                    series[k].points.forEach((p) => {
+                averageKeys.forEach((k) => {
+                    averageSeries[k].points.forEach((p) => {
                         if (typeof p.x !== 'number' || typeof p.y !== 'number' || !isFinite(p.y)) return;
                         if (p.x < 0 || p.x >= xCount) return;
                         totals[p.x] += p.y;
@@ -4226,8 +4572,12 @@
                 });
             }
             const palette = ['#2563eb','#16a34a','#e11d48','#f97316','#0d9488','#7c3aed','#9333ea','#059669','#ea580c','#0f766e'];
-            keysToRender.forEach((key, idx) => {
+            keys.forEach((key, idx) => {
                 const color = palette[idx % palette.length];
+                series[key].color = color;
+            });
+            keysToRender.forEach((key) => {
+                const color = series[key].color || '#64748b';
                 const pts = series[key].points.slice().sort((a,b)=>a.x-b.x);
                 let d = '';
                 pts.forEach((p, i) => {
@@ -4243,7 +4593,6 @@
                     const yy = yScale(p.y);
                     svg += `<circle cx="${xx}" cy="${yy}" r="3" fill="${color}" stroke="#ffffff" stroke-width="1" />`;
                 });
-                series[key].color = color;
             });
             if (averagePoints && averagePoints.length) {
                 const avgColor = '#64748b';
@@ -4263,26 +4612,57 @@
             teamAnalysisChart.innerHTML = svg;
             teamAnalysisChart.style.display = 'block';
             teamAnalysisChartEmpty.style.display = 'none';
-            teamAnalysisLegend.innerHTML = keys.map((key) => {
+            const seriesKeyByLabel = new Map();
+            const seriesKeyByNumber = new Map();
+            keys.forEach((key) => {
+                const s = series[key];
+                const label = String(s.label || key).trim();
+                if (label) seriesKeyByLabel.set(label.toLowerCase(), key);
+                const num = extractLeadingNumber(label) || extractLeadingNumber(key);
+                if (num) seriesKeyByNumber.set(String(num), key);
+            });
+            const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+            const legendRows = rosterPlayers.length ? rosterPlayers.map((p) => {
+                const numKey = normalizePlayerNumberForKey(p.number);
+                const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
+                const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
+                if (!label) return '';
+                const playerKey = numKey || displayName || label;
+                let matchKey = null;
+                if (numKey && seriesKeyByNumber.has(numKey)) matchKey = seriesKeyByNumber.get(numKey);
+                else if (label && seriesKeyByLabel.has(label.toLowerCase())) matchKey = seriesKeyByLabel.get(label.toLowerCase());
+                const color = matchKey && series[matchKey] ? (series[matchKey].color || '#64748b') : '#cbd5e1';
+                const isActive = (playerKey && teamAnalysisLegendFocusPlayerKey === playerKey) || (matchKey && activeFocusKey === matchKey);
+                const keyAttr = matchKey ? ` data-key="${escapeHtml(String(matchKey))}"` : '';
+                const playerAttr = playerKey ? ` data-player-key="${escapeHtml(String(playerKey))}"` : '';
+                const titleAttr = playerKey ? ' title="Tieni premuto per confronto con media squadra"' : '';
+                return `<span class="team-analysis-legend-item${isActive ? ' active' : ''}"${keyAttr}${playerAttr}${titleAttr} style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:${color};"></span><span>${escapeHtml(label)}</span></span>`;
+            }).filter(Boolean) : keys.map((key) => {
                 const s = series[key];
                 const color = s.color || '#64748b';
                 const label = escapeHtml(s.label || key);
                 const isActive = activeFocusKey === key;
-                return `<span class="team-analysis-legend-item${isActive ? ' active' : ''}" data-key="${escapeHtml(String(key))}" style="display:inline-flex;align-items:center;gap:4px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span style="width:10px;height:10px;border-radius:999px;background:${color};"></span><span>${label}</span></span>`;
-            }).join('');
+                return `<span class="team-analysis-legend-item${isActive ? ' active' : ''}" data-key="${escapeHtml(String(key))}" title="Tieni premuto per confronto con media squadra" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:${color};"></span><span>${label}</span></span>`;
+            });
+            teamAnalysisLegend.innerHTML = legendRows.join('');
             if (teamAnalysisLegend && teamAnalysisLegend.children) {
                 Array.from(teamAnalysisLegend.children).forEach((el) => {
+                    const playerKey = el.getAttribute('data-player-key');
+                    if (playerKey) {
+                        bindTeamAnalysisPlayerFocusPress(el, playerKey);
+                        return;
+                    }
                     const key = el.getAttribute('data-key');
-                    if (!key) return;
-                    bindTeamAnalysisFocusPress(el, key);
+                    if (key) bindTeamAnalysisFocusPress(el, key);
                 });
             }
             renderTeamAnalysisSelector(keys, series, activeFocusKey);
             if (!teamAnalysisLegendClearBound) {
                 teamAnalysisLegendClearBound = true;
                 document.addEventListener('pointerup', () => {
-                    if (!teamAnalysisLegendFocusKey) return;
+                    if (!teamAnalysisLegendFocusKey && !teamAnalysisLegendFocusPlayerKey) return;
                     teamAnalysisLegendFocusKey = null;
+                    teamAnalysisLegendFocusPlayerKey = null;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
                 });
             }

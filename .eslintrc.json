@@ -1,0 +1,24 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "plugins": [
+    "html"
+  ],
+  "ignorePatterns": [
+    "dist/**"
+  ],
+  "rules": {
+    "no-unused-vars": "off",
+    "no-inner-declarations": "off",
+    "no-empty": "off",
+    "no-undef": "off",
+    "no-redeclare": "off",
+    "no-useless-escape": "off"
+  }
+}

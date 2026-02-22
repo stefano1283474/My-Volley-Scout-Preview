@@ -1112,14 +1112,15 @@ const firestoreService = {
 
             const dedupeKey = (m) => {
                 const t = String(m?.teamId || '').trim();
-                const id = String(m?.id || '').trim();
                 const date = String(m?.matchDate || m?.date || '').trim();
                 const status = String(m?.status || '').trim();
                 const type = String(m?.eventType || m?.matchType || '').trim();
                 const home = String(m?.homeTeam || m?.myTeam || m?.teamName || '').trim();
                 const away = String(m?.awayTeam || m?.opponentTeam || '').trim();
-                if (id) return `id:${t}|${id}|${home}|${away}`;
-                return `sig:${t}|${date}|${home}|${away}|${status}|${type}`;
+                if (date || home || away || status || type) return `sig:${t}|${date}|${home}|${away}|${status}|${type}`;
+                const id = String(m?.id || '').trim();
+                if (id) return `id:${t}|${id}`;
+                return `raw:${t}|${String(m?.createdAt || m?.updatedAt || '')}`;
             };
 
             const matchScore = (m) => {
