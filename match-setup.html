@@ -648,7 +648,27 @@
                 // 1) Persistenza locale: aggiungi/aggiorna in volleyMatches
                 try {
                     const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                    local.unshift(payload);
+                    const payloadId = String(payload.id || '').trim();
+                    const keyOf = (m) => {
+                        const teamIdK = String(m?.teamId || '').toLowerCase();
+                        const my = String(m?.myTeam || m?.teamName || '').toLowerCase();
+                        const opp = String(m?.opponentTeam || m?.opponent || '').toLowerCase();
+                        const date = String(m?.matchDate || m?.date || '').slice(0,10);
+                        const type = String(m?.matchType || m?.eventType || m?.type || '').toLowerCase();
+                        const ha = String(m?.homeAway || m?.location || '').toLowerCase();
+                        return [teamIdK,my,opp,date,type,ha].join('|');
+                    };
+                    let replaced = false;
+                    if (payloadId) {
+                        const idx = local.findIndex(m => String(m?.id || '').trim() === payloadId);
+                        if (idx >= 0) { local[idx] = payload; replaced = true; }
+                    }
+                    if (!replaced) {
+                        const key = keyOf(payload);
+                        const idx = local.findIndex(m => keyOf(m) === key);
+                        if (idx >= 0) { local[idx] = Object.assign({}, local[idx], payload); replaced = true; }
+                    }
+                    if (!replaced) local.unshift(payload);
                     localStorage.setItem('volleyMatches', JSON.stringify(local));
                 } catch (e) {
                     console.warn('Salvataggio locale partita non riuscito:', e);

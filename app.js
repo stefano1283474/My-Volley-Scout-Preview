@@ -1881,9 +1881,28 @@ function __buildCurrentSavePayloadSnapshot(opts) {
     try {
         const persistSession = !!(opts && opts.persistSession);
         const sessionRaw = localStorage.getItem('currentScoutingSession');
-        if (!sessionRaw) return null;
         let sessionData = {};
-        try { sessionData = JSON.parse(sessionRaw); } catch(_) {}
+        try { if (sessionRaw) sessionData = JSON.parse(sessionRaw); } catch(_) {}
+
+        const currentMatch = window.appState?.currentMatch || {};
+        let setupData = {};
+        try { setupData = JSON.parse(localStorage.getItem('currentMatchSetup') || '{}') || {}; } catch(_) { setupData = {}; }
+        if (!sessionData.id) {
+            const selId = localStorage.getItem('selectedMatchId') || '';
+            sessionData.id = currentMatch.id || setupData.id || (selId ? selId : null);
+        }
+        if (!sessionData.opponent && !sessionData.opponentTeam) {
+            sessionData.opponentTeam = currentMatch.opponentTeam || currentMatch.awayTeam || setupData.opponentTeam || setupData.opponent || '';
+        }
+        if (!sessionData.matchDate) {
+            sessionData.matchDate = currentMatch.date || setupData.matchDate || setupData.date || '';
+        }
+        if (!sessionData.eventType) {
+            sessionData.eventType = currentMatch.matchType || setupData.eventType || setupData.matchType || '';
+        }
+        if (!sessionData.location && !sessionData.homeAway) {
+            sessionData.location = currentMatch.homeAway ? (currentMatch.homeAway === 'home' ? 'casa' : 'trasferta') : (setupData.location || '');
+        }
 
         const currentTeam = window.teamsModule?.getCurrentTeam?.();
         const selectedTeamId = localStorage.getItem('selectedTeamId') || sessionData.teamId || (currentTeam?.id != null ? String(currentTeam.id) : null);
@@ -1894,13 +1913,13 @@ function __buildCurrentSavePayloadSnapshot(opts) {
         try {
             const currentSetNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
             // Azioni per set
-            sessionData.actionsBySet = sessionData.actionsBySet || {};
+            sessionData.actionsBySet = __normalizePerSetCollections(sessionData.actionsBySet || (window.appState?.currentMatch?.actionsBySet) || {});
             sessionData.actionsBySet[currentSetNum] = actions;
             // Storico punteggio per set
-            sessionData.scoreHistoryBySet = sessionData.scoreHistoryBySet || {};
+            sessionData.scoreHistoryBySet = __normalizePerSetCollections(sessionData.scoreHistoryBySet || (window.appState?.currentMatch?.scoreHistoryBySet) || {});
             sessionData.scoreHistoryBySet[currentSetNum] = scoreHistory;
             // Stato sintetico del set (punteggio, fase, rotazione)
-            sessionData.setStateBySet = sessionData.setStateBySet || {};
+            sessionData.setStateBySet = sessionData.setStateBySet || (window.appState?.currentMatch?.setStateBySet) || {};
             sessionData.setStateBySet[currentSetNum] = {
                 homeScore: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
                 awayScore: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0,
