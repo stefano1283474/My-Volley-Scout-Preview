@@ -552,7 +552,7 @@
         <!-- Tab: Analisi Team -->
         <div id="teamAnalysisSection" class="matches-section tab-panel" style="display:none;">
             <div id="teamAnalysisViewportLayout" class="team-analysis-viewport">
-                <div class="panel team-analysis-panel" style="padding:4px 5px; display:flex; flex-direction:column; gap:8px;">
+                <div class="panel team-analysis-panel" style="padding:2px 3px; display:flex; flex-direction:column; gap:4px;">
                     <div class="team-analysis-controls">
                         <div class="team-analysis-viewport-group">
                             <div class="team-analysis-viewport-buttons">
@@ -695,9 +695,6 @@
                 </div>
             </div>
 
-            <p class="section-hint" style="margin-top:6px; font-size:0.85rem; color:#64748b;">
-                Ogni linea rappresenta la valutazione media (1–5) di un giocatore per partita.
-            </p>
         </div>
 
      </div>
@@ -813,10 +810,35 @@
             gap: 8px;
         }
 
+        .team-analysis-viewport.team-analysis-force-landscape {
+            position: relative;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
         .team-analysis-content {
             width: 100%;
             position: relative;
             overflow: hidden;
+            flex: 1 1 auto;
+        }
+
+        .team-analysis-content.team-analysis-force-landscape {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .team-analysis-content.team-analysis-force-landscape .team-analysis-rotator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(90deg) translateY(-100%);
+            transform-origin: top left;
+            overflow: auto;
+            /* Dimensions set via JS */
         }
 
         .team-analysis-rotator {
@@ -858,36 +880,41 @@
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape {
-            flex-direction: row;
+            display: grid;
+            grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px) minmax(0, 260px);
             align-items: stretch;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-selector {
             display: flex;
             order: 0;
+            grid-column: 1;
+            min-width: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-layout {
-            flex-direction: row;
-            align-items: stretch;
-            flex: 1 1 auto;
-            order: 1;
+            display: contents;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-chart-wrapper {
             flex: 1 1 auto;
+            grid-column: 2;
+            min-width: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-legend {
-            flex-direction: column;
+            flex-direction: row;
             flex-wrap: nowrap;
             margin-top: 0;
             align-content: flex-start;
-            align-items: flex-start;
-            width: max-content;
-            max-width: 220px;
-            overflow: auto;
+            align-items: center;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
             order: 2;
+            grid-column: 3;
+            min-width: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-legend-item {
@@ -903,6 +930,38 @@
             max-width: 260px;
             align-self: stretch;
             order: 3;
+            grid-column: 4;
+            min-width: 0;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape {
+            grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto auto;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-chart-wrapper {
+            grid-column: 2;
+            grid-row: 1;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-legend {
+            grid-column: 2;
+            grid-row: 2;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            width: 100%;
+            max-width: none;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-filters {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            max-width: none;
+            width: 100%;
         }
 
         .team-analysis-selector {
@@ -911,11 +970,11 @@
             width: calc(8ch + 24px);
             max-width: calc(8ch + 24px);
             min-width: calc(8ch + 24px);
-            gap: 6px;
+            gap: 3px;
             flex-direction: column;
             align-items: flex-start;
             overflow: auto;
-            padding: 6px;
+            padding: 3px;
             border-radius: 10px;
             border: 1px solid #e5e7eb;
             background: #ffffff;
@@ -924,14 +983,14 @@
         .team-analysis-selector-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 2px;
             align-items: center;
         }
 
         .team-analysis-selector-tab {
             border: 1px solid #cbd5e1;
             background: #ffffff;
-            padding: 2px 6px;
+            padding: 1px 3px;
             border-radius: 999px;
             font-size: 0.72rem;
             font-weight: 600;
@@ -948,16 +1007,19 @@
         .team-analysis-selector-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 3px;
             align-items: stretch;
             width: 100%;
+            max-height: calc((6 * 28px) + (5 * 6px));
+            overflow-y: auto;
         }
 
         .team-analysis-selector-item {
             cursor: pointer;
             user-select: none;
             font-size: 0.78rem;
-            padding: 4px 6px;
+            padding: 2px 3px;
+            min-height: 28px;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
             background: #ffffff;
@@ -1027,16 +1089,16 @@
         .team-analysis-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 4px;
             align-items: center;
             justify-content: space-between;
-            padding: 4px 6px;
+            padding: 2px 3px;
         }
 
         .team-analysis-viewport-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 3px;
             align-items: center;
         }
 
@@ -1049,14 +1111,14 @@
         .team-analysis-viewport-buttons {
             display: flex;
             flex-wrap: nowrap;
-            gap: 6px;
+            gap: 3px;
             align-items: center;
         }
 
         .team-analysis-viewport-btn {
             border: 1px solid #cbd5e1;
             background: #ffffff;
-            padding: 4px 8px;
+            padding: 2px 4px;
             border-radius: 6px;
             font-size: 0.82rem;
             font-weight: 600;
@@ -1083,8 +1145,8 @@
         .team-analysis-filter-box {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding: 4px 6px;
+            gap: 2px;
+            padding: 2px 3px;
             border-radius: 8px;
             border: 1px solid transparent;
             background: #f8fafc;
@@ -1128,25 +1190,33 @@
         }
 
         .team-analysis-chart-wrapper {
-            min-height: 260px;
-            overflow: auto;
-            padding: 6px;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0;
             resize: both;
             min-width: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .team-analysis-legend {
             margin-top: 8px;
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 6px;
             width: 100%;
             order: 2;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         .team-analysis-legend-item {
             cursor: pointer;
             user-select: none;
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .team-analysis-legend-item.active {
@@ -1157,6 +1227,16 @@
         .team-analysis-chart-wrapper {
             width: 100%;
             order: 1;
+            max-width: 100%;
+        }
+
+        #teamAnalysisChart {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
 
         .team-analysis-layout-auto {
@@ -3581,6 +3661,20 @@
             }
         }
 
+        function updateTeamAnalysisRotatorSize() {
+            if (!teamAnalysisContent || !teamAnalysisRotator) return;
+            const isForceLandscape = teamAnalysisContent.classList.contains('team-analysis-force-landscape');
+            if (isForceLandscape) {
+                const w = teamAnalysisContent.clientWidth;
+                const h = teamAnalysisContent.clientHeight;
+                teamAnalysisRotator.style.width = h + 'px';
+                teamAnalysisRotator.style.height = w + 'px';
+            } else {
+                teamAnalysisRotator.style.width = '';
+                teamAnalysisRotator.style.height = '';
+            }
+        }
+
         function applyTeamAnalysisViewportMode() {
             if (!teamAnalysisLayout) return;
             const mode = normalizeTeamAnalysisViewportMode(teamAnalysisViewportModeValue);
@@ -3598,12 +3692,21 @@
             teamAnalysisLayout.classList.add(cls);
             if (teamAnalysisViewportLayout) {
                 teamAnalysisViewportLayout.classList.toggle('team-analysis-viewport-landscape', isLandscape);
+                teamAnalysisViewportLayout.classList.toggle('team-analysis-force-landscape', isPhone && isLandscape);
+            }
+            if (teamAnalysisContent) {
+                teamAnalysisContent.classList.toggle('team-analysis-force-landscape', isPhone && isLandscape);
             }
             if (teamAnalysisRotator) {
                 teamAnalysisRotator.classList.toggle('team-analysis-mode-landscape', isLandscape);
+                teamAnalysisRotator.classList.toggle('team-analysis-mode-phone-landscape', isPhone && isLandscape);
                 teamAnalysisRotator.style.flexDirection = isLandscape ? 'row' : 'column';
             }
-            teamAnalysisLayout.style.flexDirection = isLandscape ? 'row' : 'column';
+            // Use row layout only for tablet landscape; phone landscape stays column (stacked) but content rotates
+            teamAnalysisLayout.style.flexDirection = (isLandscape && !isPhone) ? 'row' : 'column';
+            
+            // Update rotator dimensions
+            requestAnimationFrame(updateTeamAnalysisRotatorSize);
         }
 
         function setTeamAnalysisViewportMode(mode) {
@@ -3637,6 +3740,11 @@
                 initial = w <= 600 ? 'phone-portrait' : 'tablet-portrait';
             }
             setTeamAnalysisViewportMode(initial);
+
+            // Listener per ridimensionamento finestra (aggiorna dimensioni rotator)
+            window.addEventListener('resize', () => {
+                requestAnimationFrame(updateTeamAnalysisRotatorSize);
+            });
         }
 
         function setTeamAnalysisFiltersVisible(isVisible) {
@@ -4063,11 +4171,11 @@
                 yMax = yMin + 1;
             }
             const width = 800;
-            const height = 320;
+            const height = 360;
             const paddingLeft = 60;
             const paddingRight = 20;
-            const paddingTop = 20;
-            const paddingBottom = 70;
+            const paddingTop = 12;
+            const paddingBottom = 24;
             const innerWidth = width - paddingLeft - paddingRight;
             const innerHeight = height - paddingTop - paddingBottom;
             const xCount = labels.length;
@@ -4109,12 +4217,12 @@
             if (xCount === 1) {
                 const x = xScale(0);
                 svg += `<line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${xAxisY}" stroke="#e5e7eb" stroke-width="1" />`;
-                svg += `<text x="${x}" y="${xAxisY + 18}" text-anchor="middle" font-size="9" fill="#64748b" transform="rotate(-35 ${x} ${xAxisY + 18})">${escapeHtml(labels[0])}</text>`;
+                svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(labels[0])}</text>`;
             } else {
                 labels.forEach((label, idx) => {
                     const x = xScale(idx);
                     svg += `<line x1="${x}" y1="${xAxisY}" x2="${x}" y2="${xAxisY + 4}" stroke="#94a3b8" stroke-width="1" />`;
-                    svg += `<text x="${x}" y="${xAxisY + 18}" text-anchor="middle" font-size="9" fill="#64748b" transform="rotate(-35 ${x} ${xAxisY + 18})">${escapeHtml(label)}</text>`;
+                    svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(label)}</text>`;
                 });
             }
             const palette = ['#2563eb','#16a34a','#e11d48','#f97316','#0d9488','#7c3aed','#9333ea','#059669','#ea580c','#0f766e'];

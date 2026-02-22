@@ -3281,7 +3281,9 @@ function updatePlayersGrid() {
         .filter(p => p && (p.number || p.name || p.surname))
         .map(p => ({
             number: p.number ?? '',
-            name: (p.nickname || `${p.name || ''} ${p.surname || ''}`.trim() || `Giocatore ${p.number}`),
+            name: String(p.name || '').trim(),
+            surname: String(p.surname || '').trim(),
+            nickname: String(p.nickname || '').trim(),
             role: (function(r){
                 const s = String(r||'').trim().toUpperCase();
                 if (s === 'P' || s.startsWith('PAL')) return 'Palleggiatore';
@@ -3299,12 +3301,14 @@ function updatePlayersGrid() {
         Libero: [],
         Schiacciatore: [],
         Centrale: [],
-        Opposto: []
+        Opposto: [],
+        Altro: []
     };
 
     // Distribuisci i giocatori per ruolo e ordina per numero crescente
     validPlayers.forEach(p => {
-        if (byRole[p.role] && byRole[p.role].length >= 0) byRole[p.role].push(p);
+        if (byRole[p.role]) byRole[p.role].push(p);
+        else byRole.Altro.push(p);
     });
     Object.keys(byRole).forEach(r => {
         byRole[r].sort((a, b) => {
@@ -3325,11 +3329,33 @@ function updatePlayersGrid() {
     function shortRole(role){
         return role ? (role[0] || '').toUpperCase() : '';
     }
+    function cleanedNickname(p){
+        let nick = String(p.nickname || '').trim();
+        if (!nick) return '';
+        const numNorm = normalizeNumberStr(p.number || '');
+        const numPad = numNorm ? String(numNorm).padStart(2, '0') : '';
+        const esc = (v) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (numNorm) {
+            const re = new RegExp(`^${esc(numNorm)}\\s*`, 'i');
+            nick = nick.replace(re, '');
+        }
+        if (numPad) {
+            const re2 = new RegExp(`^${esc(numPad)}\\s*`, 'i');
+            nick = nick.replace(re2, '');
+        }
+        return nick.trim();
+    }
+    function displayNameFor(p){
+        const nick = cleanedNickname(p);
+        if (nick) return nick;
+        const full = `${p.name || ''} ${p.surname || ''}`.trim();
+        return full || `Giocatore ${p.number || ''}`.trim();
+    }
     function renderBtn(p){
         const rc = roleClassFor(p.role);
         const sr = shortRole(p.role);
         const num = String(p.number || '').trim();
-        const nm = String(p.name || '').trim();
+        const nm = String(displayNameFor(p) || '').trim();
         return `
             <button class="player-btn ${rc}" data-role="${p.role}" data-number="${num}" data-name="${nm}">
                 <div class="player-line1">
@@ -3356,23 +3382,26 @@ function updatePlayersGrid() {
     row1.push(...byRole.Libero.slice(0,2));
     while (row1.length < 4) row1.push(null);
 
-    const row2 = byRole.Schiacciatore.slice(0,4);
-    while (row2.length < 4) row2.push(null);
-    const row3 = byRole.Centrale.slice(0,4);
-    while (row3.length < 4) row3.push(null);
-    // Quarta riga: Ordine specifico richiesto
-    // Col1: Errore Avvers. | Col2: secondo Opposto (se presente) | Col3: primo Opposto | Col4: MURO
-    const row4 = [];
-    const opps = byRole.Opposto.slice(0,2);
-    const firstOpp = opps[0] || null;
-    const secondOpp = opps[1] || null;
-    row4.push({ __type: 'opponent-error' });
-    row4.push(secondOpp);
-    row4.push(firstOpp);
-    row4.push({ __type: 'muro-override' });
-    while (row4.length < 4) row4.push(null);
+    const remaining = [
+        ...byRole.Schiacciatore,
+        ...byRole.Centrale,
+        ...byRole.Opposto,
+        ...byRole.Palleggiatore.slice(2),
+        ...byRole.Libero.slice(2),
+        ...byRole.Altro
+    ];
 
-    // Rende tutte le righe (4x4 = 16 tasti)
+    const row2 = remaining.slice(0, 4);
+    while (row2.length < 4) row2.push(null);
+    const row3 = remaining.slice(4, 8);
+    while (row3.length < 4) row3.push(null);
+    const row4 = [
+        { __type: 'opponent-error' },
+        remaining[8] || null,
+        remaining[9] || null,
+        { __type: 'muro-override' }
+    ];
+
     const ordered = [row1, row2, row3, row4].flat();
     container.innerHTML = ordered.map(p => {
         if (!p) return renderEmpty();
