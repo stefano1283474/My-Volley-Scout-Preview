@@ -184,11 +184,11 @@
           </div>
           <div id="inviteObserverInfo" class="observer-info" style="display:none;">
             <div class="observer-info-title">Invito Osservatore</div>
-            <div class="observer-info-text">Hai ricevuto un invito per una squadra condivisa. Per accedere alle funzioni dedicate segui questi passaggi.</div>
+            <div class="observer-info-text">Per usare l’invito devi prima autenticarti. Il token verrà collegato al tuo account così avrai accesso alla squadra.</div>
             <div class="observer-info-steps">
-              <div>1. Accedi o registrati con il tuo account.</div>
-              <div>2. Torna in My Teams e seleziona la scheda Cloud.</div>
-              <div>3. La squadra condivisa apparirà con badge Osservatore.</div>
+              <div>1. Accedi o registrati dal pulsante qui sotto.</div>
+              <div>2. Torna in My Teams e apri la scheda Cloud.</div>
+              <div>3. Trova la squadra con badge Osservatore e selezionala.</div>
               <div>4. Dal menu utente scegli “Aggiorna Locale da Cloud”.</div>
               <div>5. Vai in Analisi Team o Match-Stats per consultare i dati.</div>
             </div>
@@ -801,7 +801,11 @@
             clearSelectedTeamAccess();
             try { renderLocalTeamsList(); } catch(_) {}
             try { cloudTeams = []; renderCloudTeamsList(); } catch(_) {}
+            const token = getInviteTokenFromUrl() || readPendingInvite();
+            if (token) setPendingInvite(token);
             updateInviteObserverInfo(false);
+            const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+            window.location.href = `/auth-login.html${qs}`;
             return;
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }

@@ -245,6 +245,7 @@
             <div class="app-version"></div>
         </div>
 
+        <div id="inviteNotice" class="success-message" style="display:none;"></div>
         <form id="loginForm">
             <div class="form-group">
                 <label for="email">Email</label>
@@ -274,7 +275,7 @@
         </button>
 
         <div class="auth-switch">
-            Non hai un account? <a href="/auth-register.html">Registrati</a>
+            Non hai un account? <a id="registerLink" href="/auth-register.html">Registrati</a>
         </div>
         <div class="app-version"></div>
     </div>
@@ -296,6 +297,8 @@
         const loading = document.getElementById('loading');
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const inviteNotice = document.getElementById('inviteNotice');
+        const registerLink = document.getElementById('registerLink');
 
         function showError(message) {
             errorMessage.textContent = message;
@@ -377,6 +380,7 @@
                     if ('caches' in window) { caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))); }
                 }
             } catch(_){}
+            updateInviteUi();
             setTimeout(() => { if (typeof window.authFunctions === 'undefined') { showError('Firebase non disponibile'); } }, 2500);
             initializeAuth();
         });
@@ -391,6 +395,19 @@
                 }
             } catch(_) {}
             try { return String(sessionStorage.getItem('__pendingInvite') || '').trim(); } catch(_) { return ''; }
+        }
+
+        function updateInviteUi() {
+            const token = getInviteToken();
+            if (inviteNotice) {
+                inviteNotice.textContent = token
+                    ? 'Invito rilevato: accedi o registrati per attivare la squadra condivisa.'
+                    : '';
+                inviteNotice.style.display = token ? 'block' : 'none';
+            }
+            if (registerLink && token) {
+                registerLink.href = `/auth-register.html?invite=${encodeURIComponent(token)}`;
+            }
         }
 
         function redirectToMyTeams() {

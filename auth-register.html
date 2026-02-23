@@ -253,6 +253,7 @@
 
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
+        <div class="success-message" id="inviteNotice" style="display:none;"></div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
@@ -298,7 +299,7 @@
         </button>
 
         <div class="auth-switch">
-                    Hai già un account? <a href="/auth-login.html">Accedi</a>
+                    Hai già un account? <a id="loginLink" href="/auth-login.html">Accedi</a>
         </div>
     </div>
 
@@ -324,6 +325,8 @@
         const confirmPasswordField = document.getElementById('confirmPassword');
         const passwordMatch = document.getElementById('passwordMatch');
         const passwordMismatch = document.getElementById('passwordMismatch');
+        const inviteNotice = document.getElementById('inviteNotice');
+        const loginLink = document.getElementById('loginLink');
 
         // Funzioni di utilità
         function showError(message) {
@@ -394,11 +397,43 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeAuth();
             setupPasswordValidation();
+            updateInviteUi();
         });
 
         function setupPasswordValidation() {
             passwordField.addEventListener('input', checkPasswordMatch);
             confirmPasswordField.addEventListener('input', checkPasswordMatch);
+        }
+
+        function getInviteToken() {
+            try {
+                const qp = new URLSearchParams(window.location.search || '');
+                const t = String(qp.get('invite') || '').trim();
+                if (t) {
+                    try { sessionStorage.setItem('__pendingInvite', t); } catch(_) {}
+                    return t;
+                }
+            } catch(_) {}
+            try { return String(sessionStorage.getItem('__pendingInvite') || '').trim(); } catch(_) { return ''; }
+        }
+
+        function updateInviteUi() {
+            const token = getInviteToken();
+            if (inviteNotice) {
+                inviteNotice.textContent = token
+                    ? 'Invito rilevato: completa la registrazione per attivare la squadra condivisa.'
+                    : '';
+                inviteNotice.style.display = token ? 'block' : 'none';
+            }
+            if (loginLink && token) {
+                loginLink.href = `/auth-login.html?invite=${encodeURIComponent(token)}`;
+            }
+        }
+
+        function redirectToMyTeams() {
+            const token = getInviteToken();
+            const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+            window.location.href = `/my-teams.html${qs}`;
         }
 
         function initializeAuth() {
@@ -410,7 +445,7 @@
             // Controlla se l'utente è già autenticato
             window.authFunctions.onAuthStateChanged((user) => {
                 if (user) {
-                    window.location.href = '/my-teams.html';
+                    redirectToMyTeams();
                 }
             });
 
@@ -447,7 +482,7 @@
                         showSuccess('Account creato con successo!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/my-teams.html';
+                            redirectToMyTeams();
                         }, 1500);
                     } else {
                         const msg = result?.error || 'Errore durante la registrazione';
@@ -471,7 +506,7 @@
                         showSuccess('Registrazione con Google completata!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/my-teams.html';
+                            redirectToMyTeams();
                         }, 1500);
                     } else {
                         const errorCode = result?.code || 'unknown';
