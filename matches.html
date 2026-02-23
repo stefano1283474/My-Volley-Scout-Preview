@@ -576,7 +576,7 @@
                             <div id="teamAnalysisChartEmpty" style="color:#64748b;">
                                 Seleziona una squadra con almeno una partita per vedere il grafico.
                             </div>
-                            <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:none;"></svg>
+                            <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="none" style="width:100%; height:auto; display:none;"></svg>
                         </div>
                         <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
                     </div>
@@ -3476,6 +3476,9 @@
                 const phaseFilters = Array.isArray(f.phases) ? f.phases.map(v => String(v).toLowerCase()) : [];
                 const fundamentalFilters = Array.isArray(f.fundamentals) ? f.fundamentals.slice() : [];
                 const playerFiltersRaw = Array.isArray(f.players) ? f.players.slice() : [];
+                const roleFilters = Array.isArray(f.roles) ? f.roles.map(normalizePlayerRoleLabel).filter(Boolean) : [];
+                const valueSelections = Array.isArray(f.valueThresholds) ? f.valueThresholds.map(v => Number(v)).filter(v => v >= 1 && v <= 5) : [];
+                const valueFilterSet = valueSelections.length ? new Set(valueSelections) : null;
                 const raw = match && match.actionsBySet ? match.actionsBySet : {};
                 if (!raw || typeof raw !== 'object') return null;
                 let normalized = raw;
@@ -3610,12 +3613,17 @@
                             const includePlayer = playerFiltersRaw.some(v => candidates.includes(String(v)));
                             if (!includePlayer) return;
                         }
+                        if (roleFilters.length) {
+                            const numKey = normalizePlayerNumberForKey(data.number || key);
+                            const roleLabel = numKey ? (teamAnalysisRosterCache.roleByNumber ? teamAnalysisRosterCache.roleByNumber[numKey] : '') : '';
+                            if (!roleLabel || !roleFilters.includes(roleLabel)) return;
+                        }
                         const counts = data && data.counts ? data.counts : {};
-                        const c1 = Number(counts[1] || 0);
-                        const c2 = Number(counts[2] || 0);
-                        const c3 = Number(counts[3] || 0);
-                        const c4 = Number(counts[4] || 0);
-                        const c5 = Number(counts[5] || 0);
+                        const c1 = valueFilterSet && !valueFilterSet.has(1) ? 0 : Number(counts[1] || 0);
+                        const c2 = valueFilterSet && !valueFilterSet.has(2) ? 0 : Number(counts[2] || 0);
+                        const c3 = valueFilterSet && !valueFilterSet.has(3) ? 0 : Number(counts[3] || 0);
+                        const c4 = valueFilterSet && !valueFilterSet.has(4) ? 0 : Number(counts[4] || 0);
+                        const c5 = valueFilterSet && !valueFilterSet.has(5) ? 0 : Number(counts[5] || 0);
                         const tot = c1 + c2 + c3 + c4 + c5;
                         if (!tot) return;
                         const sum = 1*c1 + 2*c2 + 3*c3 + 4*c4 + 5*c5;
@@ -3735,7 +3743,7 @@
             (players || []).forEach((p) => {
                 const numKey = normalizePlayerNumberForKey(p.number);
                 if (!numKey) return;
-                const roleLabel = (p && p.role != null) ? String(p.role).trim() : '';
+                const roleLabel = normalizePlayerRoleLabel((p && p.role != null) ? String(p.role).trim() : '');
                 if (!roleLabel) return;
                 roleByNumber[numKey] = roleLabel;
             });
@@ -3749,7 +3757,7 @@
             refreshTeamAnalysisRosterCache();
             const players = teamAnalysisRosterCache.players || [];
             const prevPlayers = Array.isArray(teamAnalysisFilters.players) ? teamAnalysisFilters.players.slice() : [];
-            const prevRoles = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.slice() : [];
+            const prevRoles = Array.isArray(teamAnalysisFilters.roles) ? teamAnalysisFilters.roles.map(normalizePlayerRoleLabel).filter(Boolean) : [];
             const prevValues = Array.isArray(teamAnalysisFilters.valueThresholds) ? teamAnalysisFilters.valueThresholds.slice() : [];
             const prevMatches = Array.isArray(teamAnalysisFilters.matchesScopes) ? teamAnalysisFilters.matchesScopes.slice() : [];
 
@@ -3781,7 +3789,7 @@
 
             const roleSet = new Set();
             players.forEach((p) => {
-                const roleLabel = (p && p.role != null) ? String(p.role).trim() : '';
+                const roleLabel = normalizePlayerRoleLabel((p && p.role != null) ? String(p.role).trim() : '');
                 if (!roleLabel) return;
                 roleSet.add(roleLabel);
             });
@@ -4067,7 +4075,8 @@
                 return;
             }
             const selPlayers = Array.from(teamAnalysisFilterPlayer.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
-            const selRoles = Array.from(teamAnalysisFilterRole.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selRolesRaw = Array.from(teamAnalysisFilterRole.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
+            const selRoles = selRolesRaw.map(normalizePlayerRoleLabel).filter(Boolean);
             const selFunds = Array.from(teamAnalysisFilterFundamental.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
             const selRots = Array.from(teamAnalysisFilterRotation.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
             const selPhases = Array.from(teamAnalysisFilterPhase.selectedOptions || []).map(o => o.value).filter(v => v && v !== 'all');
@@ -4140,19 +4149,9 @@
 
             const series = {};
             const dataset = filters.dataset || 'player';
-            const rolesFilter = Array.isArray(filters.roles) ? filters.roles.slice() : [];
+            const rolesFilter = Array.isArray(filters.roles) ? filters.roles.map(normalizePlayerRoleLabel).filter(Boolean) : [];
             const rotationsFilter = Array.isArray(filters.rotations) ? filters.rotations.slice() : [];
             const phasesFilter = Array.isArray(filters.phases) ? filters.phases.slice() : [];
-            const valueThresholds = Array.isArray(filters.valueThresholds) ? filters.valueThresholds.slice() : [];
-            const valueSelections = valueThresholds.map(v => Number(v)).filter(v => v >= 1 && v <= 5);
-
-            function passesValueThreshold(avg) {
-                if (!valueSelections.length) return true;
-                if (typeof avg !== 'number' || !isFinite(avg)) return false;
-                const bucket = Math.min(5, Math.max(1, Math.round(avg)));
-                return valueSelections.includes(bucket);
-            }
-
             function ensureSeries(key, label) {
                 if (!series[key]) {
                     series[key] = { label, points: [] };
@@ -4178,12 +4177,11 @@
                         }
 
                         if (dataset === 'player' && rolesFilter.length) {
-                            const numKey = p.number ? String(p.number) : '';
-                            const roleLabel = numKey ? (teamAnalysisRosterCache.roleByNumber[String(numKey)] || '') : '';
-                            if (!roleLabel || !rolesFilter.includes(String(roleLabel))) return;
+                            const numKey = p.number ? normalizePlayerNumberForKey(p.number) : '';
+                            const roleLabelRaw = numKey ? (teamAnalysisRosterCache.roleByNumber[String(numKey)] || '') : '';
+                            const roleLabel = normalizePlayerRoleLabel(roleLabelRaw);
+                            if (!roleLabel || !rolesFilter.includes(roleLabel)) return;
                         }
-
-                        if (!passesValueThreshold(p.avg)) return;
 
                         if (!series[key]) {
                             let label;
@@ -4226,10 +4224,9 @@
                         const numKey = p.number ? normalizePlayerNumberForKey(p.number) : '';
                         if (!numKey) return;
                         const roleLabelRaw = teamAnalysisRosterCache.roleByNumber ? teamAnalysisRosterCache.roleByNumber[numKey] : undefined;
-                        const roleLabel = roleLabelRaw ? String(roleLabelRaw).trim() : '';
+                        const roleLabel = normalizePlayerRoleLabel(roleLabelRaw);
                         if (!roleLabel) return;
                         if (rolesFilter.length && !rolesFilter.includes(roleLabel)) return;
-                        if (!passesValueThreshold(p.avg)) return;
                         if (!accByRole[roleLabel]) accByRole[roleLabel] = { sum: 0, tot: 0 };
                         const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
                         const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
@@ -4264,7 +4261,6 @@
                         let sumAll = 0;
                         let totAll = 0;
                         Object.values(metrics.players).forEach((p) => {
-                            if (!passesValueThreshold(p.avg)) return;
                             const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
                             const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
                             sumAll += sum;
@@ -4289,7 +4285,6 @@
                 const fallbackMetrics = computePlayerAveragesForMatch(match, filters);
                 if (!fallbackMetrics || !fallbackMetrics.players) return;
                 Object.entries(fallbackMetrics.players).forEach(([key, p]) => {
-                    if (!passesValueThreshold(p.avg)) return;
                     ensureSeries(key, p.name || key);
                     series[key].points.push({ x: index, y: p.avg });
                 });
@@ -4518,7 +4513,9 @@
             }
             const width = 800;
             const height = 360;
-            const paddingLeft = 60;
+            const isPhoneViewport = teamAnalysisViewportDeviceType === 'phone';
+            const isLandscapeViewport = teamAnalysisViewportOrientation === 'landscape';
+            const paddingLeft = isPhoneViewport ? (isLandscapeViewport ? 26 : 36) : 60;
             const paddingRight = 20;
             const paddingTop = 12;
             const paddingBottom = 24;
@@ -4558,7 +4555,7 @@
             for (let v = yTicksStart; v <= yTicksEnd; v++) {
                 const y = yScale(v);
                 svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
-                svg += `<text x="${paddingLeft - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(0)}</text>`;
+                svg += `<text x="${paddingLeft - 4}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(0)}</text>`;
             }
             if (xCount === 1) {
                 const x = xScale(0);
@@ -4607,7 +4604,6 @@
                     svg += `<path d="${d}" fill="none" stroke="${avgColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4 4" />`;
                 }
             }
-            svg += `<text x="${18}" y="${paddingTop + innerHeight / 2}" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 18 ${paddingTop + innerHeight / 2})">Valutazione media 1–5</text>`;
             teamAnalysisChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
             teamAnalysisChart.innerHTML = svg;
             teamAnalysisChart.style.display = 'block';
