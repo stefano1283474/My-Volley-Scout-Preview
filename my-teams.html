@@ -628,7 +628,16 @@
         const selected = localStorage.getItem('selectedTeamId');
         if (selected && String(selected) === idStr) localStorage.removeItem('selectedTeamId');
       } catch(_){}
-      try { window.teamsModule?.loadTeams?.(); } catch(_){}
+      try {
+        if (window.teamsModule?.state?.teams) {
+          window.teamsModule.state.teams = window.teamsModule.state.teams.filter(t => String(t?.id) !== idStr);
+          if (window.teamsModule.state.currentTeam && String(window.teamsModule.state.currentTeam?.id) === idStr) {
+            window.teamsModule.state.currentTeam = null;
+            try { window.teamsModule.notifyTeamChange?.(null); } catch(_){}
+          }
+          try { window.teamsModule.notifyTeamsUpdate?.(); } catch(_){}
+        }
+      } catch(_){}
       renderLocalTeamsList();
     }
 
@@ -682,6 +691,11 @@
             ? (normalizeTeamName((Array.isArray(cloudTeams)?cloudTeams:[]).find(t=>String(t?.id||'')===String(id))) || String(id))
             : (normalizeTeamName(getLocalTeamsRaw().find(t=>String(t?.id||'')===String(id))) || String(id));
           pendingDelete.name = name;
+          if (deleteConfirmDialog) {
+            deleteConfirmDialog.dataset.deleteId = String(id);
+            deleteConfirmDialog.dataset.deleteArchive = String(arch || '');
+            deleteConfirmDialog.dataset.deleteName = String(name || '');
+          }
           if (deleteConfirmText) {
             deleteConfirmText.textContent = arch === 'cloud'
               ? `Eliminare "${name}" dal Cloud? Saranno rimossi anche i dati collegati su Firestore.`
@@ -1001,7 +1015,8 @@
         });
       }
       if (deleteConfirmCancel && deleteConfirmDialog) {
-        deleteConfirmCancel.addEventListener('click', () => {
+        deleteConfirmCancel.addEventListener('click', (e) => {
+          try { e.preventDefault(); e.stopPropagation(); } catch(_){}
           if (!deleteConfirmDialog.open) return;
           deleteConfirmDialog.classList.add('closing');
           const card = deleteConfirmDialog.querySelector('.dialog-card');
@@ -1010,6 +1025,11 @@
             deleteConfirmDialog.classList.remove('closing');
             deleteConfirmDialog.close();
             pendingDelete = null;
+            try {
+              deleteConfirmDialog.dataset.deleteId = '';
+              deleteConfirmDialog.dataset.deleteArchive = '';
+              deleteConfirmDialog.dataset.deleteName = '';
+            } catch(_){}
           };
 
           if (card) {
@@ -1028,16 +1048,22 @@
         });
       }
       if (deleteConfirmOk && deleteConfirmDialog) {
-        deleteConfirmOk.addEventListener('click', async () => {
+        deleteConfirmOk.addEventListener('click', async (e) => {
+          try { e.preventDefault(); e.stopPropagation(); } catch(_){}
           try {
             const ctx = pendingDelete;
-            const id = ctx?.id;
+            const dsId = String(deleteConfirmDialog.dataset.deleteId || '').trim();
+            const dsArchive = String(deleteConfirmDialog.dataset.deleteArchive || '').trim();
+            const dsName = String(deleteConfirmDialog.dataset.deleteName || '').trim();
+            const id = String(ctx?.id || dsId || '').trim();
             if (!id) return;
             deleteConfirmOk.disabled = true;
             deleteConfirmOk.textContent = 'Eliminazione...';
 
-            if (ctx.archive === 'cloud') {
-              const res = await window.firestoreService?.deleteTeamByIdOrName?.(id, ctx.name || null);
+            const archive = String(ctx?.archive || dsArchive || '').trim() || currentArchive;
+            const name = String(ctx?.name || dsName || '').trim() || null;
+            if (archive === 'cloud') {
+              const res = await window.firestoreService?.deleteTeamByIdOrName?.(id, name);
               if (!res?.success) alert(res?.error || 'Errore eliminazione squadra Cloud');
               await loadCloudTeams();
             } else {
@@ -1045,6 +1071,11 @@
             }
 
             pendingDelete = null;
+            try {
+              deleteConfirmDialog.dataset.deleteId = '';
+              deleteConfirmDialog.dataset.deleteArchive = '';
+              deleteConfirmDialog.dataset.deleteName = '';
+            } catch(_){}
           } catch(err){
             console.error('Error deleting team:', err);
             alert('Errore durante l\'eliminazione: ' + (err.message || String(err)));
