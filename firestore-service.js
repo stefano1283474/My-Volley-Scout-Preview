@@ -668,10 +668,27 @@ const firestoreService = {
         excelFileUrl: match.excelFileUrl||'',
         excelFilePath: match.excelFilePath||''
     }),
+    _generateInviteToken: (length = 22) => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const bytes = new Uint8Array(length);
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            window.crypto.getRandomValues(bytes);
+        } else {
+            for (let i = 0; i < length; i++) bytes[i] = Math.floor(Math.random() * 256);
+        }
+        let out = '';
+        for (let i = 0; i < length; i++) out += chars[bytes[i] % chars.length];
+        return out;
+    },
     getUserRef: () => {
         const user = authFunctions.getCurrentUser();
         if (!user) throw new Error('Utente non autenticato');
         const userDocId = String(user.email || '').trim();
+        if (!userDocId) throw new Error('Email utente non valida');
+        return window.db.collection('users').doc(userDocId);
+    },
+    getUserRefByEmail: (email) => {
+        const userDocId = String(email || '').trim();
         if (!userDocId) throw new Error('Email utente non valida');
         return window.db.collection('users').doc(userDocId);
     },
@@ -746,6 +763,162 @@ const firestoreService = {
             const teams = [];
             snap.forEach(d => teams.push({ id: d.id, ...d.data() }));
             return { success: true, documents: teams };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    loadSharedTeams: async () => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const currentEmail = String(user.email || '').trim();
+            if (!currentEmail) return { success: false, error: 'Email utente non valida' };
+            const accesses = [];
+            try {
+                const accessSnap = await window.db.collection('teamAccess').where('userEmail', '==', currentEmail).get();
+                accessSnap.forEach(d => accesses.push({ id: d.id, ...d.data() }));
+            } catch (_) {}
+            if (!accesses.length) {
+                const userRef = await firestoreService.getUserRefEnsured();
+                const accessSnap = await userRef.collection('teamAccess').get();
+                accessSnap.forEach(d => accesses.push({ id: d.id, ...d.data() }));
+            }
+            const teams = [];
+            for (const access of accesses) {
+                if (access?.active === false) continue;
+                const ownerId = String(access?.ownerId || '').trim();
+                const teamId = String(access?.teamId || '').trim();
+                if (!ownerId || !teamId) continue;
+                try {
+                    const ownerRef = firestoreService.getUserRefByEmail(ownerId);
+                    const teamDoc = await ownerRef.collection('teams').doc(teamId).get();
+                    if (teamDoc.exists) {
+                        const data = teamDoc.data() || {};
+                        teams.push(Object.assign({ id: teamDoc.id }, data, { _mvsOwner: ownerId, _mvsRole: access?.role || 'observer', source: 'shared' }));
+                    }
+                } catch (_) {}
+            }
+            return { success: true, documents: teams };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    getTeamRole: async (teamId, ownerId = null) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const currentEmail = String(user.email || '').trim();
+            const tId = String(teamId || '').trim();
+            if (!tId) return { success: false, error: 'teamId non valido' };
+            const owner = String(ownerId || currentEmail || '').trim();
+            if (!owner) return { success: false, error: 'ownerId non valido' };
+            if (owner === currentEmail) return { success: true, role: 'coach', ownerId: owner };
+            const safeEmail = currentEmail.replace('.', '_');
+            const accessIds = [
+                `${owner}__${tId}__${currentEmail}`,
+                `${owner}__${tId}__${safeEmail}`,
+                `${owner}__${tId}`
+            ];
+            let data = null;
+            try {
+                for (const id of accessIds) {
+                    const snap = await window.db.collection('teamAccess').doc(id).get();
+                    if (snap.exists) { data = snap.data() || {}; break; }
+                }
+            } catch (_) {}
+            if (!data) {
+                try {
+                    const userRef = await firestoreService.getUserRefEnsured();
+                    for (const id of accessIds) {
+                        const snap = await userRef.collection('teamAccess').doc(id).get();
+                        if (snap.exists) { data = snap.data() || {}; break; }
+                    }
+                } catch (_) {}
+            }
+            if (data) {
+                if (data?.active === false) return { success: true, role: 'none', ownerId: owner };
+                return { success: true, role: data?.role || 'observer', ownerId: owner };
+            }
+            return { success: true, role: 'none', ownerId: owner };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    createTeamInvite: async (teamId) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const ownerId = String(user.email || '').trim();
+            const tId = String(teamId || '').trim();
+            if (!tId) return { success: false, error: 'teamId non valido' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const teamDoc = await userRef.collection('teams').doc(tId).get();
+            if (!teamDoc.exists) return { success: false, error: 'Team non trovato' };
+            const team = teamDoc.data() || {};
+            let inviteId = firestoreService._generateInviteToken(24);
+            let tries = 0;
+            while (tries < 3) {
+                const exists = await window.db.collection('teamInvites').doc(inviteId).get();
+                if (!exists.exists) break;
+                inviteId = firestoreService._generateInviteToken(24);
+                tries++;
+            }
+            const payload = {
+                ownerId,
+                teamId: tId,
+                role: 'observer',
+                active: true,
+                teamName: String(team?.teamName || '').trim(),
+                clubName: String(team?.clubName || '').trim(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await window.db.collection('teamInvites').doc(inviteId).set(payload);
+            const base = (window.location && window.location.origin) ? window.location.origin : '';
+            const link = `${base}/my-teams.html?invite=${encodeURIComponent(inviteId)}`;
+            return { success: true, inviteId, link, payload };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    acceptTeamInvite: async (inviteId) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const token = String(inviteId || '').trim();
+            if (!token) return { success: false, error: 'Invito non valido' };
+            const inviteDoc = await window.db.collection('teamInvites').doc(token).get();
+            if (!inviteDoc.exists) return { success: false, error: 'Invito non trovato' };
+            const invite = inviteDoc.data() || {};
+            if (invite?.active === false) return { success: false, error: 'Invito non attivo' };
+            const ownerId = String(invite?.ownerId || '').trim();
+            const teamId = String(invite?.teamId || '').trim();
+            if (!ownerId || !teamId) return { success: false, error: 'Invito non valido' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const currentEmail = String(user.email || '').trim();
+            const accessId = `${ownerId}__${teamId}__${currentEmail}`;
+            const payload = {
+                ownerId,
+                teamId,
+                userEmail: currentEmail,
+                role: 'observer',
+                inviteId: token,
+                active: true,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try { await window.db.collection('teamAccess').doc(accessId).set(payload, { merge: true }); } catch (_) {}
+            await userRef.collection('teamAccess').doc(accessId).set(payload, { merge: true });
+            let teamData = null;
+            try {
+                const ownerRef = firestoreService.getUserRefByEmail(ownerId);
+                const teamDoc = await ownerRef.collection('teams').doc(teamId).get();
+                if (teamDoc.exists) teamData = Object.assign({ id: teamDoc.id }, teamDoc.data() || {});
+            } catch (_) {}
+            return { success: true, accessId, invite: Object.assign({}, invite), team: teamData };
         } catch (error) {
             return { success: false, error: error.message };
         }
@@ -1452,6 +1625,40 @@ const firestoreService = {
             return { success: false, error: error.message };
         }
     },
+
+    loadTeamMatchesByOwner: async (ownerId, teamId) => {
+        try {
+            const owner = String(ownerId || '').trim();
+            if (!owner) return { success: false, error: 'ownerId non valido' };
+            const matchesSnap = await firestoreService.getUserRefByEmail(owner)
+                .collection('teams').doc(String(teamId)).collection('matches').orderBy('createdAt','desc').get();
+            const out = [];
+            matchesSnap.forEach(doc => { 
+                const data = doc.data();
+                const adapted = { id: doc.id, ...data, source: 'firestore_team' };
+                adapted.teamId = String(teamId);
+                if (data.sets) {
+                    adapted.actionsBySet = {};
+                    adapted.setMeta = {};
+                    adapted.setStateBySet = {};
+                    adapted.setSummary = {};
+                    adapted.scoreHistoryBySet = {};
+                    Object.keys(data.sets).forEach(k => {
+                        const s = data.sets[k];
+                        if (s.actions) adapted.actionsBySet[k] = s.actions;
+                        if (s.meta) adapted.setMeta[k] = s.meta;
+                        if (s.state) adapted.setStateBySet[k] = s.state;
+                        if (s.summary) adapted.setSummary[k] = s.summary;
+                        if (s.scoreHistory) adapted.scoreHistoryBySet[k] = s.scoreHistory;
+                    });
+                }
+                out.push(adapted); 
+            });
+            return { success: true, documents: out };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
     
     deleteMatchTree: async (teamId, matchId, options = {}) => {
         try {
@@ -1514,6 +1721,268 @@ const firestoreService = {
             }
 
             return { success: true, meta, roster, details };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    getMatchDataByOwner: async (ownerId, teamId, matchId) => {
+        try {
+            const owner = String(ownerId || '').trim();
+            if (!owner) return { success: false, error: 'ownerId non valido' };
+            const matchRef = firestoreService.getUserRefByEmail(owner)
+                .collection('teams').doc(String(teamId)).collection('matches').doc(String(matchId));
+            const doc = await matchRef.get();
+            if (!doc.exists) return { success: false, error: 'Match not found' };
+            const data = doc.data();
+            const meta = { id: doc.id, ...data };
+            const roster = data.roster || [];
+            const details = {
+                actionsBySet: {},
+                setMeta: {},
+                setStateBySet: {},
+                setSummary: {},
+                scoreHistoryBySet: {}
+            };
+            if (data.sets) {
+                Object.keys(data.sets).forEach(k => {
+                    const s = data.sets[k];
+                    if (s.actions) details.actionsBySet[k] = s.actions;
+                    if (s.meta) details.setMeta[k] = s.meta;
+                    if (s.state) details.setStateBySet[k] = s.state;
+                    if (s.summary) details.setSummary[k] = s.summary;
+                    if (s.scoreHistory) details.scoreHistoryBySet[k] = s.scoreHistory;
+                });
+            }
+            return { success: true, meta, roster, details };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    hydrateSharedTeamMatchesFromFirestore: async (ownerId, teamId, options = {}) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const owner = String(ownerId || '').trim();
+            const tId = String(teamId || '').trim();
+            if (!owner) return { success: false, error: 'ownerId non valido' };
+            if (!tId) return { success: false, error: 'teamId non valido' };
+            const res = await firestoreService.loadTeamMatchesByOwner(owner, tId);
+            if (!res?.success) return { success: false, error: res?.error || 'Errore caricamento partite squadra' };
+            let all = [];
+            try { all = JSON.parse(localStorage.getItem('volleyMatches') || '[]'); } catch (_) { all = []; }
+            if (!Array.isArray(all)) all = [];
+            let teamName = '';
+            try {
+                const teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                const found = Array.isArray(teams) ? teams.find(t => String(t?.id || '').trim() === tId) : null;
+                teamName = String(found?.name || '').trim();
+            } catch (_) { teamName = ''; }
+            const isMatchForTeam = (m) => {
+                const mid = String(m?.teamId || '').trim();
+                if (mid && mid === tId) return true;
+                if (!teamName) return false;
+                const my = String(m?.myTeam || m?.teamName || '').trim();
+                const home = String(m?.homeTeam || '').trim();
+                const away = String(m?.awayTeam || '').trim();
+                return (my && my === teamName) || (home && home === teamName) || (away && away === teamName);
+            };
+            const existingLocalTeamMatches = all.filter(isMatchForTeam);
+            const localById = new Map();
+            for (const m of existingLocalTeamMatches) {
+                const id = String(m?.id || '').trim();
+                if (id) localById.set(id, m);
+            }
+            const fsDocs = Array.isArray(res.documents) ? res.documents : [];
+            const matchIds = Array.isArray(options?.matchIds) ? options.matchIds.map(v => String(v || '').trim()).filter(Boolean) : [];
+            const matchIdSet = matchIds.length ? new Set(matchIds) : null;
+            const fsById = new Map();
+            for (const d of fsDocs) {
+                const id = String(d?.id || '').trim();
+                if (!id) continue;
+                if (matchIdSet && !matchIdSet.has(id)) continue;
+                const dateStr = String(d?.date || d?.matchDate || '').trim();
+                const matchType = d?.matchType || d?.eventType || '';
+                const base = Object.assign({}, d);
+                base.id = id;
+                base.teamId = tId;
+                if (dateStr && !base.matchDate) base.matchDate = dateStr;
+                if (!base.date && dateStr) base.date = dateStr;
+                if (matchType && !base.eventType) base.eventType = matchType;
+                fsById.set(id, base);
+            }
+            const toEpochMs = (v) => {
+                try {
+                    if (!v) return null;
+                    if (typeof v === 'number' && isFinite(v)) return v;
+                    if (typeof v === 'string') {
+                        const t = Date.parse(v);
+                        return Number.isFinite(t) ? t : null;
+                    }
+                    if (typeof v.toMillis === 'function') return v.toMillis();
+                    if (typeof v.seconds === 'number') return (v.seconds * 1000) + Math.floor((v.nanoseconds || 0) / 1e6);
+                    return null;
+                } catch (_) { return null; }
+            };
+            const matchLabel = (m) => {
+                const home = String(m?.homeTeam || '').trim();
+                const away = String(m?.awayTeam || '').trim();
+                const my = String(m?.myTeam || m?.teamName || '').trim();
+                const opp = String(m?.opponentTeam || '').trim();
+                const date = String(m?.matchDate || m?.date || '').trim();
+                const vs = (home && away) ? `${home} vs ${away}` : (my && opp ? `${my} vs ${opp}` : '');
+                return `${vs}${date ? ` (${date})` : ''}`.trim() || String(m?.id || '').trim() || 'partita';
+            };
+            const conflictMode = String(options?.conflictMode || 'ask');
+            const defaultChoice = options?.defaultChoice === 'cloud' ? 'cloud' : 'local';
+            const mergedTeam = [];
+            for (const [id, fsMatch] of fsById.entries()) {
+                const existing = localById.get(id);
+                if (existing) {
+                    const localUpdated = toEpochMs(existing?.updatedAt) || toEpochMs(existing?.scoutingEndTime) || null;
+                    const fsUpdated = toEpochMs(fsMatch?.updatedAt) || toEpochMs(fsMatch?.scoutingEndTime) || null;
+                    const localSig = JSON.stringify({
+                        matchDate: String(existing?.matchDate || existing?.date || '').trim(),
+                        opponentTeam: String(existing?.opponentTeam || '').trim(),
+                        homeTeam: String(existing?.homeTeam || '').trim(),
+                        awayTeam: String(existing?.awayTeam || '').trim(),
+                        status: String(existing?.status || '').trim()
+                    });
+                    const fsSig = JSON.stringify({
+                        matchDate: String(fsMatch?.matchDate || fsMatch?.date || '').trim(),
+                        opponentTeam: String(fsMatch?.opponentTeam || '').trim(),
+                        homeTeam: String(fsMatch?.homeTeam || '').trim(),
+                        awayTeam: String(fsMatch?.awayTeam || '').trim(),
+                        status: String(fsMatch?.status || '').trim()
+                    });
+                    const hasDiff = (localSig !== fsSig) || (localUpdated && fsUpdated && localUpdated !== fsUpdated);
+                    let useLocal = true;
+                    if (hasDiff) {
+                        if (conflictMode === 'preferCloud') {
+                            useLocal = false;
+                        } else if (conflictMode === 'preferLocal') {
+                            useLocal = true;
+                        } else {
+                            let msg = `Conflitto dati partita:\n${matchLabel(existing) || matchLabel(fsMatch)}\n\nUsare dati LOCALI (OK) o CLOUD (Annulla)?`;
+                            if (localUpdated && fsUpdated) {
+                                const newer = localUpdated > fsUpdated ? 'locali' : (fsUpdated > localUpdated ? 'cloud' : null);
+                                if (newer) msg += `\n\nSuggerimento: sembrano più recenti i dati ${newer}.`;
+                            }
+                            try {
+                                const hint = (localUpdated && fsUpdated)
+                                    ? ((localUpdated > fsUpdated) ? 'Suggerimento: sembrano più recenti i dati locali.' : ((fsUpdated > localUpdated) ? 'Suggerimento: sembrano più recenti i dati cloud.' : ''))
+                                    : '';
+                                const choice = await firestoreService._chooseLocalOrCloud({
+                                    title: 'Conflitto dati partita',
+                                    subtitle: String(matchLabel(existing) || matchLabel(fsMatch)),
+                                    message: '',
+                                    hint,
+                                    localLabel: 'Usa dati locali',
+                                    cloudLabel: 'Usa dati Cloud',
+                                    defaultChoice
+                                });
+                                useLocal = choice !== 'cloud';
+                            } catch (_) { useLocal = true; }
+                        }
+                    }
+                    const mergedMatch = useLocal
+                        ? Object.assign({}, fsMatch, existing)
+                        : Object.assign({}, existing, fsMatch);
+                    mergedMatch._mvsSource = useLocal ? 'local' : 'cloud';
+                    mergedMatch.id = id;
+                    mergedMatch.teamId = tId;
+                    mergedMatch.matchDate = mergedMatch.matchDate || mergedMatch.date || fsMatch.matchDate || fsMatch.date || '';
+                    mergedTeam.push(mergedMatch);
+                } else {
+                    mergedTeam.push(fsMatch);
+                }
+            }
+            const detailsMode = String(options?.detailsMode || 'none');
+            const maxDetails = Number(options?.maxDetails || 0);
+            const shouldLoadDetails = detailsMode === 'all' || (detailsMode === 'recent' && maxDetails > 0);
+            const idsForDetails = shouldLoadDetails
+                ? (detailsMode === 'all'
+                    ? mergedTeam.map(m => String(m?.id || '').trim()).filter(Boolean)
+                    : mergedTeam.slice(0, maxDetails).map(m => String(m?.id || '').trim()).filter(Boolean))
+                : [];
+            let detailsLoaded = 0;
+            for (const mId of idsForDetails) {
+                try {
+                    const r = await firestoreService.getMatchDataByOwner(owner, tId, mId);
+                    if (r?.success) {
+                        const idx = mergedTeam.findIndex(m => String(m?.id || '') === mId);
+                        if (idx >= 0) {
+                            const cur = mergedTeam[idx] || {};
+                            const roster = Array.isArray(r.roster) ? r.roster : [];
+                            const details = r.details || {};
+                            const updated = Object.assign({}, cur);
+                            const shouldOverride = String(updated?._mvsSource || '') === 'cloud';
+                            if (roster.length && (shouldOverride || !(Array.isArray(updated.roster) && updated.roster.length))) updated.roster = roster;
+                            if (details && typeof details === 'object') {
+                                if (shouldOverride || !updated.actionsBySet) updated.actionsBySet = details.actionsBySet || {};
+                                if (shouldOverride || !updated.setMeta) updated.setMeta = details.setMeta || {};
+                                if (shouldOverride || !updated.setStateBySet) updated.setStateBySet = details.setStateBySet || {};
+                                if (shouldOverride || !updated.setSummary) updated.setSummary = details.setSummary || {};
+                                if (shouldOverride || !updated.scoreHistoryBySet) updated.scoreHistoryBySet = details.scoreHistoryBySet || {};
+                            }
+                            mergedTeam[idx] = updated;
+                        }
+                        detailsLoaded++;
+                    }
+                } catch (_) { }
+            }
+            const mergedIds = new Set(mergedTeam.map(m => String(m?.id || '').trim()).filter(Boolean));
+            const localOnly = existingLocalTeamMatches.filter(m => {
+                const id = String(m?.id || '').trim();
+                return id && !mergedIds.has(id);
+            });
+            const others = all.filter(m => !isMatchForTeam(m));
+            const localOnlyWithTeam = localOnly.map(m => {
+                if (m && (!m.teamId || String(m.teamId).trim() !== tId)) return Object.assign({}, m, { teamId: tId });
+                return m;
+            });
+            const combinedTeam = mergedTeam.concat(localOnlyWithTeam).map((m) => {
+                const out = Object.assign({}, m);
+                const src = String(out?.source || out?._mvsSource || '').toLowerCase();
+                if (src.startsWith('firestore')) out.source = 'local_hydrated';
+                return out;
+            });
+            const nextAll = others.concat(combinedTeam);
+            const dedupeKey = (m) => {
+                const id = String(m?.id || '').trim();
+                if (id) return `id:${id}`;
+                const date = String(m?.matchDate || m?.date || '').trim();
+                const my = String(m?.myTeam || m?.teamName || '').trim();
+                const opp = String(m?.opponentTeam || '').trim();
+                const home = String(m?.homeTeam || '').trim();
+                const away = String(m?.awayTeam || '').trim();
+                return `h:${home}|a:${away}|my:${my}|opp:${opp}|d:${date}`;
+            };
+            const mergePreferMoreInfo = (a, b) => {
+                const na = Object.assign({}, a);
+                const nb = Object.assign({}, b);
+                const hasRosterA = Array.isArray(na?.roster) && na.roster.length;
+                const hasRosterB = Array.isArray(nb?.roster) && nb.roster.length;
+                const hasSetsA = na?.sets && typeof na.sets === 'object' && Object.keys(na.sets).length;
+                const hasSetsB = nb?.sets && typeof nb.sets === 'object' && Object.keys(nb.sets).length;
+                if ((hasRosterB && !hasRosterA) || (hasSetsB && !hasSetsA)) return Object.assign({}, na, nb);
+                return Object.assign({}, nb, na);
+            };
+            const deduped = [];
+            const indexByKey = new Map();
+            for (const m of nextAll) {
+                const key = dedupeKey(m);
+                const idx = indexByKey.get(key);
+                if (idx == null) {
+                    indexByKey.set(key, deduped.length);
+                    deduped.push(m);
+                } else {
+                    deduped[idx] = mergePreferMoreInfo(deduped[idx], m);
+                }
+            }
+            localStorage.setItem('volleyMatches', JSON.stringify(deduped));
+            return { success: true, hydrated: mergedTeam.length, detailsLoaded };
         } catch (error) {
             return { success: false, error: error.message };
         }

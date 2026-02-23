@@ -120,7 +120,10 @@ class TeamsModule {
                     name: t.name,
                     teamName: t.teamName,
                     clubName: t.clubName,
-                    players: Array.isArray(t.players) ? t.players : []
+                    players: Array.isArray(t.players) ? t.players : [],
+                    _mvsShared: !!t._mvsShared,
+                    _mvsOwner: t._mvsOwner || '',
+                    _mvsRole: t._mvsRole || ''
                 }));
                 localStorage.setItem('volleyTeams', JSON.stringify(toStore));
                 if (isAuthed && window.firestoreService?.saveTeam) {
@@ -170,7 +173,10 @@ class TeamsModule {
                     name: combinedName,
                     teamName,
                     clubName,
-                    players: Array.isArray(t.players) ? t.players : []
+                    players: Array.isArray(t.players) ? t.players : [],
+                    _mvsShared: !!t._mvsShared,
+                    _mvsOwner: t._mvsOwner || '',
+                    _mvsRole: t._mvsRole || ''
                 };
             });
         } catch (_) {

@@ -242,6 +242,7 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Accesso in corso...</p>
+            <div class="app-version"></div>
         </div>
 
         <form id="loginForm">
@@ -380,6 +381,24 @@
             initializeAuth();
         });
 
+        function getInviteToken() {
+            try {
+                const qp = new URLSearchParams(window.location.search || '');
+                const t = String(qp.get('invite') || '').trim();
+                if (t) {
+                    try { sessionStorage.setItem('__pendingInvite', t); } catch(_) {}
+                    return t;
+                }
+            } catch(_) {}
+            try { return String(sessionStorage.getItem('__pendingInvite') || '').trim(); } catch(_) { return ''; }
+        }
+
+        function redirectToMyTeams() {
+            const token = getInviteToken();
+            const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+            window.location.href = `/my-teams.html${qs}`;
+        }
+
         function initializeAuth() {
             if (typeof window.authFunctions === 'undefined') {
                 setTimeout(initializeAuth, 200);
@@ -388,7 +407,7 @@
 
             window.authFunctions.onAuthStateChanged((user) => {
                 if (user) {
-                    window.location.href = '/my-teams.html';
+                    redirectToMyTeams();
                 }
             });
 
@@ -412,7 +431,7 @@
                         showSuccess('Accesso effettuato con successo!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/my-teams.html';
+                            redirectToMyTeams();
                         }, 1500);
                     } else {
                         let errorCode = result?.code || null;
@@ -439,7 +458,7 @@
                         showSuccess('Accesso con Google effettuato!');
                         await createUserCollection(result.user.email);
                         setTimeout(() => {
-                            window.location.href = '/my-teams.html';
+                            redirectToMyTeams();
                         }, 1500);
                     } else {
                         const errorCode = result?.code || 'unknown';

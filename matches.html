@@ -525,14 +525,13 @@
                 <button id="matchesArchiveTabCloud" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud</button>
             </div>
             <div class="section-hint" id="teamContext" style="margin:0 0 8px 0;">
-                <div style="display:grid; grid-template-columns: 160px 1fr; column-gap:6px; row-gap:4px; align-items:baseline;">
-                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">La tua società:</span>
+                <div style="display:grid; grid-template-columns: max-content 1fr; column-gap:4px; row-gap:4px; align-items:baseline;">
+                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">Società':</span>
                     <span id="clubNameTop" style="text-transform:uppercase; font-weight:400; font-size:0.95rem; color:#333;">—</span>
-                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">La tua squadra:</span>
+                    <span style="color:#6c757d; font-size:0.95rem; font-weight:600; text-transform:uppercase;">Squadra</span>
                     <span id="teamNameBottom" style="color:#555; font-size:0.95rem; font-weight:400;">—</span>
                 </div>
             </div>
-            <p class="section-hint" style="margin:8px 0 16px 0;">Seleziona una partita per iniziare lo scout</p>
             
             <div class="matches-list" id="matchesList">
                 <!-- Matches will be loaded here -->
@@ -541,10 +540,10 @@
             <!-- Empty State -->
             <div class="empty-state" id="emptyMatches" style="display: none;">
                 <img class="empty-icon" src="./LOGO_PALLONE.png" alt="Pallone" />
-                <p>Nessuna partita disponibile</p>
-                <p>Crea una nuova partita.</p>
-                <div class="empty-actions">
-                  <button type="button" class="btn btn-primary" onclick="openNewMatchDialog()">Crea nuova partita</button>
+                <p id="emptyMatchesTitle">Nessuna partita disponibile</p>
+                <p id="emptyMatchesHint">Crea una nuova partita.</p>
+                <div class="empty-actions" id="emptyMatchesActions">
+                  <button type="button" class="btn btn-primary" id="emptyMatchesCreateBtn" onclick="openNewMatchDialog()">Crea nuova partita</button>
                 </div>
             </div>
         </div>
@@ -1525,6 +1524,10 @@
         const autoSavesToggle = document.getElementById('autoSavesToggle');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
+        const emptyMatchesTitle = document.getElementById('emptyMatchesTitle');
+        const emptyMatchesHint = document.getElementById('emptyMatchesHint');
+        const emptyMatchesActions = document.getElementById('emptyMatchesActions');
+        const emptyMatchesCreateBtn = document.getElementById('emptyMatchesCreateBtn');
         const loadingScreen = document.getElementById('loadingScreen');
         const importStageOverlay = document.getElementById('importStageOverlay');
         const importMatchDialog = document.getElementById('importMatchDialog');
@@ -1544,6 +1547,7 @@
         const rootContainer = document.querySelector('.container');
         const inlineMatchForm = document.getElementById('inlineMatchForm');
         const newMatchBtn = document.getElementById('newMatchBtn');
+        const importMatchBtn = document.getElementById('importMatchBtn');
         const sortByDateBtn = document.getElementById('sortByDateBtn');
         const listActions = document.getElementById('listActions');
         const matchesArchiveBadge = document.getElementById('matchesArchiveBadge');
@@ -1601,6 +1605,7 @@
         let teamAnalysisViewportDeviceType = 'phone';
         let teamAnalysisViewportOrientation = 'portrait';
         let teamAnalysisFiltersVisible = true;
+        let isObserverMode = false;
 
         function readAppSettings() {
             try {
@@ -1627,6 +1632,30 @@
 
         function isAuthenticated() {
             return (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
+        }
+
+        function getSelectedTeamOwner() {
+            try { return String(localStorage.getItem('selectedTeamOwner') || '').trim(); } catch(_) { return ''; }
+        }
+
+        function getSelectedTeamRole() {
+            try { return String(localStorage.getItem('selectedTeamRole') || '').trim(); } catch(_) { return ''; }
+        }
+
+        function computeObserverMode() {
+            const role = getSelectedTeamRole();
+            if (role === 'observer') return true;
+            const owner = getSelectedTeamOwner();
+            if (owner && currentUser && String(currentUser.email || '').trim() !== owner) return true;
+            return false;
+        }
+
+        function updateObserverUI() {
+            isObserverMode = computeObserverMode();
+            if (syncDataBtn) syncDataBtn.style.display = isObserverMode ? 'none' : '';
+            if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';
         }
 
         function getInitialArchive() {
@@ -2672,6 +2701,7 @@
             }
 
             if (!selectedTeam) {
+                updateObserverUI();
                 switchTab('list');
                 const dateInput = document.getElementById('match-date');
                 if (dateInput && !dateInput.value) {
@@ -2682,6 +2712,16 @@
                 return;
             }
 
+            try {
+                if (selectedTeam?._mvsOwner) {
+                    localStorage.setItem('selectedTeamOwner', String(selectedTeam._mvsOwner || ''));
+                    localStorage.setItem('selectedTeamRole', String(selectedTeam._mvsRole || 'observer'));
+                } else {
+                    localStorage.removeItem('selectedTeamOwner');
+                    localStorage.removeItem('selectedTeamRole');
+                }
+            } catch(_) {}
+            updateObserverUI();
             updateTeamInfo();
             // Vista predefinita: Elenco partite
             switchTab('list');
@@ -3381,6 +3421,7 @@
         }
 
         function renderPartialSavesHtml(matchId, isCompleted) {
+            if (isObserverMode) return '';
             const list = getPartialSavesForMatch(matchId);
             if (!list.length) return '';
             const cleanupControls = isCompleted ? `
@@ -4801,25 +4842,26 @@
             const partialSavesHtml = renderPartialSavesHtml(match.id, statusCode === 'completed');
 
             // Riga con azioni a sinistra + testo
+            const actionsHtml = isObserverMode ? '' : `
+              <div class="card-actions">
+                <button class="icon-button" aria-label="Modifica" title="Modifica" data-action="edit">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="icon-button" aria-label="Elimina" title="Elimina" data-action="delete">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>`;
             card.innerHTML = `
               <div class="match-row">
-                <div class="card-actions">
-                  
-                  <button class="icon-button" aria-label="Modifica" title="Modifica" data-action="edit">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button class="icon-button" aria-label="Elimina" title="Elimina" data-action="delete">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </button>
-                </div>
+                ${actionsHtml}
                 <div class="match-line">${statusIcon}${dateLabel} • ${typeLabel} • ${opp}${res.label ? ` • ${res.label} ${res.outcome}` : ''}</div>
               </div>
               ${partialSavesHtml}`;
@@ -4835,75 +4877,77 @@
             const partialDeleteBtns = card.querySelectorAll('button[data-action="partial-delete"]');
             const partialCleanupBtn = card.querySelector('button[data-action="partial-cleanup-apply"]');
             const partialCleanupSelect = card.querySelector('select[data-action="partial-cleanup-select"]');
-            if (editBtn) {
-                editBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    try {
-                        localStorage.setItem('selectedMatchId', String(match.id));
-                        const teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
-                        if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
-                        const qs = new URLSearchParams();
-                        if (teamId) qs.set('team', String(teamId));
-                        qs.set('match', String(match.id));
-                        qs.set('archive', String(currentArchive || 'local'));
-                        location.href = '/riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
-                    } catch(_) {
-                        location.href = '/riepilogo-gara.html';
-                    }
-                });
-            }
-            if (delBtn) {
-                delBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    try {
-                        if (window.matchesModule?.deleteMatch) {
-                            const res = await window.matchesModule.deleteMatch(match.id, { confirm: true });
-                            if (!res.success && !res.cancelled) alert('Errore nell\'eliminazione: ' + (res.error || 'Sconosciuto'));
-                        } else {
-                            alert('Modulo partite non disponibile');
+            if (!isObserverMode) {
+                if (editBtn) {
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        try {
+                            localStorage.setItem('selectedMatchId', String(match.id));
+                            const teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
+                            if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
+                            const qs = new URLSearchParams();
+                            if (teamId) qs.set('team', String(teamId));
+                            qs.set('match', String(match.id));
+                            qs.set('archive', String(currentArchive || 'local'));
+                            location.href = '/riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
+                        } catch(_) {
+                            location.href = '/riepilogo-gara.html';
                         }
-                    } catch (err) {
-                        console.error(err);
-                        alert('Errore nell\'eliminazione della partita');
-                    }
-                });
-            }
-            if (partialOpenBtns && partialOpenBtns.length) {
-                partialOpenBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const saveId = btn.getAttribute('data-save-id');
-                        openPartialSave(match.id, saveId);
                     });
-                });
-            }
-            if (partialDeleteBtns && partialDeleteBtns.length) {
-                partialDeleteBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                }
+                if (delBtn) {
+                    delBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        const saveId = btn.getAttribute('data-save-id');
-                        const ok = window.confirm('Eliminare questo salvataggio progressivo?');
+                        try {
+                            if (window.matchesModule?.deleteMatch) {
+                                const res = await window.matchesModule.deleteMatch(match.id, { confirm: true });
+                                if (!res.success && !res.cancelled) alert('Errore nell\'eliminazione: ' + (res.error || 'Sconosciuto'));
+                            } else {
+                                alert('Modulo partite non disponibile');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Errore nell\'eliminazione della partita');
+                        }
+                    });
+                }
+                if (partialOpenBtns && partialOpenBtns.length) {
+                    partialOpenBtns.forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const saveId = btn.getAttribute('data-save-id');
+                            openPartialSave(match.id, saveId);
+                        });
+                    });
+                }
+                if (partialDeleteBtns && partialDeleteBtns.length) {
+                    partialDeleteBtns.forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const saveId = btn.getAttribute('data-save-id');
+                            const ok = window.confirm('Eliminare questo salvataggio progressivo?');
+                            if (!ok) return;
+                            deletePartialSave(match.id, saveId);
+                            renderMatches();
+                        });
+                    });
+                }
+                if (partialCleanupBtn) {
+                    partialCleanupBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const raw = String(partialCleanupSelect?.value || '3').trim();
+                        const keep = parseInt(raw, 10);
+                        if (!Number.isFinite(keep) || keep < 0) { alert('Seleziona un valore valido'); return; }
+                        const ok = window.confirm(keep === 0 ? 'Cancellare tutti i salvataggi progressivi?' : `Lasciare solo gli ultimi ${keep} salvataggi progressivi?`);
                         if (!ok) return;
-                        deletePartialSave(match.id, saveId);
+                        prunePartialSaves(match.id, keep);
                         renderMatches();
                     });
-                });
-            }
-            if (partialCleanupBtn) {
-                partialCleanupBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const raw = String(partialCleanupSelect?.value || '3').trim();
-                    const keep = parseInt(raw, 10);
-                    if (!Number.isFinite(keep) || keep < 0) { alert('Seleziona un valore valido'); return; }
-                    const ok = window.confirm(keep === 0 ? 'Cancellare tutti i salvataggi progressivi?' : `Lasciare solo gli ultimi ${keep} salvataggi progressivi?`);
-                    if (!ok) return;
-                    prunePartialSaves(match.id, keep);
-                    renderMatches();
-                });
+                }
             }
             
             return card;
@@ -4980,6 +5024,15 @@
         function showEmptyMatches() {
             matchesList.innerHTML = '';
             emptyMatches.style.display = 'block';
+            if (isObserverMode) {
+                if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud tramite il menu utente in alto a destra, seleziona la voce Aggiorna Locale da Cloud';
+                if (emptyMatchesActions) emptyMatchesActions.style.display = 'none';
+            } else {
+                if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Crea una nuova partita.';
+                if (emptyMatchesActions) emptyMatchesActions.style.display = '';
+            }
             hideLoadingScreen();
         }
 
@@ -5015,6 +5068,15 @@
             try {
                 const match = matches.find(m => m.id === matchId);
                 if (!match) return alert('Partita non trovata');
+                if (isObserverMode) {
+                    try { localStorage.setItem('selectedMatchId', String(matchId)); } catch(_){}
+                    try {
+                        const teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
+                        if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
+                    } catch(_){}
+                    window.location.href = '/match-stats.html';
+                    return;
+                }
                 function toEpoch(v){
                     try {
                         if (!v) return 0;
@@ -5674,6 +5736,7 @@
         }
 
         async function handleImportMatchClick(){
+            if (isObserverMode) return;
             openImportMatchDialog();
         }
 
