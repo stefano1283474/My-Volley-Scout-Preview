@@ -909,6 +909,7 @@ const firestoreService = {
                 ownerId,
                 teamId: tId,
                 role: 'observer',
+                inviteId: inviteId, // Aggiunto per query collectionGroup
                 active: true,
                 teamName: String(team?.teamName || '').trim(),
                 clubName: String(team?.clubName || '').trim(),
@@ -952,6 +953,16 @@ const firestoreService = {
                  try {
                      inviteDoc = await window.db.collection('teamInvites').doc(token).get();
                  } catch(_) {}
+            }
+            
+            // Ultimo tentativo: cerca in tutte le sottocollezioni 'invites' tramite inviteId
+            if (!inviteDoc || !inviteDoc.exists) {
+                try {
+                    const q = await window.db.collectionGroup('invites').where('inviteId', '==', token).limit(1).get();
+                    if (!q.empty) {
+                        inviteDoc = q.docs[0];
+                    }
+                } catch(_) {}
             }
 
             if (!inviteDoc || !inviteDoc.exists) return { success: false, error: 'Invito non trovato' };
