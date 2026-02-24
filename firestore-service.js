@@ -983,8 +983,9 @@ const firestoreService = {
             
             const invite = inviteDoc.data() || {};
             if (invite?.active === false) return { success: false, error: 'Invito non attivo' };
-            
-            ownerId = String(invite?.ownerId || ownerId || '').trim();
+            const pathOwnerId = String(inviteDoc?.ref?.parent?.parent?.id || '').trim();
+            ownerId = String(invite?.ownerId || ownerId || pathOwnerId || '').trim();
+            if (!ownerId && pathOwnerId) ownerId = pathOwnerId;
             const teamId = String(invite?.teamId || '').trim();
             
             if (!ownerId || !teamId) return { success: false, error: 'Invito non valido' };

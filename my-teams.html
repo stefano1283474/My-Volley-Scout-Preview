@@ -610,12 +610,12 @@
       if (!inviteId) return;
       const already = sessionStorage.getItem('__inviteHandled');
       if (already === inviteId) return;
-      sessionStorage.setItem('__inviteHandled', inviteId);
       const res = await window.firestoreService?.acceptTeamInvite?.(inviteId, ownerId);
       if (!res?.success) {
         alert(res?.error || 'Invito non valido');
         return;
       }
+      sessionStorage.setItem('__inviteHandled', inviteId);
       const finalOwner = String(res?.invite?.ownerId || ownerId || '').trim();
       if (res?.team) addOrUpdateSharedTeamLocal(res.team, finalOwner, 'observer');
       await loadCloudTeams();
