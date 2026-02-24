@@ -506,6 +506,35 @@
       try { return String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) { return ''; }
     }
 
+    function setSelectedSharedTeamMeta(team, ownerId) {
+      try {
+        if (!team) return;
+        const payload = {
+          id: String(team?.id || team?.teamId || '').trim(),
+          name: normalizeTeamName(team) || String(team?.name || '').trim(),
+          teamName: String(team?.teamName || '').trim(),
+          clubName: String(team?.clubName || '').trim(),
+          players: Array.isArray(team?.players) ? team.players : [],
+          owner: String(ownerId || '').trim(),
+          role: 'observer'
+        };
+        localStorage.setItem('selectedSharedTeamMeta', JSON.stringify(payload));
+      } catch(_) {}
+    }
+
+    function clearSelectedSharedTeamMeta() {
+      try { localStorage.removeItem('selectedSharedTeamMeta'); } catch(_) {}
+    }
+
+    function removeSharedTeamsLocal() {
+      try {
+        const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+        const arr = Array.isArray(list) ? list : [];
+        const cleaned = arr.filter(t => !t || !t._mvsShared);
+        localStorage.setItem('volleyTeams', JSON.stringify(cleaned));
+      } catch(_) {}
+    }
+
     function addOrUpdateSharedTeamLocal(team, ownerId, role) {
       try {
         const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
@@ -811,9 +840,11 @@
         if (arch === 'cloud' && owner && owner !== currentEmail) {
           setSelectedTeamAccess(owner, 'observer');
           const team = (Array.isArray(sharedTeams) ? sharedTeams : []).find(t => String(t?.id || '') === String(id) && String(t?._mvsOwner || '') === owner);
-          if (team) addOrUpdateSharedTeamLocal(team, owner, 'observer');
+          if (team) setSelectedSharedTeamMeta(team, owner);
+          removeSharedTeamsLocal();
         } else {
           clearSelectedTeamAccess();
+          clearSelectedSharedTeamMeta();
         }
         if (arch !== 'cloud') {
           try { window.teamsModule?.selectTeam?.(id); } catch(_){}

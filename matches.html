@@ -1646,6 +1646,13 @@
             try { return String(localStorage.getItem('selectedTeamRole') || '').trim(); } catch(_) { return ''; }
         }
 
+        function getSelectedSharedTeamMeta() {
+            try {
+                const raw = localStorage.getItem('selectedSharedTeamMeta');
+                return raw ? JSON.parse(raw) : null;
+            } catch(_) { return null; }
+        }
+
         function computeObserverMode() {
             const role = getSelectedTeamRole();
             if (role === 'observer') return true;
@@ -2749,6 +2756,23 @@
                 // Se esiste un team corrente nel modulo, usalo, altrimenti prova con l'id memorizzato
                 const current = window.teamsModule.getCurrentTeam();
                 selectedTeam = current || (teamId ? window.teamsModule.getTeamById(teamId) : null);
+            }
+
+            if (!selectedTeam) {
+                const owner = getSelectedTeamOwner();
+                const meta = getSelectedSharedTeamMeta();
+                if (owner && meta && (String(meta.id || '') || String(teamId || ''))) {
+                    selectedTeam = {
+                        id: String(meta.id || teamId || '').trim(),
+                        name: String(meta.name || '').trim(),
+                        teamName: String(meta.teamName || '').trim(),
+                        clubName: String(meta.clubName || '').trim(),
+                        players: Array.isArray(meta.players) ? meta.players : [],
+                        _mvsShared: true,
+                        _mvsOwner: String(owner || meta.owner || '').trim(),
+                        _mvsRole: 'observer'
+                    };
+                }
             }
 
             if (!selectedTeam) {
