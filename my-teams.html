@@ -858,8 +858,16 @@
             const owner = getInviteOwnerFromUrl() || readPendingInviteOwner();
             if (token) setPendingInvite(token, owner);
             updateInviteObserverInfo(false);
+            // Non reindirizzare automaticamente se siamo già in auth-login o se stiamo gestendo un invito
+            // Ma qui siamo in my-teams.html. Se non siamo loggati, dobbiamo andare a login.
+            // A meno che non vogliamo mostrare una "landing" per l'invito.
+            // L'utente si lamenta che "è evidente che l'utente è sempre registrato per atterrare in qualsiasi pagina".
+            // Se intendiamo che NON deve andare a login subito?
+            // No, my-teams è una pagina protetta.
             const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? '&owner='+encodeURIComponent(owner) : ''}` : '';
-            window.location.href = `/auth-login.html${qs}`;
+            if (window.location.pathname.indexOf('auth-login') === -1) {
+                 window.location.href = `/auth-login.html${qs}`;
+            }
             return;
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }

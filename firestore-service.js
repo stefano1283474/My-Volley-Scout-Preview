@@ -948,6 +948,20 @@ const firestoreService = {
                  } catch(e) { console.error('Error fetching subcollection invite', e); }
             }
             
+            // Fallback: prova con replace punto se non trovato
+            if (ownerId && (!inviteDoc || !inviteDoc.exists)) {
+                 try {
+                     const safeOwner = ownerId.replace('.', '_');
+                     if (safeOwner !== ownerId) {
+                         const ownerRef = firestoreService.getUserRefByEmail(safeOwner);
+                         inviteDoc = await ownerRef.collection('invites').doc(token).get();
+                         if (inviteDoc.exists) {
+                             ownerId = safeOwner; // Usa questo ownerId per il resto
+                         }
+                     }
+                 } catch(e) { console.error('Error fetching subcollection invite fallback', e); }
+            }
+            
             // Fallback for backward compatibility: check global collection if not found in subcollection
             if (!inviteDoc || !inviteDoc.exists) {
                  try {
