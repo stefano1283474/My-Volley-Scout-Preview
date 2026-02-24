@@ -306,9 +306,23 @@ const firestoreService = {
                     }
 
                     if (!shouldWrite) continue;
+                    baseData.shared = typeof t.shared === 'boolean' ? t.shared : !!(cloudTeam?.shared);
                     const payload = Object.assign({}, baseData);
                     if (shouldSetCreatedAt) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await docRef.set(payload, { merge: true });
+                    try {
+                        const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
+                        if (currentEmail) {
+                            const uaRef = docRef.collection('user_access').doc(currentEmail);
+                            await uaRef.set({
+                                userEmail: currentEmail,
+                                role: 'coach',
+                                active: true,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        }
+                    } catch(_) {}
                     synced++;
                 } catch(_){ }
             }
@@ -726,10 +740,24 @@ const firestoreService = {
                 teamName: squad,
                 clubName: club,
                 players: Array.isArray(team.players) ? team.players : [],
+                shared: !!team.shared,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await docRef.set(data, { merge: true });
+            try {
+                const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
+                if (currentEmail) {
+                    const uaRef = docRef.collection('user_access').doc(currentEmail);
+                    await uaRef.set({
+                        userEmail: currentEmail,
+                        role: 'coach',
+                        active: true,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+            } catch(_) {}
             return { success: true, id };
         } catch (error) {
             return { success: false, error: error.message };
@@ -746,10 +774,24 @@ const firestoreService = {
                 teamName: squad,
                 clubName: club,
                 name: combined || String(updates.name || '').trim(),
+                shared: !!updates.shared,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (Array.isArray(updates.players)) payload.players = updates.players;
             await docRef.set(payload, { merge: true });
+            try {
+                const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
+                if (currentEmail) {
+                    const uaRef = docRef.collection('user_access').doc(currentEmail);
+                    await uaRef.set({
+                        userEmail: currentEmail,
+                        role: 'coach',
+                        active: true,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+            } catch(_) {}
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -776,26 +818,24 @@ const firestoreService = {
             if (!currentEmail) return { success: false, error: 'Email utente non valida' };
             const accesses = [];
             try {
-                const accessSnap = await window.db.collection('teamAccess').where('userEmail', '==', currentEmail).get();
-                accessSnap.forEach(d => accesses.push({ id: d.id, ...d.data() }));
+                const accessSnap = await window.db.collectionGroup('user_access').where('userEmail', '==', currentEmail).get();
+                accessSnap.forEach(d => accesses.push({ ref: d.ref, data: d.data() || {} }));
             } catch (_) {}
-            if (!accesses.length) {
-                const userRef = await firestoreService.getUserRefEnsured();
-                const accessSnap = await userRef.collection('teamAccess').get();
-                accessSnap.forEach(d => accesses.push({ id: d.id, ...d.data() }));
-            }
             const teams = [];
             for (const access of accesses) {
-                if (access?.active === false) continue;
-                const ownerId = String(access?.ownerId || '').trim();
-                const teamId = String(access?.teamId || '').trim();
+                const data = access?.data || {};
+                if (data?.active === false) continue;
+                const teamRef = access?.ref?.parent?.parent;
+                if (!teamRef) continue;
+                const teamId = String(teamRef?.id || '').trim();
+                const ownerId = String(teamRef?.parent?.parent?.id || '').trim();
                 if (!ownerId || !teamId) continue;
+                if (ownerId === currentEmail) continue;
                 try {
-                    const ownerRef = firestoreService.getUserRefByEmail(ownerId);
-                    const teamDoc = await ownerRef.collection('teams').doc(teamId).get();
+                    const teamDoc = await teamRef.get();
                     if (teamDoc.exists) {
                         const data = teamDoc.data() || {};
-                        teams.push(Object.assign({ id: teamDoc.id }, data, { _mvsOwner: ownerId, _mvsRole: access?.role || 'observer', source: 'shared' }));
+                        teams.push(Object.assign({ id: teamDoc.id }, data, { _mvsOwner: ownerId, _mvsRole: access?.data?.role || 'observer', source: 'shared' }));
                     }
                 } catch (_) {}
             }
@@ -815,26 +855,18 @@ const firestoreService = {
             const owner = String(ownerId || currentEmail || '').trim();
             if (!owner) return { success: false, error: 'ownerId non valido' };
             if (owner === currentEmail) return { success: true, role: 'coach', ownerId: owner };
-            const safeEmail = currentEmail.replace('.', '_');
-            const accessIds = [
-                `${owner}__${tId}__${currentEmail}`,
-                `${owner}__${tId}__${safeEmail}`,
-                `${owner}__${tId}`
-            ];
             let data = null;
             try {
-                for (const id of accessIds) {
-                    const snap = await window.db.collection('teamAccess').doc(id).get();
-                    if (snap.exists) { data = snap.data() || {}; break; }
-                }
+                const ownerRef = firestoreService.getUserRefByEmail(owner);
+                const accessSnap = await ownerRef.collection('teams').doc(tId).collection('user_access').doc(currentEmail).get();
+                if (accessSnap.exists) data = accessSnap.data() || {};
             } catch (_) {}
             if (!data) {
                 try {
-                    const userRef = await firestoreService.getUserRefEnsured();
-                    for (const id of accessIds) {
-                        const snap = await userRef.collection('teamAccess').doc(id).get();
-                        if (snap.exists) { data = snap.data() || {}; break; }
-                    }
+                    const safeEmail = currentEmail.replace('.', '_');
+                    const ownerRef = firestoreService.getUserRefByEmail(owner);
+                    const accessSnap = await ownerRef.collection('teams').doc(tId).collection('user_access').doc(safeEmail).get();
+                    if (accessSnap.exists) data = accessSnap.data() || {};
                 } catch (_) {}
             }
             if (data) {
@@ -876,6 +908,7 @@ const firestoreService = {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await window.db.collection('teamInvites').doc(inviteId).set(payload);
+            try { await userRef.collection('teams').doc(tId).set({ shared: true }, { merge: true }); } catch(_) {}
             const base = (window.location && window.location.origin) ? window.location.origin : '';
             const link = `${base}/my-teams.html?invite=${encodeURIComponent(inviteId)}`;
             return { success: true, inviteId, link, payload };
@@ -899,7 +932,6 @@ const firestoreService = {
             if (!ownerId || !teamId) return { success: false, error: 'Invito non valido' };
             const userRef = await firestoreService.getUserRefEnsured();
             const currentEmail = String(user.email || '').trim();
-            const accessId = `${ownerId}__${teamId}__${currentEmail}`;
             const payload = {
                 ownerId,
                 teamId,
@@ -910,15 +942,19 @@ const firestoreService = {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            try { await window.db.collection('teamAccess').doc(accessId).set(payload, { merge: true }); } catch (_) {}
-            await userRef.collection('teamAccess').doc(accessId).set(payload, { merge: true });
+            try {
+                const ownerRef = firestoreService.getUserRefByEmail(ownerId);
+                const teamRef = ownerRef.collection('teams').doc(teamId);
+                await teamRef.collection('user_access').doc(currentEmail).set(payload, { merge: true });
+                await teamRef.set({ shared: true }, { merge: true });
+            } catch (_) {}
             let teamData = null;
             try {
                 const ownerRef = firestoreService.getUserRefByEmail(ownerId);
                 const teamDoc = await ownerRef.collection('teams').doc(teamId).get();
                 if (teamDoc.exists) teamData = Object.assign({ id: teamDoc.id }, teamDoc.data() || {});
             } catch (_) {}
-            return { success: true, accessId, invite: Object.assign({}, invite), team: teamData };
+            return { success: true, accessId: String(teamId || ''), invite: Object.assign({}, invite), team: teamData };
         } catch (error) {
             return { success: false, error: error.message };
         }

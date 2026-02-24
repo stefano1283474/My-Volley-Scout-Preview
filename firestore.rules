@@ -11,10 +11,8 @@ service cloud.firestore {
     }
     function hasTeamAccess(ownerId, teamId) {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/teamAccess/$(ownerId + '__' + teamId + '__' + request.auth.token.email)) ||
-        exists(/databases/$(database)/documents/teamAccess/$(ownerId + '__' + teamId + '__' + request.auth.token.email.replace('.', '_'))) ||
-        exists(/databases/$(database)/documents/users/$(request.auth.token.email)/teamAccess/$(ownerId + '__' + teamId)) ||
-        exists(/databases/$(database)/documents/users/$(request.auth.token.email.replace('.', '_'))/teamAccess/$(ownerId + '__' + teamId))
+        exists(/databases/$(database)/documents/users/$(ownerId)/teams/$(teamId)/user_access/$(request.auth.token.email)) ||
+        exists(/databases/$(database)/documents/users/$(ownerId)/teams/$(teamId)/user_access/$(request.auth.token.email.replace('.', '_')))
       );
     }
     // Regole per le collection email-based - ogni utente può accedere solo alla propria collection
@@ -46,30 +44,18 @@ service cloud.firestore {
       allow write: if isUser(ownerId);
     }
 
+    match /users/{ownerId}/teams/{teamId}/user_access/{userId} {
+      allow read: if isUser(ownerId) || isUser(userId) || hasTeamAccess(ownerId, teamId);
+      allow create: if isUser(ownerId) || isUser(userId);
+      allow update, delete: if isUser(ownerId);
+    }
+
     match /teamInvites/{inviteId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.token.email;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.token.email;
     }
 
-    match /teamAccess/{accessId} {
-      allow read: if isSignedIn() && (
-        resource.data.userEmail == request.auth.token.email ||
-        resource.data.userEmail == request.auth.token.email.replace('.', '_') ||
-        resource.data.ownerId == request.auth.token.email ||
-        resource.data.ownerId == request.auth.token.email.replace('.', '_')
-      );
-      allow create: if isSignedIn() && (
-        request.resource.data.userEmail == request.auth.token.email ||
-        request.resource.data.userEmail == request.auth.token.email.replace('.', '_') ||
-        request.resource.data.ownerId == request.auth.token.email ||
-        request.resource.data.ownerId == request.auth.token.email.replace('.', '_')
-      );
-      allow update, delete: if isSignedIn() && (
-        resource.data.ownerId == request.auth.token.email ||
-        resource.data.ownerId == request.auth.token.email.replace('.', '_')
-      );
-    }
     
     // Regole per le partite - accesso per email o UID
     match /matches/{matchId} {
