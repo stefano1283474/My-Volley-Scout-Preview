@@ -942,7 +942,10 @@ const firestoreService = {
                  try {
                      const ownerRef = firestoreService.getUserRefByEmail(ownerId);
                      inviteDoc = await ownerRef.collection('invites').doc(token).get();
-                 } catch(e) { console.error('Error fetching subcollection invite', e); }
+                 } catch(e) { 
+                     console.error('Error fetching subcollection invite (Attempt 1)', e); 
+                     if (e.code === 'permission-denied') console.warn('Permission denied on direct read. Rules might be outdated.');
+                 }
             }
             
             // Attempt 2: Direct path with lowercase ownerId (if different)
@@ -954,7 +957,7 @@ const firestoreService = {
                          inviteDoc = await ownerRef.collection('invites').doc(token).get();
                          if (inviteDoc.exists) ownerId = lowerOwner;
                      }
-                 } catch(e) { console.error('Error fetching subcollection invite (lower)', e); }
+                 } catch(e) { console.error('Error fetching subcollection invite (Attempt 2)', e); }
             }
 
             // Attempt 3: Safe email (replace . with _)
@@ -966,7 +969,7 @@ const firestoreService = {
                          inviteDoc = await ownerRef.collection('invites').doc(token).get();
                          if (inviteDoc.exists) ownerId = safeOwner;
                      }
-                 } catch(e) { console.error('Error fetching subcollection invite fallback', e); }
+                 } catch(e) { console.error('Error fetching subcollection invite (Attempt 3)', e); }
             }
             
             // Attempt 4: Collection Group Query (slower but exhaustive)
@@ -979,7 +982,10 @@ const firestoreService = {
                         const pathOwner = inviteDoc.ref.parent.parent.id;
                         if (pathOwner) ownerId = pathOwner;
                     }
-                } catch(e) { console.error('Error collectionGroup invite', e); }
+                } catch(e) { 
+                    console.error('Error collectionGroup invite (Attempt 4)', e); 
+                    if (e.code === 'permission-denied') console.warn('Permission denied on collectionGroup query.');
+                }
             }
 
             // Attempt 5: Legacy global collection
@@ -990,7 +996,7 @@ const firestoreService = {
             }
 
             if (!inviteDoc || !inviteDoc.exists) {
-                return { success: false, error: `Invito non trovato (ID: ${token})` };
+                return { success: false, error: `Invito non trovato (ID: ${token}). Se l'invito esiste, potrebbe essere un problema di permessi (Regole Firestore non aggiornate).` };
             }
             
             const invite = inviteDoc.data() || {};
@@ -1031,6 +1037,9 @@ const firestoreService = {
                 
             } catch (err) {
                 console.error('Error accepting invite write:', err);
+                if (err.code === 'permission-denied') {
+                    return { success: false, error: 'Errore scrittura accesso: Permesso negato. Verifica che le regole di sicurezza consentano la scrittura in user_access.' };
+                }
                 return { success: false, error: 'Errore scrittura accesso: ' + err.message };
             }
             
@@ -1044,6 +1053,9 @@ const firestoreService = {
             return { success: true, accessId: String(teamId || ''), invite: Object.assign({}, invite), team: teamData };
         } catch (error) {
             console.error('Accept invite critical error:', error);
+            if (error.code === 'permission-denied') {
+                return { success: false, error: 'Permesso negato. Le regole di sicurezza di Firestore potrebbero non essere aggiornate.' };
+            }
             return { success: false, error: error.message };
         }
     },
