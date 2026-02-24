@@ -196,6 +196,33 @@
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       (async function(){
+        // Observer Mode Check
+        try {
+            const role = localStorage.getItem('selectedTeamRole');
+            const owner = localStorage.getItem('selectedTeamOwner');
+            const userEmail = window.authFunctions?.getCurrentUser?.()?.email; // might not be ready yet, but we check role first
+            // Note: authFunctions might be loaded async. But selectedTeamRole is synchronous in localStorage.
+            
+            if (role === 'observer') {
+                const sidebar = document.querySelector('.set-sidebar');
+                if (sidebar) {
+                    // Hide buttons that lead to editing pages
+                    const items = sidebar.querySelectorAll('.set-item');
+                    items.forEach(btn => {
+                        const text = (btn.textContent || '').trim();
+                        // Keep only Match-Stats. Hide Set 1-6, Riepilogo, Elenco Player.
+                        if (text.includes('Match-Stats')) return;
+                        btn.style.display = 'none';
+                    });
+                }
+                // Hide header menu items that might allow editing/exporting if needed
+                const exportBtn = document.getElementById('exportSetsBtnMobile');
+                if (exportBtn) exportBtn.style.display = 'none';
+                const saveBtn = document.getElementById('save-match-btn');
+                if (saveBtn) saveBtn.style.display = 'none';
+            }
+        } catch(e) { console.error('Observer check failed', e); }
+
         try {
           try {
             const qs = new URLSearchParams(location.search || '');

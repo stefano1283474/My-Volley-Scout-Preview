@@ -1657,9 +1657,26 @@
         function updateObserverUI() {
             isObserverMode = computeObserverMode();
             if (syncDataBtn) syncDataBtn.style.display = isObserverMode ? 'none' : '';
+            if (hydrateDataBtn) hydrateDataBtn.style.display = isObserverMode ? 'none' : '';
             if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';
+            
+            // Hide Roster tab for observers
+            if (tabRoster) tabRoster.style.display = isObserverMode ? 'none' : '';
+
+            // Force Cloud view for observers if needed
+            if (isObserverMode) {
+                if (matchesArchiveTabLocal) matchesArchiveTabLocal.style.display = 'none';
+                if (matchesArchiveTabCloud) {
+                    // Ensure Cloud is active
+                    if (currentArchive !== 'cloud') {
+                        setArchive('cloud', { reload: false });
+                    }
+                }
+            } else {
+                if (matchesArchiveTabLocal) matchesArchiveTabLocal.style.display = '';
+            }
         }
 
         function getInitialArchive() {

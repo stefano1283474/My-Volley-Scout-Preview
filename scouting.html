@@ -194,6 +194,14 @@
     <script>
       document.addEventListener('DOMContentLoaded', function(){
         try {
+            const role = localStorage.getItem('selectedTeamRole');
+            if (role === 'observer') {
+                window.location.href = '/match-stats.html';
+                return;
+            }
+        } catch(e) {}
+
+        try {
           try {
             var ss = sessionStorage.getItem('currentScoutingSession');
             if (ss) { localStorage.setItem('currentScoutingSession', ss); }
