@@ -622,6 +622,7 @@
       const res = await window.firestoreService?.acceptTeamInvite?.(inviteId, ownerId);
       if (!res?.success) {
         alert(res?.error || 'Invito non valido');
+        console.error('Invite failed:', res);
         return;
       }
       sessionStorage.setItem('__inviteHandled', inviteId);

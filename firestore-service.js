@@ -932,65 +932,79 @@ const firestoreService = {
             const token = String(inviteId || '').trim();
             if (!token) return { success: false, error: 'Invito non valido' };
             
-            // Try to resolve ownerId: from param or try to infer? 
-            // We cannot infer easily without ownerId if it's in a subcollection.
-            // But let's check if the inviteId is old-style (global) or new-style (subcollection).
-            // Actually, we must rely on ownerId being passed or provided.
-            
             let inviteDoc = null;
             let ownerId = String(optionalOwnerId || '').trim();
 
+            console.log('Accepting invite:', token, 'Owner:', ownerId);
+
+            // Attempt 1: Direct path with provided ownerId
             if (ownerId) {
-                 // New style: users/{ownerId}/invites/{inviteId}
                  try {
                      const ownerRef = firestoreService.getUserRefByEmail(ownerId);
                      inviteDoc = await ownerRef.collection('invites').doc(token).get();
                  } catch(e) { console.error('Error fetching subcollection invite', e); }
             }
             
-            // Fallback: prova con replace punto se non trovato
+            // Attempt 2: Direct path with lowercase ownerId (if different)
             if (ownerId && (!inviteDoc || !inviteDoc.exists)) {
                  try {
-                     const safeOwner = ownerId.replace('.', '_');
+                     const lowerOwner = ownerId.toLowerCase();
+                     if (lowerOwner !== ownerId) {
+                         const ownerRef = firestoreService.getUserRefByEmail(lowerOwner);
+                         inviteDoc = await ownerRef.collection('invites').doc(token).get();
+                         if (inviteDoc.exists) ownerId = lowerOwner;
+                     }
+                 } catch(e) { console.error('Error fetching subcollection invite (lower)', e); }
+            }
+
+            // Attempt 3: Safe email (replace . with _)
+            if (ownerId && (!inviteDoc || !inviteDoc.exists)) {
+                 try {
+                     const safeOwner = ownerId.replace(/\./g, '_');
                      if (safeOwner !== ownerId) {
                          const ownerRef = firestoreService.getUserRefByEmail(safeOwner);
                          inviteDoc = await ownerRef.collection('invites').doc(token).get();
-                         if (inviteDoc.exists) {
-                             ownerId = safeOwner; // Usa questo ownerId per il resto
-                         }
+                         if (inviteDoc.exists) ownerId = safeOwner;
                      }
                  } catch(e) { console.error('Error fetching subcollection invite fallback', e); }
             }
             
-            // Fallback for backward compatibility: check global collection if not found in subcollection
+            // Attempt 4: Collection Group Query (slower but exhaustive)
+            if (!inviteDoc || !inviteDoc.exists) {
+                try {
+                    console.log('Trying collectionGroup query for invite...');
+                    const q = await window.db.collectionGroup('invites').where('inviteId', '==', token).limit(1).get();
+                    if (!q.empty) {
+                        inviteDoc = q.docs[0];
+                        const pathOwner = inviteDoc.ref.parent.parent.id;
+                        if (pathOwner) ownerId = pathOwner;
+                    }
+                } catch(e) { console.error('Error collectionGroup invite', e); }
+            }
+
+            // Attempt 5: Legacy global collection
             if (!inviteDoc || !inviteDoc.exists) {
                  try {
                      inviteDoc = await window.db.collection('teamInvites').doc(token).get();
                  } catch(_) {}
             }
-            
-            // Ultimo tentativo: cerca in tutte le sottocollezioni 'invites' tramite inviteId
-            if (!inviteDoc || !inviteDoc.exists) {
-                try {
-                    const q = await window.db.collectionGroup('invites').where('inviteId', '==', token).limit(1).get();
-                    if (!q.empty) {
-                        inviteDoc = q.docs[0];
-                    }
-                } catch(_) {}
-            }
 
-            if (!inviteDoc || !inviteDoc.exists) return { success: false, error: 'Invito non trovato' };
+            if (!inviteDoc || !inviteDoc.exists) {
+                return { success: false, error: `Invito non trovato (ID: ${token})` };
+            }
             
             const invite = inviteDoc.data() || {};
             if (invite?.active === false) return { success: false, error: 'Invito non attivo' };
+            
+            // Resolve Owner ID finally
             const pathOwnerId = String(inviteDoc?.ref?.parent?.parent?.id || '').trim();
             ownerId = String(invite?.ownerId || ownerId || pathOwnerId || '').trim();
-            if (!ownerId && pathOwnerId) ownerId = pathOwnerId;
+            
+            if (!ownerId) return { success: false, error: 'Proprietario invito non identificato' };
+            
             const teamId = String(invite?.teamId || '').trim();
+            if (!teamId) return { success: false, error: 'ID Squadra mancante nell\'invito' };
             
-            if (!ownerId || !teamId) return { success: false, error: 'Invito non valido' };
-            
-            const userRef = await firestoreService.getUserRefEnsured();
             const currentEmail = String(user.email || '').trim();
             const payload = {
                 ownerId,
@@ -1002,20 +1016,34 @@ const firestoreService = {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
             try {
                 const ownerRef = firestoreService.getUserRefByEmail(ownerId);
                 const teamRef = ownerRef.collection('teams').doc(teamId);
+                
+                // Add user to user_access
                 await teamRef.collection('user_access').doc(currentEmail).set(payload, { merge: true });
-                await teamRef.set({ shared: true }, { merge: true });
-            } catch (_) {}
+                
+                // NOTE: We do NOT set {shared: true} on the team doc here because the Observer
+                // does not have write permission on the team doc. 
+                // The Owner should have set this when creating the invite.
+                // If it's missing, the Owner must fix it (or we rely on user_access existence).
+                
+            } catch (err) {
+                console.error('Error accepting invite write:', err);
+                return { success: false, error: 'Errore scrittura accesso: ' + err.message };
+            }
+            
             let teamData = null;
             try {
                 const ownerRef = firestoreService.getUserRefByEmail(ownerId);
                 const teamDoc = await ownerRef.collection('teams').doc(teamId).get();
                 if (teamDoc.exists) teamData = Object.assign({ id: teamDoc.id }, teamDoc.data() || {});
             } catch (_) {}
+            
             return { success: true, accessId: String(teamId || ''), invite: Object.assign({}, invite), team: teamData };
         } catch (error) {
+            console.error('Accept invite critical error:', error);
             return { success: false, error: error.message };
         }
     },
