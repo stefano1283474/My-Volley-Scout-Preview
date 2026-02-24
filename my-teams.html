@@ -512,20 +512,31 @@
         return;
       }
       try {
+        // Load User Teams (Owned)
         const res = await window.firestoreService?.loadUserTeams?.();
-        if (!res?.success) {
-          if (cloudHint) {
-            cloudHint.textContent = res?.error ? String(res.error) : 'Errore caricamento Cloud';
-            cloudHint.style.display = 'block';
-          }
-          return;
+        if (res && res.success) {
+            cloudTeams = Array.isArray(res.documents) ? res.documents : [];
+        } else {
+            console.error('Failed to load user teams:', res?.error);
+            if (cloudHint) {
+                cloudHint.textContent = res?.error ? String(res.error) : 'Errore caricamento Cloud';
+                cloudHint.style.display = 'block';
+            }
         }
-        cloudTeams = Array.isArray(res.documents) ? res.documents : [];
+
+        // Load Shared Teams (Observer)
         const sharedRes = await window.firestoreService?.loadSharedTeams?.();
-        sharedTeams = (sharedRes?.success && Array.isArray(sharedRes.documents)) ? sharedRes.documents : [];
+        if (sharedRes && sharedRes.success) {
+            sharedTeams = Array.isArray(sharedRes.documents) ? sharedRes.documents : [];
+        } else {
+            console.error('Failed to load shared teams:', sharedRes?.error);
+            // Don't block UI if shared teams fail, just log it
+        }
+
         renderCloudTeamsList();
         updateInviteObserverInfo(true);
       } catch (err) {
+        console.error('Critical error loading cloud teams:', err);
         if (cloudHint) {
           cloudHint.textContent = err?.message ? String(err.message) : 'Errore caricamento Cloud';
           cloudHint.style.display = 'block';
@@ -619,21 +630,32 @@
       if (!inviteId) return;
       const already = sessionStorage.getItem('__inviteHandled');
       if (already === inviteId) return;
+      
+      console.log('Processing invite:', inviteId, 'Owner:', ownerId);
+      
       const res = await window.firestoreService?.acceptTeamInvite?.(inviteId, ownerId);
       if (!res?.success) {
         alert(res?.error || 'Invito non valido');
         console.error('Invite failed:', res);
         return;
       }
+      
+      console.log('Invite accepted successfully:', res);
       sessionStorage.setItem('__inviteHandled', inviteId);
-      const finalOwner = String(res?.invite?.ownerId || ownerId || '').trim();
-      if (res?.team) addOrUpdateSharedTeamLocal(res.team, finalOwner, 'observer');
+      
+      // Force reload cloud teams immediately
       await loadCloudTeams();
+      
       try {
-        const qp = new URLSearchParams();
+        // Switch view to Cloud
+        const qp = new URLSearchParams(window.location.search);
+        qp.delete('invite');
+        qp.delete('owner');
         qp.set('archive', 'cloud');
         history.replaceState(null, '', location.pathname + '?' + qp.toString());
+        setArchive('cloud'); // Ensure UI switches tab
       } catch(_){}
+      
       alert('Invito accettato. Squadra disponibile in Cloud.');
     }
 
