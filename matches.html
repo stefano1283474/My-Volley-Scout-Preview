@@ -491,7 +491,8 @@
 
         <div class="section-title-row">
             <div class="tabs" role="tablist" aria-label="Sezioni">
-              <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">Elenco Partite</button>
+              <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">El. Partite</button>
+              <button id="tabRoster" class="tab-button" type="button" role="tab" aria-selected="false">EL. Roster</button>
               <button id="tabAnalysis" class="tab-button" type="button" role="tab" aria-selected="false">Analisi Team</button>
             </div>
             <div class="list-actions" id="listActions" style="display:flex;align-items:center;gap:8px;">
@@ -1541,6 +1542,7 @@
         const importFilesList = document.getElementById('importFilesList');
         const importSelectionSummary = document.getElementById('importSelectionSummary');
         const tabList = document.getElementById('tabList');
+        const tabRoster = document.getElementById('tabRoster');
         const tabAnalysis = document.getElementById('tabAnalysis');
         const listSection = document.getElementById('listSection');
         const teamAnalysisSection = document.getElementById('teamAnalysisSection');
@@ -2559,6 +2561,7 @@
             }
             if (newMatchBtn) newMatchBtn.addEventListener('click', openNewMatchDialog);
             if (tabList) tabList.addEventListener('click', (e) => { e.preventDefault(); switchTab('list'); });
+            if (tabRoster) tabRoster.addEventListener('click', (e) => { e.preventDefault(); location.href = '/roster.html'; });
             if (tabAnalysis) tabAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('analysis'); });
             if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             const importBtn = document.getElementById('importMatchBtn');

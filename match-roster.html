@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Elenco Giocatori</title>
+    <title>Elenco Roster</title>
     <link rel="icon" href="./favicon.ico" />
     <link rel="stylesheet" href="styles.css?v=4" />
   <style>
@@ -68,7 +68,7 @@
     <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
     <div class="card header-card">
       <div class="back-actions">
-        <a href="match-setup.html" class="icon-button" title="Indietro" aria-label="Indietro">
+        <a href="#" id="backBtn" class="icon-button" title="Indietro" aria-label="Indietro">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -131,7 +131,7 @@
 
     <div class="section-card">
       <div class="section-title-row">
-        <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO PLAYER:</h3>
+        <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO ROSTER:</h3>
         <div style="display:flex; align-items:center; gap:8px;">
           <button type="button" class="icon-button icon-button-outline icon-button-circle" id="importRosterIcon" title="Importa" aria-label="Importa">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -158,7 +158,7 @@
       <div id="rosterList" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px; margin-bottom:8px;"></div>
       <div id="emptyRoster" style="display:none; text-align:center; padding:24px;">
         <img src="./LOGO_PALLONE.png" alt="Pallone" style="width:120px;height:120px;object-fit:contain;margin:0 auto 12px;"/>
-        <p style="margin:4px 0;color:#334155;">Nessun giocatore nel roster</p>
+        <p style="margin:4px 0;color:#334155;">Nessun roster salvato</p>
         <p style="margin:4px 0;color:#64748b;">Importa CSV, crea manualmente, oppure vai a Elenco Squadre.</p>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
           <button type="button" class="btn btn-primary" id="emptyImportCsvBtn">Importa CSV</button>
@@ -186,6 +186,7 @@
 
   <script>
     let currentRoster = [];
+    const rosterMode = (()=>{ try { const url = new URL(window.location.href); const mode = url.searchParams.get('mode'); const from = url.searchParams.get('from'); return (mode === 'manage' || from === 'matches') ? 'manage' : 'match'; } catch(_){ return 'match'; } })();
 
     function readSavedRosters(){ try { const v = JSON.parse(localStorage.getItem('savedRosters')||'[]'); return Array.isArray(v)?v:[]; } catch(_){ return []; } }
     function writeSavedRosters(list){ try { localStorage.setItem('savedRosters', JSON.stringify(Array.isArray(list)?list:[])); } catch(_){} }
@@ -232,7 +233,7 @@
         currentRoster = Array.isArray(team.players) ? team.players : [];
         await mergeCloudRosters();
         renderRosterList();
-        try{ tidyRosterCards(); }catch(_){ }
+        if (rosterMode !== 'manage') { try{ tidyRosterCards(); }catch(_){ } }
         bindControls();
       } catch(_) { window.location.href = '/my-teams.html'; }
     });
@@ -267,6 +268,7 @@
       const importRosterIcon = document.getElementById('importRosterIcon');
       const exportRosterIcon = document.getElementById('exportRosterIcon');
       const createRosterIcon = document.getElementById('createRosterIcon');
+      const backBtn = document.getElementById('backBtn');
       const confirmRosterBtn = document.getElementById('confirmRosterBtn');
       const saveRosterBtn = document.getElementById('saveRosterBtn');
       const rosterNameInput = document.getElementById('rosterNameInput');
@@ -289,7 +291,8 @@
         const team = String(rnEl?.value||'').trim();
         exportRosterCSV(players, buildRosterFileName(team));
       });
-      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ location.href='/roster-setup.html'; });
+      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ location.href= rosterMode === 'manage' ? '/roster-setup.html?from=manage' : '/roster-setup.html'; });
+      if (backBtn) backBtn.addEventListener('click', (e)=>{ e.preventDefault(); location.href = rosterMode === 'manage' ? '/matches.html' : '/match-setup.html'; });
       if (emptyImportCsvBtn) emptyImportCsvBtn.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
       if (emptyCreateBtn) emptyCreateBtn.addEventListener('click', ()=>{ location.href='/roster-setup.html'; });
       if (emptyGoTeamsBtn) emptyGoTeamsBtn.addEventListener('click', ()=>{ window.location.href='/my-teams.html'; });
@@ -298,7 +301,7 @@
       if (deleteRosterBtn) deleteRosterBtn.addEventListener('click', deleteRoster);
       if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', cancelRosterEditing);
       if (rosterCsvInput) rosterCsvInput.addEventListener('change', e => importRosterCSV(e.target.files[0]));
-      if (rosterNameInput) rosterNameInput.addEventListener('click', ()=>{ if (!isEditorVisible()) handleContinue(); });
+      if (rosterNameInput) rosterNameInput.addEventListener('click', ()=>{ if (rosterMode !== 'manage' && !isEditorVisible()) handleContinue(); });
       if (toggleEditorBtn) toggleEditorBtn.addEventListener('click', ()=>{ location.href='/roster-setup.html'; });
       if (rosterListEl) {
         rosterListEl.addEventListener('click', (e) => {
@@ -410,7 +413,7 @@
       const nickEl = row.querySelector('.nick-input'); if (nickEl) nickEl.addEventListener('blur', ()=>{ nickEl.value = String(nickEl.value||'').toUpperCase(); });
     }
     function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-card')); return rows.map(r=>({ number: ensureTwoDigits(r.querySelector('.num-select')?.value||''), name: (r.querySelector('.name-input')?.value||'').trim(), surname: (r.querySelector('.surname-input')?.value||'').trim(), nickname: (r.querySelector('.nick-input')?.value||'').trim(), role: normalizeRole(r.querySelector('.role-select')?.value||'') })).filter(p=>p.number || p.name || p.surname || p.role); }
-    function renderRosterList(){ const el = document.getElementById('rosterList'); const empty = document.getElementById('emptyRoster'); if (!el) return; try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const list = Array.isArray(saved)?saved:[]; if (!list.length){ el.innerHTML=''; if (empty) empty.style.display='block'; return; } if (empty) empty.style.display='none'; el.innerHTML = list.map((item,idx)=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const hasPlayers = Array.isArray(rosterArr) && rosterArr.length>0; const name = item?.label || item?.name || `Roster ${idx+1}`; const preview = hasPlayers ? rosterArr.slice(0,5).map(p=>`${String(p.number||'').padStart(2,'0')} ${(p.nickname||((p.name||'')+' '+(p.surname||''))).toString().slice(0,10)} ${(p.role||'')}`).join(' • ') : 'Vuoto'; return `<div class="card" data-id="${idx}" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;">\n<div style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #cbd5e1; border-radius:8px; color:#0d6efd;" data-action="edit" aria-label="Modifica">\n<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 5l9 7-9 7V5z"/></svg>\n</div>\n<div style="flex:1; display:flex; flex-direction:column;">\n<div style="font-weight:600;">${name}</div>\n<div style="font-size:12px; color:#64748b;">${preview}</div>\n</div>\n<button type="button" class="icon-button" data-action="delete" aria-label="Elimina" style="border:1px solid #e9ecef; background:#fff; color:#dc3545;">🗑️</button>\n</div>`; }).join(''); Array.from(el.querySelectorAll('.card')).forEach(card=>{ const idx = Number(card.getAttribute('data-id')); const actionEdit = card.querySelector('[data-action="edit"]'); const actionDel = card.querySelector('[data-action="delete"]'); card.addEventListener('click', async (e)=>{ if (e.target.closest('[data-action]')) return; try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const item = saved[idx]; const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); currentRoster = rosterArr||[]; await handleContinue(); } catch(_){ await handleContinue(); } }); if (actionEdit){ actionEdit.addEventListener('click', (e)=>{ e.stopPropagation(); location.href = 'roster-setup.html?id='+encodeURIComponent('saved_'+idx); }); } if (actionDel){ actionDel.addEventListener('click', (e)=>{ e.stopPropagation(); try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); }catch(_){ } }); } }); }catch(_){ const el = document.getElementById('rosterList'); if (el) el.innerHTML=''; const empty = document.getElementById('emptyRoster'); if (empty) empty.style.display='block'; } }
+    function renderRosterList(){ const el = document.getElementById('rosterList'); const empty = document.getElementById('emptyRoster'); if (!el) return; try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const list = Array.isArray(saved)?saved:[]; if (!list.length){ el.innerHTML=''; if (empty) empty.style.display='block'; return; } if (empty) empty.style.display='none'; el.innerHTML = list.map((item,idx)=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const hasPlayers = Array.isArray(rosterArr) && rosterArr.length>0; const name = item?.label || item?.name || `Roster ${idx+1}`; const preview = hasPlayers ? rosterArr.slice(0,5).map(p=>`${String(p.number||'').padStart(2,'0')} ${(p.nickname||((p.name||'')+' '+(p.surname||''))).toString().slice(0,10)} ${(p.role||'')}`).join(' • ') : 'Vuoto'; return `<div class="card" data-id="${idx}" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;">\n<div style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #cbd5e1; border-radius:8px; color:#0d6efd;" data-action="edit" aria-label="Modifica">\n<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>\n</div>\n<div style="flex:1; display:flex; flex-direction:column;">\n<div style="font-weight:600;">${name}</div>\n<div style="font-size:12px; color:#64748b;">${preview}</div>\n</div>\n<div style="display:flex; gap:8px; align-items:center;">\n<button type="button" class="icon-button" data-action="duplicate" aria-label="Duplica" title="Duplica" style="border:1px solid #e9ecef; background:#fff; color:#0f172a;">📄</button>\n<button type="button" class="icon-button" data-action="delete" aria-label="Elimina" title="Elimina" style="border:1px solid #e9ecef; background:#fff; color:#dc3545;">🗑️</button>\n</div>\n</div>`; }).join(''); Array.from(el.querySelectorAll('.card')).forEach(card=>{ const idx = Number(card.getAttribute('data-id')); const actionEdit = card.querySelector('[data-action="edit"]'); const actionDel = card.querySelector('[data-action="delete"]'); const actionDup = card.querySelector('[data-action="duplicate"]'); card.addEventListener('click', async (e)=>{ if (e.target.closest('[data-action]')) return; if (rosterMode === 'manage') { location.href = 'roster-setup.html?id='+encodeURIComponent('saved_'+idx)+'&from=manage'; return; } try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const item = saved[idx]; const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); currentRoster = rosterArr||[]; await handleContinue(); } catch(_){ await handleContinue(); } }); if (actionEdit){ actionEdit.addEventListener('click', (e)=>{ e.stopPropagation(); location.href = 'roster-setup.html?id='+encodeURIComponent('saved_'+idx)+(rosterMode === 'manage' ? '&from=manage' : ''); }); } if (actionDel){ actionDel.addEventListener('click', (e)=>{ e.stopPropagation(); try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); }catch(_){ } }); } if (actionDup){ actionDup.addEventListener('click', (e)=>{ e.stopPropagation(); try{ const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const src = saved[idx]; const baseName = (src?.label || src?.name || `Roster ${idx+1}`).trim() || 'Roster'; let copyName = baseName + ' (copia)'; const names = new Set(saved.map(r => (r?.label || r?.name || '').toLowerCase())); let counter = 2; while (names.has(copyName.toLowerCase())) { copyName = baseName + ` (copia ${counter})`; counter++; } const rosterArr = Array.isArray(src?.roster)?src.roster:(Array.isArray(src?.players)?src.players:[]); saved.push({ label: copyName, roster: rosterArr }); localStorage.setItem('savedRosters', JSON.stringify(saved)); renderRosterList(); }catch(_){ } }); } }); }catch(_){ const el = document.getElementById('rosterList'); if (el) el.innerHTML=''; const empty = document.getElementById('emptyRoster'); if (empty) empty.style.display='block'; } }
 
     function showRosterMenu(item, idx, anchor){ const menu=document.createElement('div'); menu.style.position='absolute'; const rect=anchor.getBoundingClientRect(); menu.style.left=rect.left+'px'; menu.style.top=(window.scrollY+rect.bottom+6)+'px'; menu.style.background='#fff'; menu.style.border='1px solid #cbd5e1'; menu.style.boxShadow='0 6px 16px rgba(0,0,0,0.10)'; menu.style.borderRadius='10px'; menu.style.zIndex='9999'; menu.style.minWidth='180px'; menu.innerHTML=`<div style='display:flex;flex-direction:column;padding:6px;gap:4px;'><button type='button' class='btn btn-compact' data-act='edit'>Modifica</button><button type='button' class='btn btn-compact' data-act='props'>Proprietà</button><button type='button' class='btn btn-compact' data-act='export'>Esporta</button></div>`; document.body.appendChild(menu); const close=()=>{ try{ document.body.removeChild(menu); }catch(_){ } document.removeEventListener('click', onDoc); }; const onDoc=(e)=>{ if(!menu.contains(e.target)) close(); }; document.addEventListener('click', onDoc); menu.querySelector("[data-act='edit']").addEventListener('click', ()=>{ const id='saved_'+idx; location.href='edit-roster.html?id='+encodeURIComponent(id); }); menu.querySelector("[data-act='props']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); const sessRaw=localStorage.getItem('currentScoutingSession'); let origin='app', sourceFile='', dateStr=item?.date||''; try{ const sess=sessRaw?JSON.parse(sessRaw):null; const same=Array.isArray(sess?.roster)&&JSON.stringify(sess.roster)===JSON.stringify(rosterArr); if(same) origin='import'; sourceFile=sess?.fileName||''; }catch(_){ } const count=Array.isArray(rosterArr)?rosterArr.length:0; const box=document.createElement('div'); box.style.position='fixed'; box.style.left='0'; box.style.top='0'; box.style.right='0'; box.style.bottom='0'; box.style.background='rgba(0,0,0,0.35)'; box.style.zIndex='10000'; const card=document.createElement('div'); card.style.background='#fff'; card.style.border='1px solid #cbd5e1'; card.style.borderRadius='12px'; card.style.boxShadow='0 8px 20px rgba(0,0,0,0.12)'; card.style.padding='14px'; card.style.maxWidth='420px'; card.style.margin='10vh auto'; card.innerHTML=`<div style='font-weight:600;margin-bottom:8px;'>Proprietà</div><div style='display:grid;gap:8px;'><div><div style='color:#64748b;'>Origine</div><div>${origin==='import'?'Import da match':'Creato nell\'app'}</div></div><div><div style='color:#64748b;'>File</div><div>${sourceFile||'—'}</div></div><div><div style='color:#64748b;'>Data</div><div>${dateStr||'—'}</div></div><div><div style='color:#64748b;'>N. giocatori</div><div>${count}</div></div></div><div class='form-actions'><button class='btn' id='closeProps'>Chiudi</button></div>`; box.appendChild(card); document.body.appendChild(box); card.querySelector('#closeProps').addEventListener('click', ()=>{ try{ document.body.removeChild(box); }catch(_){ } }); close(); }); menu.querySelector("[data-act='export']").addEventListener('click', ()=>{ const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]); exportRosterCSV(rosterArr, item?.label||item?.name||'Roster'); close(); }); }
 
@@ -445,7 +448,7 @@
               }
             }
           } catch(_){}
-          renderRosterList(); try{ tidyRosterCards(); }catch(_){ }
+          renderRosterList(); if (rosterMode !== 'manage') { try{ tidyRosterCards(); }catch(_){ } }
           setEditorVisible(false);
           alert('Roster eliminato');
         } else {

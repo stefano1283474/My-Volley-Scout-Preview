@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elenco Roster</title>
+    <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="styles.css?v=4" />
+  <style>
+    :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; --font-size-title: 20px; --font-size-subtitle: 15px; }
+    body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
+    .container { max-width:920px; margin:0 auto; padding:16px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .header-card { position:relative; display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:16px; }
+    .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:100%; object-fit:contain; }
+    .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; }
+    .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; }
+    .icon-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; background:#fff; border-radius:50%; width:36px; height:36px; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .section-card { border:1px solid var(--blue); border-radius:16px; padding:16px; background:#fff; margin-top:0; }
+    .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+    .section-title { font-size: var(--font-size-title); font-weight:600; color:#0f172a; }
+    .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .roster-name { font-size: var(--font-size-subtitle); font-weight:600; color:#334155; margin:8px 0 12px 0; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); font-weight:600; }
+    .btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    .btn-secondary { background:#fff; color:#0f172a; }
+    .btn-compact { padding:8px 12px; }
+    .form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+    .cards-list { display:block; padding:8px 0; }
+    .player-card { border:1px solid var(--blue); border-radius:12px; padding:18px; background:#fff; display:grid; grid-template-columns:1fr; gap:12px; box-shadow:0 2px 6px rgba(0,0,0,0.08); margin:16px 0; }
+    .player-card + .player-card { margin-top:24px; }
+    .input { width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .icon-button-outline { border-color:#2563eb; color:#2563eb; }
+    .icon-button-plain { border:none; background:transparent; border-radius:4px; width:auto; height:auto; padding:0 6px; }
+    .roster-name-input { border:1px solid var(--blue); border-radius:10px; }
+    .roster-name-wrapper { display:flex; align-items:center; gap:6px; border:1px solid var(--blue); border-radius:10px; padding:6px 10px; background:#fff; }
+    .roster-name-field { flex:1; border:none; outline:none; background:transparent; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .icon-button-circle { border-radius:50%; width:36px; height:36px; }
+    .empty-note { color:#64748b; text-align:center; }
+    .btn,
+    .icon-button,
+    .icon-button-outline,
+    .icon-button-circle {
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .btn:hover,
+    .icon-button:hover,
+    .icon-button-outline:hover,
+    .icon-button-circle:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    }
+    .btn:active,
+    .icon-button:active,
+    .icon-button-outline:active,
+    .icon-button-circle:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .page-slide-in { animation: pageSlideIn .24s ease-out; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
+    <div class="card header-card">
+      <div class="back-actions">
+        <a href="/matches.html" class="icon-button" title="Indietro" aria-label="Indietro">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+      <div class="logo-icon" aria-hidden="true">
+        <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';">
+      </div>
+      <div class="account-actions">
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-title">Account</div>
+          <div class="menu-divider"></div>
+          <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Vai a Elenco Partite</span>
+          </button>
+          <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/><path d="M11 20a5 5 0 0 1 5-5h0a5 5 0 0 1 5 5" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <span>Vai a Elenco Squadre</span>
+          </button>
+          <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l-5-5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Esci</span>
+          </button>
+          <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">
+            <span class="menu-item-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Logout</span>
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-title app-version" style="text-align:right;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title-row">
+        <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO ROSTER:</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="importRosterIcon" title="Importa" aria-label="Importa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="exportRosterIcon" title="Esporta" aria-label="Esporta">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="createRosterIcon" title="Crea" aria-label="Crea">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="rosterList" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px; margin-bottom:8px;"></div>
+      <div id="emptyRoster" style="display:none; text-align:center; padding:24px;">
+        <img src="./LOGO_PALLONE.png" alt="Pallone" style="width:120px;height:120px;object-fit:contain;margin:0 auto 12px;"/>
+        <p style="margin:4px 0;color:#334155;">Nessun roster salvato</p>
+        <p style="margin:4px 0;color:#64748b;">Importa CSV, crea manualmente, oppure vai a Elenco Squadre.</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="emptyImportCsvBtn">Importa CSV</button>
+          <button type="button" class="btn btn-secondary" id="emptyCreateBtn">Crea manualmente</button>
+          <button type="button" class="btn" id="emptyGoTeamsBtn">Vai a Elenco Squadre</button>
+        </div>
+      </div>
+      <div id="rosterEditor" class="cards-list" style="display:none;"></div>
+      <input type="file" id="rosterCsvInput" accept=".csv" style="display:none;" />
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./src/modules/teams/teams.js"></script>
+  <script src="./app.js"></script>
+  <script>try{ if(window.authModule && typeof window.authModule.initializeAuth==='function'){ window.authModule.initializeAuth(); setTimeout(function(){ try{ if(!window.authModule.isAuthenticated()){ try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html'; } }catch(_){ } }, 600); } }catch(_){ }</script>
+
+  <script>
+    let currentRoster = [];
+
+    function readSavedRosters(){ try { const v = JSON.parse(localStorage.getItem('savedRosters')||'[]'); return Array.isArray(v)?v:[]; } catch(_){ return []; } }
+    function writeSavedRosters(list){ try { localStorage.setItem('savedRosters', JSON.stringify(Array.isArray(list)?list:[])); } catch(_){} }
+    function rosterKey(label){ return String(label||'').trim().toLowerCase(); }
+    async function mergeCloudRosters(){
+      try {
+        if (!window.authFunctions?.getCurrentUser || !window.firestoreService?.loadUserRosters) return;
+        const user = window.authFunctions.getCurrentUser();
+        if (!user) return;
+        const res = await window.firestoreService.loadUserRosters();
+        if (!res?.success || !Array.isArray(res.documents)) return;
+        const local = readSavedRosters();
+        res.documents.forEach((doc)=>{
+          const label = String(doc?.name || doc?.label || 'Roster').trim() || 'Roster';
+          const rosterArr = Array.isArray(doc?.roster) ? doc.roster : (Array.isArray(doc?.players) ? doc.players : []);
+          const key = rosterKey(label);
+          const idx = local.findIndex(r => rosterKey(r?.label || r?.name) === key);
+          if (idx >= 0){
+            const cur = local[idx] || {};
+            const next = Object.assign({}, cur);
+            if (!Array.isArray(cur.roster) || cur.roster.length === 0) next.roster = rosterArr;
+            if (!Array.isArray(cur.players) || cur.players.length === 0) next.players = rosterArr;
+            if (!next.rosterId && doc?.id) next.rosterId = doc.id;
+            if (!next.source) next.source = 'cloud';
+            local[idx] = next;
+          } else {
+            local.push({ label, name: label, roster: rosterArr, players: rosterArr, rosterId: doc?.id, source: 'cloud' });
+          }
+        });
+        writeSavedRosters(local);
+      } catch(_){}
+    }
+
+    document.addEventListener('DOMContentLoaded', async function(){
+      try {
+        const start = Date.now();
+        let team = window.teamsModule?.getCurrentTeam?.() || null;
+        while (!team && Date.now() - start < 1500) {
+          await new Promise(r => setTimeout(r, 100));
+          team = window.teamsModule?.getCurrentTeam?.() || null;
+        }
+        if (!team) { window.location.href = '/my-teams.html'; return; }
+        currentRoster = Array.isArray(team.players) ? team.players : [];
+        await mergeCloudRosters();
+        renderRosterList();
+        bindControls();
+      } catch(_) { window.location.href = '/my-teams.html'; }
+    });
+
+    function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+    function toTitleCase(str){ const s = String(str||'').trim().toLowerCase(); if (!s) return ''; return s.replace(/\b([a-zàèéìòù])([a-zàèéìòù]*)/gi, (m,a,b)=> a.toUpperCase()+b.toLowerCase()); }
+    function splitCsv(line){ const d = line.includes(';') ? ';' : ','; return line.split(d).map(s => String(s||'').trim()); }
+    function mapRole(str){ const v = String(str||'').trim().toLowerCase(); if (!v) return ''; if (v.startsWith('palleg')) return 'P'; if (v.startsWith('schiacc')) return 'S'; if (v.startsWith('oppos')) return 'O'; if (v.startsWith('centr')) return 'C'; if (v.startsWith('liber')) return 'L'; return ''; }
+    function formatNumberForCsv(n){ const s=String(n||'').trim(); const num = s.replace(/^0+/,''); return num || '0'; }
+    function buildRosterFileName(team){ const t = String(team||'').trim() || 'Roster'; const now = new Date(); const dd = String(now.getDate()).padStart(2,'0'); const mm = String(now.getMonth()+1).padStart(2,'0'); const yyyy = now.getFullYear(); const dateStr = `${dd}-${mm}-${yyyy}`; const sanitize = (s)=> s.replace(/[\\/:*?"<>|]/g,'').trim(); const left = sanitize(t); return `${left}_roster_${dateStr}.csv`; }
+
+    function renderRosterList(){
+      const el = document.getElementById('rosterList');
+      const empty = document.getElementById('emptyRoster');
+      if (!el) return;
+      try{
+        const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+        const list = Array.isArray(saved)?saved:[];
+        if (!list.length){
+          el.innerHTML='';
+          if (empty) empty.style.display='block';
+          return;
+        }
+        if (empty) empty.style.display='none';
+        el.innerHTML = list.map((item,idx)=>{
+          const rosterArr = Array.isArray(item?.roster)?item.roster:(Array.isArray(item?.players)?item.players:[]);
+          const hasPlayers = Array.isArray(rosterArr) && rosterArr.length>0;
+          const name = item?.label || item?.name || `Roster ${idx+1}`;
+          const preview = hasPlayers ? rosterArr.slice(0,5).map(p=>`${String(p.number||'').padStart(2,'0')} ${(p.nickname||((p.name||'')+' '+(p.surname||''))).toString().slice(0,10)} ${(p.role||'')}`).join(' • ') : 'Vuoto';
+          return `<div class="card" data-id="${idx}" style="display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; cursor:pointer;">
+<div style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #cbd5e1; border-radius:8px; color:#0d6efd;" data-action="edit" aria-label="Modifica">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</div>
+<div style="flex:1; display:flex; flex-direction:column;">
+<div style="font-weight:600;">${name}</div>
+<div style="font-size:12px; color:#64748b;">${preview}</div>
+</div>
+<div style="display:flex; gap:8px; align-items:center;">
+<button type="button" class="icon-button" data-action="duplicate" aria-label="Duplica" title="Duplica" style="border:1px solid #e9ecef; background:#fff; color:#0f172a;">📄</button>
+<button type="button" class="icon-button" data-action="delete" aria-label="Elimina" title="Elimina" style="border:1px solid #e9ecef; background:#fff; color:#dc3545;">🗑️</button>
+</div>
+</div>`;
+        }).join('');
+        Array.from(el.querySelectorAll('.card')).forEach(card=>{
+          const idx = Number(card.getAttribute('data-id'));
+          const actionEdit = card.querySelector('[data-action="edit"]');
+          const actionDel = card.querySelector('[data-action="delete"]');
+          const actionDup = card.querySelector('[data-action="duplicate"]');
+          card.addEventListener('click', (e)=>{
+            if (e.target.closest('[data-action]')) return;
+            try { localStorage.setItem('rosterSetupLastId', 'saved_'+idx); localStorage.setItem('rosterSetupLastFrom', 'roster'); } catch(_){}
+            location.href = '/roster-setup.html?id='+encodeURIComponent('saved_'+idx)+'&from=roster';
+          });
+          if (actionEdit){
+            actionEdit.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              try { localStorage.setItem('rosterSetupLastId', 'saved_'+idx); localStorage.setItem('rosterSetupLastFrom', 'roster'); } catch(_){}
+              location.href = '/roster-setup.html?id='+encodeURIComponent('saved_'+idx)+'&from=roster';
+            });
+          }
+          if (actionDel){
+            actionDel.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              try{
+                const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+                saved.splice(idx,1);
+                localStorage.setItem('savedRosters', JSON.stringify(saved));
+                renderRosterList();
+              }catch(_){ }
+            });
+          }
+          if (actionDup){
+            actionDup.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              try{
+                const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]');
+                const src = saved[idx];
+                const baseName = (src?.label || src?.name || `Roster ${idx+1}`).trim() || 'Roster';
+                let copyName = baseName + ' (copia)';
+                const names = new Set(saved.map(r => (r?.label || r?.name || '').toLowerCase()));
+                let counter = 2;
+                while (names.has(copyName.toLowerCase())) { copyName = baseName + ` (copia ${counter})`; counter++; }
+                const rosterArr = Array.isArray(src?.roster)?src.roster:(Array.isArray(src?.players)?src.players:[]);
+                saved.push({ label: copyName, roster: rosterArr });
+                localStorage.setItem('savedRosters', JSON.stringify(saved));
+                renderRosterList();
+              }catch(_){ }
+            });
+          }
+        });
+      }catch(_){
+        const listEl = document.getElementById('rosterList');
+        if (listEl) listEl.innerHTML='';
+        const empty = document.getElementById('emptyRoster');
+        if (empty) empty.style.display='block';
+      }
+    }
+
+    function exportRosterCSV(players, filename){
+      const headers=['Squadra','Società','Numero','Nome','Cognome','Soprannome','Ruolo'];
+      const team='';
+      const club='';
+      const roleLabels={'P':'Palleggiatore','S':'Schiacciatore','O':'Opposto','C':'Centrale','L':'Libero'};
+      const lines=[headers.join(',')].concat((Array.isArray(players)?players:[]).map(p=>{ const roleKey=String(p.role||'').trim().toUpperCase(); const roleOut=roleLabels[roleKey]||roleKey||''; const row=[team,String(formatNumberForCsv(p.number||'')),String(p.name||'').trim(),String(p.surname||'').trim(),String(p.nickname||'').trim(),String(roleOut)]; return [row[0],club,row[1],row[2],row[3],row[4],row[5]].map(x=>String(x||'')).join(','); }));
+      const blob=new Blob([lines.join('\n')],{ type:'text/csv;charset=utf-8;' });
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=(filename||'roster.csv');
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importRosterCSV(file){
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try {
+          const text = reader.result;
+          const lines = String(text||'').split(/\r?\n/).filter(l=>String(l).trim());
+          const header = lines[0]||'';
+          const hparts = splitCsv(header).map(s=>s.toLowerCase());
+          const idx = { numero: hparts.indexOf('numero'), nome: hparts.indexOf('nome'), cognome: hparts.indexOf('cognome'), soprannome: hparts.indexOf('soprannome'), ruolo: hparts.indexOf('ruolo'), squadra: hparts.indexOf('squadra'), societa: hparts.indexOf('società') };
+          const dataLines = lines.slice(1).filter(l => !/^\s*Squadra\s*[,;]/i.test(l));
+          const out = dataLines.map(line=>{
+            const parts = splitCsv(line);
+            const numIdx = idx.numero>=0?idx.numero:2;
+            const nomeIdx = idx.nome>=0?idx.nome:3;
+            const cogIdx = idx.cognome>=0?idx.cognome:4;
+            const nickIdx = idx.soprannome>=0?idx.soprannome:5;
+            const ruoloIdx = idx.ruolo>=0?idx.ruolo:6;
+            return { number: ensureTwoDigits(parts[numIdx]||''), name: toTitleCase(parts[nomeIdx]||''), surname: toTitleCase(parts[cogIdx]||''), nickname: String(parts[nickIdx]||'').trim(), role: mapRole(parts[ruoloIdx]||'') };
+          }).filter(p=>p.number||p.name||p.surname||p.role);
+          localStorage.setItem('importedRoster', JSON.stringify(out));
+          const first = lines[1]||'';
+          const firstParts = splitCsv(first);
+          const teamName = idx.squadra>=0 ? firstParts[idx.squadra] : (firstParts[0]||'');
+          localStorage.setItem('derivedTeamNameForSetup', String(teamName||'').trim());
+          location.href = '/roster-setup.html?source=import&from=roster';
+        } catch(e){ alert('Import non riuscito'); }
+      };
+      reader.readAsText(file);
+    }
+
+    function bindControls(){
+      const importRosterIcon = document.getElementById('importRosterIcon');
+      const exportRosterIcon = document.getElementById('exportRosterIcon');
+      const createRosterIcon = document.getElementById('createRosterIcon');
+      const rosterCsvInput = document.getElementById('rosterCsvInput');
+      const emptyImportCsvBtn = document.getElementById('emptyImportCsvBtn');
+      const emptyCreateBtn = document.getElementById('emptyCreateBtn');
+      const emptyGoTeamsBtn = document.getElementById('emptyGoTeamsBtn');
+      if (importRosterIcon) importRosterIcon.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
+      if (exportRosterIcon) exportRosterIcon.addEventListener('click', ()=>{
+        const players = readSavedRosters().flatMap(r => Array.isArray(r?.roster) ? r.roster : []);
+        if (!players || !players.length){ alert('Nessun giocatore da esportare'); return; }
+        const team = 'Roster';
+        exportRosterCSV(players, buildRosterFileName(team));
+      });
+      if (createRosterIcon) createRosterIcon.addEventListener('click', ()=>{ location.href='/roster-setup.html?from=roster'; });
+      if (emptyImportCsvBtn) emptyImportCsvBtn.addEventListener('click', ()=> rosterCsvInput && rosterCsvInput.click());
+      if (emptyCreateBtn) emptyCreateBtn.addEventListener('click', ()=>{ location.href='/roster-setup.html?from=roster'; });
+      if (emptyGoTeamsBtn) emptyGoTeamsBtn.addEventListener('click', ()=>{ window.location.href='/my-teams.html'; });
+      if (rosterCsvInput) rosterCsvInput.addEventListener('change', e => importRosterCSV(e.target.files[0]));
+      (function(){
+        const toggleBtn = document.getElementById('headerMenuToggle');
+        const menu = document.getElementById('headerMenu');
+        if (!toggleBtn || !menu) return;
+        let open = false;
+        function setOpen(v){ open = !!v; if (open){ menu.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded','true'); } else { menu.setAttribute('hidden',''); toggleBtn.setAttribute('aria-expanded','false'); } }
+        toggleBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); setOpen(!open); });
+        document.addEventListener('click', function(){ if (open) setOpen(false); });
+        const toMatchesBtn = document.getElementById('goToMatchesBtnMobile');
+        const toTeamsBtn = document.getElementById('goToTeamsBtnMobile');
+        const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+        const signOutBtn = document.getElementById('signOutBtnMobile');
+        if (toMatchesBtn) toMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/matches.html'; });
+        if (toTeamsBtn) toTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/my-teams.html'; });
+        if (exitBtn) exitBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); setOpen(false); location.href='/my-teams.html'; });
+        if (signOutBtn) signOutBtn.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try{ if (window.authFunctions && typeof window.authFunctions.signOut==='function'){ await window.authFunctions.signOut(); } } finally { setOpen(false); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } location.href='/auth-login.html'; } });
+      })();
+    }
+  </script>
+</body>
+</html>
