@@ -374,6 +374,83 @@
       if (inviteLoginBtn) inviteLoginBtn.style.display = isAuthed ? 'none' : 'inline-flex';
     }
 
+    function ensureSyncProgressDialog() {
+      let dlg = document.getElementById('syncProgressDialogMT');
+      if (dlg) return dlg;
+      dlg = document.createElement('div');
+      dlg.id = 'syncProgressDialogMT';
+      dlg.style.position = 'fixed';
+      dlg.style.inset = '0';
+      dlg.style.background = 'rgba(0,0,0,0.35)';
+      dlg.style.display = 'none';
+      dlg.style.alignItems = 'center';
+      dlg.style.justifyContent = 'center';
+      dlg.style.zIndex = '10000';
+      dlg.innerHTML = `
+        <div style="background:#fff; width:min(520px,92vw); border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div style="font-weight:700;">Sincronizzazione Cloud</div>
+            <button id="syncProgressCloseMT" class="btn btn-light" style="padding:6px 12px;" disabled>Chiudi</button>
+          </div>
+          <div id="syncProgressStageMT" style="font-size:13px; color:#475569;">In attesa</div>
+          <div style="height:8px; background:#e9ecef; border-radius:10px; overflow:hidden;">
+            <div id="syncProgressFillMT" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+          </div>
+          <div id="syncProgressSummaryMT" style="font-size:12px; color:#64748b;">—</div>
+        </div>
+      `;
+      document.body.appendChild(dlg);
+      const closeBtn = dlg.querySelector('#syncProgressCloseMT');
+      if (closeBtn) closeBtn.addEventListener('click', () => { dlg.style.display = 'none'; });
+      return dlg;
+    }
+
+    function resetSyncProgressDialog(dlg, total) {
+      if (!dlg) return;
+      dlg.__syncState = { total: Number.isFinite(total) ? total : 0, index: 0, done: 0, skipped: 0, error: 0, cancelled: 0 };
+      dlg.__syncDoneById = new Set();
+      const fill = dlg.querySelector('#syncProgressFillMT');
+      if (fill) fill.style.width = '0%';
+      const summary = dlg.querySelector('#syncProgressSummaryMT');
+      if (summary) summary.textContent = '—';
+      const stage = dlg.querySelector('#syncProgressStageMT');
+      if (stage) stage.textContent = 'Preparazione...';
+      const closeBtn = dlg.querySelector('#syncProgressCloseMT');
+      if (closeBtn) closeBtn.disabled = true;
+    }
+
+    function updateSyncProgressDialog(dlg, info) {
+      if (!dlg || !info) return;
+      const state = dlg.__syncState || { total: 0, index: 0, done: 0, skipped: 0, error: 0, cancelled: 0 };
+      if (Number.isFinite(info.total)) state.total = info.total;
+      if (Number.isFinite(info.index)) state.index = info.index;
+      const id = String(info?.match?.id || info?.matchId || info?.id || '').trim();
+      if (id && info.status && info.status !== 'start') {
+        if (!dlg.__syncDoneById) dlg.__syncDoneById = new Set();
+        if (!dlg.__syncDoneById.has(id)) {
+          dlg.__syncDoneById.add(id);
+          if (info.status === 'done') state.done += 1;
+          else if (info.status === 'skipped') state.skipped += 1;
+          else if (info.status === 'cancelled') state.cancelled += 1;
+          else if (info.status === 'error') state.error += 1;
+        }
+      }
+      const total = state.total || 0;
+      const index = Math.min(state.index || 0, total || state.index || 0);
+      const summary = dlg.querySelector('#syncProgressSummaryMT');
+      if (summary) {
+        summary.textContent = total
+          ? `Partita ${index} di ${total} • Completate: ${state.done} • Saltate: ${state.skipped} • Annullate: ${state.cancelled} • Errori: ${state.error}`
+          : 'Preparazione...';
+      }
+      const fill = dlg.querySelector('#syncProgressFillMT');
+      if (fill && total) {
+        const pct = Math.max(0, Math.min(100, Math.round((index / total) * 100)));
+        fill.style.width = pct + '%';
+      }
+      dlg.__syncState = state;
+    }
+
     function setArchive(next) {
       const v = next === 'cloud' ? 'cloud' : 'local';
       currentArchive = v;
@@ -395,6 +472,13 @@
         }
       } catch(_) {}
       if (createTeamBtn) createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : 'Crea Squadra (Locale)';
+      if (v === 'cloud') {
+        if (cloudHint) {
+          cloudHint.textContent = 'Caricamento Cloud...';
+          cloudHint.style.display = 'block';
+        }
+        try { loadCloudTeams(); } catch(_) {}
+      }
     }
 
     function getLocalTeamsRaw() {
@@ -989,11 +1073,17 @@
         });
         if (syncDataBtn) syncDataBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
+          const progressDlg = ensureSyncProgressDialog();
+          resetSyncProgressDialog(progressDlg, 0);
+          const stage = progressDlg.querySelector('#syncProgressStageMT');
+          if (stage) stage.textContent = 'Sincronizzo squadre...';
+          progressDlg.style.display = 'flex';
           try {
             syncDataBtn.disabled = true;
             syncDataBtn.textContent = 'Aggiorno Cloud...';
             try { localStorage.removeItem('__teamsSyncedFs'); localStorage.removeItem('__matchesSyncedFs'); } catch(_){}
             let tRes = null, mRes = null;
+            let totalMatches = 0;
             
             if (window.firestoreService?.syncLocalTeamsToFirestore) { 
                 try {
@@ -1003,7 +1093,16 @@
             
             if (window.firestoreService?.syncLocalMatchesToFirestore) { 
                 try {
-                    mRes = await window.firestoreService.syncLocalMatchesToFirestore({ conflictMode: 'ask' }); 
+                    try {
+                      const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                      totalMatches = Array.isArray(localMatches) ? localMatches.length : 0;
+                    } catch(_) {}
+                    resetSyncProgressDialog(progressDlg, totalMatches);
+                    if (stage) stage.textContent = 'Sincronizzo partite...';
+                    mRes = await window.firestoreService.syncLocalMatchesToFirestore({ 
+                      conflictMode: 'ask',
+                      onProgress: (info) => updateSyncProgressDialog(progressDlg, info)
+                    }); 
                 } catch(e) { mRes = { success: false, error: e.message }; }
             }
             
@@ -1014,19 +1113,33 @@
             if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
             
             if (errors.length > 0) {
+                if (stage) stage.textContent = 'Sincronizzazione con errori';
                 alert('Errore durante la sincronizzazione:\n' + errors.join('\n'));
             } else {
                 const tCount = tRes?.synced || 0;
                 const mCount = mRes?.synced || 0;
+                if (stage) stage.textContent = 'Sincronizzazione completata';
+                if (totalMatches === 0) {
+                  const summary = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressSummaryMT') : null;
+                  if (summary) summary.textContent = 'Nessuna partita locale da inviare';
+                  const fill = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressFillMT') : null;
+                  if (fill) fill.style.width = '100%';
+                }
                 alert(`Sincronizzazione completata.\nSquadre inviate: ${tCount}\nPartite inviate: ${mCount}`);
             }
+            try {
+              if (currentArchive === 'cloud') await loadCloudTeams();
+            } catch(_){}
           } catch(err){ 
             console.error(err);
+            if (stage) stage.textContent = 'Errore sincronizzazione';
             alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
           }
           finally {
             syncDataBtn.disabled = false;
             syncDataBtn.textContent = 'Aggiorna Cloud da Locale';
+            const closeBtn = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressCloseMT') : null;
+            if (closeBtn) closeBtn.disabled = false;
             try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
           }
         });
