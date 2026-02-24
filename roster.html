@@ -116,6 +116,17 @@
       </div>
     </div>
 
+    <div class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:12px; margin-bottom:16px;">
+        <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Contesto Squadra</div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="flex:1;">
+                <div id="ctxClubName" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:2px;">—</div>
+                <div id="ctxTeamName" style="font-size:16px; font-weight:700; color:#0f172a;">—</div>
+            </div>
+            <div id="ctxRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+        </div>
+    </div>
+
     <div class="section-card">
       <div class="section-title-row">
         <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO ROSTER:</h3>
@@ -203,8 +214,58 @@
       } catch(_){}
     }
 
+    function updateTeamContextDisplay() {
+        try {
+            const clubEl = document.getElementById('ctxClubName');
+            const teamEl = document.getElementById('ctxTeamName');
+            const roleEl = document.getElementById('ctxRoleBadge');
+            
+            const teamId = localStorage.getItem('selectedTeamId');
+            let team = null;
+            if (teamId && window.teamsModule) {
+                team = window.teamsModule.getTeamById(teamId);
+            }
+            if (!team) {
+                try {
+                     const list = JSON.parse(localStorage.getItem('volleyTeams')||'[]');
+                     team = list.find(t => String(t.id) === String(teamId));
+                } catch(_) {}
+            }
+            
+            if (team) {
+                const nameCombined = team.name || '';
+                const parts = String(nameCombined).split(' - ');
+                const inferredTeam = team.teamName || (parts.length ? parts[0] : '');
+                const inferredClub = team.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
+                
+                if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
+                if (teamEl) teamEl.textContent = inferredTeam || '—';
+                
+                if (roleEl) {
+                     const owner = localStorage.getItem('selectedTeamOwner');
+                     const role = localStorage.getItem('selectedTeamRole');
+                     const userEmail = window.authFunctions?.getCurrentUser?.()?.email;
+                     const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
+                     
+                     if (isObserver) {
+                         roleEl.textContent = 'Osservatore';
+                         roleEl.style.background = '#eff6ff';
+                         roleEl.style.color = '#3b82f6';
+                         roleEl.style.border = '1px solid #bfdbfe';
+                     } else {
+                         roleEl.textContent = 'Proprietario';
+                         roleEl.style.background = '#ecfdf5';
+                         roleEl.style.color = '#10b981';
+                         roleEl.style.border = '1px solid #a7f3d0';
+                     }
+                }
+            }
+        } catch(_) {}
+    }
+
     document.addEventListener('DOMContentLoaded', async function(){
       try {
+        updateTeamContextDisplay();
         const start = Date.now();
         let team = window.teamsModule?.getCurrentTeam?.() || null;
         while (!team && Date.now() - start < 1500) {

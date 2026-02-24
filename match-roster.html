@@ -476,6 +476,57 @@
         window.location.href = '/set-config.html?'+qp.toString();
       } catch(e){ alert('Errore nel proseguire'); }
     }
+
+    function updateTeamContextDisplay() {
+        try {
+            const clubEl = document.getElementById('ctxClubName');
+            const teamEl = document.getElementById('ctxTeamName');
+            const roleEl = document.getElementById('ctxRoleBadge');
+            
+            const teamId = localStorage.getItem('selectedTeamId');
+            let team = null;
+            if (teamId && window.teamsModule) {
+                team = window.teamsModule.getTeamById(teamId);
+            }
+            if (!team) {
+                try {
+                     const list = JSON.parse(localStorage.getItem('volleyTeams')||'[]');
+                     team = list.find(t => String(t.id) === String(teamId));
+                } catch(_) {}
+            }
+            
+            if (team) {
+                const nameCombined = team.name || '';
+                const parts = String(nameCombined).split(' - ');
+                const inferredTeam = team.teamName || (parts.length ? parts[0] : '');
+                const inferredClub = team.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
+                
+                if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
+                if (teamEl) teamEl.textContent = inferredTeam || '—';
+                
+                if (roleEl) {
+                     const owner = localStorage.getItem('selectedTeamOwner');
+                     const role = localStorage.getItem('selectedTeamRole');
+                     const userEmail = window.authFunctions?.getCurrentUser?.()?.email;
+                     const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
+                     
+                     if (isObserver) {
+                         roleEl.textContent = 'Osservatore';
+                         roleEl.style.background = '#eff6ff';
+                         roleEl.style.color = '#3b82f6';
+                         roleEl.style.border = '1px solid #bfdbfe';
+                     } else {
+                         roleEl.textContent = 'Proprietario';
+                         roleEl.style.background = '#ecfdf5';
+                         roleEl.style.color = '#10b981';
+                         roleEl.style.border = '1px solid #a7f3d0';
+                     }
+                }
+            }
+        } catch(_) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', updateTeamContextDisplay);
   </script>
 </body>
 </html>

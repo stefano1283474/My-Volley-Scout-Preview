@@ -339,16 +339,33 @@
       } catch(_) { return ''; }
     }
 
+    function getInviteOwnerFromUrl() {
+      try {
+        const qp = new URLSearchParams(window.location.search || '');
+        return String(qp.get('owner') || '').trim();
+      } catch(_) { return ''; }
+    }
+
     function readPendingInvite() {
       try { return String(sessionStorage.getItem('__pendingInvite') || '').trim(); } catch(_) { return ''; }
     }
+    
+    function readPendingInviteOwner() {
+      try { return String(sessionStorage.getItem('__pendingInviteOwner') || '').trim(); } catch(_) { return ''; }
+    }
 
-    function setPendingInvite(token) {
-      try { sessionStorage.setItem('__pendingInvite', String(token || '').trim()); } catch(_) {}
+    function setPendingInvite(token, owner) {
+      try { 
+        sessionStorage.setItem('__pendingInvite', String(token || '').trim()); 
+        if (owner) sessionStorage.setItem('__pendingInviteOwner', String(owner || '').trim());
+      } catch(_) {}
     }
 
     function clearPendingInvite() {
-      try { sessionStorage.removeItem('__pendingInvite'); } catch(_) {}
+      try { 
+        sessionStorage.removeItem('__pendingInvite'); 
+        sessionStorage.removeItem('__pendingInviteOwner');
+      } catch(_) {}
     }
 
     function updateInviteObserverInfo(isAuthed) {
@@ -534,10 +551,30 @@
           const isObserver = String(t?._mvsRole || '').toLowerCase() === 'observer' || String(t?.source || '').toLowerCase() === 'shared';
           const isShared = !!t?.shared || isObserver;
           const roleBadge = isObserver ? `<span style="font-size:12px; color:#0f172a; border:1px solid #93c5fd; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Osservatore</span>` : '';
+          
+          const teamName = String(t.teamName || (name.includes(' - ') ? name.split(' - ')[0] : name)).trim();
+          const clubName = String(t.clubName || (name.includes(' - ') ? name.split(' - ').slice(1).join(' - ') : '')).trim();
+
+          const roleLabel = isObserver ? 'Osservatore' : 'Proprietario';
+          const roleColor = isObserver ? '#3b82f6' : '#10b981';
+          const roleBg = isObserver ? '#eff6ff' : '#ecfdf5';
+          const roleBorder = isObserver ? '#bfdbfe' : '#a7f3d0';
+
           return `
-            <div class="card" data-action="select" data-archive="cloud" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" style="cursor:pointer;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                <div class="team-name-click" style="font-weight:700;color:#0f172a;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${safeName}${roleBadge}</div>
+            <div class="card" data-action="select" data-archive="cloud" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" style="cursor:pointer; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                <div style="flex:1;">
+                   ${clubName ? `<div style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">${clubName}</div>` : ''}
+                   <div class="team-name-click" style="font-size:16px; font-weight:700; color:#0f172a;">${teamName}</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                   <span style="font-size:11px; color:${roleColor}; border:1px solid ${roleBorder}; background:${roleBg}; padding:2px 8px; border-radius:999px; font-weight:600;">${roleLabel}</span>
+                   <span style="font-size:11px; color:#64748b;">Cloud</span>
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:8px; margin-top:4px;">
+                <div style="font-size:12px; color:#64748b;">${isObserver ? 'Condiviso con te' : (t.shared ? 'Tua squadra (Condivisa)' : 'Tua squadra')}</div>
                 ${isObserver ? '' : `
                   <div style="display:flex;gap:8px;align-items:center;">
                     <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Osservatore" aria-label="Invita Osservatore">
@@ -569,18 +606,18 @@
       }
     }
 
-    async function handleInviteLink(inviteId) {
+    async function handleInviteLink(inviteId, ownerId) {
       if (!inviteId) return;
       const already = sessionStorage.getItem('__inviteHandled');
       if (already === inviteId) return;
       sessionStorage.setItem('__inviteHandled', inviteId);
-      const res = await window.firestoreService?.acceptTeamInvite?.(inviteId);
+      const res = await window.firestoreService?.acceptTeamInvite?.(inviteId, ownerId);
       if (!res?.success) {
         alert(res?.error || 'Invito non valido');
         return;
       }
-      const ownerId = String(res?.invite?.ownerId || '').trim();
-      if (res?.team) addOrUpdateSharedTeamLocal(res.team, ownerId, 'observer');
+      const finalOwner = String(res?.invite?.ownerId || ownerId || '').trim();
+      if (res?.team) addOrUpdateSharedTeamLocal(res.team, finalOwner, 'observer');
       await loadCloudTeams();
       try {
         const qp = new URLSearchParams();
@@ -808,7 +845,8 @@
       async function initMyTeams() {
         if (typeof window.authFunctions === 'undefined') { setTimeout(initMyTeams, 200); return; }
         const inviteFromUrl = getInviteTokenFromUrl();
-        if (inviteFromUrl) setPendingInvite(inviteFromUrl);
+        const inviteOwnerFromUrl = getInviteOwnerFromUrl();
+        if (inviteFromUrl) setPendingInvite(inviteFromUrl, inviteOwnerFromUrl);
         let __authRedirectTimer = null;
         window.authFunctions.onAuthStateChanged(async (user) => {
           if (!user) {
@@ -817,9 +855,10 @@
             try { renderLocalTeamsList(); } catch(_) {}
             try { cloudTeams = []; renderCloudTeamsList(); } catch(_) {}
             const token = getInviteTokenFromUrl() || readPendingInvite();
-            if (token) setPendingInvite(token);
+            const owner = getInviteOwnerFromUrl() || readPendingInviteOwner();
+            if (token) setPendingInvite(token, owner);
             updateInviteObserverInfo(false);
-            const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+            const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? '&owner='+encodeURIComponent(owner) : ''}` : '';
             window.location.href = `/auth-login.html${qs}`;
             return;
           }
@@ -847,7 +886,8 @@
           try {
             const qp = new URLSearchParams(window.location.search || '');
             const invite = String(qp.get('invite') || '').trim() || readPendingInvite();
-            if (invite) await handleInviteLink(invite);
+            const inviteOwner = String(qp.get('owner') || '').trim() || readPendingInviteOwner();
+            if (invite) await handleInviteLink(invite, inviteOwner);
             if (invite) clearPendingInvite();
             updateInviteObserverInfo(true);
           } catch(_) {}
@@ -860,7 +900,8 @@
       if (inviteLoginBtn) {
         inviteLoginBtn.addEventListener('click', () => {
           const token = getInviteTokenFromUrl() || readPendingInvite();
-          const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+          const owner = getInviteOwnerFromUrl() || readPendingInviteOwner();
+          const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? '&owner='+encodeURIComponent(owner) : ''}` : '';
           window.location.href = `/auth-login.html${qs}`;
         });
       }

@@ -239,6 +239,11 @@ const firestoreService = {
 
             let synced = 0;
             for (const t of local) {
+                // Skip syncing shared teams (teams where I am an observer) to my own collection
+                if (t.source === 'shared' || t._mvsRole === 'observer' || (t.shared && t._mvsOwner && t._mvsOwner !== userRef.id && t._mvsOwner !== authFunctions.getCurrentUser()?.email)) {
+                    continue;
+                }
+
                 const club = String(t.clubName||'').trim();
                 const squad = String(t.teamName||t.name||'').trim();
                 const combined = (squad ? squad : '').trim() + (club ? ` - ${club}` : '');
@@ -892,8 +897,10 @@ const firestoreService = {
             const team = teamDoc.data() || {};
             let inviteId = firestoreService._generateInviteToken(24);
             let tries = 0;
+            const invitesRef = userRef.collection('invites');
+            
             while (tries < 3) {
-                const exists = await window.db.collection('teamInvites').doc(inviteId).get();
+                const exists = await invitesRef.doc(inviteId).get();
                 if (!exists.exists) break;
                 inviteId = firestoreService._generateInviteToken(24);
                 tries++;
@@ -907,29 +914,56 @@ const firestoreService = {
                 clubName: String(team?.clubName || '').trim(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            await window.db.collection('teamInvites').doc(inviteId).set(payload);
+            await invitesRef.doc(inviteId).set(payload);
             try { await userRef.collection('teams').doc(tId).set({ shared: true }, { merge: true }); } catch(_) {}
             const base = (window.location && window.location.origin) ? window.location.origin : '';
-            const link = `${base}/my-teams.html?invite=${encodeURIComponent(inviteId)}`;
+            const link = `${base}/my-teams.html?invite=${encodeURIComponent(inviteId)}&owner=${encodeURIComponent(ownerId)}`;
             return { success: true, inviteId, link, payload };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
 
-    acceptTeamInvite: async (inviteId) => {
+    acceptTeamInvite: async (inviteId, optionalOwnerId = null) => {
         try {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
             const token = String(inviteId || '').trim();
             if (!token) return { success: false, error: 'Invito non valido' };
-            const inviteDoc = await window.db.collection('teamInvites').doc(token).get();
-            if (!inviteDoc.exists) return { success: false, error: 'Invito non trovato' };
+            
+            // Try to resolve ownerId: from param or try to infer? 
+            // We cannot infer easily without ownerId if it's in a subcollection.
+            // But let's check if the inviteId is old-style (global) or new-style (subcollection).
+            // Actually, we must rely on ownerId being passed or provided.
+            
+            let inviteDoc = null;
+            let ownerId = String(optionalOwnerId || '').trim();
+
+            if (ownerId) {
+                 // New style: users/{ownerId}/invites/{inviteId}
+                 try {
+                     const ownerRef = firestoreService.getUserRefByEmail(ownerId);
+                     inviteDoc = await ownerRef.collection('invites').doc(token).get();
+                 } catch(e) { console.error('Error fetching subcollection invite', e); }
+            }
+            
+            // Fallback for backward compatibility: check global collection if not found in subcollection
+            if (!inviteDoc || !inviteDoc.exists) {
+                 try {
+                     inviteDoc = await window.db.collection('teamInvites').doc(token).get();
+                 } catch(_) {}
+            }
+
+            if (!inviteDoc || !inviteDoc.exists) return { success: false, error: 'Invito non trovato' };
+            
             const invite = inviteDoc.data() || {};
             if (invite?.active === false) return { success: false, error: 'Invito non attivo' };
-            const ownerId = String(invite?.ownerId || '').trim();
+            
+            ownerId = String(invite?.ownerId || ownerId || '').trim();
             const teamId = String(invite?.teamId || '').trim();
+            
             if (!ownerId || !teamId) return { success: false, error: 'Invito non valido' };
+            
             const userRef = await firestoreService.getUserRefEnsured();
             const currentEmail = String(user.email || '').trim();
             const payload = {

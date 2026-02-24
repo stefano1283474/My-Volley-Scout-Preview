@@ -50,9 +50,20 @@ service cloud.firestore {
       allow update, delete: if isUser(ownerId);
     }
 
+    // Regola per gli inviti spostati sotto l'utente (subcollection)
+    match /users/{ownerId}/invites/{inviteId} {
+      // Chiunque autenticato può leggere un invito se conosce l'ID (e l'ownerId è nell'URL)
+      // Ma per sicurezza, potremmo limitare. Tuttavia, acceptTeamInvite deve poter leggere.
+      allow read: if isSignedIn();
+      // Solo l'owner può creare/gestire i propri inviti
+      allow write: if isUser(ownerId);
+    }
+
+    // Deprecato: rimaniamo compatibili per lettura vecchi inviti, ma scrittura bloccata o limitata
     match /teamInvites/{inviteId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.token.email;
+      // Impediamo creazione di nuovi inviti globali, forzando l'uso delle subcollection
+      allow create: if false; 
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.token.email;
     }
 
