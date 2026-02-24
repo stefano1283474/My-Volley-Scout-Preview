@@ -2391,18 +2391,40 @@
                         }); 
                     } catch(e) { mRes = { success: false, error: e.message }; }
                 }
-                try { window.teamsModule?.loadTeams?.(); } catch(_){ }
+                
+                // Force a reload of matches from Cloud if we are in Cloud mode, or just to refresh the cache
+                try { 
+                    if (window.matchesModule) {
+                        // Invalidate memory cache if exists or force reload
+                        // If current view is Cloud, we MUST reload to show new data.
+                        // If current view is Local, we just synced, so local is same as cloud.
+                        // But user complaint suggests they expect to see it "in the app" (maybe switching to Cloud view?)
+                        
+                        // We will force a reload of the matches list
+                        if (currentArchive === 'cloud') {
+                             await loadMatches(); 
+                        } else {
+                             // If we are in local, maybe we want to fetch the latest cloud state in background?
+                             // But performSyncLocalToCloud is pushing.
+                             // The issue might be that loadMatches() uses cached data if called too soon?
+                             // firestore-service.loadTeamMatches does get(), which is usually fresh.
+                        }
+                    }
+                } catch(_){ }
+
                 const errors = [];
                 if (tRes && !tRes.success) errors.push('Squadre: ' + tRes.error);
                 if (mRes && !mRes.success) errors.push('Partite: ' + mRes.error);
                 if (errors.length > 0) {
-                    alert('Errore durante la sincronizzazione:\\n' + errors.join('\\n'));
+                    alert('Errore durante la sincronizzazione:\n' + errors.join('\n'));
                 } else {
-                    const tCount = tRes?.synced || 0;
-                    const mCount = mRes?.synced || 0;
-                    alert(`Sincronizzazione completata.\\nSquadre inviate: ${tCount}\\nPartite inviate: ${mCount}`);
-                    syncSucceeded = true;
+                    // Success!
+                    // We don't need a loud alert if we have the progress dialog finishing nicely.
+                    // But maybe user wants confirmation.
+                    // alert(`Sincronizzazione completata.\nSquadre inviate: ${tRes?.synced || 0}\nPartite inviate: ${mRes?.synced || 0}`);
+                    // Let the dialog show "Completato" state.
                 }
+                syncSucceeded = true;
             } catch(err){ 
                 console.error(err);
                 alert('Errore critico sincronizzazione: ' + (err.message || String(err))); 
@@ -2414,17 +2436,24 @@
                 updateSyncCompareSelectionSummary(dlg, dlg?.__syncCompareRows || []);
                 const progressClose = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressClose') : null;
                 if (progressClose) progressClose.disabled = false;
+                
+                // Don't auto-close immediately if there were errors or if user wants to see
+                // But the user complained about "ci vuole un minuto".
+                // If we auto-close, they might think it's done but the data isn't visible yet?
+                // Actually, if we await loadMatches() above, it should be visible.
+                
                 const autoClose = progressDlg?.querySelector ? progressDlg.querySelector('#syncProgressAutoClose') : null;
                 const state = progressDlg?.__syncProgressState;
-                if (autoClose && autoClose.checked && state && state.total && state.index >= state.total) {
-                    setTimeout(() => { if (progressDlg) progressDlg.style.display = 'none'; }, 600);
+                
+                if (syncSucceeded && autoClose && autoClose.checked && state && state.total && state.index >= state.total) {
+                    setTimeout(() => { if (progressDlg) progressDlg.style.display = 'none'; }, 1000);
                 }
+                
                 if (syncSucceeded) {
                     const compareDlg = dlg || document.getElementById('syncCompareDialog');
                     if (compareDlg) compareDlg.style.display = 'none';
-                    if (typeof currentArchive !== 'undefined' && currentArchive === 'cloud') {
-                        setTimeout(() => { loadMatches(); }, 0);
-                    }
+                    // Always reload matches to be sure UI is fresh
+                    setTimeout(() => { loadMatches(); }, 100);
                 }
                 try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){}
             }
