@@ -417,8 +417,21 @@
             try { return String(sessionStorage.getItem('__pendingInvite') || '').trim(); } catch(_) { return ''; }
         }
 
+        function getInviteOwner() {
+            try {
+                const qp = new URLSearchParams(window.location.search || '');
+                const o = String(qp.get('owner') || '').trim();
+                if (o) {
+                    try { sessionStorage.setItem('__pendingInviteOwner', o); } catch(_) {}
+                    return o;
+                }
+            } catch(_) {}
+            try { return String(sessionStorage.getItem('__pendingInviteOwner') || '').trim(); } catch(_) { return ''; }
+        }
+
         function updateInviteUi() {
             const token = getInviteToken();
+            const owner = getInviteOwner();
             if (inviteNotice) {
                 inviteNotice.textContent = token
                     ? 'Invito rilevato: completa la registrazione per attivare la squadra condivisa.'
@@ -426,13 +439,15 @@
                 inviteNotice.style.display = token ? 'block' : 'none';
             }
             if (loginLink && token) {
-                loginLink.href = `/auth-login.html?invite=${encodeURIComponent(token)}`;
+                const qs = `?invite=${encodeURIComponent(token)}${owner ? `&owner=${encodeURIComponent(owner)}` : ''}`;
+                loginLink.href = `/auth-login.html${qs}`;
             }
         }
 
         function redirectToMyTeams() {
             const token = getInviteToken();
-            const qs = token ? `?invite=${encodeURIComponent(token)}` : '';
+            const owner = getInviteOwner();
+            const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? `&owner=${encodeURIComponent(owner)}` : ''}` : '';
             window.location.href = `/my-teams.html${qs}`;
         }
 
