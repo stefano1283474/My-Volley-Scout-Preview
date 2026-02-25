@@ -821,29 +821,66 @@ const firestoreService = {
             if (!user) return { success: false, error: 'Utente non autenticato' };
             const currentEmail = String(user.email || '').trim();
             if (!currentEmail) return { success: false, error: 'Email utente non valida' };
-            const accesses = [];
-            try {
-                const accessSnap = await window.db.collectionGroup('user_access').where('userEmail', '==', currentEmail).get();
-                accessSnap.forEach(d => accesses.push({ ref: d.ref, data: d.data() || {} }));
-            } catch (_) {}
             const teams = [];
-            for (const access of accesses) {
-                const data = access?.data || {};
-                if (data?.active === false) continue;
-                const teamRef = access?.ref?.parent?.parent;
-                if (!teamRef) continue;
-                const teamId = String(teamRef?.id || '').trim();
-                const ownerId = String(teamRef?.parent?.parent?.id || '').trim();
-                if (!ownerId || !teamId) continue;
-                if (ownerId === currentEmail) continue;
+            const seen = new Set();
+            const addTeam = (teamId, data, ownerId, role) => {
+                const key = `${ownerId}::${teamId}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                teams.push(Object.assign({ id: teamId }, data, { _mvsOwner: ownerId, _mvsRole: role || 'observer', source: 'shared' }));
+            };
+            let userRef = null;
+            try { userRef = await firestoreService.getUserRefEnsured(); } catch(_) {}
+            if (userRef) {
                 try {
-                    const teamDoc = await teamRef.get();
-                    if (teamDoc.exists) {
-                        const data = teamDoc.data() || {};
-                        teams.push(Object.assign({ id: teamDoc.id }, data, { _mvsOwner: ownerId, _mvsRole: access?.data?.role || 'observer', source: 'shared' }));
+                    const sharedSnap = await userRef.collection('shared_teams').get();
+                    for (const d of sharedSnap.docs || []) {
+                        const data = d.data() || {};
+                        if (data?.active === false) continue;
+                        const teamId = String(data?.teamId || '').trim();
+                        const ownerId = String(data?.ownerId || '').trim();
+                        if (!ownerId || !teamId) continue;
+                        if (ownerId === currentEmail) continue;
+                        try {
+                            const teamDoc = await window.db.collection('users').doc(ownerId).collection('teams').doc(teamId).get();
+                            if (teamDoc.exists) {
+                                const t = teamDoc.data() || {};
+                                addTeam(teamDoc.id, t, ownerId, data?.role || 'observer');
+                            } else {
+                                const fallback = {
+                                    teamName: String(data?.teamName || '').trim(),
+                                    clubName: String(data?.clubName || '').trim(),
+                                    name: String(data?.teamName || '').trim() + (String(data?.clubName || '').trim() ? ` - ${String(data?.clubName || '').trim()}` : ''),
+                                    shared: true
+                                };
+                                addTeam(teamId, fallback, ownerId, data?.role || 'observer');
+                            }
+                        } catch (_) {}
                     }
                 } catch (_) {}
             }
+            try {
+                const accesses = [];
+                const accessSnap = await window.db.collectionGroup('user_access').where('userEmail', '==', currentEmail).get();
+                accessSnap.forEach(d => accesses.push({ ref: d.ref, data: d.data() || {} }));
+                for (const access of accesses) {
+                    const data = access?.data || {};
+                    if (data?.active === false) continue;
+                    const teamRef = access?.ref?.parent?.parent;
+                    if (!teamRef) continue;
+                    const teamId = String(teamRef?.id || '').trim();
+                    const ownerId = String(teamRef?.parent?.parent?.id || '').trim();
+                    if (!ownerId || !teamId) continue;
+                    if (ownerId === currentEmail) continue;
+                    try {
+                        const teamDoc = await teamRef.get();
+                        if (teamDoc.exists) {
+                            const t = teamDoc.data() || {};
+                            addTeam(teamDoc.id, t, ownerId, data?.role || 'observer');
+                        }
+                    } catch (_) {}
+                }
+            } catch (_) {}
             return { success: true, documents: teams };
         } catch (error) {
             return { success: false, error: error.message };
@@ -888,10 +925,10 @@ const firestoreService = {
         try {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
-            const ownerId = String(user.email || '').trim();
             const tId = String(teamId || '').trim();
             if (!tId) return { success: false, error: 'teamId non valido' };
             const userRef = await firestoreService.getUserRefEnsured();
+            const ownerId = String(userRef?.id || user.email || '').trim();
             const teamDoc = await userRef.collection('teams').doc(tId).get();
             if (!teamDoc.exists) return { success: false, error: 'Team non trovato' };
             const team = teamDoc.data() || {};
@@ -1029,6 +1066,23 @@ const firestoreService = {
                 
                 // Add user to user_access
                 await teamRef.collection('user_access').doc(currentEmail).set(payload, { merge: true });
+                try {
+                    const observerRef = await firestoreService.getUserRefEnsured();
+                    const mirrorId = `${ownerId}__${teamId}`;
+                    const mirrorPayload = {
+                        ownerId,
+                        teamId,
+                        userEmail: currentEmail,
+                        role: 'observer',
+                        inviteId: token,
+                        active: true,
+                        teamName: String(invite?.teamName || '').trim(),
+                        clubName: String(invite?.clubName || '').trim(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await observerRef.collection('shared_teams').doc(mirrorId).set(mirrorPayload, { merge: true });
+                } catch (_) {}
                 
                 // NOTE: We do NOT set {shared: true} on the team doc here because the Observer
                 // does not have write permission on the team doc. 

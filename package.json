@@ -1,5 +1,5 @@
 {
-  "version": "14.3.8",
+  "version": "14.3.9",
   "scripts": {
     "lint": "eslint . --ext .js,.html"
   },
@@ -8,6 +8,7 @@
     "eslint-plugin-html": "^8.1.1"
   },
   "dependencies": {
+    "firebase-admin": "^13.6.1",
     "serve": "^14.2.5",
     "xlsx": "^0.18.5"
   }
