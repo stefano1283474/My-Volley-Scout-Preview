@@ -1678,8 +1678,8 @@
                 if (matchesArchiveTabLocal) matchesArchiveTabLocal.style.display = 'none';
                 if (matchesArchiveTabCloud) {
                     // Ensure Cloud is active
-                    if (currentArchive !== 'cloud') {
-                        setArchive('cloud', { reload: false });
+                    if (currentArchive !== 'shared') {
+                        setArchive('shared', { reload: false });
                     }
                 }
             } else {
@@ -1692,24 +1692,24 @@
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 const urlArch = qp.get('archive');
-                if (urlArch === 'cloud' || urlArch === 'local') return urlArch;
+                if (urlArch === 'cloud' || urlArch === 'local' || urlArch === 'shared') return urlArch;
             } catch(_) {}
             try {
                 const stored = localStorage.getItem(ARCHIVE_STORAGE_KEY);
-                if (stored === 'cloud' || stored === 'local') return stored;
+                if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
             } catch(_) {}
             return 'local';
         }
 
         function setArchive(next, options = {}) {
-            const v = (next === 'cloud') ? 'cloud' : 'local';
-            if (v === 'cloud' && authResolved && !isAuthenticated()) {
+            const v = (next === 'cloud' || next === 'shared') ? next : 'local';
+            if ((v === 'cloud' || v === 'shared') && authResolved && !isAuthenticated()) {
                 try { alert('Accedi per visualizzare e gestire il Cloud'); } catch(_) {}
                 return;
             }
             currentArchive = v;
             try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
-            try { window.matchesModule?.setArchive?.(v, { reload: false }); } catch(_) {}
+            try { window.matchesModule?.setArchive?.(v === 'shared' ? 'cloud' : v, { reload: false }); } catch(_) {}
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 qp.set('archive', v);
@@ -1721,8 +1721,9 @@
                 matchesArchiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
             }
             if (matchesArchiveTabCloud) {
-                matchesArchiveTabCloud.classList.toggle('active', v === 'cloud');
-                matchesArchiveTabCloud.setAttribute('aria-selected', (v === 'cloud').toString());
+                matchesArchiveTabCloud.classList.toggle('active', v === 'cloud' || v === 'shared');
+                matchesArchiveTabCloud.setAttribute('aria-selected', (v === 'cloud' || v === 'shared').toString());
+                matchesArchiveTabCloud.textContent = v === 'shared' ? 'Cloud Condiviso' : 'Cloud';
             }
             if (options?.reload !== false) {
                 loadSelectedTeam();
@@ -2409,7 +2410,7 @@
                         // But user complaint suggests they expect to see it "in the app" (maybe switching to Cloud view?)
                         
                         // We will force a reload of the matches list
-                        if (currentArchive === 'cloud') {
+                        if (currentArchive === 'cloud' || currentArchive === 'shared') {
                              await loadMatches(); 
                         } else {
                              // If we are in local, maybe we want to fetch the latest cloud state in background?
@@ -2868,7 +2869,7 @@
             try {
                 if (window.matchesModule) {
                     console.log('Matches Page: matchesModule ready');
-                    try { window.matchesModule.setArchive?.(currentArchive, { reload: true }); } catch(_) {}
+                    try { window.matchesModule.setArchive?.((currentArchive === 'shared') ? 'cloud' : currentArchive, { reload: true }); } catch(_) {}
                     
                     matches = window.matchesModule.getMatches();
                     if (!window.__matchesSubscribed) {
