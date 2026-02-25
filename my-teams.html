@@ -660,13 +660,27 @@
     function renderCloudTeamsList() {
       const own = Array.isArray(cloudTeams) ? cloudTeams.slice() : [];
       const shared = Array.isArray(sharedTeams) ? sharedTeams.slice() : [];
-      const list = own.concat(shared);
       if (teamsGridCloud) teamsGridCloud.innerHTML = '';
       if (!isAuthenticated()) return;
+      const currentEmail = getCurrentUserEmail();
+      const sharedById = new Map();
+      shared.forEach(t => {
+        const id = String(t?.id || '').trim();
+        if (id) sharedById.set(id, t);
+      });
+      const ownFiltered = own.filter(t => {
+        const id = String(t?.id || '').trim();
+        const sharedTeam = id ? sharedById.get(id) : null;
+        if (sharedTeam) {
+          const owner = String(sharedTeam?._mvsOwner || '').trim();
+          if (owner && owner !== currentEmail) return false;
+        }
+        return true;
+      });
+      const list = ownFiltered.concat(shared);
       if (noTeamsCloud) noTeamsCloud.style.display = list.length ? 'none' : 'block';
       if (!list.length) return;
       if (teamsGridCloud) {
-        const currentEmail = getCurrentUserEmail();
         teamsGridCloud.innerHTML = list.map(t => {
           const name = normalizeTeamName(t) || String(t?.name || t?.id || '');
           const safeName = String(name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');

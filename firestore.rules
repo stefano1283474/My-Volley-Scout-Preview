@@ -46,8 +46,8 @@ service cloud.firestore {
 
     match /users/{ownerId}/teams/{teamId}/user_access/{userId} {
       allow read: if isUser(ownerId) || isUser(userId) || hasTeamAccess(ownerId, teamId);
-      allow create: if isUser(ownerId) || isUser(userId);
-      allow update, delete: if isUser(ownerId);
+      allow create, update: if isUser(ownerId) || isUser(userId);
+      allow delete: if isUser(ownerId);
     }
 
     // Regola per gli inviti spostati sotto l'utente (subcollection)

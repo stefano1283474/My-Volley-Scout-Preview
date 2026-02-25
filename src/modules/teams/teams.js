@@ -127,9 +127,15 @@ class TeamsModule {
                 }));
                 localStorage.setItem('volleyTeams', JSON.stringify(toStore));
                 if (isAuthed && window.firestoreService?.saveTeam) {
+                    let currentEmail = '';
+                    try { currentEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) {}
                     for (const t of this.state.teams) {
                         const isFs = String(t.source||'').toLowerCase()==='firestore';
-                        if (!firestoreIds.has(String(t.id)) && !isFs) {
+                        const role = String(t._mvsRole || '').toLowerCase();
+                        const owner = String(t._mvsOwner || '').trim();
+                        const isShared = !!t._mvsShared || role === 'observer' || String(t.source||'').toLowerCase()==='shared';
+                        const isForeignOwner = owner && currentEmail && owner !== currentEmail;
+                        if (!firestoreIds.has(String(t.id)) && !isFs && !isShared && !isForeignOwner) {
                             try { await window.firestoreService.saveTeam(t); } catch(_) {}
                         }
                     }
