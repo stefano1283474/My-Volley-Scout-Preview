@@ -15,6 +15,12 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(ownerId)/teams/$(teamId)/user_access/$(request.auth.token.email.replace('.', '_')))
       );
     }
+    function hasSharedMirror(ownerId, teamId) {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.token.email)/shared_teams/$(ownerId)__$(teamId)) ||
+        exists(/databases/$(database)/documents/users/$(request.auth.token.email.replace('.', '_'))/shared_teams/$(ownerId)__$(teamId))
+      );
+    }
     // Regole per le collection email-based - ogni utente può accedere solo alla propria collection
     match /{email}/{document=**} {
       allow read, write: if isSignedIn() && 
@@ -35,12 +41,12 @@ service cloud.firestore {
     }
 
     match /users/{ownerId}/teams/{teamId} {
-      allow read: if isUser(ownerId) || hasTeamAccess(ownerId, teamId);
+      allow read: if isUser(ownerId) || hasTeamAccess(ownerId, teamId) || hasSharedMirror(ownerId, teamId);
       allow write: if isUser(ownerId);
     }
 
     match /users/{ownerId}/teams/{teamId}/{document=**} {
-      allow read: if isUser(ownerId) || hasTeamAccess(ownerId, teamId);
+      allow read: if isUser(ownerId) || hasTeamAccess(ownerId, teamId) || hasSharedMirror(ownerId, teamId);
       allow write: if isUser(ownerId);
     }
 

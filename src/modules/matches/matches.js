@@ -129,6 +129,7 @@ class MatchesModule {
 
                 // Risoluzione ID Team per Firestore (gestione ID basati su nome combinato)
                 let targetTeamId = teamId;
+                let altTeamId = '';
                 try {
                     const localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
                     const teamMap = new Map();
@@ -149,6 +150,13 @@ class MatchesModule {
                         const combined = (squad + (club ? ` - ${club}` : '')).trim();
                         if (combined) targetTeamId = combined;
                     }
+                    const squad = String(currentTeam?.teamName || currentTeam?.name || '').trim();
+                    const club = String(currentTeam?.clubName || '').trim();
+                    if (club && squad) altTeamId = `${club} - ${squad}`;
+                    if (!altTeamId && String(targetTeamId || '').includes(' - ')) {
+                        const parts = String(targetTeamId || '').split(' - ');
+                        if (parts.length > 1) altTeamId = `${parts.slice(1).join(' - ')} - ${parts[0]}`;
+                    }
                 } catch (e) { console.warn('MatchesModule: Error resolving team ID', e); }
 
                 console.log(`MatchesModule: Resolved teamId ${teamId} to ${targetTeamId}`);
@@ -157,8 +165,15 @@ class MatchesModule {
                 const resTeam = useSharedLoader
                     ? await window.firestoreService.loadTeamMatchesByOwner(ownerId, targetTeamId)
                     : await window.firestoreService.loadTeamMatches(targetTeamId);
-                const teamMatches = (resTeam?.success && Array.isArray(resTeam.matches)) ? resTeam.matches : ((resTeam?.success && Array.isArray(resTeam.documents)) ? resTeam.documents : []);
-                this.state.matches = this.deduplicateMatchesCloud(teamMatches);
+                let teamMatches = (resTeam?.success && Array.isArray(resTeam.matches)) ? resTeam.matches : ((resTeam?.success && Array.isArray(resTeam.documents)) ? resTeam.documents : []);
+                if (resTeam?.success && (!teamMatches || teamMatches.length === 0) && altTeamId && String(altTeamId) !== String(targetTeamId)) {
+                    const resAlt = useSharedLoader
+                        ? await window.firestoreService.loadTeamMatchesByOwner(ownerId, altTeamId)
+                        : await window.firestoreService.loadTeamMatches(altTeamId);
+                    const altMatches = (resAlt?.success && Array.isArray(resAlt.matches)) ? resAlt.matches : ((resAlt?.success && Array.isArray(resAlt.documents)) ? resAlt.documents : []);
+                    if (Array.isArray(altMatches) && altMatches.length) teamMatches = altMatches;
+                }
+                this.state.matches = this.deduplicateMatchesCloud(teamMatches || []);
                 console.log(`MatchesModule: Loaded ${this.state.matches.length} cloud matches`);
                 this.notifyMatchesUpdate();
                 return;

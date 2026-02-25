@@ -118,11 +118,22 @@
         if (archive === 'cloud') {
           try {
             const teamId = localStorage.getItem('selectedTeamId') || '';
-            if (teamId && selId && window.firestoreService?.getMatchData) {
-              const res = await window.firestoreService.getMatchData(teamId, selId);
-              if (res?.success) {
-                match = Object.assign({}, (res.meta || {}), (res.details || {}), { roster: Array.isArray(res.roster) ? res.roster : [] });
-                if (!match.id) match.id = String(selId);
+            const ownerId = localStorage.getItem('selectedTeamOwner') || '';
+            const currentEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
+            const shouldUseOwner = ownerId && String(ownerId) !== String(currentEmail || '');
+            if (teamId && selId) {
+              if (shouldUseOwner && window.firestoreService?.getMatchDataByOwner) {
+                const res = await window.firestoreService.getMatchDataByOwner(ownerId, teamId, selId);
+                if (res?.success) {
+                  match = Object.assign({}, (res.meta || {}), (res.details || {}), { roster: Array.isArray(res.roster) ? res.roster : [] });
+                  if (!match.id) match.id = String(selId);
+                }
+              } else if (window.firestoreService?.getMatchData) {
+                const res = await window.firestoreService.getMatchData(teamId, selId);
+                if (res?.success) {
+                  match = Object.assign({}, (res.meta || {}), (res.details || {}), { roster: Array.isArray(res.roster) ? res.roster : [] });
+                  if (!match.id) match.id = String(selId);
+                }
               }
             }
           } catch(_) {}
