@@ -753,6 +753,30 @@
       }
     }
 
+    function buildSharedTeamFromInvite(res) {
+      try {
+        const invite = res?.invite || {};
+        const team = res?.team || {};
+        const owner = String(invite?.ownerId || res?.ownerId || '').trim();
+        const teamId = String(invite?.teamId || team?.id || res?.accessId || '').trim();
+        if (!teamId) return null;
+        const teamName = String(team?.teamName || invite?.teamName || '').trim();
+        const clubName = String(team?.clubName || invite?.clubName || '').trim();
+        const inferredName = (teamName || String(team?.name || '').trim()) + (clubName ? ` - ${clubName}` : '');
+        return {
+          id: teamId,
+          name: (inferredName || String(team?.name || teamId || '').trim()).trim(),
+          teamName,
+          clubName,
+          players: Array.isArray(team?.players) ? team.players : [],
+          _mvsOwner: owner,
+          _mvsRole: 'observer',
+          source: 'shared',
+          shared: true
+        };
+      } catch(_) { return null; }
+    }
+
     async function handleInviteLink(inviteId, ownerId) {
       if (!inviteId) return;
       const already = sessionStorage.getItem('__inviteHandled');
@@ -769,9 +793,25 @@
       
       console.log('Invite accepted successfully:', res);
       sessionStorage.setItem('__inviteHandled', inviteId);
-      
+      const fallbackTeam = buildSharedTeamFromInvite(res);
+      if (fallbackTeam) {
+        const owner = String(fallbackTeam?._mvsOwner || '').trim();
+        const id = String(fallbackTeam?.id || '').trim();
+        const filtered = (Array.isArray(sharedTeams) ? sharedTeams : []).filter(t => {
+          const sameId = String(t?.id || '').trim() === id;
+          const sameOwner = String(t?._mvsOwner || '').trim() === owner;
+          return !(sameId && sameOwner);
+        });
+        sharedTeams = filtered.concat([fallbackTeam]);
+        renderCloudTeamsList();
+      }
+
       // Force reload cloud teams immediately
       await loadCloudTeams();
+      if (fallbackTeam && (!Array.isArray(sharedTeams) || sharedTeams.length === 0)) {
+        sharedTeams = [fallbackTeam];
+        renderCloudTeamsList();
+      }
       
       try {
         // Switch view to Cloud
