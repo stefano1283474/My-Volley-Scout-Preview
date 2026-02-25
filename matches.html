@@ -1507,6 +1507,7 @@
     <script>
         // Variabili globali
         let currentUser = null;
+        let authResolved = false;
         let selectedTeam = null;
         let matches = [];
         let __sortAsc = false;
@@ -1702,7 +1703,7 @@
 
         function setArchive(next, options = {}) {
             const v = (next === 'cloud') ? 'cloud' : 'local';
-            if (v === 'cloud' && !isAuthenticated()) {
+            if (v === 'cloud' && authResolved && !isAuthenticated()) {
                 try { alert('Accedi per visualizzare e gestire il Cloud'); } catch(_) {}
                 return;
             }
@@ -2731,6 +2732,7 @@
             let __authRedirectTimer = null;
             console.log('Matches Page: setup auth listener');
             window.authFunctions.onAuthStateChanged((user) => {
+                authResolved = true;
                 console.log('Matches Page: auth state changed', user ? user.email : 'null');
                 if (!user) {
                     if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
