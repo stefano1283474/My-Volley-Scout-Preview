@@ -493,6 +493,14 @@
         createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : (v === 'shared' ? 'Solo lettura' : 'Crea Squadra (Locale)');
         createTeamBtn.disabled = v === 'shared';
       }
+      if (hydrateDataBtn) {
+        hydrateDataBtn.disabled = v === 'shared';
+        hydrateDataBtn.title = v === 'shared' ? 'Non disponibile in Cloud Condiviso' : 'Aggiorna Locale da Cloud';
+      }
+      if (syncDataBtn) {
+        syncDataBtn.disabled = v === 'shared';
+        syncDataBtn.title = v === 'shared' ? 'Non disponibile in Cloud Condiviso' : 'Aggiorna Cloud da Locale';
+      }
       if (v === 'cloud') {
         if (cloudHint) {
           cloudHint.textContent = 'Caricamento Cloud...';
@@ -1181,6 +1189,11 @@
         });
         if (hydrateDataBtn) hydrateDataBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
+          if (currentArchive === 'shared') {
+            alert('Operazione non disponibile in Cloud Condiviso');
+            try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
+            return;
+          }
           try {
             hydrateDataBtn.disabled = true;
             hydrateDataBtn.textContent = 'Aggiorno Locale...';
@@ -1206,6 +1219,11 @@
         });
         if (syncDataBtn) syncDataBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
+          if (currentArchive === 'shared') {
+            alert('Operazione non disponibile in Cloud Condiviso');
+            try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
+            return;
+          }
           const progressDlg = ensureSyncProgressDialog();
           resetSyncProgressDialog(progressDlg, 0);
           const stage = progressDlg.querySelector('#syncProgressStageMT');

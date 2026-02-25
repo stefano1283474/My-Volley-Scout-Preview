@@ -863,6 +863,13 @@ const firestoreService = {
                 const accesses = [];
                 const accessSnap = await window.db.collectionGroup('user_access').where('userEmail', '==', currentEmail).get();
                 accessSnap.forEach(d => accesses.push({ ref: d.ref, data: d.data() || {} }));
+                const safeEmail = currentEmail.replace(/\./g, '_');
+                if (safeEmail && safeEmail !== currentEmail) {
+                    try {
+                        const accessSnapSafe = await window.db.collectionGroup('user_access').where('userEmail', '==', safeEmail).get();
+                        accessSnapSafe.forEach(d => accesses.push({ ref: d.ref, data: d.data() || {} }));
+                    } catch (_) {}
+                }
                 for (const access of accesses) {
                     const data = access?.data || {};
                     if (data?.active === false) continue;

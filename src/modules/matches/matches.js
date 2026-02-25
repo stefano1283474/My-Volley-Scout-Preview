@@ -47,13 +47,13 @@ class MatchesModule {
     getInitialArchive() {
         try {
             const stored = localStorage.getItem('mvsSelectedArchive');
-            if (stored === 'cloud' || stored === 'local') return stored;
+            if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
         } catch (_) {}
         return 'local';
     }
 
     setArchive(next, options = {}) {
-        const v = (next === 'cloud') ? 'cloud' : 'local';
+        const v = (next === 'cloud' || next === 'shared') ? next : 'local';
         const changed = this.state.archive !== v;
         if (!changed && options.force !== true && !options.reload) return;
         
@@ -110,12 +110,24 @@ class MatchesModule {
             this.state.matches = []; // Clear matches to ensure no mixing
             this.notifyMatchesUpdate(); // Notify clear immediately
 
-            const archive = this.state.archive === 'cloud' ? 'cloud' : 'local';
+            const isSharedArchive = this.state.archive === 'shared';
+            const archive = (this.state.archive === 'cloud' || isSharedArchive) ? 'cloud' : 'local';
             const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
             const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
             const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
             const ownerId = (currentTeam?._mvsOwner ? String(currentTeam._mvsOwner) : (() => { try { return localStorage.getItem('selectedTeamOwner'); } catch(_) { return null; } })());
+            const sharedMetaOwner = (() => {
+                try {
+                    const raw = localStorage.getItem('selectedSharedTeamMeta');
+                    const meta = raw ? JSON.parse(raw) : null;
+                    return meta?.owner ? String(meta.owner) : null;
+                } catch(_) { return null; }
+            })();
             const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            const currentEmail = (() => { try { return String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) { return ''; } })();
+            const role = (() => { try { return String(localStorage.getItem('selectedTeamRole') || '').trim(); } catch(_) { return ''; } })();
+            const ownerResolved = String(ownerId || sharedMetaOwner || '').trim();
+            const shouldUseOwner = isSharedArchive || role === 'observer' || (!!ownerResolved && !!currentEmail && ownerResolved !== currentEmail);
 
             console.log(`MatchesModule: Loading matches from ${archive} for team ${teamId}`);
 
@@ -161,14 +173,14 @@ class MatchesModule {
 
                 console.log(`MatchesModule: Resolved teamId ${teamId} to ${targetTeamId}`);
 
-                const useSharedLoader = ownerId && window.firestoreService.loadTeamMatchesByOwner;
+                const useSharedLoader = shouldUseOwner && ownerResolved && window.firestoreService.loadTeamMatchesByOwner;
                 const resTeam = useSharedLoader
-                    ? await window.firestoreService.loadTeamMatchesByOwner(ownerId, targetTeamId)
+                    ? await window.firestoreService.loadTeamMatchesByOwner(ownerResolved, targetTeamId)
                     : await window.firestoreService.loadTeamMatches(targetTeamId);
                 let teamMatches = (resTeam?.success && Array.isArray(resTeam.matches)) ? resTeam.matches : ((resTeam?.success && Array.isArray(resTeam.documents)) ? resTeam.documents : []);
                 if (resTeam?.success && (!teamMatches || teamMatches.length === 0) && altTeamId && String(altTeamId) !== String(targetTeamId)) {
                     const resAlt = useSharedLoader
-                        ? await window.firestoreService.loadTeamMatchesByOwner(ownerId, altTeamId)
+                        ? await window.firestoreService.loadTeamMatchesByOwner(ownerResolved, altTeamId)
                         : await window.firestoreService.loadTeamMatches(altTeamId);
                     const altMatches = (resAlt?.success && Array.isArray(resAlt.matches)) ? resAlt.matches : ((resAlt?.success && Array.isArray(resAlt.documents)) ? resAlt.documents : []);
                     if (Array.isArray(altMatches) && altMatches.length) teamMatches = altMatches;
@@ -373,7 +385,10 @@ class MatchesModule {
      */
     async saveMatch(match) {
         try {
-            const archive = this.state.archive === 'cloud' ? 'cloud' : 'local';
+            const archive = (this.state.archive === 'cloud' || this.state.archive === 'shared') ? 'cloud' : 'local';
+            if (this.state.archive === 'shared') {
+                return { success: false, error: 'Archivio condiviso in sola lettura' };
+            }
             let updatedMatch = match;
 
             if (archive === 'cloud') {
@@ -464,7 +479,10 @@ class MatchesModule {
                     return { success: false, cancelled: true };
                 }
             }
-            const archive = this.state.archive === 'cloud' ? 'cloud' : 'local';
+            const archive = (this.state.archive === 'cloud' || this.state.archive === 'shared') ? 'cloud' : 'local';
+            if (this.state.archive === 'shared') {
+                return { success: false, error: 'Archivio condiviso in sola lettura' };
+            }
 
             if (archive === 'cloud') {
                 const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));

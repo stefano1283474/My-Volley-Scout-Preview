@@ -99,7 +99,7 @@
       } catch(_) {}
       try {
         const stored = localStorage.getItem('mvsSelectedArchive');
-        if (stored === 'cloud' || stored === 'local') return stored;
+        if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
       } catch(_) {}
       return 'local';
     }
@@ -115,12 +115,12 @@
           const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
           match = Array.isArray(list) ? list.find(m => m.id === selId) : null;
         } catch(_) {}
-        if (archive === 'cloud') {
+        if (archive === 'cloud' || archive === 'shared') {
           try {
             const teamId = localStorage.getItem('selectedTeamId') || '';
             const ownerId = localStorage.getItem('selectedTeamOwner') || '';
             const currentEmail = window.authFunctions?.getCurrentUser?.()?.email || '';
-            const shouldUseOwner = ownerId && String(ownerId) !== String(currentEmail || '');
+            const shouldUseOwner = archive === 'shared' || (ownerId && String(ownerId) !== String(currentEmail || ''));
             if (teamId && selId) {
               if (shouldUseOwner && window.firestoreService?.getMatchDataByOwner) {
                 const res = await window.firestoreService.getMatchDataByOwner(ownerId, teamId, selId);

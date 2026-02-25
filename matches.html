@@ -491,8 +491,8 @@
 
         <div class="section-title-row">
             <div class="tabs" role="tablist" aria-label="Sezioni">
-              <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">El. Partite</button>
-              <button id="tabRoster" class="tab-button" type="button" role="tab" aria-selected="false">EL. Roster</button>
+              <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">Partite</button>
+              <button id="tabRoster" class="tab-button" type="button" role="tab" aria-selected="false">Roster</button>
               <button id="tabAnalysis" class="tab-button" type="button" role="tab" aria-selected="false">Analisi Team</button>
             </div>
             <div class="list-actions" id="listActions" style="display:flex;align-items:center;gap:8px;">
@@ -532,7 +532,10 @@
                         <div id="clubNameTop" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:2px;">—</div>
                         <div id="teamNameBottom" style="font-size:16px; font-weight:700; color:#0f172a;">—</div>
                     </div>
-                    <div id="teamRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <div id="teamRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+                        <div id="sharedReadOnlyBadge" style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; display:none;">Sola lettura</div>
+                    </div>
                 </div>
             </div>
             
@@ -1709,7 +1712,7 @@
             }
             currentArchive = v;
             try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
-            try { window.matchesModule?.setArchive?.(v === 'shared' ? 'cloud' : v, { reload: false }); } catch(_) {}
+            try { window.matchesModule?.setArchive?.(v, { reload: false }); } catch(_) {}
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 qp.set('archive', v);
@@ -2846,6 +2849,10 @@
                     roleEl.style.border = '1px solid #a7f3d0';
                 }
             }
+            const sharedBadge = document.getElementById('sharedReadOnlyBadge');
+            if (sharedBadge) {
+                sharedBadge.style.display = currentArchive === 'shared' ? 'inline-flex' : 'none';
+            }
 
             const playerCount = Array.isArray(selectedTeam.players) ? selectedTeam.players.length : (selectedTeam.players || 0);
             const selId = selectedTeam?.id != null ? String(selectedTeam.id) : null;
@@ -2869,7 +2876,7 @@
             try {
                 if (window.matchesModule) {
                     console.log('Matches Page: matchesModule ready');
-                    try { window.matchesModule.setArchive?.((currentArchive === 'shared') ? 'cloud' : currentArchive, { reload: true }); } catch(_) {}
+                    try { window.matchesModule.setArchive?.(currentArchive, { reload: true }); } catch(_) {}
                     
                     matches = window.matchesModule.getMatches();
                     if (!window.__matchesSubscribed) {
