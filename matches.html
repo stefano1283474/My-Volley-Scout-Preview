@@ -2957,7 +2957,7 @@
                         teamAnalysisChartEmpty.textContent = 'Seleziona una squadra con almeno una partita per vedere il grafico.';
                         teamAnalysisChartEmpty.style.display = 'block';
                     }
-                    if (teamAnalysisLegend) teamAnalysisLegend.innerHTML = '';
+                    renderTeamAnalysisRoster();
                 } else {
                     renderTeamAnalysisChart(relevant);
                 }
@@ -3311,7 +3311,11 @@
                     teamAnalysisChartEmpty.textContent = 'Seleziona una squadra con almeno una partita per vedere il grafico.';
                     teamAnalysisChartEmpty.style.display = 'block';
                 }
-                if (teamAnalysisLegend) teamAnalysisLegend.innerHTML = '';
+                // Ensure roster is visible even if no matches
+                try {
+                    refreshTeamAnalysisRosterCache();
+                    renderTeamAnalysisRoster();
+                } catch(_) {}
                 return;
             }
 
@@ -3860,6 +3864,13 @@
                     const teamPlayers = Array.isArray(team?.players) ? team.players : [];
                     if (teamPlayers.length) candidates.push(teamPlayers);
                 } catch (_) {}
+                try {
+                    const relevant = getRelevantMatchesForSelectedTeam();
+                    (relevant || []).forEach((match) => {
+                        const rosterArr = Array.isArray(match?.roster) ? match.roster : [];
+                        if (rosterArr.length) candidates.push(rosterArr);
+                    });
+                } catch (_) {}
                 const pick = (lists) => {
                     let best = null;
                     let bestScore = -1;
@@ -4354,7 +4365,7 @@
                                 }
                                 label = numKey ? `${numKey} ${displayName}`.trim() : (displayName || numKey || key);
                             } else {
-                                label = p.number ? `${p.number} ${p.name || ''}`.trim() : (p.name || key);
+                                label = p.name || key;
                             }
                             series[key] = { label, points: [] };
                         }
@@ -4380,6 +4391,7 @@
                         accByRole[roleLabel].sum += sum;
                         accByRole[roleLabel].tot += tot;
                     });
+                    
                     Object.entries(accByRole).forEach(([role, agg]) => {
                         if (!agg.tot) return;
                         const avg = agg.sum / agg.tot;
@@ -4465,6 +4477,8 @@
                 if (teamAnalysisLegendFocusKey === key) {
                     teamAnalysisLegendFocusKey = null;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                    el.dataset.ignoreClick = 'true';
+                    setTimeout(() => { delete el.dataset.ignoreClick; }, 100);
                 }
             };
             el.addEventListener('pointerdown', onPress);
@@ -4490,6 +4504,8 @@
                 if (teamAnalysisLegendFocusPlayerKey === playerKey) {
                     teamAnalysisLegendFocusPlayerKey = null;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                    el.dataset.ignoreClick = 'true';
+                    setTimeout(() => { delete el.dataset.ignoreClick; }, 100);
                 }
             };
             el.addEventListener('pointerdown', onPress);
@@ -4508,6 +4524,34 @@
             ].filter(item => item.select);
         }
 
+        let teamAnalysisActiveKeys = new Set();
+
+        function renderTeamAnalysisRoster() {
+            if (!teamAnalysisLegend) return;
+            if (!teamAnalysisRosterCache || !Array.isArray(teamAnalysisRosterCache.players) || teamAnalysisRosterCache.players.length === 0) {
+                try { refreshTeamAnalysisRosterCache(); } catch(_) {}
+            }
+            const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+            const legendRows = rosterPlayers.map((p) => {
+                const numKey = normalizePlayerNumberForKey(p.number);
+                const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
+                const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
+                if (!label) return '';
+                const playerKey = numKey || displayName || label;
+                return `<span class="team-analysis-legend-item" data-player-key="${escapeHtml(String(playerKey))}" title="Tieni premuto per confronto con media squadra" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;cursor:default;">
+                    <span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span>
+                    <span>${escapeHtml(label)}</span>
+                </span>`;
+            }).filter(Boolean);
+            teamAnalysisLegend.innerHTML = legendRows.join('');
+            Array.from(teamAnalysisLegend.children).forEach((el) => {
+                const playerKey = el.getAttribute('data-player-key');
+                if (playerKey) {
+                    bindTeamAnalysisPlayerFocusPress(el, playerKey);
+                }
+            });
+        }
+
         function renderTeamAnalysisSelector(keys, series, activeFocusKey) {
             if (!teamAnalysisSelectorTabs || !teamAnalysisSelectorList) return;
             const categories = getTeamAnalysisSelectorCategories();
@@ -4521,15 +4565,6 @@
                 const fallback = teamAnalysisFilters.dataset || categories[0].key;
                 teamAnalysisSelectorMode = validKeys.has(fallback) ? fallback : categories[0].key;
             }
-            const seriesKeyByLabel = new Map();
-            const seriesKeyByNumber = new Map();
-            keys.forEach((key) => {
-                const entry = series[key];
-                const label = entry && entry.label ? String(entry.label).trim().toLowerCase() : '';
-                if (label) seriesKeyByLabel.set(label, key);
-                const numKey = extractLeadingNumber(entry && entry.label ? entry.label : key);
-                if (numKey) seriesKeyByNumber.set(numKey, key);
-            });
             teamAnalysisSelectorTabs.innerHTML = '';
             categories.forEach((cat) => {
                 const btn = document.createElement('button');
@@ -4539,14 +4574,52 @@
                 btn.addEventListener('click', () => {
                     if (teamAnalysisSelectorMode === cat.key) return;
                     teamAnalysisSelectorMode = cat.key;
+                    teamAnalysisActiveKeys.clear();
                     setTeamAnalysisDataset(cat.key);
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
                 });
                 teamAnalysisSelectorTabs.appendChild(btn);
             });
+
             teamAnalysisSelectorList.innerHTML = '';
+            const seriesKeyByLabel = new Map();
+            const seriesKeyByNumber = new Map();
+            keys.forEach((key) => {
+                const entry = series[key];
+                const label = entry && entry.label ? String(entry.label).trim().toLowerCase() : '';
+                if (label) seriesKeyByLabel.set(label, key);
+                const numKey = extractLeadingNumber(entry && entry.label ? entry.label : key);
+                if (numKey) seriesKeyByNumber.set(numKey, key);
+            });
+
             const current = categories.find(c => c.key === teamAnalysisSelectorMode) || categories[0];
-            const options = Array.from(current.select.options || []).filter(o => o && o.value !== 'all');
+            let options = Array.from(current.select.options || []).filter(o => o && o.value !== 'all');
+
+            if (options.length === 0 && teamAnalysisSelectorMode === 'player') {
+                try { refreshTeamAnalysisRosterCache(); } catch(_) {}
+                const players = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                options = players.map(p => {
+                     const numKey = normalizePlayerNumberForKey(p.number);
+                     const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
+                     const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
+                     const val = numKey || displayName || String(p.number);
+                     if (!val) return null;
+                     return { value: val, textContent: label };
+                }).filter(Boolean);
+            } else if (options.length === 0 && teamAnalysisSelectorMode === 'role') {
+                 const roles = ['P', 'S', 'C', 'O', 'L'];
+                 options = roles.map(r => ({ value: r, textContent: normalizePlayerRoleLabel(r) || r }));
+            } else if (options.length === 0 && teamAnalysisSelectorMode === 'fundamental') {
+                 const funds = ['Battuta', 'Ricezione', 'Attacco', 'Muro', 'Difesa', 'Alzata', 'Freeball'];
+                 options = funds.map(f => ({ value: f, textContent: f }));
+            } else if (options.length === 0 && teamAnalysisSelectorMode === 'rotation') {
+                 const rots = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'];
+                 options = rots.map(r => ({ value: r, textContent: r }));
+            } else if (options.length === 0 && teamAnalysisSelectorMode === 'phase') {
+                 const phases = ['Fase Cambio Palla', 'Fase Break Point'];
+                 options = phases.map(p => ({ value: p, textContent: p }));
+            }
+            
             options.forEach((opt) => {
                 const label = String(opt.textContent || opt.value || '').trim();
                 if (!label) return;
@@ -4559,7 +4632,10 @@
                 }
                 if (!key && series[opt.value]) key = opt.value;
                 const item = document.createElement('div');
-                item.className = 'team-analysis-selector-item' + (key && key === activeFocusKey ? ' active' : '');
+                const isSelected = key && teamAnalysisActiveKeys.has(key);
+                const isFocused = key && key === activeFocusKey;
+                const showActive = isFocused || (!activeFocusKey && isSelected);
+                item.className = 'team-analysis-selector-item' + (showActive ? ' active' : '');
                 const color = key && series[key] && series[key].color ? series[key].color : '#cbd5e1';
                 const dot = document.createElement('span');
                 dot.className = 'team-analysis-selector-dot';
@@ -4570,8 +4646,20 @@
                 item.appendChild(text);
                 if (key) {
                     item.setAttribute('data-key', key);
-                    item.title = 'Tieni premuto per confronto con media squadra';
+                    item.title = 'Click per Filtrare, Tieni premuto per Focus';
                     bindTeamAnalysisFocusPress(item, key);
+                    item.addEventListener('click', () => {
+                        if (item.dataset.ignoreClick) return;
+                        if (teamAnalysisActiveKeys.has(key)) {
+                            teamAnalysisActiveKeys.delete(key);
+                        } else {
+                            teamAnalysisActiveKeys.add(key);
+                        }
+                        renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                    });
+                } else {
+                item.style.opacity = '0.5';
+                item.style.cursor = 'default';
                 }
                 teamAnalysisSelectorList.appendChild(item);
             });
@@ -4592,29 +4680,30 @@
             }
             const labels = data.labels || [];
             const series = data.series || {};
-            const keys = Object.keys(series).filter(k => Array.isArray(series[k].points) && series[k].points.length);
+            const allKeys = Object.keys(series).filter(k => Array.isArray(series[k].points) && series[k].points.length);
+            let effectiveKeys = allKeys;
+            if (teamAnalysisActiveKeys.size > 0) {
+                effectiveKeys = allKeys.filter(k => teamAnalysisActiveKeys.has(k));
+            }
+            const keys = allKeys;
+
             if (!labels.length || !keys.length) {
                 teamAnalysisChart.style.display = 'none';
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
-                const legendRows = rosterPlayers.map((p) => {
-                    const numKey = normalizePlayerNumberForKey(p.number);
-                    const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
-                    const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
-                    if (!label) return '';
-                    return `<span class="team-analysis-legend-item" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span><span>${escapeHtml(label)}</span></span>`;
-                }).filter(Boolean);
-                teamAnalysisLegend.innerHTML = legendRows.join('');
+                renderTeamAnalysisRoster();
                 renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
             const focusMode = !!(focusPlayerKey && data !== baseData);
             const activeFocusKey = (!focusMode && teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey]) ? teamAnalysisLegendFocusKey : null;
-            const keysToRender = activeFocusKey ? [activeFocusKey] : keys.slice();
+            const keysToRender = activeFocusKey ? [activeFocusKey] : effectiveKeys.slice();
             const averageSeries = focusMode ? (baseData.series || {}) : series;
-            const averageKeys = Object.keys(averageSeries).filter(k => Array.isArray(averageSeries[k].points) && averageSeries[k].points.length);
+            let averageKeys = Object.keys(averageSeries).filter(k => Array.isArray(averageSeries[k].points) && averageSeries[k].points.length);
+            if (teamAnalysisActiveKeys.size > 0) {
+                averageKeys = averageKeys.filter(k => teamAnalysisActiveKeys.has(k));
+            }
             let yMin = 5;
             let yMax = 1;
             keysToRender.forEach((k) => {
@@ -4638,15 +4727,7 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
-                const legendRows = rosterPlayers.map((p) => {
-                    const numKey = normalizePlayerNumberForKey(p.number);
-                    const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
-                    const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
-                    if (!label) return '';
-                    return `<span class="team-analysis-legend-item" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span><span>${escapeHtml(label)}</span></span>`;
-                }).filter(Boolean);
-                teamAnalysisLegend.innerHTML = legendRows.join('');
+                renderTeamAnalysisRoster();
                 renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
@@ -4755,51 +4836,9 @@
             teamAnalysisChart.innerHTML = svg;
             teamAnalysisChart.style.display = 'block';
             teamAnalysisChartEmpty.style.display = 'none';
-            const seriesKeyByLabel = new Map();
-            const seriesKeyByNumber = new Map();
-            keys.forEach((key) => {
-                const s = series[key];
-                const label = String(s.label || key).trim();
-                if (label) seriesKeyByLabel.set(label.toLowerCase(), key);
-                const num = extractLeadingNumber(label) || extractLeadingNumber(key);
-                if (num) seriesKeyByNumber.set(String(num), key);
-            });
-            const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
-            const legendRows = rosterPlayers.length ? rosterPlayers.map((p) => {
-                const numKey = normalizePlayerNumberForKey(p.number);
-                const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
-                const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
-                if (!label) return '';
-                const playerKey = numKey || displayName || label;
-                let matchKey = null;
-                if (numKey && seriesKeyByNumber.has(numKey)) matchKey = seriesKeyByNumber.get(numKey);
-                else if (label && seriesKeyByLabel.has(label.toLowerCase())) matchKey = seriesKeyByLabel.get(label.toLowerCase());
-                const color = matchKey && series[matchKey] ? (series[matchKey].color || '#64748b') : '#cbd5e1';
-                const isActive = (playerKey && teamAnalysisLegendFocusPlayerKey === playerKey) || (matchKey && activeFocusKey === matchKey);
-                const keyAttr = matchKey ? ` data-key="${escapeHtml(String(matchKey))}"` : '';
-                const playerAttr = playerKey ? ` data-player-key="${escapeHtml(String(playerKey))}"` : '';
-                const titleAttr = playerKey ? ' title="Tieni premuto per confronto con media squadra"' : '';
-                return `<span class="team-analysis-legend-item${isActive ? ' active' : ''}"${keyAttr}${playerAttr}${titleAttr} style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:${color};"></span><span>${escapeHtml(label)}</span></span>`;
-            }).filter(Boolean) : keys.map((key) => {
-                const s = series[key];
-                const color = s.color || '#64748b';
-                const label = escapeHtml(s.label || key);
-                const isActive = activeFocusKey === key;
-                return `<span class="team-analysis-legend-item${isActive ? ' active' : ''}" data-key="${escapeHtml(String(key))}" title="Tieni premuto per confronto con media squadra" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;"><span class="team-analysis-selector-dot" style="background:${color};"></span><span>${label}</span></span>`;
-            });
-            teamAnalysisLegend.innerHTML = legendRows.join('');
-            if (teamAnalysisLegend && teamAnalysisLegend.children) {
-                Array.from(teamAnalysisLegend.children).forEach((el) => {
-                    const playerKey = el.getAttribute('data-player-key');
-                    if (playerKey) {
-                        bindTeamAnalysisPlayerFocusPress(el, playerKey);
-                        return;
-                    }
-                    const key = el.getAttribute('data-key');
-                    if (key) bindTeamAnalysisFocusPress(el, key);
-                });
-            }
+            renderTeamAnalysisRoster();
             renderTeamAnalysisSelector(keys, series, activeFocusKey);
+
             if (!teamAnalysisLegendClearBound) {
                 teamAnalysisLegendClearBound = true;
                 document.addEventListener('pointerup', () => {
