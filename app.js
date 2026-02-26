@@ -410,7 +410,13 @@ window.loadScoutingSession = function(sessionData) {
 
             const needsHydration = (rosterMissing || sessionMismatch || !hasAnyDetails || hasProgressWithoutActions);
             const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
-            const canFirestore = !!(isAuthed && window.firestoreService?.getMatchData);
+            const role = (() => { try { return String(localStorage.getItem('selectedTeamRole') || '').trim(); } catch(_) { return ''; } })();
+            const ownerId = (() => { try { return String(localStorage.getItem('selectedTeamOwner') || '').trim(); } catch(_) { return ''; } })();
+            const sharedOwner = (() => { try { const raw = localStorage.getItem('selectedSharedTeamMeta'); const meta = raw ? JSON.parse(raw) : null; return String(meta?.owner || '').trim(); } catch(_) { return ''; } })();
+            const ownerResolved = String(ownerId || sharedOwner || '').trim();
+            const currentEmail = (() => { try { return String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) { return ''; } })();
+            const shouldUseOwner = role === 'observer' || (!!ownerResolved && !!currentEmail && ownerResolved !== currentEmail);
+            const canFirestore = !!(isAuthed && (window.firestoreService?.getMatchData || window.firestoreService?.getMatchDataByOwner));
 
             if (needsHydration && !canFirestore && !window.__mvsHydratingMatchFromLocal) {
                 window.__mvsHydratingMatchFromLocal = true;
@@ -471,8 +477,15 @@ window.loadScoutingSession = function(sessionData) {
                 window.__mvsHydratingMatchFromFirestore = true;
                 (async function(){
                     try {
-                        if (!matchId || !teamId || !isAuthed || !window.firestoreService?.getMatchData) return;
-                        const res = await window.firestoreService.getMatchData(teamId, matchId);
+                        if (!matchId || !teamId || !isAuthed) return;
+                        let res = null;
+                        if (shouldUseOwner && ownerResolved && window.firestoreService?.getMatchDataByOwner) {
+                            res = await window.firestoreService.getMatchDataByOwner(ownerResolved, teamId, matchId);
+                        } else if (window.firestoreService?.getMatchData) {
+                            res = await window.firestoreService.getMatchData(teamId, matchId);
+                        } else {
+                            return;
+                        }
                         if (!res?.success) return;
                         const next = Object.assign({}, md);
                         if (Array.isArray(res.roster) && res.roster.length) next.roster = res.roster;
@@ -1050,6 +1063,49 @@ function renderMatchStats() {
         if (oppEl) oppEl.textContent = opponent || '-';
         if (dateEl) dateEl.textContent = rawDate ? formatItalianDate(rawDate) : '-';
         if (typeEl) typeEl.textContent = String(type || 'partita');
+        const titleEl = document.getElementById('matchStatsTitle');
+        if (titleEl) {
+            const homeAwayRaw = summarySource.homeAway || summarySource.location || '';
+            const homeAway = (homeAwayRaw === 'casa') ? 'home' : (homeAwayRaw === 'trasferta' ? 'away' : homeAwayRaw);
+            const setSummary = summarySource.setSummary || summarySource.details?.setSummary || {};
+            const setStateBySet = summarySource.setStateBySet || summarySource.details?.setStateBySet || {};
+            const getSetScore = (i) => {
+                const s = setSummary[i] || {};
+                const st = setStateBySet[i] || {};
+                const my = (s.home != null) ? Number(s.home || 0) : Number(st.homeScore || 0);
+                const opp = (s.away != null) ? Number(s.away || 0) : Number(st.awayScore || 0);
+                return { my, opp };
+            };
+            let mySets = 0;
+            let oppSets = 0;
+            for (let i = 1; i <= 6; i++) {
+                const sc = getSetScore(i);
+                if (!sc || (!(sc.my || 0) && !(sc.opp || 0))) continue;
+                if (sc.my > sc.opp) mySets++;
+                else if (sc.opp > sc.my) oppSets++;
+            }
+            const rawOutcome = String(summarySource.matchOutcome || summarySource.outcome || '').trim();
+            let outcomeLabel = rawOutcome;
+            if (!outcomeLabel && (mySets + oppSets) > 0) {
+                outcomeLabel = mySets > oppSets ? 'Vinto' : (mySets < oppSets ? 'Perso' : 'Pari');
+            }
+            let resultLabel = '';
+            if ((mySets + oppSets) > 0) {
+                resultLabel = homeAway === 'away' ? `${oppSets}${mySets}` : `${mySets}${oppSets}`;
+            } else {
+                const rawResult = String(summarySource.finalResult || summarySource.scoreText || '').trim();
+                if (rawResult) {
+                    const digits = rawResult.replace(/\D/g, '');
+                    if (digits.length >= 2) resultLabel = `${digits[0]}${digits[1]}`;
+                    else resultLabel = rawResult;
+                }
+            }
+            const parts = ['Match-Stats'];
+            if (opponent) parts.push(`Vs ${opponent}`);
+            if (outcomeLabel) parts.push(outcomeLabel);
+            if (resultLabel) parts.push(resultLabel);
+            titleEl.textContent = parts.join(' ').trim();
+        }
 
         let merged = {};
         candidates.forEach((src) => {
@@ -1120,6 +1176,7 @@ function renderMatchStats() {
 
     // Per ogni fondamentale, costruisci tabella in base al filtro set selezionato
     const selectedMap = appState.allSetFilterByFundamental || {};
+    const activeFund = appState.matchStatsActiveFund || (() => { try { return localStorage.getItem('matchStatsActiveFund'); } catch(_) { return null; } })() || 'Attacco';
     ['Attacco','Servizio','Muro','Ricezione','Difesa'].forEach(fund => {
         let selectedSets = selectedMap[fund];
         // Compatibilità: se fosse stringa, trasformala in array
@@ -1165,6 +1222,18 @@ function renderMatchStats() {
                     tbl.style.setProperty('--sticky-left-3', ((w1 || 48) + (w2 || 48)) + 'px');
                 });
             } catch (_) {}
+        });
+    } catch (_) {}
+
+    try {
+        document.querySelectorAll('#match-stats .fund-tab').forEach((btn) => {
+            const fund = btn.getAttribute('data-fund');
+            if (fund === activeFund) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        document.querySelectorAll('#match-stats .report-row[data-fund]').forEach((row) => {
+            const fund = row.getAttribute('data-fund');
+            row.style.display = (fund === activeFund) ? '' : 'none';
         });
     } catch (_) {}
 
@@ -1266,6 +1335,13 @@ function computeEfficienzaFund(fund, counts) {
     return `${(val*100).toFixed(0)}%`;
 }
 
+function sanitizeDisplayName(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const cleaned = raw.replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
+    return cleaned || raw;
+}
+
 function buildHeaderHTML() {
     return `<tr>
       <th style="min-width:48px;">N°</th>
@@ -1292,7 +1368,7 @@ function buildPerPlayerTablesHTML(agg, roster) {
                 const surname = pick(p, ['surname','cognome','lastName','cognomi']);
                 const name = pick(p, ['name','nome','firstName','nomi']);
                 const nickname = pick(p, ['nickname','soprannome','nick']);
-                const display = surname || name || nickname || '';
+                const display = surname || name || sanitizeDisplayName(nickname) || nickname || '';
                 playerNameByNumber[String(numStr)] = display;
             }
         });
@@ -1392,7 +1468,7 @@ function buildPerPlayerTablesAll(agg, roster) {
                 const surname = pick(p, ['surname','cognome','lastName','cognomi']);
                 const name = pick(p, ['name','nome','firstName','nomi']);
                 const nickname = pick(p, ['nickname','soprannome','nick']);
-                const display = surname || name || nickname || '';
+                const display = surname || name || sanitizeDisplayName(nickname) || nickname || '';
                 playerNameByNumber[numStr] = display;
                 const roleRaw = (pick(p, ['role','ruolo','position','posizione']) || '').trim();
                 const role = roleRaw ? roleRaw.toUpperCase().slice(0, 1) : '';
@@ -1430,7 +1506,7 @@ function buildPerPlayerTablesAll(agg, roster) {
                 const n = String(name || '').trim();
                 if (!n) return '';
                 const first = n.split(/\s+/).filter(Boolean)[0] || '';
-                return first.toUpperCase().slice(0, 3);
+                return first.toUpperCase().slice(0, 5);
             })();
             rows += `<tr>
                 <td>${formatJersey(numStr)}</td>
@@ -1861,8 +1937,20 @@ function initializeApp() {
 
 // Gestione autosave
 let __autosaveTimerId = null;
+function __isAutosaveDisabled() {
+    try { if (window.__mvsDisableAutosave) return true; } catch(_) {}
+    try {
+        const role = localStorage.getItem('selectedTeamRole');
+        if (role === 'observer') {
+            const path = String((location && location.pathname) || '');
+            if (/match-stats\.html/i.test(path)) return true;
+        }
+    } catch(_) {}
+    return false;
+}
 function scheduleAutosave(delayMs = 1500) {
     try {
+        if (__isAutosaveDisabled()) return;
         if (__autosaveTimerId) clearTimeout(__autosaveTimerId);
         __autosaveTimerId = setTimeout(async () => {
             try {
@@ -2050,6 +2138,7 @@ async function __confirmSaveBeforeExit() {
 
 async function saveCurrentMatch() {
     try {
+        if (__isAutosaveDisabled()) return true;
         const sessionRaw = localStorage.getItem('currentScoutingSession');
         if (!sessionRaw) return true;
         let sessionData = {};

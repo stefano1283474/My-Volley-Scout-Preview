@@ -2,8 +2,14 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Report – Match-Stats</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" type="image/png" href="LOGO_APP.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
     <link rel="stylesheet" href="styles.css?v=4" />
     <link rel="stylesheet" href="animations.css" />
     <style>
@@ -15,6 +21,14 @@
       .panel-title { margin-bottom: 4px !important; }
       .report-row, .panel, .placeholder-area { min-width: 0 !important; }
       .placeholder-area { padding: 2px !important; overflow-x: visible !important; overflow-y: visible !important; width: 100% !important; max-width: 100% !important; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior: contain; }
+      #matchStatsSummary { display: flex; flex-direction: row; gap: 16px; align-items: center; flex-wrap: wrap; }
+      #matchStatsSummary .form-group { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+      #matchStatsSummary label { margin: 0; white-space: nowrap; }
+      #matchStatsSummary label::after { content: ':'; }
+      #matchStatsSummary .readonly-field { padding: 0; border: 0; background: transparent; }
+      .fund-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+      .fund-tab { border: 1px solid #cbd5f5; background: #ffffff; color: #1d4ed8; padding: 6px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; cursor: pointer; }
+      .fund-tab.active { background: #1d4ed8; color: #ffffff; border-color: #1d4ed8; }
       .set-filter { position: sticky; top: var(--sticky-filter-top, 56px); z-index: 5; background: #ffffff; padding: 4px 0; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
       .set-filter .filter-btn { margin-right: 6px; }
       .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -25,7 +39,7 @@
       .simple-table th:nth-child(2),
       .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 48px); z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
       .simple-table th:nth-child(3),
-      .simple-table td:nth-child(3) { position: sticky; left: var(--sticky-left-3, 96px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table td:nth-child(3) { position: sticky; left: var(--sticky-left-3, 96px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 5ch; min-width: 5ch; max-width: 5ch; text-align: center; padding-left: 0; padding-right: 0; }
       .simple-table th:nth-child(4),
       .simple-table td:nth-child(4),
       .simple-table th:nth-child(5),
@@ -69,6 +83,7 @@
           </button>
           <div id="headerMenu" class="top-account-menu" hidden>
             <div class="menu-title">Account</div>
+            <div class="menu-item" id="accountEmail">-</div>
             <div class="menu-divider"></div>
             <button id="exportSetsBtnMobile" class="menu-item" aria-label="Esporta Partita (Xls)" type="button">
               <span class="menu-item-icon" aria-hidden="true">
@@ -140,13 +155,9 @@
       </aside>
       <div class="section" id="match-stats" style="display:block;">
         <div class="section-header">
-          <h3>Report – Match-Stats</h3>
+          <h3 id="matchStatsTitle">Match-Stats</h3>
         </div>
         <div class="form two-rows" id="matchStatsSummary">
-          <div class="form-group">
-            <label>Avversario</label>
-            <div id="ms-opponent" class="readonly-field">-</div>
-          </div>
           <div class="form-group">
             <label>Data</label>
             <div id="ms-date" class="readonly-field">-</div>
@@ -156,32 +167,39 @@
             <div id="ms-type" class="readonly-field">-</div>
           </div>
         </div>
+        <div class="fund-tabs" id="matchStatsTabs">
+          <button class="fund-tab" data-fund="Attacco" type="button">Attacco</button>
+          <button class="fund-tab" data-fund="Servizio" type="button">Battuta</button>
+          <button class="fund-tab" data-fund="Muro" type="button">Muro</button>
+          <button class="fund-tab" data-fund="Ricezione" type="button">Ricezione</button>
+          <button class="fund-tab" data-fund="Difesa" type="button">Difesa</button>
+        </div>
         <div class="report-content">
-          <div class="report-row">
+          <div class="report-row" data-fund="Attacco">
             <div class="panel">
               <div class="panel-title">Attacco – per Giocatore (All Set)</div>
               <div class="placeholder-area" id="all-attacco"></div>
             </div>
           </div>
-          <div class="report-row">
+          <div class="report-row" data-fund="Servizio">
             <div class="panel">
               <div class="panel-title">Battuta – per Giocatore (All Set)</div>
               <div class="placeholder-area" id="all-battuta"></div>
             </div>
           </div>
-          <div class="report-row">
+          <div class="report-row" data-fund="Muro">
             <div class="panel">
               <div class="panel-title">Muro – per Giocatore (All Set)</div>
               <div class="placeholder-area" id="all-muro"></div>
             </div>
           </div>
-          <div class="report-row">
+          <div class="report-row" data-fund="Ricezione">
             <div class="panel">
               <div class="panel-title">Ricezione – per Giocatore (All Set)</div>
               <div class="placeholder-area" id="all-ricezione"></div>
             </div>
           </div>
-          <div class="report-row">
+          <div class="report-row" data-fund="Difesa">
             <div class="panel">
               <div class="panel-title">Difesa – per Giocatore (All Set)</div>
               <div class="placeholder-area" id="all-difesa"></div>
@@ -195,33 +213,40 @@
   <script src="app.js?v=10"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function(){
-      (async function(){
-        // Observer Mode Check
+      function resolveObserverStatus(){
         try {
-            const role = localStorage.getItem('selectedTeamRole');
-            const owner = localStorage.getItem('selectedTeamOwner');
-            const userEmail = window.authFunctions?.getCurrentUser?.()?.email; // might not be ready yet, but we check role first
-            // Note: authFunctions might be loaded async. But selectedTeamRole is synchronous in localStorage.
-            
-            if (role === 'observer') {
-                const sidebar = document.querySelector('.set-sidebar');
-                if (sidebar) {
-                    // Hide buttons that lead to editing pages
-                    const items = sidebar.querySelectorAll('.set-item');
-                    items.forEach(btn => {
-                        const text = (btn.textContent || '').trim();
-                        // Keep only Match-Stats. Hide Set 1-6, Riepilogo, Elenco Player.
-                        if (text.includes('Match-Stats')) return;
-                        btn.style.display = 'none';
-                    });
-                }
-                // Hide header menu items that might allow editing/exporting if needed
-                const exportBtn = document.getElementById('exportSetsBtnMobile');
-                if (exportBtn) exportBtn.style.display = 'none';
-                const saveBtn = document.getElementById('save-match-btn');
-                if (saveBtn) saveBtn.style.display = 'none';
-            }
-        } catch(e) { console.error('Observer check failed', e); }
+          const role = String(localStorage.getItem('selectedTeamRole') || '').trim();
+          const owner = String(localStorage.getItem('selectedTeamOwner') || '').trim();
+          const meta = (() => { try { const raw = localStorage.getItem('selectedSharedTeamMeta'); return raw ? JSON.parse(raw) : null; } catch(_) { return null; } })();
+          const metaRole = String(meta?.role || '').trim();
+          const sharedOwner = String(meta?.owner || '').trim();
+          const ownerResolved = String(owner || sharedOwner || '').trim();
+          const userEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim();
+          return (role === 'observer') || (metaRole === 'observer') || (!!ownerResolved && (!userEmail || ownerResolved !== userEmail));
+        } catch(_) { return false; }
+      }
+      function applyObserverUI(){
+        try {
+          if (!resolveObserverStatus()) return;
+          try { window.__mvsDisableAutosave = true; } catch(_) {}
+          try { if (window.cancelAutosave) window.cancelAutosave(); } catch(_) {}
+          const sidebar = document.querySelector('.set-sidebar');
+          if (sidebar) {
+            const items = sidebar.querySelectorAll('.set-item');
+            items.forEach(btn => {
+              const text = (btn.textContent || '').trim();
+              if (text.includes('Match-Stats')) return;
+              btn.style.display = 'none';
+            });
+          }
+          const exportBtn = document.getElementById('exportSetsBtnMobile');
+          if (exportBtn) exportBtn.style.display = 'none';
+          const saveBtn = document.getElementById('save-match-btn');
+          if (saveBtn) saveBtn.style.display = 'none';
+        } catch(_) {}
+      }
+      (async function(){
+        try { applyObserverUI(); } catch(_) {}
 
         try {
           try {
@@ -278,13 +303,29 @@
       try {
         const toggle = document.getElementById('headerMenuToggle');
         const menu = document.getElementById('headerMenu');
+        const emailEl = document.getElementById('accountEmail');
+        function updateAccountEmail(){
+          try {
+            const email = window.authFunctions?.getCurrentUser?.()?.email;
+            if (emailEl) emailEl.textContent = email || '-';
+          } catch(_) {}
+        }
         function closeMenu(){ if (menu){ menu.hidden = true; } if (toggle){ toggle.setAttribute('aria-expanded','false'); } }
-        function openMenu(){ if (menu){ menu.hidden = false; } if (toggle){ toggle.setAttribute('aria-expanded','true'); } }
+        function openMenu(){ if (menu){ menu.hidden = false; } if (toggle){ toggle.setAttribute('aria-expanded','true'); } updateAccountEmail(); }
         if (toggle && menu){
           toggle.addEventListener('click', (e)=>{ e.preventDefault(); const expanded = toggle.getAttribute('aria-expanded') === 'true'; if (expanded) closeMenu(); else openMenu(); });
           document.addEventListener('click', (e)=>{ if (!menu.hidden && !menu.contains(e.target) && !toggle.contains(e.target)){ closeMenu(); } });
           document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeMenu(); } });
         }
+        updateAccountEmail();
+        try {
+          if (window.authFunctions?.onAuthStateChanged) {
+            window.authFunctions.onAuthStateChanged((user) => {
+              if (emailEl) emailEl.textContent = user?.email || '-';
+              applyObserverUI();
+            });
+          }
+        } catch(_) {}
         const toMatches = document.getElementById('goToMatchesBtnMobile');
         const toTeams = document.getElementById('goToTeamsBtnMobile');
         const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
@@ -329,6 +370,21 @@
               try { localStorage.setItem('allowScoutingEntry','1'); } catch(_){}
               location.href = `scouting.html#/set/${setNum}`;
             }
+          });
+        }
+      } catch(_) {}
+      try {
+        const tabs = document.getElementById('matchStatsTabs');
+        if (tabs) {
+          tabs.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.fund-tab');
+            if (!btn) return;
+            const fund = btn.getAttribute('data-fund');
+            if (!fund) return;
+            if (!window.appState) window.appState = {};
+            window.appState.matchStatsActiveFund = fund;
+            try { localStorage.setItem('matchStatsActiveFund', String(fund)); } catch(_){}
+            if (typeof window.renderMatchStats === 'function') window.renderMatchStats();
           });
         }
       } catch(_) {}

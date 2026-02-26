@@ -2,8 +2,14 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MyTeams</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" type="image/png" href="LOGO_APP.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
   <link rel="stylesheet" href="styles.css?v=4">
   <link rel="stylesheet" href="animations.css?v=1">
   <style>
@@ -1105,6 +1111,30 @@
         const inviteOwnerFromUrl = getInviteOwnerFromUrl();
         if (inviteFromUrl) setPendingInvite(inviteFromUrl, inviteOwnerFromUrl);
         let __authRedirectTimer = null;
+        function updateObserverAccountMenu(currentEmail){
+          try {
+            const role = String(localStorage.getItem('selectedTeamRole') || '').trim();
+            const owner = String(localStorage.getItem('selectedTeamOwner') || '').trim();
+            const sharedOwner = (() => { try { const raw = localStorage.getItem('selectedSharedTeamMeta'); const meta = raw ? JSON.parse(raw) : null; return String(meta?.owner || '').trim(); } catch(_) { return ''; } })();
+            const ownerResolved = String(owner || sharedOwner || '').trim();
+            const isObserver = (role === 'observer') || (!!ownerResolved && !!currentEmail && ownerResolved !== currentEmail);
+            if (!isObserver) return;
+            if (hydrateDataBtn) hydrateDataBtn.style.display = 'none';
+            if (syncDataBtn) syncDataBtn.style.display = 'none';
+            if (purgeBtn) purgeBtn.style.display = 'none';
+            try {
+              const toggle = document.getElementById('autoSavesToggle');
+              const label = toggle ? toggle.closest('label') : null;
+              if (label) label.style.display = 'none';
+            } catch(_) {}
+            if (accountMenu) {
+              const items = accountMenu.querySelectorAll('.menu-item');
+              items.forEach(el => {
+                if ((el.textContent || '').trim() === 'Impostazioni') el.style.display = 'none';
+              });
+            }
+          } catch(_) {}
+        }
         window.authFunctions.onAuthStateChanged(async (user) => {
           if (!user) {
             try { if (accountEmail) accountEmail.textContent = 'Non autenticato'; } catch(_) {}
@@ -1129,6 +1159,7 @@
           }
           if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
           if (accountEmail) accountEmail.textContent = user.email;
+          updateObserverAccountMenu(user.email);
 
           try {
             const flag = localStorage.getItem('__teamsSyncedFs');
