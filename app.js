@@ -1195,7 +1195,7 @@ function renderMatchStats() {
         }
 
         const agg = aggregateByPlayerAndFundamental(logsForFund);
-        const tables = buildPerPlayerTablesAll(agg, roster);
+        const tables = buildPerPlayerTablesAll(agg, roster, logsForFund);
         const tableHtml = tables[fund];
         const filterHtml = buildSetFilterButtons(fund, selectedSets);
 
@@ -1449,7 +1449,7 @@ function buildSetFilterButtons(fund, selectedSets = ['ALL']) {
 }
 
 // Versione All: colonne simboliche e metriche, righe = player
-function buildPerPlayerTablesAll(agg, roster) {
+function buildPerPlayerTablesAll(agg, roster, logs = []) {
     const pick = (obj, keys) => {
         for (const k of keys) {
             const v = obj && obj[k];
@@ -1479,6 +1479,106 @@ function buildPerPlayerTablesAll(agg, roster) {
     }
     const header = buildHeaderSymbolsHTML();
     const tables = {};
+    const normalizeCounts = (counts) => ({
+        1: Number(counts?.[1] || 0),
+        2: Number(counts?.[2] || 0),
+        3: Number(counts?.[3] || 0),
+        4: Number(counts?.[4] || 0),
+        5: Number(counts?.[5] || 0)
+    });
+    const clampNonNegative = (value) => {
+        const num = Number(value || 0);
+        return num < 0 ? 0 : num;
+    };
+    const computeAvvRallyCounts = (items) => {
+        let soloAvv = 0;
+        let avvAfterTouch = 0;
+        (Array.isArray(items) ? items : []).forEach((entry) => {
+            const actionString = (entry && typeof entry.action === 'string')
+                ? entry.action
+                : (typeof entry === 'string' ? entry : '');
+            if (!actionString) return;
+            let parsed;
+            try {
+                parsed = parseAction(actionString);
+            } catch (_) {
+                return;
+            }
+            const hasAvv = /avv/i.test(actionString);
+            if (!hasAvv) return;
+            const hasActions = Array.isArray(parsed?.actions) && parsed.actions.length > 0;
+            if (hasActions) avvAfterTouch++;
+            else soloAvv++;
+        });
+        return { soloAvv, avvAfterTouch };
+    };
+    const buildOpponentTotals = (items) => {
+        const myAtt = normalizeCounts(agg?.Attacco?.teamTotal);
+        const myServ = normalizeCounts(agg?.Servizio?.teamTotal);
+        const myDef = normalizeCounts(agg?.Difesa?.teamTotal);
+        const myRec = normalizeCounts(agg?.Ricezione?.teamTotal);
+        const myMuro = normalizeCounts(agg?.Muro?.teamTotal);
+        const { soloAvv, avvAfterTouch } = computeAvvRallyCounts(items);
+        const oppAtt2 = clampNonNegative(myDef[4] - myAtt[4] - myServ[4] - myMuro[4]);
+        const oppDef45 = clampNonNegative(myAtt[2]);
+        const oppRec45 = clampNonNegative(myServ[2]);
+        return {
+            Attacco: {
+                5: clampNonNegative(myDef[1]),
+                4: clampNonNegative(myDef[2]),
+                3: clampNonNegative(myDef[3]),
+                2: oppAtt2,
+                1: clampNonNegative(avvAfterTouch)
+            },
+            Servizio: {
+                5: clampNonNegative(myRec[1]),
+                4: clampNonNegative(myRec[2]),
+                3: clampNonNegative(myRec[3]),
+                2: clampNonNegative(myRec[4]),
+                1: clampNonNegative(soloAvv)
+            },
+            Difesa: {
+                5: 0,
+                4: oppDef45,
+                3: clampNonNegative(myAtt[3]),
+                2: clampNonNegative(myAtt[4]),
+                1: clampNonNegative(myAtt[5])
+            },
+            Ricezione: {
+                5: 0,
+                4: oppRec45,
+                3: clampNonNegative(myServ[3]),
+                2: clampNonNegative(myServ[4]),
+                1: clampNonNegative(myServ[5])
+            },
+            Muro: {
+                5: 0,
+                4: 0,
+                3: 0,
+                2: 0,
+                1: 0
+            }
+        };
+    };
+    const opponentTotals = buildOpponentTotals(logs);
+    const buildAggregatesRows = (counts, total) => {
+        const c = normalizeCounts(counts);
+        const sum345 = c[3] + c[4] + c[5];
+        const sum12 = c[1] + c[2];
+        const pct = (v) => total ? `${Math.round((v / total) * 100)}%` : '0%';
+        return `<tr style="font-weight:600;">
+            <td colspan="3"></td>
+            <td colspan="3">${pct(sum345)}</td>
+            <td colspan="2">${pct(sum12)}</td>
+            <td colspan="4"></td>
+        </tr>
+        <tr>
+            <td colspan="3"></td>
+            <td colspan="3">${sum345}</td>
+            <td colspan="2">${sum12}</td>
+            <td colspan="4"></td>
+        </tr>`;
+    };
     Object.keys(agg).forEach(fund => {
         let rows = '';
         const teamCounts = agg[fund].teamTotal || {1:0,2:0,3:0,4:0,5:0};
@@ -1535,7 +1635,31 @@ function buildPerPlayerTablesAll(agg, roster) {
             <td>100%</td>
             <td></td><td></td><td></td>
         </tr>`;
-        tables[fund] = `<table class="simple-table">${header}${rows}${footer}${percentFooter}</table>`;
+        const teamAggRows = (fund === 'Ricezione' || fund === 'Difesa')
+            ? buildAggregatesRows(teamCounts, teamTotal)
+            : '';
+        const oppCountsRaw = opponentTotals?.[fund] || {1:0,2:0,3:0,4:0,5:0};
+        const oppCounts = normalizeCounts(oppCountsRaw);
+        const oppTotal = oppCounts[1]+oppCounts[2]+oppCounts[3]+oppCounts[4]+oppCounts[5];
+        const oppPct = (x) => oppTotal ? `${Math.round((x/oppTotal)*100)}%` : '0%';
+        const oppFooter = `<tr class="total-row" style="font-weight:600;background:#eef2ff;">
+            <td colspan="3">TOTALE AVV</td>
+            <td>${oppCounts[5]}</td><td>${oppCounts[4]}</td><td>${oppCounts[3]}</td><td>${oppCounts[2]}</td><td>${oppCounts[1]}</td>
+            <td>${oppTotal}</td>
+            <td>100%</td>
+            <td>${computeEfficacia(fund, oppCounts)}</td>
+            <td>${computeEfficienzaFund(fund, oppCounts)}</td>
+        </tr>`;
+        const oppPercentFooter = `<tr style="background:#f5f7ff;">
+            <td colspan="3">AVV % su Tot</td>
+            <td>${oppPct(oppCounts[5])}</td><td>${oppPct(oppCounts[4])}</td><td>${oppPct(oppCounts[3])}</td><td>${oppPct(oppCounts[2])}</td><td>${oppPct(oppCounts[1])}</td>
+            <td>100%</td>
+            <td></td><td></td><td></td>
+        </tr>`;
+        const oppAggRows = (fund === 'Ricezione' || fund === 'Difesa')
+            ? buildAggregatesRows(oppCounts, oppTotal)
+            : '';
+        tables[fund] = `<table class="simple-table">${header}${rows}${footer}${percentFooter}${teamAggRows}${oppFooter}${oppPercentFooter}${oppAggRows}</table>`;
     });
     return tables;
 }
