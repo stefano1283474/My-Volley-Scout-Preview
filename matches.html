@@ -5225,10 +5225,32 @@
                 if (!match) return alert('Partita non trovata');
                 if (isObserverMode) {
                     try { localStorage.setItem('selectedMatchId', String(matchId)); } catch(_){}
+                    let teamId = '';
                     try {
-                        const teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
+                        teamId = selectedTeam?.id || match.teamId || localStorage.getItem('selectedTeamId') || '';
                         if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
                     } catch(_){}
+                    try {
+                        const rosterArr = Array.isArray(match.roster) ? match.roster : (Array.isArray(match.players) ? match.players : []);
+                        const opp = match.opponentTeam || match.opponent || '';
+                        const sess = {
+                            id: match.id,
+                            teamId: match.teamId || teamId || null,
+                            opponentTeam: opp,
+                            matchDate: match.matchDate || match.date || '',
+                            matchType: match.matchType || match.eventType || match.type || '',
+                            homeAway: match.homeAway || match.location || null,
+                            description: match.description || '',
+                            actionsBySet: match.actionsBySet || {},
+                            setMeta: match.setMeta || {},
+                            setStateBySet: match.setStateBySet || {},
+                            scoreHistoryBySet: match.scoreHistoryBySet || {},
+                            setSummary: match.setSummary || {},
+                            roster: rosterArr
+                        };
+                        try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } catch(_) {}
+                        try { localStorage.setItem('currentScoutingSession', JSON.stringify(sess)); } catch(_) {}
+                    } catch(_) {}
                     window.location.href = '/match-stats.html';
                     return;
                 }
