@@ -228,6 +228,8 @@
           const sharedOwner = String(meta?.owner || '').trim();
           const ownerResolved = String(owner || sharedOwner || '').trim();
           const userEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim();
+          const archive = (() => { try { return String(localStorage.getItem('mvsSelectedArchive') || '').trim(); } catch(_) { return ''; } })();
+          if (archive === 'shared') return true;
           return (role === 'observer') || (metaRole === 'observer') || (!!ownerResolved && (!userEmail || ownerResolved !== userEmail));
         } catch(_) { return false; }
       }
