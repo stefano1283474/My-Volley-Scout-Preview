@@ -577,22 +577,22 @@
 
                 <div id="teamAnalysisContent" class="team-analysis-content">
                     <div id="teamAnalysisRotator" class="team-analysis-rotator">
-                    <div id="teamAnalysisSelector" class="team-analysis-selector">
+                    <div id="teamAnalysisSelector" class="team-analysis-selector team-analysis-resizable" data-min-width="120" data-min-height="120">
                         <div id="teamAnalysisSelectorTabs" class="team-analysis-selector-tabs"></div>
                         <div id="teamAnalysisSelectorList" class="team-analysis-selector-list"></div>
                     </div>
                     <div id="teamAnalysisSelectorResizer" class="team-analysis-selector-resizer" aria-hidden="true"></div>
                     <div id="teamAnalysisLayout" class="team-analysis-layout team-analysis-layout-auto">
-                        <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper">
+                        <div id="teamAnalysisChartWrapper" class="panel team-analysis-chart-wrapper team-analysis-resizable" data-min-width="240" data-min-height="180">
                             <div id="teamAnalysisChartEmpty" style="color:#64748b;">
                                 Seleziona una squadra con almeno una partita per vedere il grafico.
                             </div>
                             <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="none" style="width:100%; height:auto; display:none;"></svg>
                         </div>
-                        <div id="teamAnalysisLegend" class="team-analysis-legend"></div>
+                        <div id="teamAnalysisLegend" class="team-analysis-legend team-analysis-resizable" data-min-width="160" data-min-height="42"></div>
                     </div>
 
-                    <div id="teamAnalysisFilters" class="team-analysis-filters" style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
+                    <div id="teamAnalysisFilters" class="team-analysis-filters team-analysis-resizable" data-min-width="160" data-min-height="160" style="display:flex; flex-direction:column; gap:6px; align-items:stretch;">
                     <div class="team-analysis-filter-box" data-filter="player">
                         <div class="team-analysis-filter-header">
                             <span>Player</span>
@@ -863,8 +863,15 @@
 
         .team-analysis-rotator.team-analysis-mode-phone-portrait {
             display: grid;
-            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, 1fr) minmax(0, 15ch);
-            grid-template-rows: auto minmax(0, 1fr);
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, var(--legend-width, 1fr)) minmax(0, var(--filters-width, 15ch));
+            grid-template-rows: minmax(0, var(--chart-height, auto)) minmax(0, var(--row2-height, 1fr));
+            align-items: stretch;
+        }
+
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) {
+            display: grid;
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 180px)) 8px minmax(0, var(--legend-width, 1fr)) minmax(0, var(--filters-width, 18ch));
+            grid-template-rows: minmax(0, var(--chart-height, auto)) minmax(0, var(--row2-height, 1fr));
             align-items: stretch;
         }
 
@@ -876,6 +883,14 @@
             grid-column: 1 / -1;
             grid-row: 1;
             width: 100%;
+            height: 100%;
+        }
+
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-chart-wrapper {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            width: 100%;
+            height: 100%;
         }
 
         .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector {
@@ -889,7 +904,28 @@
             gap: 6px;
         }
 
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-selector {
+            grid-column: 1;
+            grid-row: 2;
+            width: 100%;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+        }
+
         .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-selector-resizer {
+            display: block;
+            grid-column: 2;
+            grid-row: 2;
+            width: 8px;
+            cursor: col-resize;
+            justify-self: stretch;
+            align-self: stretch;
+            border-right: 2px solid rgba(37,99,235,0.35);
+            touch-action: none;
+        }
+
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-selector-resizer {
             display: block;
             grid-column: 2;
             grid-row: 2;
@@ -913,19 +949,49 @@
             flex-wrap: nowrap;
         }
 
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-legend {
+            grid-column: 3;
+            grid-row: 2;
+            width: 100%;
+            max-width: none;
+            align-items: stretch;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex-direction: column;
+            flex-wrap: nowrap;
+        }
+
         .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-filters {
             grid-column: 4;
             grid-row: 2;
-            width: 15ch;
-            max-width: 15ch;
+            width: 100%;
+            max-width: none;
+        }
+
+        .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-filters {
+            grid-column: 4;
+            grid-row: 2;
+            width: 100%;
+            max-width: none;
         }
 
         .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-phone-portrait {
             --team-analysis-selector-width: calc(50% - 4px);
-            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, 1fr);
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 140px)) 8px minmax(0, var(--legend-width, 1fr));
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) {
+            --team-analysis-selector-width: calc(50% - 4px);
+            grid-template-columns: minmax(0, var(--team-analysis-selector-width, 180px)) 8px minmax(0, var(--legend-width, 1fr));
         }
 
         .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-phone-portrait .team-analysis-filters {
+            width: 0;
+            max-width: 0;
+            flex-basis: 0;
+        }
+
+        .team-analysis-content:not(.has-filters) .team-analysis-rotator:not(.team-analysis-mode-landscape):not(.team-analysis-mode-phone-portrait) .team-analysis-filters {
             width: 0;
             max-width: 0;
             flex-basis: 0;
@@ -980,8 +1046,10 @@
         }
 
         .team-analysis-content .team-analysis-filters {
-            flex: 0 0 280px;
-            max-width: 320px;
+            flex: 0 0 auto;
+            min-width: 160px;
+            max-width: 45vw;
+            overflow: auto;
         }
 
         .team-analysis-viewport-landscape {
@@ -1006,8 +1074,8 @@
 
         .team-analysis-rotator.team-analysis-mode-landscape {
             display: grid;
-            grid-template-columns: minmax(0, 160px) minmax(0, 15ch) minmax(0, 1fr);
-            grid-template-rows: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, var(--legend-width, 160px)) minmax(0, var(--filters-width, 15ch)) minmax(0, var(--chart-width, 1fr));
+            grid-template-rows: minmax(0, var(--chart-height, 1fr)) minmax(0, var(--selector-height, auto));
             align-items: stretch;
         }
 
@@ -1056,14 +1124,14 @@
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape .team-analysis-filters {
-            flex: 0 0 15ch;
-            max-width: 15ch;
-            width: 15ch;
+            flex: 0 0 auto;
+            max-width: 45vw;
+            width: auto;
             align-self: stretch;
             order: 3;
             grid-column: 2;
             grid-row: 1 / span 2;
-            min-width: 0;
+            min-width: 160px;
         }
 
         .team-analysis-content:not(.has-filters) .team-analysis-rotator.team-analysis-mode-landscape {
@@ -1085,8 +1153,8 @@
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape {
-            grid-template-columns: minmax(0, 120px) minmax(0, 15ch) minmax(0, 1fr);
-            grid-template-rows: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, var(--legend-width, 120px)) minmax(0, var(--filters-width, 15ch)) minmax(0, var(--chart-width, 1fr));
+            grid-template-rows: minmax(0, var(--chart-height, 1fr)) minmax(0, var(--selector-height, auto));
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-chart-wrapper {
@@ -1109,8 +1177,9 @@
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-filters {
             grid-column: 2;
             grid-row: 1 / span 2;
-            max-width: 15ch;
-            width: 15ch;
+            max-width: 45vw;
+            width: auto;
+            min-width: 160px;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector {
@@ -1133,9 +1202,9 @@
         .team-analysis-selector {
             display: none;
             flex: 0 0 auto;
-            width: calc(8ch + 24px);
-            max-width: calc(8ch + 24px);
-            min-width: calc(8ch + 24px);
+            width: auto;
+            max-width: 45vw;
+            min-width: 120px;
             gap: 3px;
             flex-direction: column;
             align-items: flex-start;
@@ -1177,7 +1246,7 @@
             background: #ffffff;
             padding: 1px 3px;
             border-radius: 999px;
-            font-size: 0.72rem;
+            font-size: 0.94rem;
             font-weight: 600;
             color: #475569;
             cursor: pointer;
@@ -1199,10 +1268,91 @@
             overflow-y: auto;
         }
 
+        .team-analysis-resizable {
+            position: relative;
+            resize: none;
+        }
+
+        .team-analysis-resizable .resize-handle {
+            position: absolute;
+            background: transparent;
+            z-index: 2;
+        }
+
+        .team-analysis-resizable .resize-handle:hover {
+            background: rgba(37, 99, 235, 0.12);
+        }
+
+        .resize-handle.n,
+        .resize-handle.s {
+            left: 8px;
+            right: 8px;
+            height: 8px;
+        }
+
+        .resize-handle.n {
+            top: -4px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle.s {
+            bottom: -4px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle.e,
+        .resize-handle.w {
+            top: 8px;
+            bottom: 8px;
+            width: 8px;
+        }
+
+        .resize-handle.e {
+            right: -4px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle.w {
+            left: -4px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle.ne,
+        .resize-handle.nw,
+        .resize-handle.se,
+        .resize-handle.sw {
+            width: 12px;
+            height: 12px;
+        }
+
+        .resize-handle.ne {
+            top: -6px;
+            right: -6px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.nw {
+            top: -6px;
+            left: -6px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.se {
+            bottom: -6px;
+            right: -6px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.sw {
+            bottom: -6px;
+            left: -6px;
+            cursor: nesw-resize;
+        }
+
         .team-analysis-selector-item {
             cursor: pointer;
             user-select: none;
-            font-size: 0.78rem;
+            font-size: 1.02rem;
             padding: 2px 3px;
             min-height: 28px;
             border-radius: 8px;
@@ -1368,55 +1518,100 @@
         .team-analysis-filter-box {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            padding: 2px 3px;
-            border-radius: 8px;
-            border: 1px solid transparent;
-            background: #f8fafc;
+            gap: 6px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
         }
 
         .team-analysis-filter-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
+            gap: 8px;
             font-size: 0.78rem;
-            color: #475569;
+            font-weight: 600;
+            color: #0f172a;
         }
 
         .filter-header-right {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
         .filter-dataset-checkbox {
             cursor: pointer;
+            accent-color: #2563eb;
+            width: 14px;
+            height: 14px;
+        }
+
+        .filter-dataset-checkbox:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
         }
 
         .filter-icon-btn {
-            border: none;
-            background: transparent;
-            padding: 0 2px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            padding: 2px 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.70rem;
-            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #334155;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
         }
 
         .filter-icon-btn:hover {
-            color: #0f172a;
+            border-color: #2563eb;
+            color: #1d4ed8;
+        }
+
+        .filter-icon-btn:active {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #1d4ed8;
+        }
+
+        .filter-icon-btn:focus-visible {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
 
         .team-analysis-filter-box.active {
-            border-color: #0d6efd;
+            border-color: #2563eb;
             background: #eff6ff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+        }
+
+        .team-analysis-filter-box select {
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 34px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db !important;
+            background: #ffffff !important;
+            color: #0f172a;
+            font-size: 0.82rem !important;
+        }
+
+        .team-analysis-filter-box select:focus {
+            outline: none;
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
         }
 
         .team-analysis-chart-wrapper {
-            min-height: 0;
-            overflow: hidden;
+            min-height: 180px;
+            overflow: auto;
             padding: 0;
-            resize: both;
             min-width: 240px;
             display: flex;
             align-items: center;
@@ -1431,8 +1626,10 @@
             width: 100%;
             order: 2;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            min-height: 42px;
+            max-height: 40vh;
         }
 
         .team-analysis-legend-item {
@@ -1445,6 +1642,13 @@
         .team-analysis-legend-item.active {
             border-color: #0d6efd;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+        }
+
+        #teamAnalysisFiltersToggle.filters-active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
         }
 
         .team-analysis-chart-wrapper {
@@ -2669,6 +2873,7 @@
                 setTeamAnalysisFiltersVisible(true);
             }
             initTeamAnalysisSelectorResize();
+            initTeamAnalysisResizers();
             if (teamAnalysisFilterPlayer) teamAnalysisFilterPlayer.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterRole) teamAnalysisFilterRole.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterFundamental) teamAnalysisFilterFundamental.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
@@ -3846,6 +4051,7 @@
         function normalizePlayerRoleLabel(role) {
             const s = String(role || '').trim().toUpperCase();
             if (!s) return '';
+            if (s === 'M' || s.startsWith('BAN')) return 'Bande';
             if (s === 'P' || s.startsWith('PAL')) return 'Palleggiatore';
             if (s === 'O' || s.startsWith('OPP')) return 'Opposto';
             if (s === 'S' || s.startsWith('SCH')) return 'Schiacciatore';
@@ -4205,6 +4411,150 @@
             clampTeamAnalysisSelectorWidth();
         }
 
+        function initTeamAnalysisResizers() {
+            const targets = [
+                teamAnalysisLegend,
+                teamAnalysisSelector,
+                teamAnalysisChartWrapper,
+                teamAnalysisFiltersWrapper
+            ].filter(Boolean);
+            const dirs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+            const gap = 16;
+            const minLegendWidth = 120;
+            const minFiltersWidth = 160;
+            const minChartWidth = 240;
+            const minSelectorWidth = 120;
+            const minChartHeight = 180;
+            const minSelectorHeight = 60;
+            const minRow2Height = 120;
+            const getLayoutMode = () => {
+                if (teamAnalysisRotator?.classList.contains('team-analysis-mode-landscape')) return 'landscape';
+                return 'portrait';
+            };
+            const getVarPx = (name, fallback) => {
+                if (!teamAnalysisRotator) return fallback;
+                const raw = getComputedStyle(teamAnalysisRotator).getPropertyValue(name);
+                const num = parseFloat(raw);
+                return Number.isFinite(num) ? num : fallback;
+            };
+            const setVarPx = (name, value) => {
+                if (!teamAnalysisRotator) return;
+                teamAnalysisRotator.style.setProperty(name, Math.max(0, Math.round(value)) + 'px');
+            };
+            const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+            const startResize = (e) => {
+                const handle = e.currentTarget;
+                const target = handle.parentElement;
+                if (!target) return;
+                const dir = String(handle.dataset.dir || '');
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startWidth = target.offsetWidth || 0;
+                const startHeight = target.offsetHeight || 0;
+                const minW = Number(target.dataset.minWidth || 120);
+                const minH = Number(target.dataset.minHeight || 42);
+                const onMove = (ev) => {
+                    if (!teamAnalysisRotator) return;
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    const layout = getLayoutMode();
+                    const rotW = teamAnalysisRotator.clientWidth || 0;
+                    const rotH = teamAnalysisRotator.clientHeight || 0;
+                    const selectorWidth = getVarPx('--team-analysis-selector-width', teamAnalysisSelector?.offsetWidth || minSelectorWidth);
+                    const legendWidth = getVarPx('--legend-width', teamAnalysisLegend?.offsetWidth || minLegendWidth);
+                    const filtersWidth = getVarPx('--filters-width', teamAnalysisFiltersWrapper?.offsetWidth || minFiltersWidth);
+                    const chartWidth = getVarPx('--chart-width', teamAnalysisChartWrapper?.offsetWidth || minChartWidth);
+                    const selectorHeight = getVarPx('--selector-height', teamAnalysisSelector?.offsetHeight || minSelectorHeight);
+                    const chartHeight = getVarPx('--chart-height', teamAnalysisChartWrapper?.offsetHeight || minChartHeight);
+                    const row2Height = getVarPx('--row2-height', Math.max(
+                        teamAnalysisSelector?.offsetHeight || 0,
+                        teamAnalysisLegend?.offsetHeight || 0,
+                        teamAnalysisFiltersWrapper?.offsetHeight || 0,
+                        minRow2Height
+                    ));
+                    let nextW = startWidth;
+                    let nextH = startHeight;
+                    if (dir.includes('e')) nextW = startWidth + dx;
+                    if (dir.includes('w')) nextW = startWidth - dx;
+                    if (dir.includes('s')) nextH = startHeight + dy;
+                    if (dir.includes('n')) nextH = startHeight - dy;
+                    if (dir.includes('e') || dir.includes('w')) {
+                        if (target === teamAnalysisLegend) {
+                            const maxW = layout === 'portrait'
+                                ? rotW - selectorWidth - filtersWidth - 8 - gap
+                                : rotW - filtersWidth - minChartWidth - gap;
+                            setVarPx('--legend-width', clamp(nextW, minLegendWidth, Math.max(minLegendWidth, maxW)));
+                        } else if (target === teamAnalysisFiltersWrapper) {
+                            const maxW = layout === 'portrait'
+                                ? rotW - selectorWidth - legendWidth - 8 - gap
+                                : rotW - legendWidth - minChartWidth - gap;
+                            setVarPx('--filters-width', clamp(nextW, minFiltersWidth, Math.max(minFiltersWidth, maxW)));
+                        } else if (target === teamAnalysisSelector) {
+                            if (layout === 'portrait') {
+                                const maxW = rotW - legendWidth - filtersWidth - 8 - gap;
+                                setVarPx('--team-analysis-selector-width', clamp(nextW, minSelectorWidth, Math.max(minSelectorWidth, maxW)));
+                            } else {
+                                const maxW = rotW - legendWidth - filtersWidth - gap;
+                                setVarPx('--chart-width', clamp(nextW, minChartWidth, Math.max(minChartWidth, maxW)));
+                            }
+                        } else if (target === teamAnalysisChartWrapper) {
+                            if (layout !== 'phone-portrait') {
+                                const maxW = rotW - legendWidth - filtersWidth - gap;
+                                setVarPx('--chart-width', clamp(nextW, minChartWidth, Math.max(minChartWidth, maxW)));
+                            }
+                        }
+                    }
+                    if (dir.includes('n') || dir.includes('s')) {
+                        if (layout === 'portrait') {
+                            if (target === teamAnalysisChartWrapper) {
+                                const maxH = rotH - minRow2Height;
+                                setVarPx('--chart-height', clamp(nextH, minChartHeight, Math.max(minChartHeight, maxH)));
+                            } else {
+                                const maxH = rotH - minChartHeight;
+                                setVarPx('--row2-height', clamp(nextH, minRow2Height, Math.max(minRow2Height, maxH)));
+                            }
+                        } else {
+                            if (target === teamAnalysisSelector) {
+                                const maxH = rotH - minChartHeight;
+                                setVarPx('--selector-height', clamp(nextH, minSelectorHeight, Math.max(minSelectorHeight, maxH)));
+                            } else if (target === teamAnalysisChartWrapper) {
+                                const maxH = rotH - minSelectorHeight;
+                                setVarPx('--chart-height', clamp(nextH, minChartHeight, Math.max(minChartHeight, maxH)));
+                            } else {
+                                const maxH = rotH - minSelectorHeight;
+                                const nextChart = clamp(nextH - selectorHeight, minChartHeight, Math.max(minChartHeight, maxH));
+                                setVarPx('--chart-height', nextChart);
+                            }
+                        }
+                    }
+                    requestAnimationFrame(() => {
+                        updateTeamAnalysisRotatorSize();
+                        clampTeamAnalysisSelectorWidth();
+                    });
+                };
+                const stop = () => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', stop);
+                    window.removeEventListener('pointercancel', stop);
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', stop);
+                window.addEventListener('pointercancel', stop);
+                e.preventDefault();
+            };
+            targets.forEach((target) => {
+                if (target.querySelector('.resize-handle')) return;
+                target.classList.add('team-analysis-resizable');
+                dirs.forEach((dir) => {
+                    const handle = document.createElement('div');
+                    handle.className = 'resize-handle ' + dir;
+                    handle.dataset.dir = dir;
+                    handle.addEventListener('pointerdown', startResize);
+                    target.appendChild(handle);
+                });
+            });
+        }
+
         function setTeamAnalysisFiltersVisible(isVisible) {
             teamAnalysisFiltersVisible = isVisible !== false;
             if (teamAnalysisFiltersWrapper) {
@@ -4222,6 +4572,7 @@
                 teamAnalysisFiltersToggle.textContent = teamAnalysisFiltersVisible ? 'Filtri: On' : 'Filtri: Off';
                 teamAnalysisFiltersToggle.setAttribute('aria-pressed', String(teamAnalysisFiltersVisible));
             }
+            updateTeamAnalysisFiltersToggleState();
             requestAnimationFrame(clampTeamAnalysisSelectorWidth);
             const settings = readAppSettings();
             settings.teamAnalysisFiltersVisible = teamAnalysisFiltersVisible;
@@ -4258,6 +4609,27 @@
             teamAnalysisFilters.phases = selPhases;
             teamAnalysisFilters.valueThresholds = selValues;
             teamAnalysisFilters.matchesScopes = selMatches;
+            updateTeamAnalysisFiltersToggleState();
+        }
+
+        function hasTeamAnalysisActiveFilters() {
+            const f = teamAnalysisFilters || {};
+            const lists = [
+                f.players,
+                f.roles,
+                f.fundamentals,
+                f.rotations,
+                f.phases,
+                f.valueThresholds,
+                f.matchesScopes
+            ];
+            return lists.some(arr => Array.isArray(arr) && arr.length > 0);
+        }
+
+        function updateTeamAnalysisFiltersToggleState() {
+            if (!teamAnalysisFiltersToggle) return;
+            const isActive = hasTeamAnalysisActiveFilters();
+            teamAnalysisFiltersToggle.classList.toggle('filters-active', isActive);
         }
 
         function setTeamAnalysisFilterSelection(filterName, mode) {
@@ -4536,19 +4908,52 @@
 
         let teamAnalysisActiveKeys = new Set();
 
-        function renderTeamAnalysisRoster() {
+        function renderTeamAnalysisRoster(seriesMap) {
             if (!teamAnalysisLegend) return;
             if (!teamAnalysisRosterCache || !Array.isArray(teamAnalysisRosterCache.players) || teamAnalysisRosterCache.players.length === 0) {
                 try { refreshTeamAnalysisRosterCache(); } catch(_) {}
             }
             const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+            const series = (seriesMap && typeof seriesMap === 'object') ? seriesMap : {};
+            const seriesKeys = Object.keys(series || {});
+            const seriesKeyByLabel = new Map();
+            const seriesKeyByNumber = new Map();
+            seriesKeys.forEach((key) => {
+                const entry = series[key];
+                const label = entry && entry.label ? String(entry.label).trim().toLowerCase() : '';
+                if (label) seriesKeyByLabel.set(label, key);
+                const numKey = extractLeadingNumber(entry && entry.label ? entry.label : key);
+                if (numKey) seriesKeyByNumber.set(numKey, key);
+            });
+            const activeKeys = teamAnalysisActiveKeys && teamAnalysisActiveKeys.size ? new Set(teamAnalysisActiveKeys) : null;
+            const mode = teamAnalysisSelectorMode;
             const legendRows = rosterPlayers.map((p) => {
                 const numKey = normalizePlayerNumberForKey(p.number);
                 const displayName = String(p.nickname || p.surname || p.lastName || p.name || p.firstName || '').trim();
                 const label = numKey ? `${numKey} ${displayName}`.trim() || numKey : (displayName || String(p.number || '').trim());
                 if (!label) return '';
                 const playerKey = numKey || displayName || label;
-                return `<span class="team-analysis-legend-item" data-player-key="${escapeHtml(String(playerKey))}" title="Tieni premuto per confronto con media squadra" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;border:1px solid #e5e7eb;background:#ffffff;cursor:default;">
+                let highlightColor = '';
+                if (activeKeys && activeKeys.size) {
+                    if (mode === 'player') {
+                        const lowerLabel = String(label || '').trim().toLowerCase();
+                        let seriesKey = series[playerKey] ? playerKey : (seriesKeyByLabel.get(lowerLabel) || '');
+                        if (!seriesKey) {
+                            const num = extractLeadingNumber(label);
+                            if (num && seriesKeyByNumber.has(num)) seriesKey = seriesKeyByNumber.get(num);
+                        }
+                        if (seriesKey && activeKeys.has(seriesKey)) {
+                            highlightColor = (series[seriesKey] && series[seriesKey].color) ? series[seriesKey].color : '#2563eb';
+                        }
+                    } else if (mode === 'role') {
+                        const roleLabel = normalizePlayerRoleLabel((p && p.role != null) ? String(p.role).trim() : '');
+                        if (roleLabel && activeKeys.has(roleLabel)) {
+                            highlightColor = (series[roleLabel] && series[roleLabel].color) ? series[roleLabel].color : '#2563eb';
+                        }
+                    }
+                }
+                const borderStyle = highlightColor ? `border:1.5px solid ${highlightColor};` : 'border:1px solid #e5e7eb;';
+                return `<span class="team-analysis-legend-item" data-player-key="${escapeHtml(String(playerKey))}" title="Tieni premuto per confronto con media squadra" style="display:inline-flex;align-items:center;gap:6px;font-size:0.80rem;padding:2px 6px;border-radius:999px;${borderStyle}background:#ffffff;cursor:default;">
                     <span class="team-analysis-selector-dot" style="background:#cbd5e1;"></span>
                     <span>${escapeHtml(label)}</span>
                 </span>`;
@@ -4702,7 +5107,7 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                renderTeamAnalysisRoster();
+                renderTeamAnalysisRoster(series);
                 renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
@@ -4737,7 +5142,7 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                renderTeamAnalysisRoster();
+                renderTeamAnalysisRoster(series);
                 renderTeamAnalysisSelector(keys, series, null);
                 return;
             }
@@ -4846,7 +5251,7 @@
             teamAnalysisChart.innerHTML = svg;
             teamAnalysisChart.style.display = 'block';
             teamAnalysisChartEmpty.style.display = 'none';
-            renderTeamAnalysisRoster();
+            renderTeamAnalysisRoster(series);
             renderTeamAnalysisSelector(keys, series, activeFocusKey);
 
             if (!teamAnalysisLegendClearBound) {
