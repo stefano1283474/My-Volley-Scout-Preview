@@ -1168,12 +1168,15 @@
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector {
             grid-column: 3;
             grid-row: 2;
+            align-items: stretch;
+            min-height: 0;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector-list {
             flex-direction: row;
             flex-wrap: nowrap;
             align-items: center;
+            flex: 1 1 auto;
             width: 100%;
             max-height: none;
             overflow-x: scroll;
@@ -1181,6 +1184,9 @@
             white-space: nowrap;
             padding-bottom: 2px;
             scrollbar-gutter: stable both-edges;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-x;
         }
 
         .team-analysis-rotator.team-analysis-mode-landscape.team-analysis-mode-phone-landscape .team-analysis-selector-item {
