@@ -356,7 +356,7 @@
         }
 
         /* Tabs */
-        .tabs { display:flex; gap:10px; margin: 0 0 16px 0; }
+        .tabs { display:flex; gap:8px; margin: 0; flex: 1 1 auto; min-width: 0; }
         .tab-button {
             background:#ffffff; border:1px solid #e9ecef; color:#0d6efd;
             padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:600;
@@ -367,14 +367,21 @@
         }
 
         /* Titolo con didascalia a destra sulla stessa riga */
-        .section-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+        .section-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; flex-wrap: nowrap; }
         .section-title-row .section-title { margin-bottom: 0; }
+        .section-title-row .list-actions { flex: 0 0 auto; }
         .section-hint { color: #555; font-size: 0.95rem; }
         .section-hint.inline { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
         .tab-panel { margin-top: 0; }
 
         @media (max-width: 720px) {
-            .section-title-row { flex-wrap:wrap; gap:10px; }
+            .section-title-row { flex-wrap: nowrap; gap: 8px; }
+        }
+
+        @media (max-width: 520px) {
+            .tabs { gap: 6px; }
+            .tab-button { padding: 6px 10px; font-size: 0.85rem; }
+            .section-title-row { gap: 6px; }
         }
 
         /* Animazione uniforme per elementi cliccabili (stile card squadra) */
@@ -1462,8 +1469,8 @@
 
         .team-analysis-controls {
             display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
+            flex-wrap: nowrap;
+            gap: 6px;
             align-items: center;
             justify-content: space-between;
             padding: 2px 3px;
@@ -1471,8 +1478,8 @@
 
         .team-analysis-viewport-group {
             display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
+            flex-wrap: nowrap;
+            gap: 4px;
             align-items: center;
         }
 
@@ -1487,6 +1494,16 @@
             flex-wrap: nowrap;
             gap: 3px;
             align-items: center;
+        }
+
+        @media (max-width: 520px) {
+            .team-analysis-controls .btn {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+            #teamAnalysisFiltersToggle {
+                white-space: nowrap;
+            }
         }
 
         .team-analysis-viewport-btn {
