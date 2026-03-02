@@ -2893,7 +2893,6 @@
             }
             initTeamAnalysisSelectorResize();
             initTeamAnalysisResizers();
-            initTeamAnalysisSelectorDragScroll();
             if (teamAnalysisFilterPlayer) teamAnalysisFilterPlayer.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterRole) teamAnalysisFilterRole.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterFundamental) teamAnalysisFilterFundamental.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
@@ -4556,50 +4555,6 @@
             });
         }
 
-        function initTeamAnalysisSelectorDragScroll() {
-            if (!teamAnalysisSelectorList) return;
-            let isDown = false;
-            let startX = 0;
-            let startScrollLeft = 0;
-            let isDragging = false;
-            const threshold = 6;
-            const onPointerMove = (e) => {
-                if (!isDown) return;
-                const dx = e.clientX - startX;
-                if (!isDragging && Math.abs(dx) >= threshold) isDragging = true;
-                if (!isDragging) return;
-                teamAnalysisSelectorList.scrollLeft = startScrollLeft - dx;
-                teamAnalysisSelectorList.dataset.dragging = 'true';
-            };
-            const stopDragging = (e) => {
-                if (!isDown) return;
-                isDown = false;
-                window.removeEventListener('pointermove', onPointerMove);
-                window.removeEventListener('pointerup', stopDragging);
-                window.removeEventListener('pointercancel', stopDragging);
-                if (isDragging) {
-                    const target = e && e.target ? e.target.closest('.team-analysis-selector-item') : null;
-                    if (target) {
-                        target.dataset.ignoreClick = 'true';
-                        setTimeout(() => { delete target.dataset.ignoreClick; }, 120);
-                    }
-                    setTimeout(() => { delete teamAnalysisSelectorList.dataset.dragging; }, 120);
-                }
-                isDragging = false;
-            };
-            teamAnalysisSelectorList.addEventListener('pointerdown', (e) => {
-                if (e.pointerType === 'mouse' && e.button !== 0) return;
-                isDown = true;
-                isDragging = false;
-                startX = e.clientX;
-                startScrollLeft = teamAnalysisSelectorList.scrollLeft;
-                try { teamAnalysisSelectorList.setPointerCapture(e.pointerId); } catch(_) {}
-                window.addEventListener('pointermove', onPointerMove);
-                window.addEventListener('pointerup', stopDragging);
-                window.addEventListener('pointercancel', stopDragging);
-            });
-        }
-
         function setTeamAnalysisFiltersVisible(isVisible) {
             teamAnalysisFiltersVisible = isVisible !== false;
             if (teamAnalysisFiltersWrapper) {
@@ -5105,7 +5060,6 @@
                     bindTeamAnalysisFocusPress(item, key);
                     item.addEventListener('click', () => {
                         if (item.dataset.ignoreClick) return;
-                        if (teamAnalysisSelectorList && teamAnalysisSelectorList.dataset.dragging) return;
                         if (teamAnalysisActiveKeys.has(key)) {
                             teamAnalysisActiveKeys.delete(key);
                         } else {
