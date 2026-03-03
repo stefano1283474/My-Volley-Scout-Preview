@@ -5229,11 +5229,9 @@
             const focusMode = !!(focusPlayerKey && data !== baseData);
             const activeFocusKey = (!focusMode && teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey]) ? teamAnalysisLegendFocusKey : null;
             const keysToRender = activeFocusKey ? [activeFocusKey] : effectiveKeys.slice();
+            const showTeamAverage = focusMode || activeFocusKey || teamAnalysisActiveKeys.size > 0;
             const averageSeries = focusMode ? (baseData.series || {}) : series;
             let averageKeys = Object.keys(averageSeries).filter(k => Array.isArray(averageSeries[k].points) && averageSeries[k].points.length);
-            if (teamAnalysisActiveKeys.size > 0) {
-                averageKeys = averageKeys.filter(k => teamAnalysisActiveKeys.has(k));
-            }
             let yMin = 5;
             let yMax = 1;
             keysToRender.forEach((k) => {
@@ -5243,7 +5241,7 @@
                     yMax = Math.max(yMax, p.y);
                 });
             });
-            if (activeFocusKey || focusMode) {
+            if (showTeamAverage) {
                 averageKeys.forEach((k) => {
                     averageSeries[k].points.forEach((p) => {
                         if (typeof p.y !== 'number' || !isFinite(p.y)) return;
@@ -5287,7 +5285,7 @@
                 return paddingTop + (1 - t) * innerHeight;
             };
             let averagePoints = null;
-            if (activeFocusKey || focusMode) {
+            if (showTeamAverage) {
                 const totals = new Array(xCount).fill(0);
                 const counts = new Array(xCount).fill(0);
                 averageKeys.forEach((k) => {
