@@ -13,19 +13,19 @@
     <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
     <link rel="stylesheet" href="styles.css?v=4" />
   <style>
-    :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; --font-size-base: 15px; --font-size-title: 20px; --font-size-subtitle: 15px; }
-    body { margin:0; font-family: var(--font-family); background:#f1f5f9; color:#0f172a; }
-    .container { max-width:920px; margin:0 auto; padding:16px; }
+    :root { --blue:#2563eb; --border:#e9ecef; --bg:#f8fafc; --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; --font-size-base: 15px; --font-size-title: 20px; --font-size-subtitle: 15px; }
+    body { margin:0; font-family: var(--font-family); background:#ffffff; color:#333; }
+    .container { max-width:1200px; margin:0 auto; padding:20px; }
     .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-    .header-card { position:relative; display:flex; align-items:center; justify-content:center; padding:12px; margin-bottom:16px; }
-    .logo-icon { width:100%; max-width:624px; height:168px; overflow:hidden; display:block; margin:0 auto; }
-    .logo-icon img { width:100%; height:100%; object-fit:contain; }
-    .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; }
-    .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; }
-    .icon-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #cbd5e1; background:#fff; border-radius:50%; width:36px; height:36px; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); }
-    .section-card { border:1px solid var(--blue); border-radius:16px; padding:16px; background:#fff; margin-top:0; }
+    .header { background:#ffffff; border-radius:12px; padding:8px 12px; margin-bottom:16px; display:flex; justify-content:center; align-items:center; position:relative; }
+    .logo-icon { width:65%; max-width:373px; height:auto; overflow:visible; display:block; margin:0 auto; }
+    .logo-icon img { width:100%; height:auto; max-height:117px; object-fit:contain; object-position:center; display:block; }
+    .account-actions { position:absolute; top:8px; right:8px; display:flex; align-items:center; z-index:2; }
+    .back-actions { position:absolute; top:8px; left:8px; display:flex; align-items:center; z-index:2; }
+    .icon-button { background:#ffffff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; display:inline-flex; align-items:center; justify-content:center; font-family: var(--font-family); font-size: var(--font-size-base); }
+    .section-card { background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); border-radius:20px; padding:30px; box-shadow:0 10px 30px rgba(0,0,0,0.1); border:1px solid #0d6efd; margin-top:0; }
     .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
-    .section-title { font-size: var(--font-size-title); font-weight:600; color:#0f172a; }
+    .section-title { font-size:24px; font-weight:600; color:#333; }
     .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
     .roster-name { font-size: var(--font-size-subtitle); font-weight:600; color:#334155; margin:8px 0 12px 0; }
     .btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-family: var(--font-family); font-size: var(--font-size-base); font-weight:600; }
@@ -44,6 +44,10 @@
     .roster-name-field { flex:1; border:none; outline:none; background:transparent; font-family: var(--font-family); font-size: var(--font-size-base); }
     .icon-button-circle { border-radius:50%; width:36px; height:36px; }
     .empty-note { color:#64748b; text-align:center; }
+    @media (max-width: 768px) {
+      .container { padding:15px; }
+      .section-card { padding:14px; }
+    }
     .btn,
     .icon-button,
     .icon-button-outline,
@@ -71,7 +75,7 @@
 <body>
   <div class="container">
     <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
-    <div class="card header-card">
+    <div class="header">
       <div class="back-actions">
         <a href="/matches.html" class="icon-button" title="Indietro" aria-label="Indietro">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -81,7 +85,7 @@
         </a>
       </div>
       <div class="logo-icon" aria-hidden="true">
-        <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./LOGO_APP.png';">
+        <img src="/c:/Users/STEFANO/Desktop/Progetti App/My-Volley-Scout/Immagini/Scritta con Pallone e campo.png" alt="Logo My Volley Scout" onerror="this.onerror=null; this.src='./Immagini/Scritta con Pallone e campo.png';">
       </div>
       <div class="account-actions">
         <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button" style="background:#fff;color:#2563eb;border:1px solid #e9ecef;">
@@ -122,40 +126,44 @@
       </div>
     </div>
 
-    <div class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:12px; margin-bottom:16px;">
-        <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Contesto Squadra</div>
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-            <div style="flex:1;">
-                <div id="ctxClubName" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:2px;">—</div>
-                <div id="ctxTeamName" style="font-size:16px; font-weight:700; color:#0f172a;">—</div>
+    <div class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:10px; margin-bottom:10px;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div id="ctxClubName" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">—</div>
+                <span style="font-size:12px; color:#64748b; font-weight:600;">•</span>
+                <div id="ctxTeamName" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">—</div>
             </div>
-            <div id="ctxRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <div id="ctxRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+                </div>
+                <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
+                    <button type="button" class="icon-button icon-button-outline icon-button-circle" id="importRosterIcon" title="Importa" aria-label="Importa">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="icon-button icon-button-outline icon-button-circle" id="exportRosterIcon" title="Esporta" aria-label="Esporta">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="icon-button icon-button-outline icon-button-circle" id="createRosterIcon" title="Crea" aria-label="Crea">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="section-card">
       <div class="section-title-row">
         <h3 class="section-title rounded-title" style="font-weight:400;">ELENCO ROSTER:</h3>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="importRosterIcon" title="Importa" aria-label="Importa">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M4 17a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H4v-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="exportRosterIcon" title="Esporta" aria-label="Esporta">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button type="button" class="icon-button icon-button-outline icon-button-circle" id="createRosterIcon" title="Crea" aria-label="Crea">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
       </div>
 
       <div id="rosterList" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:8px; margin-bottom:8px;"></div>
