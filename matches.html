@@ -825,7 +825,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.2.1</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.2.2</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -5377,50 +5377,63 @@
         }
 
         function buildPlayerCardChartSvg(points, color, width, height) {
-            const valid = (Array.isArray(points) ? points : []).filter((p) => p && p.delta != null && Number.isFinite(p.delta));
-            if (!valid.length) return '';
+            const payload = Array.isArray(points) ? points : [];
+            const validPlayer = payload.filter((p) => p && p.playerAvg != null && Number.isFinite(p.playerAvg));
+            const validTeam = payload.filter((p) => p && p.teamAvg != null && Number.isFinite(p.teamAvg));
+            if (!validPlayer.length && !validTeam.length) return '';
             const padLeft = 34;
             const padRight = 12;
             const padTop = 10;
             const padBottom = 34;
-            const deltas = valid.map((p) => Number(p.delta || 0));
-            const yMinRaw = Math.min(-0.2, ...deltas);
-            const yMaxRaw = Math.max(0.2, ...deltas);
-            const yPad = Math.max(0.12, (yMaxRaw - yMinRaw) * 0.1);
+            const avgValues = payload
+                .flatMap((p) => [p?.playerAvg, p?.teamAvg])
+                .filter((v) => v != null && Number.isFinite(v))
+                .map((v) => Number(v));
+            const yMinRaw = Math.min(1.2, ...avgValues);
+            const yMaxRaw = Math.max(4.8, ...avgValues);
+            const yPad = Math.max(0.08, (yMaxRaw - yMinRaw) * 0.1);
             const yMin = yMinRaw - yPad;
             const yMax = yMaxRaw + yPad;
-            const xDen = Math.max(1, points.length - 1);
+            const xDen = Math.max(1, payload.length - 1);
             const xScale = (index) => padLeft + ((width - padLeft - padRight) * (index / xDen));
             const yScale = (value) => {
                 const ratio = (value - yMin) / (yMax - yMin || 1);
                 return (height - padBottom) - ratio * (height - padTop - padBottom);
             };
             let svg = '';
-            const zeroY = yScale(0);
-            svg += `<line x1="${padLeft}" y1="${zeroY}" x2="${width - padRight}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3 3" />`;
+            let teamPath = '';
+            let hasTeamStarted = false;
+            payload.forEach((point, index) => {
+                if (!point || point.teamAvg == null || !Number.isFinite(point.teamAvg)) return;
+                const x = xScale(index);
+                const y = yScale(point.teamAvg);
+                teamPath += hasTeamStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
+                hasTeamStarted = true;
+            });
+            if (teamPath) svg += `<path d="${teamPath}" fill="none" stroke="#0f172a" stroke-width="1.7" stroke-dasharray="4 3" stroke-linecap="round" stroke-linejoin="round" opacity="0.82" />`;
             let d = '';
             let hasStarted = false;
-            points.forEach((point, index) => {
-                if (!point || point.delta == null || !Number.isFinite(point.delta)) {
+            payload.forEach((point, index) => {
+                if (!point || point.playerAvg == null || !Number.isFinite(point.playerAvg)) {
                     return;
                 }
                 const x = xScale(index);
-                const y = yScale(point.delta);
+                const y = yScale(point.playerAvg);
                 d += hasStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
                 hasStarted = true;
             });
             if (d) svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />`;
-            points.forEach((point, index) => {
-                if (!point || point.delta == null || !Number.isFinite(point.delta)) return;
+            payload.forEach((point, index) => {
+                if (!point || point.playerAvg == null || !Number.isFinite(point.playerAvg)) return;
                 const x = xScale(index);
-                const y = yScale(point.delta);
+                const y = yScale(point.playerAvg);
                 const label = String(point.label || '').replace(/"/g, '&quot;');
                 const title = `${label}\nPlayer: ${point.playerAvg != null ? point.playerAvg.toFixed(2) : 'n/d'}\nSquadra: ${point.teamAvg != null ? point.teamAvg.toFixed(2) : 'n/d'}\nDiff: ${formatSignedValue(point.delta)}`;
                 svg += `<circle cx="${x}" cy="${y}" r="2.8" fill="${color}"><title>${title}</title></circle>`;
             });
-            points.forEach((point, index) => {
+            payload.forEach((point, index) => {
                 if (!point || !point.label) return;
-                if (index % 2 !== 0 && points.length > 8) return;
+                if (index % 2 !== 0 && payload.length > 8) return;
                 const x = xScale(index);
                 const shortLabel = String(point.label || `P${index + 1}`).split(' • ')[0];
                 svg += `<text x="${x}" y="${height - 10}" text-anchor="end" transform="rotate(-36 ${x} ${height - 10})" font-size="9" fill="#64748b">${escapeHtml(shortLabel)}</text>`;
@@ -5440,9 +5453,10 @@
                 .filter((row) => selectedSet.has(String(row.key)))
                 .map((row) => {
                 const points = buildPlayerFundamentalSeries(row.key, funds, matchAggregates);
-                const valid = points.filter((p) => p && p.delta != null && Number.isFinite(p.delta));
-                const avgDelta = valid.length ? (valid.reduce((acc, p) => acc + Number(p.delta || 0), 0) / valid.length) : null;
-                return Object.assign({}, row, { points, avgDelta, validCount: valid.length });
+                const validPlayer = points.filter((p) => p && p.playerAvg != null && Number.isFinite(p.playerAvg));
+                const validDelta = points.filter((p) => p && p.delta != null && Number.isFinite(p.delta));
+                const avgDelta = validDelta.length ? (validDelta.reduce((acc, p) => acc + Number(p.delta || 0), 0) / validDelta.length) : null;
+                return Object.assign({}, row, { points, avgDelta, validCount: validPlayer.length });
             }).filter((row) => row.validCount > 0);
             const matchCount = Array.isArray(matchAggregates?.sortedMatches) ? matchAggregates.sortedMatches.length : 0;
             if ((!seriesRows.length && !teamValidPoints.length) || matchCount <= 0) {
@@ -5463,24 +5477,26 @@
             const padRight = 20;
             const padTop = 16;
             const padBottom = 64;
-            const allDeltas = [];
+            const allValues = [];
             seriesRows.forEach((row) => {
                 row.points.forEach((p) => {
-                    if (p && p.delta != null && Number.isFinite(p.delta)) allDeltas.push(Number(p.delta));
+                    if (p && p.playerAvg != null && Number.isFinite(p.playerAvg)) allValues.push(Number(p.playerAvg));
                 });
             });
-            const minDelta = Math.min(-0.2, ...allDeltas);
-            const maxDelta = Math.max(0.2, ...allDeltas);
-            const rangePad = Math.max(0.15, (maxDelta - minDelta) * 0.08);
-            const yMin = minDelta - rangePad;
-            const yMax = maxDelta + rangePad;
+            teamSeries.forEach((p) => {
+                if (p && p.teamAvg != null && Number.isFinite(p.teamAvg)) allValues.push(Number(p.teamAvg));
+            });
+            const minAvg = Math.min(1.2, ...allValues);
+            const maxAvg = Math.max(4.8, ...allValues);
+            const rangePad = Math.max(0.08, (maxAvg - minAvg) * 0.08);
+            const yMin = minAvg - rangePad;
+            const yMax = maxAvg + rangePad;
             const xDen = Math.max(1, matchCount - 1);
             const xScale = (index) => padLeft + ((width - padLeft - padRight) * (index / xDen));
             const yScale = (value) => {
                 const ratio = (value - yMin) / (yMax - yMin || 1);
                 return (height - padBottom) - ratio * (height - padTop - padBottom);
             };
-            const zeroY = yScale(0);
             const sortedLegend = seriesRows.slice().sort((a, b) => Number(b.avgDelta || -99) - Number(a.avgDelta || -99));
             const colorByPlayer = {};
             sortedLegend.forEach((row, index) => {
@@ -5496,23 +5512,24 @@
                 svg += `<line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />`;
                 svg += `<text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${yVal.toFixed(2)}</text>`;
             }
-            svg += `<line x1="${padLeft}" y1="${zeroY}" x2="${width - padRight}" y2="${zeroY}" stroke="#334155" stroke-width="1.4" stroke-dasharray="4 3" />`;
             let teamPath = '';
             let teamStarted = false;
             teamSeries.forEach((point, index) => {
                 if (!point || point.teamAvg == null || !Number.isFinite(point.teamAvg)) return;
                 const x = xScale(index);
-                teamPath += teamStarted ? ` L ${x} ${zeroY}` : `M ${x} ${zeroY}`;
+                const y = yScale(point.teamAvg);
+                teamPath += teamStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
                 teamStarted = true;
             });
             if (teamPath) {
-                svg += `<path d="${teamPath}" fill="none" stroke="#0f172a" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.88" />`;
+                svg += `<path d="${teamPath}" fill="none" stroke="#0f172a" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" opacity="0.88" />`;
                 teamSeries.forEach((point, index) => {
                     if (!point || point.teamAvg == null || !Number.isFinite(point.teamAvg)) return;
                     const x = xScale(index);
+                    const y = yScale(point.teamAvg);
                     const label = String(point.label || '').replace(/"/g, '&quot;');
                     const title = `${label}\nMedia squadra: ${point.teamAvg.toFixed(2)}\nFondamentali: ${funds.join(' + ') || 'n/d'}`;
-                    svg += `<circle cx="${x}" cy="${zeroY}" r="2.8" fill="#0f172a"><title>${title}</title></circle>`;
+                    svg += `<circle cx="${x}" cy="${y}" r="2.8" fill="#0f172a"><title>${title}</title></circle>`;
                 });
             }
             seriesRows.forEach((row) => {
@@ -5520,20 +5537,20 @@
                 let d = '';
                 let hasStarted = false;
                 row.points.forEach((point, index) => {
-                    if (!point || point.delta == null || !Number.isFinite(point.delta)) {
+                    if (!point || point.playerAvg == null || !Number.isFinite(point.playerAvg)) {
                         return;
                     }
                     const x = xScale(index);
-                    const y = yScale(point.delta);
+                    const y = yScale(point.playerAvg);
                     d += hasStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
                     hasStarted = true;
                 });
                 if (!d) return;
                 svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.92" />`;
                 row.points.forEach((point, index) => {
-                    if (!point || point.delta == null || !Number.isFinite(point.delta)) return;
+                    if (!point || point.playerAvg == null || !Number.isFinite(point.playerAvg)) return;
                     const x = xScale(index);
-                    const y = yScale(point.delta);
+                    const y = yScale(point.playerAvg);
                     const label = String(point.label || '').replace(/"/g, '&quot;');
                     const title = `${resolvePlayerAnalysisName(row.number, row.name)} • ${label}\nPlayer: ${point.playerAvg != null ? point.playerAvg.toFixed(2) : 'n/d'}\nSquadra: ${point.teamAvg != null ? point.teamAvg.toFixed(2) : 'n/d'}\nDiff: ${formatSignedValue(point.delta)}`;
                     svg += `<circle cx="${x}" cy="${y}" r="2.4" fill="${color}"><title>${title}</title></circle>`;
