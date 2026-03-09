@@ -594,6 +594,8 @@
                             </div>
                         </div>
                         <button type="button" class="btn btn-secondary" id="teamAnalysisFiltersToggle">Filtri: On</button>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisChartTypeToggle">Linee</button>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisBarValueModeToggle">Valori</button>
                     </div>
                 </div>
 
@@ -1553,17 +1555,20 @@
         .team-analysis-controls {
             display: flex;
             flex-wrap: nowrap;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             padding: 2px 3px;
+            width: 100%;
+            overflow: hidden;
         }
 
         .team-analysis-viewport-group {
             display: flex;
             flex-wrap: nowrap;
-            gap: 4px;
+            gap: 3px;
             align-items: center;
+            flex: 0 0 auto;
         }
 
         .team-analysis-viewport-label {
@@ -1579,12 +1584,37 @@
             align-items: center;
         }
 
+        .team-analysis-controls .btn {
+            padding: 5px 8px;
+            font-size: 0.78rem;
+            line-height: 1.1;
+            white-space: nowrap;
+            min-width: 0;
+            flex: 0 0 auto;
+        }
+
+        #teamAnalysisFiltersToggle,
+        #teamAnalysisChartTypeToggle,
+        #teamAnalysisBarValueModeToggle {
+            padding-left: 7px;
+            padding-right: 7px;
+        }
+
+        #teamAnalysisBarValueModeToggle[disabled] {
+            opacity: 0.6;
+        }
+
         @media (max-width: 520px) {
-            .team-analysis-controls .btn {
-                padding: 6px 10px;
-                font-size: 0.85rem;
+            .team-analysis-controls {
+                gap: 3px;
             }
-            #teamAnalysisFiltersToggle {
+            .team-analysis-controls .btn {
+                padding: 4px 6px;
+                font-size: 0.72rem;
+            }
+            #teamAnalysisFiltersToggle,
+            #teamAnalysisChartTypeToggle,
+            #teamAnalysisBarValueModeToggle {
                 white-space: nowrap;
             }
         }
@@ -1733,6 +1763,25 @@
             -webkit-overflow-scrolling: touch;
             min-height: 42px;
             max-height: 40vh;
+        }
+
+        .team-analysis-legend.team-analysis-legend-selector-column {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            justify-content: flex-start;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .team-analysis-legend.team-analysis-legend-selector-column .team-analysis-selector-item {
+            width: 100%;
+            min-width: 0;
+            justify-content: flex-start;
+        }
+
+        .team-analysis-selector.team-analysis-selector-hide-list .team-analysis-selector-list {
+            display: none;
         }
 
         .team-analysis-legend-item {
@@ -1889,6 +1938,8 @@
         const teamAnalysisDeviceToggle = document.getElementById('teamAnalysisDeviceToggle');
         const teamAnalysisOrientationToggle = document.getElementById('teamAnalysisOrientationToggle');
         const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
+        const teamAnalysisChartTypeToggle = document.getElementById('teamAnalysisChartTypeToggle');
+        const teamAnalysisBarValueModeToggle = document.getElementById('teamAnalysisBarValueModeToggle');
         const teamAnalysisFiltersWrapper = document.getElementById('teamAnalysisFilters');
         let teamAnalysisLegendFocusKey = null;
         let teamAnalysisLegendFocusPlayerKey = null;
@@ -1925,6 +1976,8 @@
         let teamAnalysisViewportDeviceType = 'phone';
         let teamAnalysisViewportOrientation = 'portrait';
         let teamAnalysisFiltersVisible = true;
+        let teamAnalysisChartType = 'line';
+        let teamAnalysisBarValueMode = 'count';
         let isObserverMode = false;
 
         function readAppSettings() {
@@ -2974,6 +3027,7 @@
             } else {
                 setTeamAnalysisFiltersVisible(true);
             }
+            initTeamAnalysisChartTypeToggle();
             initTeamAnalysisSelectorResize();
             initTeamAnalysisResizers();
             initTeamAnalysisScrollbarAutoHide();
@@ -4088,17 +4142,28 @@
                                 number: data.number || '',
                                 name: data.name || key,
                                 sum: 0,
-                                tot: 0
+                                tot: 0,
+                                counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
                             };
                         }
                         players[key].sum += sum;
                         players[key].tot += tot;
+                        players[key].counts[1] += c1;
+                        players[key].counts[2] += c2;
+                        players[key].counts[3] += c3;
+                        players[key].counts[4] += c4;
+                        players[key].counts[5] += c5;
 
                         if (!fundamentalsAgg[fund]) {
-                            fundamentalsAgg[fund] = { sum: 0, tot: 0 };
+                            fundamentalsAgg[fund] = { sum: 0, tot: 0, counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
                         }
                         fundamentalsAgg[fund].sum += sum;
                         fundamentalsAgg[fund].tot += tot;
+                        fundamentalsAgg[fund].counts[1] += c1;
+                        fundamentalsAgg[fund].counts[2] += c2;
+                        fundamentalsAgg[fund].counts[3] += c3;
+                        fundamentalsAgg[fund].counts[4] += c4;
+                        fundamentalsAgg[fund].counts[5] += c5;
                     });
                 });
                 const outPlayers = {};
@@ -4109,7 +4174,8 @@
                         name: p.name || key,
                         avg,
                         sum: p.sum || 0,
-                        tot: p.tot || 0
+                        tot: p.tot || 0,
+                        counts: Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, p.counts || {})
                     };
                 });
                 const outFundamentals = {};
@@ -4119,7 +4185,8 @@
                         name: fund,
                         avg,
                         sum: data.sum || 0,
-                        tot: data.tot || 0
+                        tot: data.tot || 0,
+                        counts: Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, data.counts || {})
                     };
                 });
                 return {
@@ -4693,6 +4760,59 @@
             setTeamAnalysisFiltersVisible(teamAnalysisFiltersVisible);
         }
 
+        function updateTeamAnalysisChartTypeToggle() {
+            if (!teamAnalysisChartTypeToggle) return;
+            const isBar = teamAnalysisChartType === 'bar';
+            teamAnalysisChartTypeToggle.textContent = isBar ? 'Barre' : 'Linee';
+            teamAnalysisChartTypeToggle.setAttribute('aria-pressed', String(isBar));
+            updateTeamAnalysisBarValueModeToggle();
+        }
+
+        function updateTeamAnalysisBarValueModeToggle() {
+            if (!teamAnalysisBarValueModeToggle) return;
+            const isPercent = teamAnalysisBarValueMode === 'percent';
+            teamAnalysisBarValueModeToggle.textContent = isPercent ? '%' : 'Valori';
+            teamAnalysisBarValueModeToggle.setAttribute('aria-pressed', String(isPercent));
+            teamAnalysisBarValueModeToggle.disabled = false;
+        }
+
+        function initTeamAnalysisChartTypeToggle() {
+            const settings = readAppSettings();
+            const saved = String(settings.teamAnalysisChartType || '').trim().toLowerCase();
+            if (saved === 'bar' || saved === 'line') {
+                teamAnalysisChartType = saved;
+            } else {
+                teamAnalysisChartType = 'line';
+            }
+            const savedValueMode = String(settings.teamAnalysisBarValueMode || '').trim().toLowerCase();
+            if (savedValueMode === 'percent' || savedValueMode === 'count') {
+                teamAnalysisBarValueMode = savedValueMode;
+            } else {
+                teamAnalysisBarValueMode = 'count';
+            }
+            updateTeamAnalysisChartTypeToggle();
+            if (teamAnalysisBarValueModeToggle) {
+                teamAnalysisBarValueModeToggle.addEventListener('click', () => {
+                    teamAnalysisBarValueMode = teamAnalysisBarValueMode === 'percent' ? 'count' : 'percent';
+                    updateTeamAnalysisBarValueModeToggle();
+                    const modeSettings = readAppSettings();
+                    modeSettings.teamAnalysisBarValueMode = teamAnalysisBarValueMode;
+                    writeAppSettings(modeSettings);
+                    renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                });
+            }
+            if (!teamAnalysisChartTypeToggle) return;
+            teamAnalysisChartTypeToggle.addEventListener('click', () => {
+                teamAnalysisChartType = teamAnalysisChartType === 'line' ? 'bar' : 'line';
+                updateTeamAnalysisChartTypeToggle();
+                const nextSettings = readAppSettings();
+                nextSettings.teamAnalysisChartType = teamAnalysisChartType;
+                nextSettings.teamAnalysisBarValueMode = teamAnalysisBarValueMode;
+                writeAppSettings(nextSettings);
+                renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+            });
+        }
+
         function updateTeamAnalysisFiltersFromControls() {
             if (!teamAnalysisFilterPlayer || !teamAnalysisFilterRole || !teamAnalysisFilterFundamental || !teamAnalysisFilterRotation || !teamAnalysisFilterPhase || !teamAnalysisFilterValues || !teamAnalysisFilterMatches) {
                 return;
@@ -4850,7 +4970,8 @@
                             }
                             series[key] = { label, points: [] };
                         }
-                        series[key].points.push({ x: index, y: p.avg });
+                        const pointCount = typeof p.tot === 'number' && isFinite(p.tot) && p.tot > 0 ? p.tot : 0;
+                        series[key].points.push({ x: index, y: p.avg, count: pointCount, grades: Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, p.counts || {}) });
                     });
                     return;
                 }
@@ -4866,11 +4987,17 @@
                         const roleLabel = normalizePlayerRoleLabel(roleLabelRaw);
                         if (!roleLabel) return;
                         if (rolesFilter.length && !rolesFilter.includes(roleLabel)) return;
-                        if (!accByRole[roleLabel]) accByRole[roleLabel] = { sum: 0, tot: 0 };
+                        if (!accByRole[roleLabel]) accByRole[roleLabel] = { sum: 0, tot: 0, counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
                         const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
                         const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
                         accByRole[roleLabel].sum += sum;
                         accByRole[roleLabel].tot += tot;
+                        const counts = p && p.counts ? p.counts : {};
+                        accByRole[roleLabel].counts[1] += Number(counts[1] || 0);
+                        accByRole[roleLabel].counts[2] += Number(counts[2] || 0);
+                        accByRole[roleLabel].counts[3] += Number(counts[3] || 0);
+                        accByRole[roleLabel].counts[4] += Number(counts[4] || 0);
+                        accByRole[roleLabel].counts[5] += Number(counts[5] || 0);
                     });
                     
                     Object.entries(accByRole).forEach(([role, agg]) => {
@@ -4878,7 +5005,7 @@
                         const avg = agg.sum / agg.tot;
                         if (!isFinite(avg)) return;
                         ensureSeries(role, role);
-                        series[role].points.push({ x: index, y: avg });
+                        series[role].points.push({ x: index, y: avg, count: agg.tot, grades: Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, agg.counts || {}) });
                     });
                     return;
                 }
@@ -4900,11 +5027,18 @@
                         if (!metrics || !metrics.players) return;
                         let sumAll = 0;
                         let totAll = 0;
+                        const countsAll = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
                         Object.values(metrics.players).forEach((p) => {
                             const sum = typeof p.sum === 'number' ? p.sum : (typeof p.avg === 'number' ? p.avg : 0);
                             const tot = typeof p.tot === 'number' && p.tot > 0 ? p.tot : 1;
                             sumAll += sum;
                             totAll += tot;
+                            const counts = p && p.counts ? p.counts : {};
+                            countsAll[1] += Number(counts[1] || 0);
+                            countsAll[2] += Number(counts[2] || 0);
+                            countsAll[3] += Number(counts[3] || 0);
+                            countsAll[4] += Number(counts[4] || 0);
+                            countsAll[5] += Number(counts[5] || 0);
                         });
                         if (!totAll) return;
                         const avgAll = sumAll / totAll;
@@ -4917,7 +5051,7 @@
                             else if (lower === 'ricezione') label = 'Fase ricezione';
                         }
                         ensureSeries(key, label);
-                        series[key].points.push({ x: index, y: avgAll });
+                        series[key].points.push({ x: index, y: avgAll, count: totAll, grades: Object.assign({}, countsAll) });
                     });
                     return;
                 }
@@ -4926,7 +5060,8 @@
                 if (!fallbackMetrics || !fallbackMetrics.players) return;
                 Object.entries(fallbackMetrics.players).forEach(([key, p]) => {
                     ensureSeries(key, p.name || key);
-                    series[key].points.push({ x: index, y: p.avg });
+                    const pointCount = typeof p.tot === 'number' && isFinite(p.tot) && p.tot > 0 ? p.tot : 0;
+                    series[key].points.push({ x: index, y: p.avg, count: pointCount, grades: Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, p.counts || {}) });
                 });
             });
 
@@ -5009,6 +5144,24 @@
 
         function renderTeamAnalysisRoster(seriesMap) {
             if (!teamAnalysisLegend) return;
+            const isBarValuesMode = teamAnalysisChartType === 'bar' && teamAnalysisBarValueMode === 'count';
+            if (isBarValuesMode) {
+                teamAnalysisLegend.classList.add('team-analysis-legend-selector-column');
+                const selectorItems = teamAnalysisSelectorList ? Array.from(teamAnalysisSelectorList.children || []) : [];
+                const cloned = selectorItems
+                    .map((node) => {
+                        if (!node || !node.classList || !node.classList.contains('team-analysis-selector-item')) return '';
+                        const clone = node.cloneNode(true);
+                        clone.classList.remove('active');
+                        clone.removeAttribute('data-key');
+                        clone.style.cursor = 'default';
+                        return clone.outerHTML;
+                    })
+                    .filter(Boolean);
+                teamAnalysisLegend.innerHTML = cloned.join('');
+                return;
+            }
+            teamAnalysisLegend.classList.remove('team-analysis-legend-selector-column');
             if (!teamAnalysisRosterCache || !Array.isArray(teamAnalysisRosterCache.players) || teamAnalysisRosterCache.players.length === 0) {
                 try { refreshTeamAnalysisRosterCache(); } catch(_) {}
             }
@@ -5068,6 +5221,10 @@
 
         function renderTeamAnalysisSelector(keys, series, activeFocusKey) {
             if (!teamAnalysisSelectorTabs || !teamAnalysisSelectorList) return;
+            const isBarValuesMode = teamAnalysisChartType === 'bar' && teamAnalysisBarValueMode === 'count';
+            if (teamAnalysisSelector) {
+                teamAnalysisSelector.classList.toggle('team-analysis-selector-hide-list', isBarValuesMode);
+            }
             const formatNickCapitalized = (value) => {
                 const raw = String(value || '').trim().toLowerCase();
                 if (!raw) return '';
@@ -5237,50 +5394,157 @@
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                renderTeamAnalysisRoster(series);
                 renderTeamAnalysisSelector(keys, series, null);
+                renderTeamAnalysisRoster(series);
                 return;
             }
             const focusMode = !!(focusPlayerKey && data !== baseData);
             const activeFocusKey = (!focusMode && teamAnalysisLegendFocusKey && series[teamAnalysisLegendFocusKey]) ? teamAnalysisLegendFocusKey : null;
             const keysToRender = activeFocusKey ? [activeFocusKey] : effectiveKeys.slice();
-            const showTeamAverage = focusMode || activeFocusKey || teamAnalysisActiveKeys.size > 0;
+            const xCount = labels.length;
+            const isLinePercentMode = teamAnalysisChartType === 'line' && teamAnalysisBarValueMode === 'percent';
+            const showTeamAverage = (focusMode || activeFocusKey || teamAnalysisActiveKeys.size > 0) && teamAnalysisChartType !== 'bar' && !isLinePercentMode;
             const averageSeries = focusMode ? (baseData.series || {}) : series;
             let averageKeys = Object.keys(averageSeries).filter(k => Array.isArray(averageSeries[k].points) && averageSeries[k].points.length);
             let yMin = 5;
             let yMax = 1;
-            keysToRender.forEach((k) => {
-                series[k].points.forEach((p) => {
-                    if (typeof p.y !== 'number' || !isFinite(p.y)) return;
-                    yMin = Math.min(yMin, p.y);
-                    yMax = Math.max(yMax, p.y);
-                });
-            });
-            if (showTeamAverage) {
-                averageKeys.forEach((k) => {
-                    averageSeries[k].points.forEach((p) => {
-                        if (typeof p.y !== 'number' || !isFinite(p.y)) return;
-                        yMin = Math.min(yMin, p.y);
-                        yMax = Math.max(yMax, p.y);
+            let barGradeValuesByX = {};
+            let lineGradeSeries = [];
+            if (teamAnalysisChartType === 'bar') {
+                const totalsByX = {};
+                const totalsByXAndGrade = {};
+                keysToRender.forEach((k) => {
+                    (series[k]?.points || []).forEach((p) => {
+                        const xi = Number(p?.x);
+                        const c = Number(p?.count);
+                        if (!isFinite(xi) || xi < 0 || xi >= xCount) return;
+                        if (!isFinite(c) || c <= 0) return;
+                        totalsByX[xi] = (totalsByX[xi] || 0) + c;
+                        const grades = p && p.grades ? p.grades : {};
+                        if (!totalsByXAndGrade[xi]) totalsByXAndGrade[xi] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                        totalsByXAndGrade[xi][1] += Number(grades[1] || 0);
+                        totalsByXAndGrade[xi][2] += Number(grades[2] || 0);
+                        totalsByXAndGrade[xi][3] += Number(grades[3] || 0);
+                        totalsByXAndGrade[xi][4] += Number(grades[4] || 0);
+                        totalsByXAndGrade[xi][5] += Number(grades[5] || 0);
                     });
                 });
+                yMin = 0;
+                yMax = teamAnalysisBarValueMode === 'percent' ? 100 : 0;
+                for (let i = 0; i < xCount; i++) {
+                    const gradeTotals = totalsByXAndGrade[i] || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                    const total = Number(gradeTotals[1] || 0) + Number(gradeTotals[2] || 0) + Number(gradeTotals[3] || 0) + Number(gradeTotals[4] || 0) + Number(gradeTotals[5] || 0);
+                    if (!total) continue;
+                    if (teamAnalysisBarValueMode === 'percent') {
+                        barGradeValuesByX[i] = {
+                            1: (Number(gradeTotals[1] || 0) / total) * 100,
+                            2: (Number(gradeTotals[2] || 0) / total) * 100,
+                            3: (Number(gradeTotals[3] || 0) / total) * 100,
+                            4: (Number(gradeTotals[4] || 0) / total) * 100,
+                            5: (Number(gradeTotals[5] || 0) / total) * 100
+                        };
+                    } else {
+                        barGradeValuesByX[i] = {
+                            1: Number(gradeTotals[1] || 0),
+                            2: Number(gradeTotals[2] || 0),
+                            3: Number(gradeTotals[3] || 0),
+                            4: Number(gradeTotals[4] || 0),
+                            5: Number(gradeTotals[5] || 0)
+                        };
+                    }
+                }
+                if (teamAnalysisBarValueMode === 'count') {
+                    yMax = Math.max(1, ...Object.values(totalsByX).map((v) => Number(v) || 0));
+                }
+            } else {
+                if (isLinePercentMode) {
+                    const gradeColors = { 1: '#ef4444', 2: '#f97316', 3: '#eab308', 4: '#15803d', 5: '#22c55e' };
+                    const totalsByXAndGrade = {};
+                    keysToRender.forEach((k) => {
+                        (series[k]?.points || []).forEach((p) => {
+                            const xi = Number(p?.x);
+                            if (!isFinite(xi) || xi < 0 || xi >= xCount) return;
+                            const grades = p && p.grades ? p.grades : {};
+                            if (!totalsByXAndGrade[xi]) totalsByXAndGrade[xi] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                            totalsByXAndGrade[xi][1] += Number(grades[1] || 0);
+                            totalsByXAndGrade[xi][2] += Number(grades[2] || 0);
+                            totalsByXAndGrade[xi][3] += Number(grades[3] || 0);
+                            totalsByXAndGrade[xi][4] += Number(grades[4] || 0);
+                            totalsByXAndGrade[xi][5] += Number(grades[5] || 0);
+                        });
+                    });
+                    lineGradeSeries = [1, 2, 3, 4, 5].map((grade) => ({
+                        key: `value-${grade}`,
+                        label: `Valore ${grade}`,
+                        color: gradeColors[grade],
+                        points: []
+                    }));
+                    for (let i = 0; i < xCount; i++) {
+                        const gradeTotals = totalsByXAndGrade[i] || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                        const total = Number(gradeTotals[1] || 0) + Number(gradeTotals[2] || 0) + Number(gradeTotals[3] || 0) + Number(gradeTotals[4] || 0) + Number(gradeTotals[5] || 0);
+                        if (!total) continue;
+                        const p1 = (Number(gradeTotals[1] || 0) / total) * 100;
+                        const p2 = (Number(gradeTotals[2] || 0) / total) * 100;
+                        const p3 = (Number(gradeTotals[3] || 0) / total) * 100;
+                        const p4 = (Number(gradeTotals[4] || 0) / total) * 100;
+                        const p5 = (Number(gradeTotals[5] || 0) / total) * 100;
+                        lineGradeSeries[0].points.push({ x: i, y: p1 });
+                        lineGradeSeries[1].points.push({ x: i, y: p1 + p2 });
+                        lineGradeSeries[2].points.push({ x: i, y: p1 + p2 + p3 });
+                        lineGradeSeries[3].points.push({ x: i, y: p1 + p2 + p3 + p4 });
+                        lineGradeSeries[4].points.push({ x: i, y: p1 + p2 + p3 + p4 + p5 });
+                    }
+                    lineGradeSeries = lineGradeSeries.filter((s) => s.points.length > 0);
+                    yMin = 0;
+                    yMax = 100;
+                } else {
+                    keysToRender.forEach((k) => {
+                        series[k].points.forEach((p) => {
+                            if (typeof p.y !== 'number' || !isFinite(p.y)) return;
+                            yMin = Math.min(yMin, p.y);
+                            yMax = Math.max(yMax, p.y);
+                        });
+                    });
+                    if (showTeamAverage) {
+                        averageKeys.forEach((k) => {
+                            averageSeries[k].points.forEach((p) => {
+                                if (typeof p.y !== 'number' || !isFinite(p.y)) return;
+                                yMin = Math.min(yMin, p.y);
+                                yMax = Math.max(yMax, p.y);
+                            });
+                        });
+                    }
+                }
             }
-            if (!isFinite(yMin) || !isFinite(yMax)) {
+            if (isLinePercentMode && !lineGradeSeries.length) {
                 teamAnalysisChart.style.display = 'none';
                 teamAnalysisChart.innerHTML = '';
                 teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
                 teamAnalysisChartEmpty.style.display = 'block';
-                renderTeamAnalysisRoster(series);
                 renderTeamAnalysisSelector(keys, series, null);
+                renderTeamAnalysisRoster(series);
                 return;
             }
-            const hardMin = 1;
-            const hardMax = 5;
-            const pad = 0.2;
-            yMin = Math.max(hardMin, yMin - pad);
-            yMax = Math.min(hardMax, yMax + pad);
-            if (yMax <= yMin) {
-                yMax = yMin + 1;
+            if (!isFinite(yMin) || !isFinite(yMax) || yMax <= yMin) {
+                teamAnalysisChart.style.display = 'none';
+                teamAnalysisChart.innerHTML = '';
+                teamAnalysisChartEmpty.textContent = 'Nessun dato disponibile per il team selezionato.';
+                teamAnalysisChartEmpty.style.display = 'block';
+                renderTeamAnalysisSelector(keys, series, null);
+                renderTeamAnalysisRoster(series);
+                return;
+            }
+            if (teamAnalysisChartType !== 'bar' && !isLinePercentMode) {
+                const hardMin = 1;
+                const hardMax = 5;
+                const pad = 0.2;
+                yMin = Math.max(hardMin, yMin - pad);
+                yMax = Math.min(hardMax, yMax + pad);
+                if (yMax <= yMin) {
+                    yMax = yMin + 1;
+                }
+            } else if (teamAnalysisBarValueMode === 'count') {
+                yMax = Math.max(1, Math.ceil(yMax));
             }
             const width = 800;
             const height = 360;
@@ -5292,7 +5556,6 @@
             const paddingBottom = 24;
             const innerWidth = width - paddingLeft - paddingRight;
             const innerHeight = height - paddingTop - paddingBottom;
-            const xCount = labels.length;
             const xStep = xCount > 1 ? innerWidth / (xCount - 1) : 0;
             const xScale = (idx) => paddingLeft + (xCount <= 1 ? 0 : idx * xStep);
             const yScale = (val) => {
@@ -5321,23 +5584,37 @@
             const xAxisY = paddingTop + innerHeight;
             svg += `<line x1="${paddingLeft}" y1="${xAxisY}" x2="${paddingLeft + innerWidth}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
             svg += `<line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
-            const yTicksStart = Math.ceil(yMin);
-            const yTicksEnd = Math.floor(yMax);
-            for (let v = yTicksStart; v <= yTicksEnd; v++) {
-                const y = yScale(v);
-                svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
-                svg += `<text x="${paddingLeft - 4}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(0)}</text>`;
+            if (teamAnalysisBarValueMode === 'percent') {
+                [0, 20, 40, 60, 80, 100].forEach((v) => {
+                    const y = yScale(v);
+                    svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
+                    svg += `<text x="${paddingLeft - 4}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v}%</text>`;
+                });
+            } else {
+                const yTicksStart = Math.ceil(yMin);
+                const yTicksEnd = Math.floor(yMax);
+                for (let v = yTicksStart; v <= yTicksEnd; v++) {
+                    const y = yScale(v);
+                    svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
+                    if (teamAnalysisChartType !== 'bar') {
+                        svg += `<text x="${paddingLeft - 4}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(0)}</text>`;
+                    }
+                }
             }
             if (xCount === 1) {
                 const x = xScale(0);
                 svg += `<line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${xAxisY}" stroke="#e5e7eb" stroke-width="1" />`;
-                svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(labels[0])}</text>`;
+                if (teamAnalysisChartType !== 'bar') {
+                    svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(labels[0])}</text>`;
+                }
             } else {
                 labels.forEach((label, idx) => {
                     const x = xScale(idx);
                     svg += `<line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${xAxisY}" stroke="#e5e7eb" stroke-width="1" />`;
                     svg += `<line x1="${x}" y1="${xAxisY}" x2="${x}" y2="${xAxisY + 4}" stroke="#94a3b8" stroke-width="1" />`;
-                    svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(label)}</text>`;
+                    if (teamAnalysisChartType !== 'bar') {
+                        svg += `<text x="${x}" y="${xAxisY + 8}" text-anchor="middle" font-size="8.5" fill="#64748b" transform="rotate(-30 ${x} ${xAxisY + 8})">${escapeHtml(label)}</text>`;
+                    }
                 });
             }
             const palette = ['#2563eb','#16a34a','#e11d48','#f97316','#0d9488','#7c3aed','#9333ea','#059669','#ea580c','#0f766e'];
@@ -5345,24 +5622,103 @@
                 const color = palette[idx % palette.length];
                 series[key].color = color;
             });
-            keysToRender.forEach((key) => {
-                const color = series[key].color || '#64748b';
-                const pts = series[key].points.slice().sort((a,b)=>a.x-b.x);
-                let d = '';
-                pts.forEach((p, i) => {
-                    const xx = xScale(p.x);
-                    const yy = yScale(p.y);
-                    d += (i === 0 ? `M${xx} ${yy}` : ` L${xx} ${yy}`);
-                });
-                if (d) {
-                    svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+            if (teamAnalysisChartType === 'bar') {
+                const barWidth = Math.max(10, Math.min(36, xCount > 1 ? xStep * 0.55 : innerWidth * 0.22));
+                const gradeColors = { 1: '#ef4444', 2: '#f97316', 3: '#eab308', 4: '#15803d', 5: '#22c55e' };
+                for (let xi = 0; xi < xCount; xi++) {
+                    const byGrade = barGradeValuesByX[xi];
+                    if (!byGrade) continue;
+                    const cx = xScale(xi);
+                    const x = Math.max(paddingLeft, Math.min(paddingLeft + innerWidth - barWidth, cx - (barWidth / 2)));
+                    let cumulative = 0;
+                    [1, 2, 3, 4, 5].forEach((grade) => {
+                        const part = Number(byGrade[grade] || 0);
+                        if (!isFinite(part) || part <= 0) return;
+                        const yStart = yScale(cumulative);
+                        cumulative += part;
+                        const yEnd = yScale(cumulative);
+                        const y = Math.min(yStart, yEnd);
+                        const h = Math.max(1, Math.abs(yEnd - yStart));
+                        const fill = gradeColors[grade] || '#64748b';
+                        svg += `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="${fill}" rx="1.5" ry="1.5" />`;
+                    });
                 }
-                pts.forEach((p) => {
-                    const xx = xScale(p.x);
-                    const yy = yScale(p.y);
-                    svg += `<circle cx="${xx}" cy="${yy}" r="3" fill="${color}" stroke="#ffffff" stroke-width="1" />`;
+            } else {
+                const lineSeriesToRender = isLinePercentMode
+                    ? lineGradeSeries
+                    : keysToRender.map((key) => ({ color: (series[key] && series[key].color) || '#64748b', points: (series[key] && series[key].points) || [] }));
+                if (isLinePercentMode && lineSeriesToRender.length) {
+                    const buildPointMap = (pts) => {
+                        const m = new Map();
+                        (pts || []).forEach((p) => {
+                            const xi = Number(p?.x);
+                            const yv = Number(p?.y);
+                            if (!isFinite(xi) || !isFinite(yv)) return;
+                            m.set(xi, yv);
+                        });
+                        return m;
+                    };
+                    const buildBands = (lowerMap, upperMap) => {
+                        const out = [];
+                        let cur = [];
+                        let prevX = null;
+                        for (let xi = 0; xi < xCount; xi++) {
+                            if (!upperMap.has(xi) || !lowerMap.has(xi)) {
+                                if (cur.length >= 2) out.push(cur);
+                                cur = [];
+                                prevX = null;
+                                continue;
+                            }
+                            if (prevX != null && xi !== prevX + 1) {
+                                if (cur.length >= 2) out.push(cur);
+                                cur = [];
+                            }
+                            cur.push({
+                                x: xi,
+                                low: Number(lowerMap.get(xi)),
+                                up: Number(upperMap.get(xi))
+                            });
+                            prevX = xi;
+                        }
+                        if (cur.length >= 2) out.push(cur);
+                        return out;
+                    };
+                    const upperMaps = lineSeriesToRender.map((entry) => buildPointMap(entry.points || []));
+                    const baseMap = new Map();
+                    for (let xi = 0; xi < xCount; xi++) baseMap.set(xi, 0);
+                    const lowerMaps = [baseMap, upperMaps[0] || new Map(), upperMaps[1] || new Map(), upperMaps[2] || new Map(), upperMaps[3] || new Map()];
+                    for (let i = 0; i < Math.min(5, lineSeriesToRender.length); i++) {
+                        const color = lineSeriesToRender[i].color || '#64748b';
+                        const segments = buildBands(lowerMaps[i] || new Map(), upperMaps[i] || new Map());
+                        segments.forEach((seg) => {
+                            const upperPts = seg.map((p) => `${xScale(p.x)},${yScale(p.up)}`);
+                            const lowerPts = seg.slice().reverse().map((p) => `${xScale(p.x)},${yScale(p.low)}`);
+                            const points = upperPts.concat(lowerPts).join(' ');
+                            if (points) {
+                                svg += `<polygon points="${points}" fill="${color}" fill-opacity="0.24" stroke="none" />`;
+                            }
+                        });
+                    }
+                }
+                lineSeriesToRender.forEach((entry) => {
+                    const color = entry.color || '#64748b';
+                    const pts = (entry.points || []).slice().sort((a,b)=>a.x-b.x);
+                    let d = '';
+                    pts.forEach((p, i) => {
+                        const xx = xScale(p.x);
+                        const yy = yScale(p.y);
+                        d += (i === 0 ? `M${xx} ${yy}` : ` L${xx} ${yy}`);
+                    });
+                    if (d) {
+                        svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+                    }
+                    pts.forEach((p) => {
+                        const xx = xScale(p.x);
+                        const yy = yScale(p.y);
+                        svg += `<circle cx="${xx}" cy="${yy}" r="3" fill="${color}" stroke="#ffffff" stroke-width="1" />`;
+                    });
                 });
-            });
+            }
             if (averagePoints && averagePoints.length) {
                 const avgColor = '#64748b';
                 const pts = averagePoints.slice().sort((a,b)=>a.x-b.x);
@@ -5380,8 +5736,8 @@
             teamAnalysisChart.innerHTML = svg;
             teamAnalysisChart.style.display = 'block';
             teamAnalysisChartEmpty.style.display = 'none';
-            renderTeamAnalysisRoster(series);
             renderTeamAnalysisSelector(keys, series, activeFocusKey);
+            renderTeamAnalysisRoster(series);
 
             if (!teamAnalysisLegendClearBound) {
                 teamAnalysisLegendClearBound = true;
