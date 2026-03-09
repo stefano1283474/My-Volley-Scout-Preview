@@ -519,6 +519,7 @@
               <button id="tabList" class="tab-button active" type="button" role="tab" aria-selected="true">Partite</button>
               <button id="tabRoster" class="tab-button" type="button" role="tab" aria-selected="false">Roster</button>
               <button id="tabAnalysis" class="tab-button" type="button" role="tab" aria-selected="false">Analisi Team</button>
+              <button id="tabPlayerAnalysis" class="tab-button" type="button" role="tab" aria-selected="false">Analisi Player</button>
             </div>
             <div class="list-actions" id="listActions" style="display:none;align-items:center;gap:8px;"></div>
         </div>
@@ -779,6 +780,44 @@
 
         </div>
 
+        <div id="playerAnalysisSection" class="matches-section tab-panel" style="display:none;">
+            <div id="playerAnalysisSummary" class="player-analysis-summary"></div>
+            <div id="playerAnalysisChartPanel" class="player-analysis-chart-panel" style="display:none;">
+                <div class="player-analysis-chart-head">
+                    <div class="player-analysis-filter-group">
+                        <div class="player-analysis-filter-title-row">
+                            <span>Player</span>
+                            <div class="player-analysis-filter-actions">
+                                <button type="button" class="player-analysis-bulk-btn" data-bulk-kind="player" data-bulk-mode="all">Tutte</button>
+                                <button type="button" class="player-analysis-bulk-btn" data-bulk-kind="player" data-bulk-mode="none">Nessuna</button>
+                            </div>
+                        </div>
+                        <div id="playerAnalysisTopPlayerButtons" class="player-analysis-toggle-group"></div>
+                    </div>
+                </div>
+                <div id="playerAnalysisChartEmpty" style="color:#64748b; font-size:13px;">Nessun confronto disponibile.</div>
+                <svg id="playerAnalysisChart" viewBox="0 0 900 320" preserveAspectRatio="none" style="width:100%; height:auto; min-height:260px; display:none;"></svg>
+                <div class="player-analysis-filter-group player-analysis-chart-fundamentals-row">
+                    <div class="player-analysis-filter-title-row">
+                        <span>Fondamentali</span>
+                        <div class="player-analysis-filter-actions">
+                            <button type="button" class="player-analysis-bulk-btn" data-bulk-kind="fundamental" data-bulk-mode="all">Tutte</button>
+                            <button type="button" class="player-analysis-bulk-btn" data-bulk-kind="fundamental" data-bulk-mode="none">Nessuna</button>
+                        </div>
+                    </div>
+                    <div id="playerAnalysisTopFundamentalButtons" class="player-analysis-toggle-group player-analysis-toggle-group-single-row"></div>
+                </div>
+                <div id="playerAnalysisLegend" class="player-analysis-legend"></div>
+            </div>
+            <div id="playerAnalysisRanking" class="player-analysis-ranking" style="display:none;"></div>
+            <div id="playerAnalysisList" class="player-analysis-list"></div>
+            <div id="playerAnalysisEmpty" class="empty-state" style="display:none;">
+                <img class="empty-icon" src="./LOGO_PALLONE.png" alt="Pallone" />
+                <p>Nessun dato disponibile</p>
+                <p>Completa lo scout di almeno una partita per vedere l'analisi giocatrici.</p>
+            </div>
+        </div>
+
      </div>
  
       <!-- Loading Screen -->
@@ -786,7 +825,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.1.1</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.2.1</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -884,6 +923,409 @@
             flex-direction: column;
             gap: 8px;
             width: 100%;
+        }
+
+        .player-analysis-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .player-analysis-chart-panel {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .player-analysis-chart-head {
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .player-analysis-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 260px;
+            min-width: 180px;
+        }
+
+        .player-analysis-chart-fundamentals-row {
+            margin-top: 2px;
+        }
+
+        .player-analysis-filter-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .player-analysis-filter-group span {
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .player-analysis-filter-actions {
+            display: inline-flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .player-analysis-bulk-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            border-radius: 999px;
+            min-height: 26px;
+            padding: 0 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+        }
+
+        .player-analysis-toggle-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 6px;
+        }
+
+        .player-analysis-toggle-group-single-row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            padding-bottom: 2px;
+        }
+
+        .player-analysis-toggle-group-single-row .player-analysis-toggle-btn {
+            width: auto;
+            min-width: 58px;
+            flex: 0 0 auto;
+            padding: 0 7px;
+            font-size: 10px;
+        }
+
+        #playerAnalysisTopPlayerButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-analysis-toggle-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 999px;
+            min-height: 30px;
+            width: 100%;
+            padding: 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            line-height: 1.15;
+            transition: all .18s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        .player-analysis-toggle-btn.active {
+            border-color: #1d4ed8;
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .player-analysis-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .player-analysis-legend-item {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            min-height: 30px;
+            min-width: 110px;
+            padding: 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+            background: #ffffff;
+        }
+
+        .player-analysis-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            display: inline-block;
+        }
+
+        .player-analysis-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 999px;
+            min-height: 30px;
+            min-width: 110px;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .player-analysis-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-analysis-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .player-analysis-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .player-analysis-name {
+            color: #0f172a;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .player-analysis-role {
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .player-analysis-score {
+            min-width: 64px;
+            text-align: right;
+            color: #0f172a;
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .player-analysis-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .player-analysis-bars {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .player-analysis-bar {
+            border: 1px solid #d1fae5;
+            background: #ecfdf5;
+            color: #047857;
+            border-radius: 8px;
+            padding: 4px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .player-analysis-open-chart {
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .player-analysis-card-chart-wrap {
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fcfdff;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .player-analysis-card-chart-head {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .player-analysis-card-chart-head span {
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .player-analysis-card-toggle-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            gap: 6px;
+            width: 100%;
+        }
+
+        .player-analysis-role-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 30px;
+        }
+
+        .player-analysis-role-initial {
+            width: 20px;
+            flex: 0 0 20px;
+            text-align: center;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .player-analysis-role-scroll {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            padding-bottom: 2px;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .player-analysis-role-scroll .player-analysis-toggle-btn {
+            width: auto;
+            min-width: 46px;
+            padding: 0 7px;
+            font-size: 10px;
+            flex: 0 0 auto;
+        }
+
+        .player-analysis-card-chart-empty {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .player-analysis-ranking {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .player-analysis-ranking-title {
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .player-analysis-ranking-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .player-analysis-ranking-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 10px;
+            background: #ffffff;
+        }
+
+        .player-analysis-ranking-pos {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 11px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-analysis-ranking-name {
+            color: #0f172a;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-analysis-ranking-metrics {
+            text-align: right;
+            color: #334155;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .player-analysis-ranking-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .team-analysis-viewport {
@@ -2047,8 +2489,20 @@
         const tabList = document.getElementById('tabList');
         const tabRoster = document.getElementById('tabRoster');
         const tabAnalysis = document.getElementById('tabAnalysis');
+        const tabPlayerAnalysis = document.getElementById('tabPlayerAnalysis');
         const listSection = document.getElementById('listSection');
         const teamAnalysisSection = document.getElementById('teamAnalysisSection');
+        const playerAnalysisSection = document.getElementById('playerAnalysisSection');
+        const playerAnalysisSummary = document.getElementById('playerAnalysisSummary');
+        const playerAnalysisChartPanel = document.getElementById('playerAnalysisChartPanel');
+        const playerAnalysisTopFundamentalButtons = document.getElementById('playerAnalysisTopFundamentalButtons');
+        const playerAnalysisTopPlayerButtons = document.getElementById('playerAnalysisTopPlayerButtons');
+        const playerAnalysisChart = document.getElementById('playerAnalysisChart');
+        const playerAnalysisChartEmpty = document.getElementById('playerAnalysisChartEmpty');
+        const playerAnalysisLegend = document.getElementById('playerAnalysisLegend');
+        const playerAnalysisRanking = document.getElementById('playerAnalysisRanking');
+        const playerAnalysisList = document.getElementById('playerAnalysisList');
+        const playerAnalysisEmpty = document.getElementById('playerAnalysisEmpty');
         const rootContainer = document.querySelector('.container');
         const inlineMatchForm = document.getElementById('inlineMatchForm');
         const newMatchBtn = document.getElementById('newMatchBtn');
@@ -2125,6 +2579,11 @@
         let teamAnalysisBarValueMode = 'count';
         let teamAnalysisPlusMode = false;
         let isObserverMode = false;
+        let playerAnalysisTopSelectedFundamentals = [];
+        let playerAnalysisTopSelectedPlayers = [];
+        let playerAnalysisTopAvailablePlayers = [];
+        let playerAnalysisCardFundamentalsByPlayer = {};
+        let playerAnalysisDefaultsInitialized = false;
 
         function readAppSettings() {
             try {
@@ -3360,6 +3819,7 @@
             if (tabList) tabList.addEventListener('click', (e) => { e.preventDefault(); switchTab('list'); });
             if (tabRoster) tabRoster.addEventListener('click', (e) => { e.preventDefault(); location.href = '/roster.html'; });
             if (tabAnalysis) tabAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('analysis'); });
+            if (tabPlayerAnalysis) tabPlayerAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('player-analysis'); });
             if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
             const importBtn = document.getElementById('importMatchBtn');
             if (importBtn) importBtn.addEventListener('click', handleImportMatchClick);
@@ -3415,6 +3875,60 @@
             if (pivotConfigX2) pivotConfigX2.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
             if (pivotConfigX3) pivotConfigX3.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
             if (pivotConfigY) pivotConfigY.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
+            if (playerAnalysisChartPanel) {
+                playerAnalysisChartPanel.addEventListener('click', (e) => {
+                    const btn = e.target && e.target.closest ? e.target.closest('.player-analysis-toggle-btn') : null;
+                    if (btn) {
+                        const kind = String(btn.getAttribute('data-toggle-kind') || '').trim();
+                        const value = String(btn.getAttribute('data-toggle-value') || '').trim();
+                        if (!value) return;
+                        if (kind === 'fundamental') {
+                            const current = Array.isArray(playerAnalysisTopSelectedFundamentals) ? playerAnalysisTopSelectedFundamentals.slice() : [];
+                            const has = current.includes(value);
+                            const next = has ? current.filter(v => v !== value) : current.concat([value]);
+                            playerAnalysisTopSelectedFundamentals = next;
+                            renderPlayerAnalysis();
+                            return;
+                        }
+                        if (kind === 'player') {
+                            const current = Array.isArray(playerAnalysisTopSelectedPlayers) ? playerAnalysisTopSelectedPlayers.slice() : [];
+                            const has = current.includes(value);
+                            const next = has ? current.filter(v => v !== value) : current.concat([value]);
+                            playerAnalysisTopSelectedPlayers = next;
+                            renderPlayerAnalysis();
+                            return;
+                        }
+                    }
+                    const bulkBtn = e.target && e.target.closest ? e.target.closest('.player-analysis-bulk-btn') : null;
+                    if (!bulkBtn) return;
+                    const kind = String(bulkBtn.getAttribute('data-bulk-kind') || '').trim();
+                    const mode = String(bulkBtn.getAttribute('data-bulk-mode') || '').trim();
+                    if (kind === 'fundamental') {
+                        const allFundamentals = getPlayerAnalysisFundamentals();
+                        playerAnalysisTopSelectedFundamentals = mode === 'all' ? allFundamentals.slice() : [];
+                        renderPlayerAnalysis();
+                        return;
+                    }
+                    if (kind === 'player') {
+                        playerAnalysisTopSelectedPlayers = mode === 'all' ? playerAnalysisTopAvailablePlayers.slice() : [];
+                        renderPlayerAnalysis();
+                    }
+                });
+            }
+            if (playerAnalysisList) {
+                playerAnalysisList.addEventListener('click', (e) => {
+                    const btn = e.target && e.target.closest ? e.target.closest('.player-analysis-card-toggle-btn') : null;
+                    if (!btn) return;
+                    const key = String(btn.getAttribute('data-player-key') || '').trim();
+                    const fundamental = String(btn.getAttribute('data-fundamental') || '').trim();
+                    if (!key || !fundamental) return;
+                    const current = Array.isArray(playerAnalysisCardFundamentalsByPlayer[key]) ? playerAnalysisCardFundamentalsByPlayer[key].slice() : ['Attacco'];
+                    const has = current.includes(fundamental);
+                    const next = has ? current.filter(v => v !== fundamental) : current.concat([fundamental]);
+                    playerAnalysisCardFundamentalsByPlayer[key] = next;
+                    renderPlayerAnalysis();
+                });
+            }
 
             if (teamAnalysisFilterBoxes && teamAnalysisFilterBoxes.length) {
                 teamAnalysisFilterBoxes.forEach((box) => {
@@ -3663,11 +4177,15 @@
         function switchTab(tab){
             const isList = tab === 'list';
             const isAnalysis = tab === 'analysis';
+            const isPlayerAnalysis = tab === 'player-analysis';
             if (listSection){
                 listSection.style.display = isList ? 'block' : 'none';
             }
             if (teamAnalysisSection){
                 teamAnalysisSection.style.display = isAnalysis ? 'block' : 'none';
+            }
+            if (playerAnalysisSection){
+                playerAnalysisSection.style.display = isPlayerAnalysis ? 'block' : 'none';
             }
             if (tabList){
                 tabList.classList.toggle('active', isList);
@@ -3676,6 +4194,10 @@
             if (tabAnalysis){
                 tabAnalysis.classList.toggle('active', isAnalysis);
                 tabAnalysis.setAttribute('aria-selected', isAnalysis ? 'true' : 'false');
+            }
+            if (tabPlayerAnalysis){
+                tabPlayerAnalysis.classList.toggle('active', isPlayerAnalysis);
+                tabPlayerAnalysis.setAttribute('aria-selected', isPlayerAnalysis ? 'true' : 'false');
             }
             if (rootContainer){
                 rootContainer.classList.remove('full-height');
@@ -3697,6 +4219,9 @@
                 } else {
                     renderTeamAnalysisChart(relevant);
                 }
+            }
+            if (isPlayerAnalysis){
+                renderPlayerAnalysis();
             }
         }
 
@@ -4656,6 +5181,723 @@
                 roleByNumber[numKey] = roleLabel;
             });
             teamAnalysisRosterCache = { players, roleByNumber };
+        }
+
+        function cleanPlayerNick(rawName, normalizedNumber) {
+            let s = String(rawName || '').trim();
+            if (!s) return '';
+            const num = normalizePlayerNumberForKey(normalizedNumber);
+            if (num) {
+                const one = String(Number(num));
+                const two = String(num).padStart(2, '0');
+                const escapedOne = one.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const escapedTwo = two.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const rxLeading = new RegExp(`^(?:#?\\s*(?:${escapedTwo}|${escapedOne})\\s*[-.)]?\\s*)+`, 'i');
+                const rxToken = new RegExp(`(^|\\s)(?:#?0?${escapedOne})(?=\\s|$)`, 'ig');
+                s = s.replace(rxLeading, '').replace(rxToken, ' ').replace(/\s{2,}/g, ' ').trim();
+            }
+            return s;
+        }
+
+        function resolvePlayerAnalysisName(numberKey, fallbackName) {
+            const normalized = normalizePlayerNumberForKey(numberKey);
+            const twoDigits = normalized ? String(normalized).padStart(2, '0') : '';
+            try {
+                const rosterPlayers = Array.isArray(teamAnalysisRosterCache.players) ? teamAnalysisRosterCache.players : [];
+                const byNumber = normalized ? rosterPlayers.find((rp) => normalizePlayerNumberForKey(rp?.number) === String(normalized)) : null;
+                const candidate = byNumber || null;
+                const rawNick = candidate
+                    ? String(candidate.nickname || candidate.surname || candidate.lastName || candidate.name || candidate.firstName || '').trim()
+                    : String(fallbackName || '').trim();
+                const nick = cleanPlayerNick(rawNick, normalized);
+                if (twoDigits && nick) return `${twoDigits} ${nick}`.trim();
+                if (twoDigits) return twoDigits;
+                return nick || 'Giocatrice';
+            } catch(_) {
+                const fb = cleanPlayerNick(String(fallbackName || '').trim(), normalized);
+                if (twoDigits && fb) return `${twoDigits} ${fb}`.trim();
+                if (twoDigits) return twoDigits;
+                return fb || 'Giocatrice';
+            }
+        }
+
+        function getPlayerAnalysisColorByFundamental(fundamental) {
+            const map = {
+                Attacco: '#0d6efd',
+                Servizio: '#22c55e',
+                Muro: '#f59e0b',
+                Ricezione: '#8b5cf6',
+                Difesa: '#06b6d4'
+            };
+            return map[fundamental] || '#64748b';
+        }
+
+        function getAverageFromCounts(counts) {
+            const c = counts || {};
+            const c1 = Number(c[1] || 0);
+            const c2 = Number(c[2] || 0);
+            const c3 = Number(c[3] || 0);
+            const c4 = Number(c[4] || 0);
+            const c5 = Number(c[5] || 0);
+            const total = c1 + c2 + c3 + c4 + c5;
+            if (!total) return { avg: null, total: 0 };
+            return { avg: (1*c1 + 2*c2 + 3*c3 + 4*c4 + 5*c5) / total, total };
+        }
+
+        function resolvePlayerEntryFromFundBucket(fundBucket, playerKey) {
+            if (!fundBucket || !playerKey) return null;
+            if (fundBucket[playerKey]) return fundBucket[playerKey];
+            const normalizedPlayerKey = String(playerKey || '').trim().toLowerCase();
+            const numericKey = normalizePlayerNumberForKey(playerKey);
+            const entries = Object.entries(fundBucket).filter(([k]) => k !== 'teamTotal');
+            for (const [, data] of entries) {
+                const entryNumber = normalizePlayerNumberForKey(data?.number || '');
+                if (numericKey && entryNumber && numericKey === entryNumber) return data;
+                const entryName = String(data?.name || '').trim().toLowerCase();
+                if (!numericKey && normalizedPlayerKey && entryName && normalizedPlayerKey === entryName) return data;
+            }
+            return null;
+        }
+
+        function buildPlayerAnalysisMatchAggregates(relevantMatches) {
+            const sortedMatches = (Array.isArray(relevantMatches) ? relevantMatches : []).slice().sort((a, b) => getMatchDateEpoch(a) - getMatchDateEpoch(b));
+            const rows = sortedMatches.map((match) => {
+                const logs = collectTeamAnalysisLogsForMatch(match);
+                let agg = null;
+                if (logs.length && typeof window.aggregateByPlayerAndFundamental === 'function') {
+                    try { agg = window.aggregateByPlayerAndFundamental(logs); } catch(_) { agg = null; }
+                }
+                return {
+                    match,
+                    label: getTeamAnalysisMatchLabel(match),
+                    agg
+                };
+            });
+            return { sortedMatches, rows };
+        }
+
+        function getPlayerAnalysisFundamentals() {
+            return ['Attacco', 'Servizio', 'Muro', 'Ricezione', 'Difesa'];
+        }
+
+        function getFundamentalShortLabel(fundamental) {
+            const map = {
+                Attacco: 'Att.',
+                Servizio: 'Serv.',
+                Muro: 'Muro',
+                Ricezione: 'Rice',
+                Difesa: 'Dif.'
+            };
+            return map[fundamental] || String(fundamental || '');
+        }
+
+        function normalizeSelection(values, allowed, fallbackValue) {
+            const arr = Array.isArray(values) ? values.map(v => String(v || '').trim()).filter(Boolean) : [];
+            const filtered = arr.filter(v => allowed.includes(v));
+            if (filtered.length) return Array.from(new Set(filtered));
+            if (fallbackValue && allowed.includes(fallbackValue)) return [fallbackValue];
+            return allowed.length ? [allowed[0]] : [];
+        }
+
+        function normalizeSelectionAllowEmpty(values, allowed) {
+            const arr = Array.isArray(values) ? values.map(v => String(v || '').trim()).filter(Boolean) : [];
+            const filtered = arr.filter(v => allowed.includes(v));
+            return Array.from(new Set(filtered));
+        }
+
+        function createEmptyCounts() {
+            return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        }
+
+        function addCounts(target, source) {
+            const src = source || {};
+            [1,2,3,4,5].forEach((v) => {
+                target[v] = Number(target[v] || 0) + Number(src[v] || 0);
+            });
+        }
+
+        function buildPlayerFundamentalSeries(playerKey, selectedFundamentals, matchAggregates) {
+            const allowedFunds = getPlayerAnalysisFundamentals();
+            const pickedFunds = normalizeSelectionAllowEmpty(selectedFundamentals, allowedFunds);
+            const payload = matchAggregates && Array.isArray(matchAggregates.rows) ? matchAggregates.rows : [];
+            if (!pickedFunds.length) {
+                return payload.map((item) => ({
+                    label: String(item?.label || ''),
+                    playerAvg: null,
+                    teamAvg: null,
+                    delta: null,
+                    playerTotal: 0
+                }));
+            }
+            return payload.map((item) => {
+                const teamCounts = createEmptyCounts();
+                const playerCounts = createEmptyCounts();
+                pickedFunds.forEach((fundamental) => {
+                    const fundBucket = item?.agg && item.agg[fundamental] ? item.agg[fundamental] : null;
+                    addCounts(teamCounts, fundBucket?.teamTotal || {});
+                    const playerEntry = resolvePlayerEntryFromFundBucket(fundBucket, playerKey);
+                    addCounts(playerCounts, playerEntry?.counts || {});
+                });
+                const teamCalc = getAverageFromCounts(teamCounts);
+                const playerCalc = getAverageFromCounts(playerCounts);
+                const hasTeam = teamCalc.avg != null;
+                const hasPlayer = playerCalc.avg != null;
+                return {
+                    label: String(item?.label || ''),
+                    playerAvg: hasPlayer ? playerCalc.avg : null,
+                    teamAvg: hasTeam ? teamCalc.avg : null,
+                    delta: (hasPlayer && hasTeam) ? (playerCalc.avg - teamCalc.avg) : null,
+                    playerTotal: Number(playerCalc.total || 0)
+                };
+            });
+        }
+
+        function buildTeamFundamentalSeries(selectedFundamentals, matchAggregates) {
+            const allowedFunds = getPlayerAnalysisFundamentals();
+            const pickedFunds = normalizeSelectionAllowEmpty(selectedFundamentals, allowedFunds);
+            const payload = matchAggregates && Array.isArray(matchAggregates.rows) ? matchAggregates.rows : [];
+            return payload.map((item) => {
+                if (!pickedFunds.length) {
+                    return {
+                        label: String(item?.label || ''),
+                        teamAvg: null
+                    };
+                }
+                const teamCounts = createEmptyCounts();
+                pickedFunds.forEach((fundamental) => {
+                    const fundBucket = item?.agg && item.agg[fundamental] ? item.agg[fundamental] : null;
+                    addCounts(teamCounts, fundBucket?.teamTotal || {});
+                });
+                const teamCalc = getAverageFromCounts(teamCounts);
+                return {
+                    label: String(item?.label || ''),
+                    teamAvg: teamCalc.avg != null ? teamCalc.avg : null
+                };
+            });
+        }
+
+        function buildPlayerCardChartSvg(points, color, width, height) {
+            const valid = (Array.isArray(points) ? points : []).filter((p) => p && p.delta != null && Number.isFinite(p.delta));
+            if (!valid.length) return '';
+            const padLeft = 34;
+            const padRight = 12;
+            const padTop = 10;
+            const padBottom = 34;
+            const deltas = valid.map((p) => Number(p.delta || 0));
+            const yMinRaw = Math.min(-0.2, ...deltas);
+            const yMaxRaw = Math.max(0.2, ...deltas);
+            const yPad = Math.max(0.12, (yMaxRaw - yMinRaw) * 0.1);
+            const yMin = yMinRaw - yPad;
+            const yMax = yMaxRaw + yPad;
+            const xDen = Math.max(1, points.length - 1);
+            const xScale = (index) => padLeft + ((width - padLeft - padRight) * (index / xDen));
+            const yScale = (value) => {
+                const ratio = (value - yMin) / (yMax - yMin || 1);
+                return (height - padBottom) - ratio * (height - padTop - padBottom);
+            };
+            let svg = '';
+            const zeroY = yScale(0);
+            svg += `<line x1="${padLeft}" y1="${zeroY}" x2="${width - padRight}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3 3" />`;
+            let d = '';
+            let hasStarted = false;
+            points.forEach((point, index) => {
+                if (!point || point.delta == null || !Number.isFinite(point.delta)) {
+                    return;
+                }
+                const x = xScale(index);
+                const y = yScale(point.delta);
+                d += hasStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
+                hasStarted = true;
+            });
+            if (d) svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />`;
+            points.forEach((point, index) => {
+                if (!point || point.delta == null || !Number.isFinite(point.delta)) return;
+                const x = xScale(index);
+                const y = yScale(point.delta);
+                const label = String(point.label || '').replace(/"/g, '&quot;');
+                const title = `${label}\nPlayer: ${point.playerAvg != null ? point.playerAvg.toFixed(2) : 'n/d'}\nSquadra: ${point.teamAvg != null ? point.teamAvg.toFixed(2) : 'n/d'}\nDiff: ${formatSignedValue(point.delta)}`;
+                svg += `<circle cx="${x}" cy="${y}" r="2.8" fill="${color}"><title>${title}</title></circle>`;
+            });
+            points.forEach((point, index) => {
+                if (!point || !point.label) return;
+                if (index % 2 !== 0 && points.length > 8) return;
+                const x = xScale(index);
+                const shortLabel = String(point.label || `P${index + 1}`).split(' • ')[0];
+                svg += `<text x="${x}" y="${height - 10}" text-anchor="end" transform="rotate(-36 ${x} ${height - 10})" font-size="9" fill="#64748b">${escapeHtml(shortLabel)}</text>`;
+            });
+            return svg;
+        }
+
+        function renderPlayerComparisonChart(rows, matchAggregates, selectedPlayerKeys, selectedFundamentals) {
+            if (!playerAnalysisChart || !playerAnalysisChartEmpty || !playerAnalysisLegend) return;
+            const list = Array.isArray(rows) ? rows : [];
+            const selectedSet = new Set(Array.isArray(selectedPlayerKeys) ? selectedPlayerKeys.map(v => String(v || '').trim()).filter(Boolean) : []);
+            const funds = normalizeSelectionAllowEmpty(selectedFundamentals, getPlayerAnalysisFundamentals());
+            const fundsLabel = funds.map((f) => getFundamentalShortLabel(f)).join(' + ');
+            const teamSeries = buildTeamFundamentalSeries(funds, matchAggregates);
+            const teamValidPoints = teamSeries.filter((p) => p && p.teamAvg != null && Number.isFinite(p.teamAvg));
+            const seriesRows = list
+                .filter((row) => selectedSet.has(String(row.key)))
+                .map((row) => {
+                const points = buildPlayerFundamentalSeries(row.key, funds, matchAggregates);
+                const valid = points.filter((p) => p && p.delta != null && Number.isFinite(p.delta));
+                const avgDelta = valid.length ? (valid.reduce((acc, p) => acc + Number(p.delta || 0), 0) / valid.length) : null;
+                return Object.assign({}, row, { points, avgDelta, validCount: valid.length });
+            }).filter((row) => row.validCount > 0);
+            const matchCount = Array.isArray(matchAggregates?.sortedMatches) ? matchAggregates.sortedMatches.length : 0;
+            if ((!seriesRows.length && !teamValidPoints.length) || matchCount <= 0) {
+                playerAnalysisChart.style.display = 'none';
+                playerAnalysisChart.innerHTML = '';
+                playerAnalysisChartEmpty.textContent = 'Nessun confronto disponibile per i filtri selezionati.';
+                playerAnalysisChartEmpty.style.display = 'block';
+                playerAnalysisLegend.innerHTML = '';
+                if (playerAnalysisRanking) {
+                    playerAnalysisRanking.style.display = 'none';
+                    playerAnalysisRanking.innerHTML = '';
+                }
+                return;
+            }
+            const width = 900;
+            const height = 320;
+            const padLeft = 52;
+            const padRight = 20;
+            const padTop = 16;
+            const padBottom = 64;
+            const allDeltas = [];
+            seriesRows.forEach((row) => {
+                row.points.forEach((p) => {
+                    if (p && p.delta != null && Number.isFinite(p.delta)) allDeltas.push(Number(p.delta));
+                });
+            });
+            const minDelta = Math.min(-0.2, ...allDeltas);
+            const maxDelta = Math.max(0.2, ...allDeltas);
+            const rangePad = Math.max(0.15, (maxDelta - minDelta) * 0.08);
+            const yMin = minDelta - rangePad;
+            const yMax = maxDelta + rangePad;
+            const xDen = Math.max(1, matchCount - 1);
+            const xScale = (index) => padLeft + ((width - padLeft - padRight) * (index / xDen));
+            const yScale = (value) => {
+                const ratio = (value - yMin) / (yMax - yMin || 1);
+                return (height - padBottom) - ratio * (height - padTop - padBottom);
+            };
+            const zeroY = yScale(0);
+            const sortedLegend = seriesRows.slice().sort((a, b) => Number(b.avgDelta || -99) - Number(a.avgDelta || -99));
+            const colorByPlayer = {};
+            sortedLegend.forEach((row, index) => {
+                const hue = Math.round((index * 137.5) % 360);
+                colorByPlayer[row.key] = `hsl(${hue} 72% 46%)`;
+            });
+            let svg = '';
+            const gridTicks = 5;
+            for (let i = 0; i <= gridTicks; i++) {
+                const t = i / gridTicks;
+                const yVal = yMin + (yMax - yMin) * t;
+                const y = yScale(yVal);
+                svg += `<line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />`;
+                svg += `<text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${yVal.toFixed(2)}</text>`;
+            }
+            svg += `<line x1="${padLeft}" y1="${zeroY}" x2="${width - padRight}" y2="${zeroY}" stroke="#334155" stroke-width="1.4" stroke-dasharray="4 3" />`;
+            let teamPath = '';
+            let teamStarted = false;
+            teamSeries.forEach((point, index) => {
+                if (!point || point.teamAvg == null || !Number.isFinite(point.teamAvg)) return;
+                const x = xScale(index);
+                teamPath += teamStarted ? ` L ${x} ${zeroY}` : `M ${x} ${zeroY}`;
+                teamStarted = true;
+            });
+            if (teamPath) {
+                svg += `<path d="${teamPath}" fill="none" stroke="#0f172a" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.88" />`;
+                teamSeries.forEach((point, index) => {
+                    if (!point || point.teamAvg == null || !Number.isFinite(point.teamAvg)) return;
+                    const x = xScale(index);
+                    const label = String(point.label || '').replace(/"/g, '&quot;');
+                    const title = `${label}\nMedia squadra: ${point.teamAvg.toFixed(2)}\nFondamentali: ${funds.join(' + ') || 'n/d'}`;
+                    svg += `<circle cx="${x}" cy="${zeroY}" r="2.8" fill="#0f172a"><title>${title}</title></circle>`;
+                });
+            }
+            seriesRows.forEach((row) => {
+                const color = colorByPlayer[row.key] || '#2563eb';
+                let d = '';
+                let hasStarted = false;
+                row.points.forEach((point, index) => {
+                    if (!point || point.delta == null || !Number.isFinite(point.delta)) {
+                        return;
+                    }
+                    const x = xScale(index);
+                    const y = yScale(point.delta);
+                    d += hasStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
+                    hasStarted = true;
+                });
+                if (!d) return;
+                svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.92" />`;
+                row.points.forEach((point, index) => {
+                    if (!point || point.delta == null || !Number.isFinite(point.delta)) return;
+                    const x = xScale(index);
+                    const y = yScale(point.delta);
+                    const label = String(point.label || '').replace(/"/g, '&quot;');
+                    const title = `${resolvePlayerAnalysisName(row.number, row.name)} • ${label}\nPlayer: ${point.playerAvg != null ? point.playerAvg.toFixed(2) : 'n/d'}\nSquadra: ${point.teamAvg != null ? point.teamAvg.toFixed(2) : 'n/d'}\nDiff: ${formatSignedValue(point.delta)}`;
+                    svg += `<circle cx="${x}" cy="${y}" r="2.4" fill="${color}"><title>${title}</title></circle>`;
+                });
+            });
+            (matchAggregates.sortedMatches || []).forEach((match, index) => {
+                const x = xScale(index);
+                const label = getTeamAnalysisMatchLabel(match);
+                const shortLabel = String(label || `P${index + 1}`).split(' • ')[0];
+                svg += `<text x="${x}" y="${height - padBottom + 16}" text-anchor="end" transform="rotate(-38 ${x} ${height - padBottom + 16})" font-size="10" fill="#475569">${escapeHtml(shortLabel)}</text>`;
+            });
+            svg += `<text x="${width - padRight}" y="${height - 6}" text-anchor="end" font-size="11" fill="#64748b">Confronto player vs media squadra (${escapeHtml(fundsLabel)})</text>`;
+            playerAnalysisChart.innerHTML = svg;
+            playerAnalysisChart.style.display = 'block';
+            playerAnalysisChartEmpty.style.display = 'none';
+            const teamAverage = teamValidPoints.length
+                ? (teamValidPoints.reduce((acc, p) => acc + Number(p.teamAvg || 0), 0) / teamValidPoints.length)
+                : null;
+            const legendRows = [];
+            if (teamAverage != null && Number.isFinite(teamAverage)) {
+                legendRows.push(`<span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:#0f172a;"></span>Squadra ${teamAverage.toFixed(2)}</span>`);
+            }
+            legendRows.push(...sortedLegend.map((row) => {
+                const color = colorByPlayer[row.key] || '#2563eb';
+                const display = resolvePlayerAnalysisName(row.number, row.name);
+                return `<span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:${color};"></span>${escapeHtml(display)} ${formatSignedValue(row.avgDelta)}</span>`;
+            }));
+            playerAnalysisLegend.innerHTML = legendRows.join('');
+            if (playerAnalysisRanking && sortedLegend.length) {
+                const rankingRows = sortedLegend.map((row, idx) => {
+                    const display = resolvePlayerAnalysisName(row.number, row.name);
+                    const touches = (Array.isArray(row.points) ? row.points : []).reduce((acc, p) => acc + Number(p?.playerTotal || 0), 0);
+                    return `
+                        <div class="player-analysis-ranking-row">
+                            <span class="player-analysis-ranking-pos">${idx + 1}</span>
+                            <span class="player-analysis-ranking-name">${escapeHtml(display)}</span>
+                            <span class="player-analysis-ranking-metrics">${formatSignedValue(row.avgDelta)} · ${touches}</span>
+                        </div>
+                    `;
+                }).join('');
+                playerAnalysisRanking.style.display = 'block';
+                playerAnalysisRanking.innerHTML = `
+                    <div class="player-analysis-ranking-title">Classifica player sui filtri attivi (${escapeHtml(fundsLabel)})</div>
+                    <div class="player-analysis-ranking-grid">${rankingRows}</div>
+                `;
+            } else if (playerAnalysisRanking) {
+                playerAnalysisRanking.style.display = 'none';
+                playerAnalysisRanking.innerHTML = '';
+            }
+        }
+
+        function formatSignedValue(v) {
+            const n = Number(v || 0);
+            if (!Number.isFinite(n)) return '0.00';
+            return n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
+        }
+
+        function renderPlayerPerformanceChart(playerKey, relevantMatches) {
+            if (!playerAnalysisChart || !playerAnalysisChartEmpty || !playerAnalysisLegend) return;
+            if (!playerKey) {
+                playerAnalysisChart.style.display = 'none';
+                playerAnalysisChart.innerHTML = '';
+                playerAnalysisChartEmpty.textContent = 'Seleziona una player per vedere il grafico.';
+                playerAnalysisChartEmpty.style.display = 'block';
+                playerAnalysisLegend.innerHTML = '';
+                return;
+            }
+            const payload = buildPlayerMatchFundamentalSeries(playerKey, relevantMatches);
+            const series = payload.series || {};
+            const fundamentals = payload.fundamentals || [];
+            const matchCount = (payload.sortedMatches || []).length;
+            const deltas = [];
+            fundamentals.forEach((fundamental) => {
+                (series[fundamental] || []).forEach((point) => {
+                    if (point && point.delta != null && Number.isFinite(point.delta)) deltas.push(point.delta);
+                });
+            });
+            if (!deltas.length || matchCount <= 0) {
+                playerAnalysisChart.style.display = 'none';
+                playerAnalysisChart.innerHTML = '';
+                playerAnalysisChartEmpty.textContent = 'Nessun confronto disponibile per questa player.';
+                playerAnalysisChartEmpty.style.display = 'block';
+                playerAnalysisLegend.innerHTML = '';
+                return;
+            }
+            const width = 900;
+            const height = 320;
+            const padLeft = 52;
+            const padRight = 20;
+            const padTop = 16;
+            const padBottom = 64;
+            const minDelta = Math.min(-0.2, ...deltas);
+            const maxDelta = Math.max(0.2, ...deltas);
+            const rangePad = Math.max(0.15, (maxDelta - minDelta) * 0.08);
+            const yMin = minDelta - rangePad;
+            const yMax = maxDelta + rangePad;
+            const xDen = Math.max(1, matchCount - 1);
+            const xScale = (index) => padLeft + ((width - padLeft - padRight) * (index / xDen));
+            const yScale = (value) => {
+                const ratio = (value - yMin) / (yMax - yMin || 1);
+                return (height - padBottom) - ratio * (height - padTop - padBottom);
+            };
+            const zeroY = yScale(0);
+            const gridTicks = 5;
+            let svg = '';
+            for (let i = 0; i <= gridTicks; i++) {
+                const t = i / gridTicks;
+                const yVal = yMin + (yMax - yMin) * t;
+                const y = yScale(yVal);
+                svg += `<line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />`;
+                svg += `<text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${yVal.toFixed(2)}</text>`;
+            }
+            svg += `<line x1="${padLeft}" y1="${zeroY}" x2="${width - padRight}" y2="${zeroY}" stroke="#334155" stroke-width="1.4" stroke-dasharray="4 3" />`;
+            const legendRows = [];
+            fundamentals.forEach((fundamental) => {
+                const points = series[fundamental] || [];
+                const color = getPlayerAnalysisColorByFundamental(fundamental);
+                let d = '';
+                let hasStarted = false;
+                let validCount = 0;
+                let sumDelta = 0;
+                points.forEach((point, index) => {
+                    if (!point || point.delta == null || !Number.isFinite(point.delta)) {
+                        hasStarted = false;
+                        return;
+                    }
+                    const x = xScale(index);
+                    const y = yScale(point.delta);
+                    d += hasStarted ? ` L ${x} ${y}` : `M ${x} ${y}`;
+                    hasStarted = true;
+                    validCount += 1;
+                    sumDelta += Number(point.delta || 0);
+                });
+                if (!d) return;
+                svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />`;
+                points.forEach((point, index) => {
+                    if (!point || point.delta == null || !Number.isFinite(point.delta)) return;
+                    const x = xScale(index);
+                    const y = yScale(point.delta);
+                    const label = String(point.label || '').replace(/"/g, '&quot;');
+                    const title = `${fundamental} • ${label}\nPlayer: ${point.playerAvg != null ? point.playerAvg.toFixed(2) : 'n/d'}\nSquadra: ${point.teamAvg != null ? point.teamAvg.toFixed(2) : 'n/d'}\nDiff: ${formatSignedValue(point.delta)}`;
+                    svg += `<circle cx="${x}" cy="${y}" r="3.1" fill="${color}"><title>${title}</title></circle>`;
+                });
+                const avgDelta = validCount ? (sumDelta / validCount) : 0;
+                legendRows.push(`<span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:${color};"></span>${fundamental} ${formatSignedValue(avgDelta)}</span>`);
+            });
+            (payload.sortedMatches || []).forEach((match, index) => {
+                const x = xScale(index);
+                const label = getTeamAnalysisMatchLabel(match);
+                const shortLabel = String(label || `P${index + 1}`).split(' • ')[0];
+                svg += `<text x="${x}" y="${height - padBottom + 16}" text-anchor="end" transform="rotate(-38 ${x} ${height - padBottom + 16})" font-size="10" fill="#475569">${escapeHtml(shortLabel)}</text>`;
+            });
+            svg += `<text x="${width - padRight}" y="${height - 6}" text-anchor="end" font-size="11" fill="#64748b">Differenza media player-squadra per fondamentale</text>`;
+            playerAnalysisChart.innerHTML = svg;
+            playerAnalysisChart.style.display = 'block';
+            playerAnalysisChartEmpty.style.display = 'none';
+            playerAnalysisLegend.innerHTML = legendRows.join('');
+        }
+
+        function renderPlayerAnalysis() {
+            if (!playerAnalysisSection || !playerAnalysisSummary || !playerAnalysisList || !playerAnalysisEmpty) return;
+            refreshTeamAnalysisRosterCache();
+            const relevant = getRelevantMatchesForSelectedTeam();
+            const rowsMap = {};
+            let countedMatches = 0;
+            relevant.forEach((match) => {
+                const computed = computePlayerAveragesForMatch(match, {
+                    players: [],
+                    roles: [],
+                    fundamentals: [],
+                    rotations: [],
+                    phases: [],
+                    valueThresholds: [],
+                    matchesScopes: []
+                });
+                if (!computed || !computed.players || !Object.keys(computed.players).length) return;
+                countedMatches += 1;
+                Object.entries(computed.players).forEach(([key, playerData]) => {
+                    const numberKey = normalizePlayerNumberForKey(playerData?.number || key);
+                    const uniqueKey = numberKey || String(playerData?.name || key || '').trim() || key;
+                    if (!rowsMap[uniqueKey]) {
+                        rowsMap[uniqueKey] = {
+                            key: uniqueKey,
+                            number: numberKey,
+                            name: String(playerData?.name || key || '').trim(),
+                            sum: 0,
+                            tot: 0,
+                            counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+                        };
+                    }
+                    const row = rowsMap[uniqueKey];
+                    row.sum += Number(playerData?.sum || 0);
+                    row.tot += Number(playerData?.tot || 0);
+                    [1,2,3,4,5].forEach((v) => {
+                        row.counts[v] += Number(playerData?.counts?.[v] || 0);
+                    });
+                });
+            });
+            const rows = Object.values(rowsMap)
+                .map((row) => {
+                    const tot = Number(row.tot || 0);
+                    const sum = Number(row.sum || 0);
+                    const avg = tot ? (sum / tot) : 0;
+                    const positive = tot ? ((Number(row.counts[4] || 0) + Number(row.counts[5] || 0)) / tot) * 100 : 0;
+                    const numKey = normalizePlayerNumberForKey(row.number || row.key);
+                    const role = numKey ? (teamAnalysisRosterCache.roleByNumber?.[numKey] || '') : '';
+                    return Object.assign({}, row, { avg, positive, role });
+                })
+                .filter((row) => Number(row.tot || 0) > 0)
+                .sort((a, b) => {
+                    if (b.avg !== a.avg) return b.avg - a.avg;
+                    return Number(b.tot || 0) - Number(a.tot || 0);
+                });
+
+            if (!rows.length) {
+                playerAnalysisSummary.innerHTML = '';
+                if (playerAnalysisRanking) {
+                    playerAnalysisRanking.style.display = 'none';
+                    playerAnalysisRanking.innerHTML = '';
+                }
+                playerAnalysisList.innerHTML = '';
+                playerAnalysisEmpty.style.display = 'flex';
+                if (playerAnalysisChartPanel) playerAnalysisChartPanel.style.display = 'none';
+                return;
+            }
+
+            playerAnalysisEmpty.style.display = 'none';
+            const fundamentals = getPlayerAnalysisFundamentals();
+            const best = rows[0];
+            playerAnalysisSummary.innerHTML = [
+                `<div class="player-analysis-chip">Player analizzate: ${rows.length}</div>`,
+                `<div class="player-analysis-chip">Partite scout: ${countedMatches}</div>`,
+                `<div class="player-analysis-chip">Miglior media: ${best.avg.toFixed(2)}</div>`
+            ].join('');
+
+            playerAnalysisTopSelectedFundamentals = normalizeSelectionAllowEmpty(playerAnalysisTopSelectedFundamentals, fundamentals);
+            const rowKeys = rows.map((row) => String(row.key));
+            playerAnalysisTopAvailablePlayers = rowKeys.slice();
+            playerAnalysisTopSelectedPlayers = normalizeSelectionAllowEmpty(playerAnalysisTopSelectedPlayers, rowKeys);
+            if (!playerAnalysisDefaultsInitialized) {
+                if (!playerAnalysisTopSelectedFundamentals.length) {
+                    playerAnalysisTopSelectedFundamentals = fundamentals.slice();
+                }
+                if (!playerAnalysisTopSelectedPlayers.length && rows.length) {
+                    playerAnalysisTopSelectedPlayers = [String(rows[0].key)];
+                }
+                playerAnalysisDefaultsInitialized = true;
+            }
+            const matchAggregates = buildPlayerAnalysisMatchAggregates(relevant);
+            if (playerAnalysisChartPanel) playerAnalysisChartPanel.style.display = 'flex';
+            if (playerAnalysisTopFundamentalButtons) {
+                playerAnalysisTopFundamentalButtons.innerHTML = fundamentals.map((fundamental) => {
+                    const active = playerAnalysisTopSelectedFundamentals.includes(fundamental);
+                    const shortLabel = getFundamentalShortLabel(fundamental);
+                    return `<button type="button" class="player-analysis-toggle-btn${active ? ' active' : ''}" data-toggle-kind="fundamental" data-toggle-value="${escapeHtml(fundamental)}" title="${escapeHtml(fundamental)}">${escapeHtml(shortLabel)}</button>`;
+                }).join('');
+            }
+            if (playerAnalysisTopPlayerButtons) {
+                const roleOrder = {
+                    'Palleggiatore': 1,
+                    'Opposto': 2,
+                    'Schiacciatore': 3,
+                    'Bande': 4,
+                    'Centrale': 5,
+                    'Libero': 6,
+                    'Ruolo non definito': 99
+                };
+                const grouped = {};
+                rows.forEach((row) => {
+                    const role = normalizePlayerRoleLabel(row.role || '') || 'Ruolo non definito';
+                    if (!grouped[role]) grouped[role] = [];
+                    grouped[role].push(row);
+                });
+                const roleKeys = Object.keys(grouped).sort((a, b) => {
+                    const oa = roleOrder[a] != null ? roleOrder[a] : 50;
+                    const ob = roleOrder[b] != null ? roleOrder[b] : 50;
+                    if (oa !== ob) return oa - ob;
+                    return a.localeCompare(b, 'it');
+                });
+                const roleInitials = {
+                    'Palleggiatore': 'P',
+                    'Opposto': 'O',
+                    'Schiacciatore': 'S',
+                    'Bande': 'B',
+                    'Centrale': 'C',
+                    'Libero': 'L',
+                    'Ruolo non definito': '?'
+                };
+                playerAnalysisTopPlayerButtons.innerHTML = roleKeys.map((role) => {
+                    const buttons = grouped[role]
+                        .slice()
+                        .sort((a, b) => Number(b.avg || 0) - Number(a.avg || 0))
+                        .map((row) => {
+                            const key = String(row.key);
+                            const active = playerAnalysisTopSelectedPlayers.includes(key);
+                            const label = resolvePlayerAnalysisName(row.number, row.name);
+                            return `<button type="button" class="player-analysis-toggle-btn${active ? ' active' : ''}" data-toggle-kind="player" data-toggle-value="${escapeHtml(key)}" title="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
+                        }).join('');
+                    const roleInitial = roleInitials[role] || String(role || '?').charAt(0).toUpperCase();
+                    return `<div class="player-analysis-role-line"><span class="player-analysis-role-initial">${escapeHtml(roleInitial)}</span><div class="player-analysis-role-scroll">${buttons}</div></div>`;
+                }).join('');
+            }
+            renderPlayerComparisonChart(rows, matchAggregates, playerAnalysisTopSelectedPlayers, playerAnalysisTopSelectedFundamentals);
+
+            const activePlayerKeys = new Set(rows.map((row) => String(row.key)));
+            Object.keys(playerAnalysisCardFundamentalsByPlayer || {}).forEach((key) => {
+                if (!activePlayerKeys.has(String(key))) delete playerAnalysisCardFundamentalsByPlayer[key];
+            });
+
+            playerAnalysisList.innerHTML = rows.map((row) => {
+                const displayName = resolvePlayerAnalysisName(row.number, row.name);
+                const roleLabel = row.role || 'Ruolo non definito';
+                const total = Number(row.tot || 0);
+                const cardHasStoredSelection = Object.prototype.hasOwnProperty.call(playerAnalysisCardFundamentalsByPlayer, row.key);
+                const cardSelectedFundamentals = cardHasStoredSelection
+                    ? normalizeSelectionAllowEmpty(playerAnalysisCardFundamentalsByPlayer[row.key], fundamentals)
+                    : fundamentals.slice();
+                playerAnalysisCardFundamentalsByPlayer[row.key] = cardSelectedFundamentals;
+                const cardPoints = buildPlayerFundamentalSeries(row.key, cardSelectedFundamentals, matchAggregates);
+                const cardColor = cardSelectedFundamentals.length === 1 ? getPlayerAnalysisColorByFundamental(cardSelectedFundamentals[0]) : '#2563eb';
+                const cardValid = cardPoints.filter((p) => p && p.delta != null && Number.isFinite(p.delta));
+                const cardAvg = cardValid.length ? (cardValid.reduce((acc, p) => acc + Number(p.delta || 0), 0) / cardValid.length) : null;
+                const cardSvg = buildPlayerCardChartSvg(cardPoints, cardColor, 900, 190);
+                const cardButtons = fundamentals.map((f) => {
+                    const active = cardSelectedFundamentals.includes(f);
+                    const shortLabel = getFundamentalShortLabel(f);
+                    return `<button type="button" class="player-analysis-toggle-btn player-analysis-card-toggle-btn${active ? ' active' : ''}" data-player-key="${escapeHtml(row.key)}" data-fundamental="${escapeHtml(f)}" title="${escapeHtml(f)}">${escapeHtml(shortLabel)}</button>`;
+                }).join('');
+                return `
+                    <div class="player-analysis-card">
+                        <div class="player-analysis-head">
+                            <div>
+                                <div class="player-analysis-name">${escapeHtml(displayName)}</div>
+                                <div class="player-analysis-role">${escapeHtml(roleLabel)}</div>
+                            </div>
+                            <div class="player-analysis-score">${row.avg.toFixed(2)}</div>
+                        </div>
+                        <div class="player-analysis-meta">
+                            <span>Tocchi: ${total}</span>
+                            <span>Positivi (4-5): ${row.positive.toFixed(0)}%</span>
+                        </div>
+                        <div class="player-analysis-card-chart-wrap">
+                            <div class="player-analysis-card-chart-head">
+                                <span>Grafico personale vs squadra</span>
+                                <div class="player-analysis-card-toggle-group">${cardButtons}</div>
+                            </div>
+                            ${cardSvg
+                                ? `<svg viewBox="0 0 900 190" preserveAspectRatio="none" style="width:100%; height:auto; min-height:130px;">${cardSvg}</svg>`
+                                : `<div class="player-analysis-card-chart-empty">Nessun dato disponibile per i fondamentali selezionati.</div>`
+                            }
+                            <div class="player-analysis-legend">
+                                <span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:${cardColor};"></span>${escapeHtml(cardSelectedFundamentals.join(' + '))} ${cardAvg != null ? formatSignedValue(cardAvg) : 'n/d'}</span>
+                            </div>
+                        </div>
+                        <div class="player-analysis-bars">
+                            <div class="player-analysis-bar">1: ${Number(row.counts[1] || 0)}</div>
+                            <div class="player-analysis-bar">2: ${Number(row.counts[2] || 0)}</div>
+                            <div class="player-analysis-bar">3: ${Number(row.counts[3] || 0)}</div>
+                            <div class="player-analysis-bar">4: ${Number(row.counts[4] || 0)}</div>
+                            <div class="player-analysis-bar">5: ${Number(row.counts[5] || 0)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function refreshTeamAnalysisFilterOptions() {
