@@ -594,8 +594,9 @@
                             </div>
                         </div>
                         <button type="button" class="btn btn-secondary" id="teamAnalysisFiltersToggle">Filtri: On</button>
-                        <button type="button" class="btn btn-secondary" id="teamAnalysisChartTypeToggle">Linee</button>
-                        <button type="button" class="btn btn-secondary" id="teamAnalysisBarValueModeToggle">Valori</button>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisChartTypeToggle">LINEE</button>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisBarValueModeToggle">VALORI</button>
+                        <button type="button" class="btn btn-secondary" id="teamAnalysisPlusBtn">PLUS</button>
                     </div>
                 </div>
 
@@ -612,6 +613,68 @@
                                 Seleziona una squadra con almeno una partita per vedere il grafico.
                             </div>
                             <svg id="teamAnalysisChart" viewBox="0 0 800 320" preserveAspectRatio="none" style="width:100%; height:auto; display:none;"></svg>
+                        </div>
+                        <div id="teamAnalysisBarChartWrapper" class="panel team-analysis-chart-wrapper team-analysis-resizable" data-min-width="240" data-min-height="180" style="display:none; flex-direction:column; overflow:hidden; position:relative;">
+                            <div id="teamAnalysisPivotConfig" style="display:flex; gap:3px; padding:3px; background:#f8fafc; border-bottom:1px solid #e2e8f0; align-items:center; flex-wrap:nowrap; flex-shrink:0;">
+                                <div style="display:flex; gap:3px; align-items:center; flex-wrap:nowrap;">
+                                    <div class="pivot-select-wrap" style="max-width:8ch;">
+                                        <select id="pivotConfigX1" class="pivot-select" title="Livello 1" style="font-size:0.76rem; padding:3px; border-radius:4px; border:1px solid #cbd5e1; background:#ffffff; max-width:8ch;">
+                                            <option value="">Liv.1</option>
+                                            <option value="player">Giocatrice</option>
+                                            <option value="role">Ruolo</option>
+                                            <option value="fundamental">Fondamentale</option>
+                                            <option value="rotation">Rotazione</option>
+                                            <option value="phase">Fase</option>
+                                            <option value="match">Partita</option>
+                                        </select>
+                                        <button type="button" class="pivot-select-btn" aria-haspopup="listbox" aria-expanded="false">Liv.1</button>
+                                        <div class="pivot-select-menu" role="listbox"></div>
+                                    </div>
+                                    <div class="pivot-select-wrap" style="max-width:8ch;">
+                                        <select id="pivotConfigX2" class="pivot-select" title="Livello 2" style="font-size:0.76rem; padding:3px; border-radius:4px; border:1px solid #cbd5e1; background:#ffffff; max-width:8ch;">
+                                            <option value="">Liv.2</option>
+                                            <option value="player">Giocatrice</option>
+                                            <option value="role">Ruolo</option>
+                                            <option value="fundamental">Fondamentale</option>
+                                            <option value="rotation">Rotazione</option>
+                                            <option value="phase">Fase</option>
+                                            <option value="match">Partita</option>
+                                        </select>
+                                        <button type="button" class="pivot-select-btn" aria-haspopup="listbox" aria-expanded="false">Liv.2</button>
+                                        <div class="pivot-select-menu" role="listbox"></div>
+                                    </div>
+                                    <div class="pivot-select-wrap" style="max-width:8ch;">
+                                        <select id="pivotConfigX3" class="pivot-select" title="Livello 3" style="font-size:0.76rem; padding:3px; border-radius:4px; border:1px solid #cbd5e1; background:#ffffff; max-width:8ch;">
+                                            <option value="">Liv.3</option>
+                                            <option value="player">Giocatrice</option>
+                                            <option value="role">Ruolo</option>
+                                            <option value="fundamental">Fondamentale</option>
+                                            <option value="rotation">Rotazione</option>
+                                            <option value="phase">Fase</option>
+                                            <option value="match">Partita</option>
+                                        </select>
+                                        <button type="button" class="pivot-select-btn" aria-haspopup="listbox" aria-expanded="false">Liv.3</button>
+                                        <div class="pivot-select-menu" role="listbox"></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:3px; align-items:center; flex-wrap:nowrap;">
+                                    <span style="font-size:0.76rem; font-weight:600; color:#334155; white-space:nowrap;">Valori:</span>
+                                    <div class="pivot-select-wrap" style="max-width:16ch;">
+                                        <select id="pivotConfigY" class="pivot-select" style="font-size:0.76rem; padding:3px; border-radius:4px; border:1px solid #cbd5e1; background:#ffffff; max-width:16ch;">
+                                            <option value="percentage">Percentuale (100%)</option>
+                                            <option value="absolute">Valore (Tocchi)</option>
+                                        </select>
+                                        <button type="button" class="pivot-select-btn" aria-haspopup="listbox" aria-expanded="false">Percentuale (100%)</button>
+                                        <div class="pivot-select-menu" role="listbox"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="teamAnalysisBarChartEmpty" style="color:#64748b; padding:3px; text-align:center;">
+                                Seleziona una squadra per vedere il grafico a barre.
+                            </div>
+                            <div id="teamAnalysisBarChartContent" style="width:100%; flex:1 1 auto; display:none; min-height:0; overflow-y:auto;">
+                                <svg id="teamAnalysisBarChartSvg" viewBox="0 0 800 320" preserveAspectRatio="none" style="width:100%; height:auto; display:block; min-height:320px;"></svg>
+                            </div>
                         </div>
                         <div id="teamAnalysisLegend" class="team-analysis-legend team-analysis-resizable" data-min-width="160" data-min-height="42"></div>
                     </div>
@@ -723,7 +786,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;"></div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.1.1</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -1593,9 +1656,18 @@
             flex: 0 0 auto;
         }
 
+        .team-analysis-controls.plus-mode {
+            gap: 3px;
+        }
+
+        .team-analysis-controls.plus-mode .team-analysis-viewport-group {
+            margin-right: 1px;
+        }
+
         #teamAnalysisFiltersToggle,
         #teamAnalysisChartTypeToggle,
-        #teamAnalysisBarValueModeToggle {
+        #teamAnalysisBarValueModeToggle,
+        #teamAnalysisPlusBtn {
             padding-left: 7px;
             padding-right: 7px;
         }
@@ -1614,9 +1686,72 @@
             }
             #teamAnalysisFiltersToggle,
             #teamAnalysisChartTypeToggle,
-            #teamAnalysisBarValueModeToggle {
+            #teamAnalysisBarValueModeToggle,
+            #teamAnalysisPlusBtn {
                 white-space: nowrap;
             }
+        }
+
+        .pivot-select-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .pivot-select-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            cursor: pointer;
+            min-height: 26px;
+        }
+
+        .pivot-select {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .pivot-select-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 100%;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+            z-index: 20;
+            padding: 4px;
+            display: none;
+        }
+
+        .pivot-select-wrap.open .pivot-select-menu {
+            display: block;
+        }
+
+        .pivot-select-item {
+            width: 100%;
+            border: none;
+            background: transparent;
+            text-align: left;
+            border-radius: 6px;
+            padding: 5px 7px;
+            font-size: 0.72rem;
+            color: #334155;
+            cursor: pointer;
+        }
+
+        .pivot-select-item:hover,
+        .pivot-select-item.active {
+            background: #eff6ff;
+            color: #1d4ed8;
         }
 
         .team-analysis-viewport-btn {
@@ -1925,6 +2060,11 @@
         const matchesArchiveTabCloud = document.getElementById('matchesArchiveTabCloud');
         const teamAnalysisChart = document.getElementById('teamAnalysisChart');
         const teamAnalysisChartEmpty = document.getElementById('teamAnalysisChartEmpty');
+        const teamAnalysisControls = document.querySelector('.team-analysis-controls');
+        const teamAnalysisChartWrapper = document.getElementById('teamAnalysisChartWrapper');
+        const teamAnalysisBarChartWrapper = document.getElementById('teamAnalysisBarChartWrapper');
+        const teamAnalysisBarChartSvg = document.getElementById('teamAnalysisBarChartSvg');
+        const teamAnalysisBarChartEmpty = document.getElementById('teamAnalysisBarChartEmpty');
         const teamAnalysisLegend = document.getElementById('teamAnalysisLegend');
         const teamAnalysisSelector = document.getElementById('teamAnalysisSelector');
         const teamAnalysisSelectorTabs = document.getElementById('teamAnalysisSelectorTabs');
@@ -1940,6 +2080,7 @@
         const teamAnalysisFiltersToggle = document.getElementById('teamAnalysisFiltersToggle');
         const teamAnalysisChartTypeToggle = document.getElementById('teamAnalysisChartTypeToggle');
         const teamAnalysisBarValueModeToggle = document.getElementById('teamAnalysisBarValueModeToggle');
+        const teamAnalysisPlusBtn = document.getElementById('teamAnalysisPlusBtn');
         const teamAnalysisFiltersWrapper = document.getElementById('teamAnalysisFilters');
         let teamAnalysisLegendFocusKey = null;
         let teamAnalysisLegendFocusPlayerKey = null;
@@ -1955,6 +2096,10 @@
         const teamAnalysisFilterValues = document.getElementById('teamAnalysisFilterValues');
         const teamAnalysisFilterMatches = document.getElementById('teamAnalysisFilterMatches');
         const teamAnalysisFilterBoxes = document.querySelectorAll('.team-analysis-filter-box');
+        const pivotConfigX1 = document.getElementById('pivotConfigX1');
+        const pivotConfigX2 = document.getElementById('pivotConfigX2');
+        const pivotConfigX3 = document.getElementById('pivotConfigX3');
+        const pivotConfigY = document.getElementById('pivotConfigY');
 
         const teamAnalysisFilters = {
             dataset: 'player',
@@ -1978,6 +2123,7 @@
         let teamAnalysisFiltersVisible = true;
         let teamAnalysisChartType = 'line';
         let teamAnalysisBarValueMode = 'count';
+        let teamAnalysisPlusMode = false;
         let isObserverMode = false;
 
         function readAppSettings() {
@@ -2469,6 +2615,140 @@
             updateSyncProgressSummary(dlg);
         }
 
+        function ensureHydrateProgressDialog(){
+            let dlg = document.getElementById('hydrateProgressDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'hydrateProgressDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '10000';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(640px,92vw); max-height:82vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                        <div style="font-weight:700;">Aggiorno Locale da Cloud</div>
+                        <button id="hydrateProgressClose" class="btn btn-light" style="padding:6px 12px;" disabled>Chiudi</button>
+                    </div>
+                    <div id="hydrateProgressStage" style="margin-bottom:8px; font-size:13px; color:#475569;">Preparazione...</div>
+                    <div style="height:8px; background:#e9ecef; border-radius:10px; overflow:hidden; margin-bottom:10px;">
+                        <div id="hydrateProgressFill" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                    </div>
+                    <div id="hydrateProgressSummary" style="margin-bottom:8px; font-size:12px; color:#64748b;">—</div>
+                    <div id="hydrateProgressBody" style="overflow:auto; border:1px solid #e9ecef; border-radius:12px; padding:10px; background:#fafafa; flex:1 1 auto;"></div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            const closeBtn = dlg.querySelector('#hydrateProgressClose');
+            if (closeBtn) closeBtn.addEventListener('click', () => { dlg.style.display = 'none'; });
+            return dlg;
+        }
+
+        function resetHydrateProgressDialog(dlg){
+            if (!dlg) return;
+            dlg.__hydrateState = { total: 0, index: 0, done: 0, error: 0 };
+            dlg.__hydrateRows = new Map();
+            const fill = dlg.querySelector('#hydrateProgressFill');
+            if (fill) fill.style.width = '0%';
+            const stage = dlg.querySelector('#hydrateProgressStage');
+            if (stage) stage.textContent = 'Preparazione...';
+            const summary = dlg.querySelector('#hydrateProgressSummary');
+            if (summary) summary.textContent = '—';
+            const body = dlg.querySelector('#hydrateProgressBody');
+            if (body) body.innerHTML = '';
+            const closeBtn = dlg.querySelector('#hydrateProgressClose');
+            if (closeBtn) closeBtn.disabled = true;
+        }
+
+        function ensureHydrateRow(dlg, info){
+            if (!dlg || !info) return null;
+            if (!dlg.__hydrateRows) dlg.__hydrateRows = new Map();
+            const teamId = String(info?.teamId || '').trim();
+            const matchId = String(info?.match?.id || info?.matchId || '').trim();
+            const key = `${teamId}::${matchId}`;
+            if (!matchId) return null;
+            if (dlg.__hydrateRows.has(key)) return dlg.__hydrateRows.get(key);
+            const body = dlg.querySelector('#hydrateProgressBody');
+            if (!body) return null;
+            const row = document.createElement('div');
+            row.style.border = '1px solid #e9ecef';
+            row.style.borderRadius = '10px';
+            row.style.padding = '10px';
+            row.style.background = '#fff';
+            row.style.marginBottom = '8px';
+            const label = buildMatchLabelForCompare(info?.match || { id: matchId });
+            const teamName = String(info?.teamName || '').trim();
+            row.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                    <div style="font-weight:600;">${teamName ? (teamName + ' • ') : ''}${label}</div>
+                    <div class="hydrate-progress-status" style="font-size:12px; color:#666;">In attesa</div>
+                </div>
+                <div style="height:6px; background:#f1f5f9; border-radius:8px; overflow:hidden; margin-top:6px;">
+                    <div class="hydrate-progress-fill" style="height:100%; width:0; background:#0d6efd; transition:width .25s ease"></div>
+                </div>
+            `;
+            body.appendChild(row);
+            dlg.__hydrateRows.set(key, row);
+            return row;
+        }
+
+        function updateHydrateProgressDialog(dlg, info){
+            if (!dlg || !info) return;
+            const state = dlg.__hydrateState || { total: 0, index: 0, done: 0, error: 0 };
+            if (Number.isFinite(info?.overallTotal) && info.overallTotal >= 0) state.total = info.overallTotal;
+            if (Number.isFinite(info?.overallIndex) && info.overallIndex >= 0) state.index = info.overallIndex;
+            const stage = dlg.querySelector('#hydrateProgressStage');
+            if (info.phase === 'prepare') {
+                if (stage) stage.textContent = info.status === 'ready'
+                    ? `Partite Cloud da elaborare: ${Number(info.total || 0)}`
+                    : 'Raccolgo elenco partite Cloud...';
+            } else if (info.phase === 'team') {
+                const teamName = String(info.teamName || '').trim();
+                if (stage) stage.textContent = info.status === 'start'
+                    ? `Sincronizzo squadra ${teamName || info.teamId || ''}...`
+                    : `Squadra ${teamName || info.teamId || ''} completata`;
+            } else if (info.phase === 'matches') {
+                const row = ensureHydrateRow(dlg, info);
+                if (row) {
+                    const statusEl = row.querySelector('.hydrate-progress-status');
+                    const fillEl = row.querySelector('.hydrate-progress-fill');
+                    const prev = row.getAttribute('data-hydrate-status') || '';
+                    if (prev !== info.status) {
+                        if (info.status === 'start') {
+                            if (statusEl) statusEl.textContent = 'In corso';
+                            if (fillEl) { fillEl.style.width = '40%'; fillEl.style.background = '#0d6efd'; }
+                        } else if (info.status === 'done') {
+                            if (statusEl) statusEl.textContent = 'Aggiornata';
+                            if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#22c55e'; }
+                            state.done += 1;
+                        } else if (info.status === 'error') {
+                            if (statusEl) statusEl.textContent = 'Errore';
+                            if (fillEl) { fillEl.style.width = '100%'; fillEl.style.background = '#ef4444'; }
+                            state.error += 1;
+                        }
+                        row.setAttribute('data-hydrate-status', String(info.status || ''));
+                    }
+                }
+            } else if (info.phase === 'complete') {
+                if (stage) stage.textContent = 'Aggiornamento locale completato';
+                state.index = Number.isFinite(info.overallTotal) ? info.overallTotal : state.index;
+            }
+            const summary = dlg.querySelector('#hydrateProgressSummary');
+            if (summary) {
+                if (state.total > 0) summary.textContent = `Partita ${Math.min(state.index, state.total)} di ${state.total} • Aggiornate: ${state.done} • Errori: ${state.error}`;
+                else summary.textContent = `Aggiornate: ${state.done} • Errori: ${state.error}`;
+            }
+            const fill = dlg.querySelector('#hydrateProgressFill');
+            if (fill) {
+                const pct = state.total > 0 ? Math.max(0, Math.min(100, Math.round((state.index / state.total) * 100))) : (info.phase === 'complete' ? 100 : 0);
+                fill.style.width = `${pct}%`;
+            }
+            dlg.__hydrateState = state;
+        }
+
         async function buildSyncCompareRows(){
             const localMatches = getLocalMatchesForSelectedTeam();
             const teamDocId = resolveTeamDocId();
@@ -2875,6 +3155,83 @@
 
         let __matchesEventsBound = false;
 
+        function initPivotCustomDropdowns() {
+            const wraps = Array.from(document.querySelectorAll('.pivot-select-wrap'));
+            if (!wraps.length) return;
+            const closeAll = (except) => {
+                wraps.forEach((w) => {
+                    if (except && w === except) return;
+                    w.classList.remove('open');
+                    const btn = w.querySelector('.pivot-select-btn');
+                    if (btn) btn.setAttribute('aria-expanded', 'false');
+                });
+            };
+            document.addEventListener('click', (e) => {
+                const target = e.target;
+                if (!target || !(target instanceof Element)) return;
+                const wrap = target.closest('.pivot-select-wrap');
+                if (!wrap) closeAll();
+            });
+            wraps.forEach((wrap) => {
+                if (wrap.dataset.bound === '1') return;
+                wrap.dataset.bound = '1';
+                const select = wrap.querySelector('select');
+                const btn = wrap.querySelector('.pivot-select-btn');
+                const menu = wrap.querySelector('.pivot-select-menu');
+                if (!select || !btn || !menu) return;
+                const syncLabel = () => {
+                    const opt = select.options[select.selectedIndex];
+                    btn.textContent = opt ? opt.textContent : '';
+                };
+                const syncMenu = () => {
+                    const items = menu.querySelectorAll('.pivot-select-item');
+                    items.forEach((item) => {
+                        const val = item.getAttribute('data-value');
+                        item.classList.toggle('active', val === select.value);
+                    });
+                };
+                const buildMenu = () => {
+                    menu.innerHTML = '';
+                    Array.from(select.options).forEach((opt) => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'pivot-select-item';
+                        item.setAttribute('role', 'option');
+                        item.setAttribute('data-value', opt.value);
+                        item.textContent = opt.textContent;
+                        item.addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (select.value !== opt.value) {
+                                select.value = opt.value;
+                                select.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                            closeAll();
+                            syncMenu();
+                        });
+                        menu.appendChild(item);
+                    });
+                    syncMenu();
+                };
+                syncLabel();
+                buildMenu();
+                select.addEventListener('change', () => {
+                    syncLabel();
+                    syncMenu();
+                });
+                btn.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    const isOpen = wrap.classList.contains('open');
+                    closeAll();
+                    if (!isOpen) {
+                        wrap.classList.add('open');
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+        }
+
         function bindMatchesPageEventListeners() {
             if (__matchesEventsBound) return;
             __matchesEventsBound = true;
@@ -2937,6 +3294,9 @@
                 hydrateDataBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    const progressDlg = ensureHydrateProgressDialog();
+                    resetHydrateProgressDialog(progressDlg);
+                    progressDlg.style.display = 'flex';
                     try {
                         hydrateDataBtn.disabled = true;
                         hydrateDataBtn.textContent = 'Aggiorno Locale...';
@@ -2944,19 +3304,31 @@
                             hydrateMatches: true,
                             detailsMode: 'all',
                             conflictMode: 'ask',
-                            defaultChoice: 'cloud'
+                            defaultChoice: 'cloud',
+                            onProgress: (info) => updateHydrateProgressDialog(progressDlg, info)
                         });
                         try { window.teamsModule?.loadTeams?.(); } catch(_){ }
                         try { window.matchesModule?.reloadMatches?.(); } catch(_){ }
                         loadSelectedTeam();
-                        if (res?.success) alert('Aggiornamento completato');
+                        const closeBtn = progressDlg?.querySelector ? progressDlg.querySelector('#hydrateProgressClose') : null;
+                        if (closeBtn) closeBtn.disabled = false;
+                        if (res?.success) {
+                            updateHydrateProgressDialog(progressDlg, { phase: 'complete', status: 'done', overallTotal: progressDlg?.__hydrateState?.total || 0 });
+                            alert('Aggiornamento completato');
+                        }
                         else alert(res?.error || 'Errore aggiornamento');
                     } catch (err) {
+                        const stage = progressDlg?.querySelector ? progressDlg.querySelector('#hydrateProgressStage') : null;
+                        if (stage) stage.textContent = 'Errore aggiornamento';
+                        const closeBtn = progressDlg?.querySelector ? progressDlg.querySelector('#hydrateProgressClose') : null;
+                        if (closeBtn) closeBtn.disabled = false;
                         alert(err?.message || 'Errore aggiornamento');
                     }
                     finally {
                         hydrateDataBtn.disabled = false;
                         hydrateDataBtn.textContent = 'Aggiorna Locale da Cloud';
+                        const closeBtn = progressDlg?.querySelector ? progressDlg.querySelector('#hydrateProgressClose') : null;
+                        if (closeBtn) closeBtn.disabled = false;
                         try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
                     }
                 });
@@ -3028,6 +3400,7 @@
                 setTeamAnalysisFiltersVisible(true);
             }
             initTeamAnalysisChartTypeToggle();
+            initPivotCustomDropdowns();
             initTeamAnalysisSelectorResize();
             initTeamAnalysisResizers();
             initTeamAnalysisScrollbarAutoHide();
@@ -3038,6 +3411,10 @@
             if (teamAnalysisFilterPhase) teamAnalysisFilterPhase.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterValues) teamAnalysisFilterValues.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
             if (teamAnalysisFilterMatches) teamAnalysisFilterMatches.addEventListener('change', () => { updateTeamAnalysisFiltersFromControls(); renderTeamAnalysisChart(); });
+            if (pivotConfigX1) pivotConfigX1.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
+            if (pivotConfigX2) pivotConfigX2.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
+            if (pivotConfigX3) pivotConfigX3.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
+            if (pivotConfigY) pivotConfigY.addEventListener('change', () => renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam()));
 
             if (teamAnalysisFilterBoxes && teamAnalysisFilterBoxes.length) {
                 teamAnalysisFilterBoxes.forEach((box) => {
@@ -4763,17 +5140,42 @@
         function updateTeamAnalysisChartTypeToggle() {
             if (!teamAnalysisChartTypeToggle) return;
             const isBar = teamAnalysisChartType === 'bar';
-            teamAnalysisChartTypeToggle.textContent = isBar ? 'Barre' : 'Linee';
+            teamAnalysisChartTypeToggle.textContent = isBar ? 'BARRE' : 'LINEE';
             teamAnalysisChartTypeToggle.setAttribute('aria-pressed', String(isBar));
+            teamAnalysisChartTypeToggle.classList.toggle('btn-primary', isBar);
+            teamAnalysisChartTypeToggle.classList.toggle('btn-secondary', !isBar);
             updateTeamAnalysisBarValueModeToggle();
         }
 
         function updateTeamAnalysisBarValueModeToggle() {
             if (!teamAnalysisBarValueModeToggle) return;
+            teamAnalysisBarValueModeToggle.style.display = teamAnalysisPlusMode ? 'none' : '';
             const isPercent = teamAnalysisBarValueMode === 'percent';
-            teamAnalysisBarValueModeToggle.textContent = isPercent ? '%' : 'Valori';
+            teamAnalysisBarValueModeToggle.textContent = isPercent ? '%' : 'VALORI';
             teamAnalysisBarValueModeToggle.setAttribute('aria-pressed', String(isPercent));
-            teamAnalysisBarValueModeToggle.disabled = false;
+            teamAnalysisBarValueModeToggle.disabled = teamAnalysisPlusMode;
+        }
+
+        function applyTeamAnalysisPlusMode(enabled) {
+            teamAnalysisPlusMode = !!enabled;
+            if (teamAnalysisControls) {
+                teamAnalysisControls.classList.toggle('plus-mode', teamAnalysisPlusMode);
+            }
+            if (teamAnalysisPlusBtn) {
+                teamAnalysisPlusBtn.classList.toggle('btn-primary', teamAnalysisPlusMode);
+                teamAnalysisPlusBtn.classList.toggle('btn-secondary', !teamAnalysisPlusMode);
+                teamAnalysisPlusBtn.setAttribute('aria-pressed', String(teamAnalysisPlusMode));
+            }
+            if (teamAnalysisPlusMode) {
+                teamAnalysisChartType = 'bar';
+                if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+            } else {
+                if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'none';
+                if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'block';
+            }
+            updateTeamAnalysisChartTypeToggle();
+            renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
         }
 
         function initTeamAnalysisChartTypeToggle() {
@@ -4793,6 +5195,7 @@
             updateTeamAnalysisChartTypeToggle();
             if (teamAnalysisBarValueModeToggle) {
                 teamAnalysisBarValueModeToggle.addEventListener('click', () => {
+                    if (teamAnalysisPlusMode) return;
                     teamAnalysisBarValueMode = teamAnalysisBarValueMode === 'percent' ? 'count' : 'percent';
                     updateTeamAnalysisBarValueModeToggle();
                     const modeSettings = readAppSettings();
@@ -4804,6 +5207,13 @@
             if (!teamAnalysisChartTypeToggle) return;
             teamAnalysisChartTypeToggle.addEventListener('click', () => {
                 teamAnalysisChartType = teamAnalysisChartType === 'line' ? 'bar' : 'line';
+                if (teamAnalysisPlusMode && teamAnalysisChartType === 'line') {
+                    if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'none';
+                    if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'block';
+                } else if (teamAnalysisPlusMode && teamAnalysisChartType === 'bar') {
+                    if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                    if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+                }
                 updateTeamAnalysisChartTypeToggle();
                 const nextSettings = readAppSettings();
                 nextSettings.teamAnalysisChartType = teamAnalysisChartType;
@@ -4811,6 +5221,11 @@
                 writeAppSettings(nextSettings);
                 renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
             });
+            if (teamAnalysisPlusBtn) {
+                teamAnalysisPlusBtn.addEventListener('click', () => {
+                    applyTeamAnalysisPlusMode(!teamAnalysisPlusMode);
+                });
+            }
         }
 
         function updateTeamAnalysisFiltersFromControls() {
@@ -5148,17 +5563,29 @@
             if (isBarValuesMode) {
                 teamAnalysisLegend.classList.add('team-analysis-legend-selector-column');
                 const selectorItems = teamAnalysisSelectorList ? Array.from(teamAnalysisSelectorList.children || []) : [];
-                const cloned = selectorItems
-                    .map((node) => {
-                        if (!node || !node.classList || !node.classList.contains('team-analysis-selector-item')) return '';
-                        const clone = node.cloneNode(true);
-                        clone.classList.remove('active');
+                teamAnalysisLegend.innerHTML = '';
+                selectorItems.forEach((node) => {
+                    if (!node || !node.classList || !node.classList.contains('team-analysis-selector-item')) return;
+                    const clone = node.cloneNode(true);
+                    const key = String(node.getAttribute('data-key') || '').trim();
+                    if (key) {
+                        clone.setAttribute('data-key', key);
+                        clone.style.cursor = 'pointer';
+                        clone.title = 'Click per Filtrare';
+                        clone.addEventListener('click', () => {
+                            if (teamAnalysisActiveKeys.has(key)) {
+                                teamAnalysisActiveKeys.delete(key);
+                            } else {
+                                teamAnalysisActiveKeys.add(key);
+                            }
+                            renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
+                        });
+                    } else {
                         clone.removeAttribute('data-key');
                         clone.style.cursor = 'default';
-                        return clone.outerHTML;
-                    })
-                    .filter(Boolean);
-                teamAnalysisLegend.innerHTML = cloned.join('');
+                    }
+                    teamAnalysisLegend.appendChild(clone);
+                });
                 return;
             }
             teamAnalysisLegend.classList.remove('team-analysis-legend-selector-column');
@@ -5396,6 +5823,11 @@
                 teamAnalysisChartEmpty.style.display = 'block';
                 renderTeamAnalysisSelector(keys, series, null);
                 renderTeamAnalysisRoster(series);
+                if (teamAnalysisPlusMode && teamAnalysisChartType === 'bar') {
+                    if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                    if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+                    renderTeamAnalysisBarChart();
+                }
                 return;
             }
             const focusMode = !!(focusPlayerKey && data !== baseData);
@@ -5523,6 +5955,11 @@
                 teamAnalysisChartEmpty.style.display = 'block';
                 renderTeamAnalysisSelector(keys, series, null);
                 renderTeamAnalysisRoster(series);
+                if (teamAnalysisPlusMode && teamAnalysisChartType === 'bar') {
+                    if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                    if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+                    renderTeamAnalysisBarChart();
+                }
                 return;
             }
             if (!isFinite(yMin) || !isFinite(yMax) || yMax <= yMin) {
@@ -5532,6 +5969,11 @@
                 teamAnalysisChartEmpty.style.display = 'block';
                 renderTeamAnalysisSelector(keys, series, null);
                 renderTeamAnalysisRoster(series);
+                if (teamAnalysisPlusMode && teamAnalysisChartType === 'bar') {
+                    if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                    if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+                    renderTeamAnalysisBarChart();
+                }
                 return;
             }
             if (teamAnalysisChartType !== 'bar' && !isLinePercentMode) {
@@ -5732,12 +6174,20 @@
                     svg += `<path d="${d}" fill="none" stroke="${avgColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4 4" />`;
                 }
             }
-            teamAnalysisChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
-            teamAnalysisChart.innerHTML = svg;
-            teamAnalysisChart.style.display = 'block';
-            teamAnalysisChartEmpty.style.display = 'none';
             renderTeamAnalysisSelector(keys, series, activeFocusKey);
             renderTeamAnalysisRoster(series);
+            if (teamAnalysisPlusMode && teamAnalysisChartType === 'bar') {
+                if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'none';
+                if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'flex';
+                renderTeamAnalysisBarChart();
+            } else {
+                if (teamAnalysisBarChartWrapper) teamAnalysisBarChartWrapper.style.display = 'none';
+                if (teamAnalysisChartWrapper) teamAnalysisChartWrapper.style.display = 'block';
+                teamAnalysisChart.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                teamAnalysisChart.innerHTML = svg;
+                teamAnalysisChart.style.display = 'block';
+                teamAnalysisChartEmpty.style.display = 'none';
+            }
 
             if (!teamAnalysisLegendClearBound) {
                 teamAnalysisLegendClearBound = true;
@@ -5747,6 +6197,253 @@
                     teamAnalysisLegendFocusPlayerKey = null;
                     renderTeamAnalysisChart(teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam());
                 });
+            }
+        }
+
+        function getPivotConfig() {
+            return {
+                x1: pivotConfigX1?.value || '',
+                x2: pivotConfigX2?.value || '',
+                x3: pivotConfigX3?.value || '',
+                yVal: pivotConfigY?.value || 'percentage'
+            };
+        }
+
+        function extractPivotActionKey(action, match, matchIndex) {
+            const label = getTeamAnalysisMatchLabel(match);
+            return {
+                match: getTeamAnalysisMatchKey(match, matchIndex),
+                matchLabel: label,
+                player: action.n ? String(action.n) : '',
+                role: action.n ? normalizePlayerRoleLabel(teamAnalysisRosterCache.roleByNumber[String(action.n)]) : '',
+                fundamental: String(action.f || '').toUpperCase(),
+                rotation: action.r ? `P${action.r}` : '',
+                phase: String(action.p || '').toUpperCase()
+            };
+        }
+
+        function buildPivotBarData() {
+            const cfg = getPivotConfig();
+            const sourceMatches = teamAnalysisLastMatches || getRelevantMatchesForSelectedTeam();
+            const levels = [cfg.x1, cfg.x2, cfg.x3].filter(Boolean);
+            const flatActions = [];
+
+            sourceMatches.forEach((match, matchIndex) => {
+                const abSet = match.actionsBySet || {};
+                Object.keys(abSet).forEach((setKey) => {
+                    const actions = abSet[setKey] || [];
+                    actions.forEach((rawItem) => {
+                        let actStr = '';
+                        if (typeof rawItem === 'string') actStr = rawItem;
+                        else if (rawItem && typeof rawItem === 'object' && typeof rawItem.action === 'string') actStr = rawItem.action;
+                        if (!actStr) return;
+                        let parsed = null;
+                        try { if (typeof parseAction === 'function') parsed = parseAction(actStr); } catch (_) {}
+                        if (!parsed || !Array.isArray(parsed.actions)) return;
+                        parsed.actions.forEach((subAct) => {
+                            const q = Number(subAct.evaluation) || 0;
+                            if (q < 1 || q > 5) return;
+                            const fundMap = { a: 'Attacco', b: 'Servizio', m: 'Muro', r: 'Ricezione', d: 'Difesa' };
+                            const fMapped = fundMap[(subAct.fundamental || '').toLowerCase()] || subAct.fundamental || '';
+                            const fakeAct = {
+                                n: subAct.player || '',
+                                f: fMapped,
+                                r: (typeof rawItem === 'object' && rawItem !== null) ? (rawItem.rotation || rawItem.r || '') : '',
+                                p: (typeof rawItem === 'object' && rawItem !== null) ? (rawItem.phase || rawItem.p || '') : '',
+                                e: q
+                            };
+                            flatActions.push({ action: fakeAct, match, matchIndex, grade: q });
+                        });
+                    });
+                });
+            });
+
+            const filters = teamAnalysisFilters;
+            const rolesFilter = Array.isArray(filters.roles) ? filters.roles.map(normalizePlayerRoleLabel).filter(Boolean) : [];
+            const playersFilter = Array.isArray(filters.players) ? filters.players : [];
+            const fundamentalsFilter = Array.isArray(filters.fundamentals) ? filters.fundamentals.map((f) => f.toUpperCase()) : [];
+            const rotationsFilter = Array.isArray(filters.rotations) ? filters.rotations : [];
+            const phasesFilter = Array.isArray(filters.phases) ? filters.phases.map((f) => f.toUpperCase()) : [];
+
+            const filteredActions = flatActions.filter((item) => {
+                const vk = extractPivotActionKey(item.action, item.match, item.matchIndex);
+                if (rolesFilter.length > 0 && !rolesFilter.includes(vk.role)) return false;
+                if (playersFilter.length > 0) {
+                    const matchPlayer = teamAnalysisRosterCache.players.find((rp) => String(rp.number) === vk.player);
+                    const dName = matchPlayer ? `${matchPlayer.name || ''} ${matchPlayer.surname || ''}`.trim() : vk.player;
+                    const pMatchKey = playersFilter.includes(String(vk.player)) || playersFilter.includes(dName);
+                    if (!pMatchKey) return false;
+                }
+                if (fundamentalsFilter.length > 0 && !fundamentalsFilter.includes(vk.fundamental)) return false;
+                if (rotationsFilter.length > 0 && !rotationsFilter.includes(vk.rotation.replace('P', ''))) return false;
+                if (phasesFilter.length > 0 && !phasesFilter.includes(vk.phase)) return false;
+                if (teamAnalysisSelectorMode && teamAnalysisActiveKeys && teamAnalysisActiveKeys.size > 0) {
+                    const val = vk[teamAnalysisSelectorMode];
+                    if (teamAnalysisSelectorMode === 'matches') {
+                        if (!teamAnalysisActiveKeys.has(vk.match)) return false;
+                    } else if (val !== undefined) {
+                        if (teamAnalysisSelectorMode === 'phase') {
+                            if (!teamAnalysisActiveKeys.has(String(val).toLowerCase())) return false;
+                        } else if (teamAnalysisSelectorMode === 'fundamental') {
+                            if (!teamAnalysisActiveKeys.has(String(val).toUpperCase()) && !teamAnalysisActiveKeys.has(String(val))) return false;
+                        } else if (teamAnalysisSelectorMode === 'rotation') {
+                            const rotNum = String(val).replace('P', '');
+                            if (!teamAnalysisActiveKeys.has(rotNum) && !teamAnalysisActiveKeys.has('P' + rotNum)) return false;
+                        } else if (!teamAnalysisActiveKeys.has(String(val))) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            });
+
+            if (levels.length === 0) {
+                const node = { path: ['Totale Team'], grades: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, total: 0 };
+                filteredActions.forEach((f) => { node.grades[f.grade]++; node.total++; });
+                return { nodes: [node].filter((n) => n.total > 0), levels: ['Totale'] };
+            }
+
+            const groupedNodes = [];
+            const getDisplayValue = (lName, val) => {
+                if (!val) return 'ND';
+                if (lName === 'player') {
+                    const ro = teamAnalysisRosterCache.players.find((rp) => String(rp.number) === val);
+                    return ro ? `${ro.name || ''} ${String(ro.surname || '').slice(0, 1)}.`.trim() : val;
+                }
+                if (lName === 'fundamental') {
+                    const map = { S: 'Servizio', R: 'Ricezione', E: 'Alzata', A: 'Attacco', D: 'Difesa', B: 'Muro' };
+                    return map[val] || val;
+                }
+                if (lName === 'match') {
+                    const m = sourceMatches.find((mt, idx) => getTeamAnalysisMatchKey(mt, idx) === val);
+                    return m ? getTeamAnalysisMatchLabel(m) : val;
+                }
+                return val;
+            };
+
+            const groupBy = (actions, levelIdx, currentPath) => {
+                if (levelIdx >= levels.length) {
+                    const node = { path: currentPath.slice(), grades: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, total: 0 };
+                    actions.forEach((a) => { node.grades[a.grade]++; node.total++; });
+                    groupedNodes.push(node);
+                    return;
+                }
+                const levelDim = levels[levelIdx];
+                const parts = {};
+                actions.forEach((item) => {
+                    const k = extractPivotActionKey(item.action, item.match, item.matchIndex);
+                    const rawVal = k[levelDim] || 'ND';
+                    const disp = getDisplayValue(levelDim, rawVal);
+                    if (!parts[disp]) parts[disp] = [];
+                    parts[disp].push(item);
+                });
+                Object.keys(parts).sort().forEach((dispKey) => {
+                    groupBy(parts[dispKey], levelIdx + 1, currentPath.concat(dispKey));
+                });
+            };
+
+            groupBy(filteredActions, 0, []);
+            return { nodes: groupedNodes.filter((n) => n.total > 0), levels };
+        }
+
+        function renderTeamAnalysisBarChart() {
+            if (!teamAnalysisBarChartSvg || !teamAnalysisBarChartEmpty || !teamAnalysisChart) return;
+            teamAnalysisChart.style.display = 'none';
+            teamAnalysisChartEmpty.style.display = 'none';
+            const data = buildPivotBarData();
+            const contentWrapper = document.getElementById('teamAnalysisBarChartContent');
+            if (!data.nodes.length) {
+                if (contentWrapper) contentWrapper.style.display = 'none';
+                if (teamAnalysisBarChartSvg) teamAnalysisBarChartSvg.innerHTML = '';
+                teamAnalysisBarChartEmpty.style.display = 'block';
+                teamAnalysisBarChartEmpty.textContent = 'Nessun dato corrispondente per i filtri selezionati.';
+                return;
+            }
+            teamAnalysisBarChartEmpty.style.display = 'none';
+            if (contentWrapper) contentWrapper.style.display = 'block';
+            const width = 800;
+            const height = 400;
+            const yMode = getPivotConfig().yVal;
+            const paddingTop = 20;
+            const paddingBottom = 20 + (data.levels.length * 20);
+            const paddingLeft = 50;
+            const paddingRight = 20;
+            const innerWidth = width - paddingLeft - paddingRight;
+            const innerHeight = height - paddingTop - paddingBottom;
+            const xAxisY = paddingTop + innerHeight;
+            let maxY = 1;
+            if (yMode === 'percentage') maxY = 100;
+            else maxY = Math.max(...data.nodes.map((n) => n.total));
+            if (maxY === 0) maxY = 1;
+            const yScale = (val) => paddingTop + (1 - (val / maxY)) * innerHeight;
+            let svg = '';
+            svg += `<line x1="${paddingLeft}" y1="${xAxisY}" x2="${paddingLeft + innerWidth}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
+            svg += `<line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${xAxisY}" stroke="#94a3b8" stroke-width="1"/>`;
+            const ticks = yMode === 'percentage' ? [0, 25, 50, 75, 100] : [0, Math.ceil(maxY / 4), Math.ceil(maxY / 2), Math.floor(maxY * 0.75), maxY];
+            ticks.forEach((v) => {
+                const y = yScale(v);
+                svg += `<line x1="${paddingLeft}" y1="${y}" x2="${paddingLeft + innerWidth}" y2="${y}" stroke="#e5e7eb" stroke-width="1" />`;
+                svg += `<text x="${paddingLeft - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${v}${yMode === 'percentage' ? '%' : ''}</text>`;
+            });
+            const numNodes = data.nodes.length;
+            const barWidth = Math.min(60, (innerWidth / numNodes) * 0.7);
+            const xStep = innerWidth / numNodes;
+            const getX = (i) => paddingLeft + (i * xStep) + (Math.max(0, xStep - barWidth) / 2);
+            const colors = { 1: '#ef4444', 2: '#f97316', 3: '#eab308', 4: '#84cc16', 5: '#22c55e' };
+            data.nodes.forEach((node, idx) => {
+                const x = getX(idx);
+                let currentY = xAxisY;
+                [1, 2, 3, 4, 5].forEach((grade) => {
+                    const count = node.grades[grade];
+                    if (count === 0) return;
+                    const val = yMode === 'percentage' ? (count / node.total) * 100 : count;
+                    const h = innerHeight * (val / maxY);
+                    const y = currentY - h;
+                    svg += `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="${colors[grade]}" />`;
+                    if (h > 12) {
+                        svg += `<text x="${x + barWidth / 2}" y="${y + (h / 2) + 4}" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">${count}</text>`;
+                    }
+                    currentY = y;
+                });
+            });
+            for (let lvl = 0; lvl < data.levels.length; lvl++) {
+                const rowY = xAxisY + 16 + (lvl * 20);
+                let lastSignature = null;
+                let groupStartIdx = 0;
+                const drawGroup = (start, end, label) => {
+                    const startX = paddingLeft + (start * xStep);
+                    const endX = paddingLeft + (end * xStep);
+                    const midX = (startX + endX) / 2;
+                    svg += `<text x="${midX}" y="${rowY}" text-anchor="middle" font-size="9" fill="${lvl === 0 ? '#1e293b' : '#64748b'}" font-weight="${lvl === 0 ? '600' : '400'}">${escapeHtml(label)}</text>`;
+                    if (start > 0) {
+                        svg += `<line x1="${startX}" y1="${rowY - 10}" x2="${startX}" y2="${rowY + 4}" stroke="#cbd5e1" stroke-width="1"/>`;
+                    }
+                };
+                data.nodes.forEach((node, idx) => {
+                    const sig = node.path.slice(0, lvl + 1).join('|||');
+                    if (idx === 0) {
+                        lastSignature = sig;
+                    } else if (lastSignature !== sig) {
+                        drawGroup(groupStartIdx, idx, lastSignature.split('|||').pop());
+                        lastSignature = sig;
+                        groupStartIdx = idx;
+                    }
+                });
+                if (data.nodes.length > 0 && lastSignature != null) {
+                    drawGroup(groupStartIdx, data.nodes.length, lastSignature.split('|||').pop());
+                }
+                svg += `<line x1="${paddingLeft}" y1="${rowY + 6}" x2="${paddingLeft + innerWidth}" y2="${rowY + 6}" stroke="#e2e8f0" stroke-width="1"/>`;
+            }
+            const legendX = paddingLeft + innerWidth - 200;
+            const legendY = 12;
+            ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'].forEach((c, i) => {
+                svg += `<rect x="${legendX + i * 30}" y="${legendY}" width="8" height="8" fill="${c}" />`;
+                svg += `<text x="${legendX + 12 + i * 30}" y="${legendY + 8}" font-size="9" fill="#334155">${i + 1}</text>`;
+            });
+            if (teamAnalysisBarChartSvg) {
+                teamAnalysisBarChartSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                teamAnalysisBarChartSvg.innerHTML = svg;
+                teamAnalysisBarChartSvg.style.display = 'block';
             }
         }
 
