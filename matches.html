@@ -825,7 +825,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.3.2</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.4.0</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -1171,6 +1171,23 @@
             color: #334155;
             font-size: 12px;
             font-weight: 600;
+        }
+
+        .player-analysis-info-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            flex: 0 0 auto;
         }
 
         .player-analysis-bars {
@@ -3975,6 +3992,36 @@
             }
             if (playerAnalysisList) {
                 playerAnalysisList.addEventListener('click', (e) => {
+                    const infoBtn = e.target && e.target.closest ? e.target.closest('.player-analysis-info-btn') : null;
+                    if (infoBtn) {
+                        const score = String(infoBtn.getAttribute('data-info-score') || '').trim();
+                        const scoreTeam = String(infoBtn.getAttribute('data-info-score-team') || '').trim();
+                        const positive = String(infoBtn.getAttribute('data-info-positive') || '').trim();
+                        const diff = String(infoBtn.getAttribute('data-info-diff') || '').trim();
+                        const diffPlayer = String(infoBtn.getAttribute('data-info-diff-player') || '').trim();
+                        const diffTeam = String(infoBtn.getAttribute('data-info-diff-team') || '').trim();
+                        const fundamentals = String(infoBtn.getAttribute('data-info-fundamentals') || '').trim();
+                        const playerMetricsInfoDialog = document.getElementById('playerMetricsInfoDialog');
+                        const playerMetricsInfoValueScore = document.getElementById('playerMetricsInfoValueScore');
+                        const playerMetricsInfoValueScoreTeam = document.getElementById('playerMetricsInfoValueScoreTeam');
+                        const playerMetricsInfoValuePositive = document.getElementById('playerMetricsInfoValuePositive');
+                        const playerMetricsInfoValueDiff = document.getElementById('playerMetricsInfoValueDiff');
+                        const playerMetricsInfoDiffFormula = document.getElementById('playerMetricsInfoDiffFormula');
+                        const playerMetricsInfoFundamentals = document.getElementById('playerMetricsInfoFundamentals');
+                        if (playerMetricsInfoValueScore) playerMetricsInfoValueScore.textContent = score || 'n/d';
+                        if (playerMetricsInfoValueScoreTeam) playerMetricsInfoValueScoreTeam.textContent = scoreTeam || 'n/d';
+                        if (playerMetricsInfoValuePositive) playerMetricsInfoValuePositive.textContent = positive || 'n/d';
+                        if (playerMetricsInfoValueDiff) playerMetricsInfoValueDiff.textContent = diff || 'n/d';
+                        if (playerMetricsInfoDiffFormula) playerMetricsInfoDiffFormula.textContent = `Calcolo reale: Player ${diffPlayer || 'n/d'} - Squadra ${diffTeam || 'n/d'} = ${diff || 'n/d'}`;
+                        if (playerMetricsInfoFundamentals) playerMetricsInfoFundamentals.textContent = fundamentals || 'n/d';
+                        if (playerMetricsInfoDialog && typeof playerMetricsInfoDialog.showModal === 'function') {
+                            playerMetricsInfoDialog.showModal();
+                        } else {
+                            const fallbackText = `${score}: media voto player (scala 1-5) su tutti i tocchi. Media squadra: ${scoreTeam || 'n/d'}.\n${positive}: percentuale tocchi positivi (4-5) sul totale.\n${diff}: differenza media sui fondamentali selezionati. Calcolo reale: Player ${diffPlayer || 'n/d'} - Squadra ${diffTeam || 'n/d'} = ${diff}.`;
+                            window.alert(fallbackText);
+                        }
+                        return;
+                    }
                     const btn = e.target && e.target.closest ? e.target.closest('.player-analysis-card-toggle-btn') : null;
                     if (!btn) return;
                     const key = String(btn.getAttribute('data-player-key') || '').trim();
@@ -5462,6 +5509,21 @@
             return counts;
         }
 
+        function buildTeamCountsByFundamentals(selectedFundamentals, matchAggregates) {
+            const allowedFunds = getPlayerAnalysisFundamentals();
+            const pickedFunds = normalizeSelectionAllowEmpty(selectedFundamentals, allowedFunds);
+            const payload = matchAggregates && Array.isArray(matchAggregates.rows) ? matchAggregates.rows : [];
+            const counts = createEmptyCounts();
+            if (!pickedFunds.length) return counts;
+            payload.forEach((item) => {
+                pickedFunds.forEach((fundamental) => {
+                    const fundBucket = item?.agg && item.agg[fundamental] ? item.agg[fundamental] : null;
+                    addCounts(counts, fundBucket?.teamTotal || {});
+                });
+            });
+            return counts;
+        }
+
         function buildPlayerCardChartSvg(points, color, width, height) {
             const payload = Array.isArray(points) ? points : [];
             const validPlayer = payload.filter((p) => p && p.playerAvg != null && Number.isFinite(p.playerAvg));
@@ -5942,7 +6004,6 @@
             Object.keys(playerAnalysisCardFundamentalsByPlayer || {}).forEach((key) => {
                 if (!activePlayerKeys.has(String(key))) delete playerAnalysisCardFundamentalsByPlayer[key];
             });
-
             playerAnalysisList.innerHTML = rows.map((row) => {
                 const displayName = resolvePlayerAnalysisName(row.number, row.name);
                 const roleLabel = row.role || 'Ruolo non definito';
@@ -5954,9 +6015,13 @@
                 playerAnalysisCardFundamentalsByPlayer[row.key] = cardSelectedFundamentals;
                 const cardPoints = buildPlayerFundamentalSeries(row.key, cardSelectedFundamentals, matchAggregates);
                 const cardCounts = buildPlayerCountsByFundamentals(row.key, cardSelectedFundamentals, matchAggregates);
+                const cardTeamCounts = buildTeamCountsByFundamentals(cardSelectedFundamentals, matchAggregates);
+                const cardPlayerCalc = getAverageFromCounts(cardCounts);
+                const cardTeamCalc = getAverageFromCounts(cardTeamCounts);
                 const cardColor = cardSelectedFundamentals.length === 1 ? getPlayerAnalysisColorByFundamental(cardSelectedFundamentals[0]) : '#2563eb';
-                const cardValid = cardPoints.filter((p) => p && p.delta != null && Number.isFinite(p.delta));
-                const cardAvg = cardValid.length ? (cardValid.reduce((acc, p) => acc + Number(p.delta || 0), 0) / cardValid.length) : null;
+                const cardPlayerAvg = cardPlayerCalc.avg != null ? Number(cardPlayerCalc.avg) : null;
+                const cardTeamAvg = cardTeamCalc.avg != null ? Number(cardTeamCalc.avg) : null;
+                const cardAvg = (cardPlayerAvg != null && cardTeamAvg != null) ? (cardPlayerAvg - cardTeamAvg) : null;
                 const cardSvg = buildPlayerCardChartSvg(cardPoints, cardColor, 900, 190);
                 const cardCountTotal = [1,2,3,4,5].reduce((acc, v) => acc + Number(cardCounts[v] || 0), 0);
                 const cardBars = [1,2,3,4,5].map((v) => {
@@ -5965,6 +6030,13 @@
                     const pctLabel = `${pct.toFixed(0)}% su ${cardCountTotal}`;
                     return `<div class="player-analysis-bar">${v}: ${count}<span class="player-analysis-bar-detail">${pctLabel}</span></div>`;
                 }).join('');
+                const cardInfoScore = cardPlayerAvg != null ? cardPlayerAvg.toFixed(2) : 'n/d';
+                const cardInfoScoreTeam = cardTeamAvg != null ? cardTeamAvg.toFixed(2) : 'n/d';
+                const cardInfoPositive = `${row.positive.toFixed(0)}%`;
+                const cardInfoDiff = cardAvg != null ? formatSignedValue(cardAvg) : 'n/d';
+                const cardInfoDiffPlayer = cardPlayerAvg != null ? cardPlayerAvg.toFixed(2) : 'n/d';
+                const cardInfoDiffTeam = cardTeamAvg != null ? cardTeamAvg.toFixed(2) : 'n/d';
+                const cardInfoFunds = cardSelectedFundamentals.length ? cardSelectedFundamentals.join(' + ') : 'n/d';
                 const cardButtons = fundamentals.map((f) => {
                     const active = cardSelectedFundamentals.includes(f);
                     const shortLabel = getFundamentalShortLabel(f);
@@ -5977,11 +6049,12 @@
                                 <div class="player-analysis-name">${escapeHtml(displayName)}</div>
                                 <div class="player-analysis-role">${escapeHtml(roleLabel)}</div>
                             </div>
-                            <div class="player-analysis-score">${row.avg.toFixed(2)}</div>
+                            <div class="player-analysis-score">${cardInfoScore}</div>
                         </div>
                         <div class="player-analysis-meta">
                             <span>Tocchi: ${total}</span>
                             <span>Positivi (4-5): ${row.positive.toFixed(0)}%</span>
+                            <button type="button" class="player-analysis-info-btn" title="Spiegazione metriche" aria-label="Spiegazione metriche" data-info-score="${escapeHtml(cardInfoScore)}" data-info-score-team="${escapeHtml(cardInfoScoreTeam)}" data-info-positive="${escapeHtml(cardInfoPositive)}" data-info-diff="${escapeHtml(cardInfoDiff)}" data-info-diff-player="${escapeHtml(cardInfoDiffPlayer)}" data-info-diff-team="${escapeHtml(cardInfoDiffTeam)}" data-info-fundamentals="${escapeHtml(cardInfoFunds)}">i</button>
                         </div>
                         <div class="player-analysis-card-chart-wrap">
                             <div class="player-analysis-card-chart-head">
@@ -5993,7 +6066,7 @@
                                 : `<div class="player-analysis-card-chart-empty">Nessun dato disponibile per i fondamentali selezionati.</div>`
                             }
                             <div class="player-analysis-legend">
-                                <span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:${cardColor};"></span>${escapeHtml(cardSelectedFundamentals.join(' + '))} ${cardAvg != null ? formatSignedValue(cardAvg) : 'n/d'}</span>
+                                <span class="player-analysis-legend-item"><span class="player-analysis-legend-dot" style="background:${cardColor};"></span>${escapeHtml(cardSelectedFundamentals.join(' + '))} · Player ${cardPlayerAvg != null ? cardPlayerAvg.toFixed(2) : 'n/d'} · Squadra ${cardTeamAvg != null ? cardTeamAvg.toFixed(2) : 'n/d'} · Diff ${cardAvg != null ? formatSignedValue(cardAvg) : 'n/d'}</span>
                             </div>
                         </div>
                         <div class="player-analysis-bars">
@@ -9209,5 +9282,33 @@
         if (cancelBtn) cancelBtn.addEventListener('click', () => { if (dlg) dlg.close(); });
       })();
     </script>
+    <dialog id="playerMetricsInfoDialog" style="position:fixed; top:12px; left:50%; transform:translateX(-50%); margin:0; border:1px solid #bfdbfe; border-radius:16px; padding:0; width:min(520px, 92vw); max-height:calc(100vh - 24px); overflow:auto; background:#ffffff; box-shadow:0 12px 36px rgba(15,23,42,0.22);">
+      <form method="dialog" style="display:flex; flex-direction:column;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 16px; border-bottom:1px solid #dbeafe; background:#eff6ff;">
+          <h3 style="margin:0; color:#0b3ea8; font-size:16px; font-weight:800;">Spiegazione metriche player</h3>
+          <button id="playerMetricsInfoCloseBtn" type="submit" class="close-btn" aria-label="Chiudi">✕</button>
+        </div>
+        <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; color:#334155; font-size:14px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span id="playerMetricsInfoValueScore" style="display:inline-flex; min-width:50px; justify-content:center; border:1px solid #bfdbfe; border-radius:999px; padding:3px 8px; color:#1d4ed8; font-weight:800; background:#eff6ff;">n/d</span>
+            <span>Media voto player (scala 1-5) calcolata su tutti i tocchi. Media squadra: <strong id="playerMetricsInfoValueScoreTeam">n/d</strong>.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span id="playerMetricsInfoValuePositive" style="display:inline-flex; min-width:50px; justify-content:center; border:1px solid #d1fae5; border-radius:999px; padding:3px 8px; color:#047857; font-weight:800; background:#ecfdf5;">n/d</span>
+            <span>Percentuale di tocchi positivi con voto 4 o 5.</span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span id="playerMetricsInfoValueDiff" style="display:inline-flex; min-width:50px; justify-content:center; border:1px solid #e2e8f0; border-radius:999px; padding:3px 8px; color:#0f172a; font-weight:800; background:#f8fafc;">n/d</span>
+            <span>Differenza media player - squadra sui fondamentali selezionati nel grafico. <strong id="playerMetricsInfoDiffFormula">Calcolo reale: Player n/d - Squadra n/d = n/d</strong>.</span>
+          </div>
+          <div style="padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#f8fafc; font-size:12px; color:#475569;">
+            Filtri attivi: <strong id="playerMetricsInfoFundamentals" style="color:#0f172a;">n/d</strong>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:0 16px 14px 16px;">
+          <button id="playerMetricsInfoOkBtn" type="submit" class="btn btn-primary">OK</button>
+        </div>
+      </form>
+    </dialog>
 </body>
 </html>

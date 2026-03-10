@@ -1,5 +1,5 @@
 {
-  "version": "17.3.2",
+  "version": "17.4.0",
   "scripts": {
     "lint": "eslint . --ext .js,.html"
   },
