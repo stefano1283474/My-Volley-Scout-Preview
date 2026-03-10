@@ -825,7 +825,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.4.0</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.4.1</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -1109,6 +1109,50 @@
             padding: 0 12px;
             font-size: 12px;
             font-weight: 700;
+        }
+
+        .player-analysis-chip-btn {
+            cursor: pointer;
+            transition: all .18s ease;
+        }
+
+        .player-analysis-chip-btn:hover {
+            border-color: #93c5fd;
+            color: #1d4ed8;
+            background: #eff6ff;
+        }
+
+        .player-analysis-chip-btn:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        .player-analysis-match-list {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            max-height: 320px;
+            overflow: auto;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+            background: #f8fafc;
+        }
+
+        .player-analysis-match-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .player-analysis-match-row input {
+            margin-top: 2px;
         }
 
         .player-analysis-list {
@@ -2657,6 +2701,9 @@
         let playerAnalysisTopSelectedFundamentals = [];
         let playerAnalysisTopSelectedPlayers = [];
         let playerAnalysisTopAvailablePlayers = [];
+        let playerAnalysisTopAvailableMatches = [];
+        let playerAnalysisTopSelectedMatchKeys = [];
+        let playerAnalysisMatchesDraftSelection = [];
         let playerAnalysisCardFundamentalsByPlayer = {};
         let playerAnalysisDefaultsInitialized = false;
 
@@ -3908,6 +3955,13 @@
             if (inlineMatchForm) inlineMatchForm.addEventListener('submit', handleInlineMatchSubmit);
             const matchTypeSelect = document.getElementById('match-type');
             if (matchTypeSelect) matchTypeSelect.addEventListener('change', toggleTournamentField);
+            if (playerAnalysisSummary) {
+                playerAnalysisSummary.addEventListener('click', (e) => {
+                    const trigger = e.target && e.target.closest ? e.target.closest('[data-player-analysis-action="open-matches-dialog"]') : null;
+                    if (!trigger) return;
+                    openPlayerAnalysisMatchesDialog();
+                });
+            }
 
             if (teamAnalysisDeviceToggle || teamAnalysisOrientationToggle) {
                 if (teamAnalysisDeviceToggle) {
@@ -5857,10 +5911,103 @@
             playerAnalysisLegend.innerHTML = legendRows.join('');
         }
 
+        function renderPlayerAnalysisSummaryChips(playerCount, selectedMatchesCount, totalMatchesCount) {
+            if (!playerAnalysisSummary) return;
+            const selectedLabel = Math.max(0, Number(selectedMatchesCount || 0));
+            const totalLabel = Math.max(0, Number(totalMatchesCount || 0));
+            const matchesText = totalLabel > 0 ? `Partite: ${selectedLabel}/${totalLabel}` : `Partite: ${selectedLabel}`;
+            playerAnalysisSummary.innerHTML = [
+                `<div class="player-analysis-chip">Player: ${Math.max(0, Number(playerCount || 0))}</div>`,
+                `<button type="button" class="player-analysis-chip player-analysis-chip-btn" data-player-analysis-action="open-matches-dialog">${matchesText}</button>`
+            ].join('');
+        }
+
+        function renderPlayerAnalysisMatchesDialog() {
+            const playerAnalysisMatchesList = document.getElementById('playerAnalysisMatchesList');
+            const playerAnalysisMatchesSummary = document.getElementById('playerAnalysisMatchesSummary');
+            if (!playerAnalysisMatchesList || !playerAnalysisMatchesSummary) return;
+            const available = Array.isArray(playerAnalysisTopAvailableMatches) ? playerAnalysisTopAvailableMatches : [];
+            const draftSet = new Set((playerAnalysisMatchesDraftSelection || []).map((v) => String(v || '').trim()).filter(Boolean));
+            playerAnalysisMatchesSummary.textContent = `Selezionate ${draftSet.size} su ${available.length}`;
+            if (!available.length) {
+                playerAnalysisMatchesList.innerHTML = '<div style="font-size:13px;color:#64748b;font-weight:600;">Nessuna partita disponibile.</div>';
+                return;
+            }
+            playerAnalysisMatchesList.innerHTML = available.map((item) => {
+                const key = String(item.key || '');
+                const label = String(item.label || 'Partita');
+                const checked = draftSet.has(key) ? 'checked' : '';
+                return `<label class="player-analysis-match-row"><input type="checkbox" data-match-key="${escapeHtml(key)}" ${checked} /><span>${escapeHtml(label)}</span></label>`;
+            }).join('');
+        }
+
+        function openPlayerAnalysisMatchesDialog() {
+            const playerAnalysisMatchesDialog = document.getElementById('playerAnalysisMatchesDialog');
+            const playerAnalysisMatchesSelectAllBtn = document.getElementById('playerAnalysisMatchesSelectAllBtn');
+            const playerAnalysisMatchesSelectNoneBtn = document.getElementById('playerAnalysisMatchesSelectNoneBtn');
+            const playerAnalysisMatchesApplyBtn = document.getElementById('playerAnalysisMatchesApplyBtn');
+            const playerAnalysisMatchesList = document.getElementById('playerAnalysisMatchesList');
+            if (!playerAnalysisMatchesDialog || typeof playerAnalysisMatchesDialog.showModal !== 'function') return;
+            if (playerAnalysisMatchesSelectAllBtn && !playerAnalysisMatchesSelectAllBtn.dataset.bound) {
+                playerAnalysisMatchesSelectAllBtn.dataset.bound = '1';
+                playerAnalysisMatchesSelectAllBtn.addEventListener('click', () => {
+                    playerAnalysisMatchesDraftSelection = playerAnalysisTopAvailableMatches.map((item) => String(item.key || ''));
+                    renderPlayerAnalysisMatchesDialog();
+                });
+            }
+            if (playerAnalysisMatchesSelectNoneBtn && !playerAnalysisMatchesSelectNoneBtn.dataset.bound) {
+                playerAnalysisMatchesSelectNoneBtn.dataset.bound = '1';
+                playerAnalysisMatchesSelectNoneBtn.addEventListener('click', () => {
+                    playerAnalysisMatchesDraftSelection = [];
+                    renderPlayerAnalysisMatchesDialog();
+                });
+            }
+            if (playerAnalysisMatchesApplyBtn && !playerAnalysisMatchesApplyBtn.dataset.bound) {
+                playerAnalysisMatchesApplyBtn.dataset.bound = '1';
+                playerAnalysisMatchesApplyBtn.addEventListener('click', () => {
+                    playerAnalysisTopSelectedMatchKeys = Array.from(new Set((playerAnalysisMatchesDraftSelection || []).map((v) => String(v || '').trim()).filter(Boolean)));
+                    if (playerAnalysisMatchesDialog && playerAnalysisMatchesDialog.open) playerAnalysisMatchesDialog.close();
+                    renderPlayerAnalysis();
+                });
+            }
+            if (playerAnalysisMatchesList && !playerAnalysisMatchesList.dataset.bound) {
+                playerAnalysisMatchesList.dataset.bound = '1';
+                playerAnalysisMatchesList.addEventListener('change', (e) => {
+                    const input = e.target && e.target.closest ? e.target.closest('input[data-match-key]') : null;
+                    if (!input) return;
+                    const key = String(input.getAttribute('data-match-key') || '').trim();
+                    if (!key) return;
+                    const current = new Set((playerAnalysisMatchesDraftSelection || []).map((v) => String(v || '').trim()).filter(Boolean));
+                    if (input.checked) current.add(key);
+                    else current.delete(key);
+                    playerAnalysisMatchesDraftSelection = Array.from(current);
+                    renderPlayerAnalysisMatchesDialog();
+                });
+            }
+            playerAnalysisMatchesDraftSelection = Array.from(new Set((playerAnalysisTopSelectedMatchKeys || []).map((v) => String(v || '').trim()).filter(Boolean)));
+            renderPlayerAnalysisMatchesDialog();
+            playerAnalysisMatchesDialog.showModal();
+        }
+
         function renderPlayerAnalysis() {
             if (!playerAnalysisSection || !playerAnalysisSummary || !playerAnalysisList || !playerAnalysisEmpty) return;
             refreshTeamAnalysisRosterCache();
-            const relevant = getRelevantMatchesForSelectedTeam();
+            const relevantAll = getRelevantMatchesForSelectedTeam();
+            const availableMatches = relevantAll.map((match, index) => ({
+                key: getTeamAnalysisMatchKey(match, index),
+                label: getTeamAnalysisMatchLabel(match),
+                match
+            }));
+            playerAnalysisTopAvailableMatches = availableMatches.map((item) => ({ key: item.key, label: item.label }));
+            const availableMatchKeys = availableMatches.map((item) => String(item.key || ''));
+            playerAnalysisTopSelectedMatchKeys = normalizeSelectionAllowEmpty(playerAnalysisTopSelectedMatchKeys, availableMatchKeys);
+            if (!playerAnalysisDefaultsInitialized && !playerAnalysisTopSelectedMatchKeys.length) {
+                playerAnalysisTopSelectedMatchKeys = availableMatchKeys.slice();
+            }
+            const selectedMatchesSet = new Set(playerAnalysisTopSelectedMatchKeys.map((v) => String(v || '')));
+            const relevant = availableMatches
+                .filter((item) => selectedMatchesSet.has(String(item.key || '')))
+                .map((item) => item.match);
             const rowsMap = {};
             let countedMatches = 0;
             relevant.forEach((match) => {
@@ -5911,9 +6058,9 @@
                     if (b.avg !== a.avg) return b.avg - a.avg;
                     return Number(b.tot || 0) - Number(a.tot || 0);
                 });
+            renderPlayerAnalysisSummaryChips(rows.length, countedMatches, availableMatches.length);
 
             if (!rows.length) {
-                playerAnalysisSummary.innerHTML = '';
                 if (playerAnalysisRanking) {
                     playerAnalysisRanking.style.display = 'none';
                     playerAnalysisRanking.innerHTML = '';
@@ -5926,10 +6073,6 @@
 
             playerAnalysisEmpty.style.display = 'none';
             const fundamentals = getPlayerAnalysisFundamentals();
-            playerAnalysisSummary.innerHTML = [
-                `<div class="player-analysis-chip">Player: ${rows.length}</div>`,
-                `<div class="player-analysis-chip">Partite: ${countedMatches}</div>`
-            ].join('');
 
             playerAnalysisTopSelectedFundamentals = normalizeSelectionAllowEmpty(playerAnalysisTopSelectedFundamentals, fundamentals);
             const rowKeys = rows.map((row) => String(row.key));
@@ -9282,6 +9425,26 @@
         if (cancelBtn) cancelBtn.addEventListener('click', () => { if (dlg) dlg.close(); });
       })();
     </script>
+    <dialog id="playerAnalysisMatchesDialog" style="position:fixed; top:12px; left:50%; transform:translateX(-50%); margin:0; border:1px solid #bfdbfe; border-radius:14px; padding:0; width:min(560px, 94vw); background:#ffffff; box-shadow:0 12px 34px rgba(15,23,42,0.2);">
+      <form method="dialog" style="display:flex; flex-direction:column; max-height:min(76vh, 640px);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 14px; border-bottom:1px solid #dbeafe; background:#eff6ff;">
+          <div style="font-size:16px; font-weight:800; color:#0b3ea8;">Seleziona partite</div>
+          <button type="submit" class="close-btn" aria-label="Chiudi">✕</button>
+        </div>
+        <div style="padding:12px 14px; display:flex; flex-direction:column; gap:10px;">
+          <div id="playerAnalysisMatchesSummary" style="font-size:13px; color:#475569; font-weight:700;"></div>
+          <div style="display:flex; gap:8px;">
+            <button id="playerAnalysisMatchesSelectAllBtn" type="button" class="btn btn-secondary">Tutte</button>
+            <button id="playerAnalysisMatchesSelectNoneBtn" type="button" class="btn btn-secondary">Nessuna</button>
+          </div>
+          <div id="playerAnalysisMatchesList" class="player-analysis-match-list"></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; padding:0 14px 12px 14px; border-top:1px solid #eef2ff;">
+          <button type="submit" class="btn btn-secondary">Annulla</button>
+          <button id="playerAnalysisMatchesApplyBtn" type="button" class="btn btn-primary">Applica</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="playerMetricsInfoDialog" style="position:fixed; top:12px; left:50%; transform:translateX(-50%); margin:0; border:1px solid #bfdbfe; border-radius:16px; padding:0; width:min(520px, 92vw); max-height:calc(100vh - 24px); overflow:auto; background:#ffffff; box-shadow:0 12px 36px rgba(15,23,42,0.22);">
       <form method="dialog" style="display:flex; flex-direction:column;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 16px; border-bottom:1px solid #dbeafe; background:#eff6ff;">
