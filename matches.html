@@ -497,6 +497,7 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+                    <button class="menu-item" id="goToGuidesBtn" type="button">Guide e filosofia scout</button>
                     <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
                     <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
                     <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
@@ -579,6 +580,7 @@
                 <p id="emptyMatchesHint">Crea una nuova partita.</p>
                 <div class="empty-actions" id="emptyMatchesActions">
                   <button type="button" class="btn btn-primary" id="emptyMatchesCreateBtn" onclick="openNewMatchDialog()">Crea nuova partita</button>
+                  <a href="/guides.html#primi-passi" class="btn btn-secondary" id="emptyMatchesGuideBtn" style="text-decoration:none;">Guida primi passi</a>
                 </div>
             </div>
         </div>
@@ -825,7 +827,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.4.1</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.5.0</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -2593,6 +2595,7 @@
         const emptyMatchesHint = document.getElementById('emptyMatchesHint');
         const emptyMatchesActions = document.getElementById('emptyMatchesActions');
         const emptyMatchesCreateBtn = document.getElementById('emptyMatchesCreateBtn');
+        const emptyMatchesGuideBtn = document.getElementById('emptyMatchesGuideBtn');
         const loadingScreen = document.getElementById('loadingScreen');
         const importStageOverlay = document.getElementById('importStageOverlay');
         const importMatchDialog = document.getElementById('importMatchDialog');
@@ -3869,6 +3872,14 @@
                     } catch(_) {
                         window.location.href = '/matches.html';
                     }
+                });
+            }
+            const goToGuidesBtn = document.getElementById('goToGuidesBtn');
+            if (goToGuidesBtn){
+                goToGuidesBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = '/guides.html';
                 });
             }
             if (hydrateDataBtn){
@@ -8416,12 +8427,16 @@
             emptyMatches.style.display = 'block';
             if (isObserverMode) {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
-                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud tramite il menu utente in alto a destra, seleziona la voce Aggiorna Locale da Cloud';
-                if (emptyMatchesActions) emptyMatchesActions.style.display = 'none';
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud dal menu utente oppure usa la guida per il flusso completo.';
+                if (emptyMatchesActions) emptyMatchesActions.style.display = '';
+                if (emptyMatchesCreateBtn) emptyMatchesCreateBtn.style.display = 'none';
+                if (emptyMatchesGuideBtn) emptyMatchesGuideBtn.setAttribute('href', '/guides.html#primi-passi');
             } else {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
                 if (emptyMatchesHint) emptyMatchesHint.textContent = 'Crea una nuova partita.';
                 if (emptyMatchesActions) emptyMatchesActions.style.display = '';
+                if (emptyMatchesCreateBtn) emptyMatchesCreateBtn.style.display = '';
+                if (emptyMatchesGuideBtn) emptyMatchesGuideBtn.setAttribute('href', '/guides.html#primi-passi');
             }
             hideLoadingScreen();
         }
