@@ -2391,7 +2391,8 @@ async function saveCurrentMatch() {
     }
 }
 
-async function exportAllSetsToExcel() {
+async function exportAllSetsToExcel(options = {}) {
+    const exportOptions = (options && typeof options === 'object') ? options : {};
     try {
         async function ensureXlsxLoaded() {
             if (window.XLSX && window.XLSX.utils && typeof window.XLSX.writeFile === 'function') return window.XLSX;
@@ -2457,24 +2458,21 @@ async function exportAllSetsToExcel() {
 
         function normalizeFileSegment(value, maxLen = 48) {
             const raw = String(value || '').trim();
-            const noBad = raw.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_');
-            const clean = noBad.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+            const noBad = raw.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ');
+            const clean = noBad.replace(/\s+/g, ' ').trim();
             return (clean || '').slice(0, maxLen);
         }
 
-        function getTeamClubLabel(match) {
+        function getTeamLabel(match) {
             let team = match?.myTeam || match?.teamName || '';
-            let club = match?.myClub || match?.clubName || '';
             try {
                 const t = window.teamsModule?.getCurrentTeam?.();
                 if (!team) team = t?.teamName || t?.name || '';
-                if (!club) club = t?.clubName || '';
             } catch (_) {}
-            const combo = (team ? team : '').trim() + (club ? `_${club}` : '');
-            return combo || team || club || 'Squadra';
+            return team || 'Squadra';
         }
 
-        function getMatchNumber(matchId) {
+        function getFallbackMatchNumber(matchId) {
             try {
                 const map = safeJsonParse(localStorage.getItem('mvsMatchNumbers'), {});
                 const existing = map && map[matchId];
@@ -2502,6 +2500,36 @@ async function exportAllSetsToExcel() {
             }
         }
 
+        async function getMatchNumberFromOutputDir(dirHandle, matchId) {
+            if (!dirHandle || typeof dirHandle.entries !== 'function') {
+                return getFallbackMatchNumber(matchId);
+            }
+            try {
+                let maxNum = 0;
+                for await (const [name, handle] of dirHandle.entries()) {
+                    if (!handle || handle.kind !== 'file') continue;
+                    const m = String(name || '').match(/^\s*(\d{3})\b/);
+                    if (!m) continue;
+                    const n = Number(m[1]);
+                    if (Number.isFinite(n) && n > maxNum) maxNum = n;
+                }
+                return String(maxNum + 1).padStart(3, '0').slice(-3);
+            } catch (_) {
+                return getFallbackMatchNumber(matchId);
+            }
+        }
+
+        function abbreviateEventType(value) {
+            const raw = String(value || '').trim();
+            const v = raw.toLowerCase();
+            if (!v) return 'Part';
+            if (v.includes('camp')) return 'Camp';
+            if (v.includes('pgs')) return 'PGS';
+            if (v.includes('cop')) return 'Copp';
+            if (v.includes('amic')) return 'Amic';
+            return normalizeFileSegment(raw, 8) || 'Part';
+        }
+
         function resolveSetScore(setNum, actionsBySet, setStateBySet, setSummary) {
             const state = setStateBySet && setStateBySet[setNum] ? setStateBySet[setNum] : null;
             let home = state && state.homeScore != null ? Number(state.homeScore) || 0 : 0;
@@ -2522,15 +2550,14 @@ async function exportAllSetsToExcel() {
             return { home, away };
         }
 
-        function computeWins(match, actionsBySet, setStateBySet, setSummary, homeAwayLabel) {
+        function computeWins(match, actionsBySet, setStateBySet, setSummary) {
             let myWins = 0;
             let oppWins = 0;
-            const isHome = homeAwayLabel === 'casa';
             for (let i = 1; i <= 6; i++) {
                 const sc = resolveSetScore(i, actionsBySet, setStateBySet, setSummary);
                 if (!sc.home && !sc.away) continue;
-                const myScore = isHome ? sc.home : sc.away;
-                const oppScore = isHome ? sc.away : sc.home;
+                const myScore = sc.home;
+                const oppScore = sc.away;
                 if (myScore > oppScore) myWins++;
                 else if (oppScore > myScore) oppWins++;
             }
@@ -2598,11 +2625,11 @@ async function exportAllSetsToExcel() {
             return null;
         }
 
-        async function saveWorkbookLocal(wbArray, fileName) {
+        async function saveWorkbookLocal(wbArray, fileName, dirHandle) {
             try {
-                const dirHandle = await getScoutDirectoryHandle();
-                if (!dirHandle) return false;
-                const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                const targetDir = dirHandle || await getScoutDirectoryHandle();
+                if (!targetDir) return false;
+                const fileHandle = await targetDir.getFileHandle(fileName, { create: true });
                 const writable = await fileHandle.createWritable();
                 await writable.write(wbArray);
                 await writable.close();
@@ -2618,10 +2645,13 @@ async function exportAllSetsToExcel() {
             return;
         }
 
-        const sessionData = safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
+        const sessionData = (exportOptions.sessionData && typeof exportOptions.sessionData === 'object')
+            ? exportOptions.sessionData
+            : safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
         const currentMatch = (window.appState && window.appState.currentMatch) ? window.appState.currentMatch : null;
         const bestLocal = (typeof getBestLocalMatch === 'function') ? getBestLocalMatch() : null;
-        const match = currentMatch || bestLocal || sessionData || {};
+        const matchOverride = (exportOptions.match && typeof exportOptions.match === 'object') ? exportOptions.match : null;
+        const match = matchOverride || currentMatch || bestLocal || sessionData || {};
 
         const actionsBySet = sessionData.actionsBySet || match.actionsBySet || {};
         const setMeta = sessionData.setMeta || match.setMeta || {};
@@ -2667,8 +2697,28 @@ async function exportAllSetsToExcel() {
 
         const wsRoster = {};
         wsRoster['!ref'] = 'A1:K220';
+        setCell(wsRoster, 'D1', normalizeFileSegment(getTeamLabel(match), 48));
+        setCell(wsRoster, 'B2', 'N°');
+        setCell(wsRoster, 'C2', 'COGNOME');
+        setCell(wsRoster, 'D2', 'NOME');
+        setCell(wsRoster, 'E2', 'SOPRANNOME');
+        setCell(wsRoster, 'F2', 'Ruolo');
+        const toSheetDate = (raw) => {
+            const s = String(raw || '').trim();
+            if (!s) return '';
+            const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+            const d = new Date(s);
+            if (Number.isFinite(d.getTime())) {
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                return `${dd}/${mm}/${yyyy}`;
+            }
+            return s;
+        };
         setCell(wsRoster, 'D20', opponent);
-        setCell(wsRoster, 'D21', String(matchDate || '').slice(0, 10));
+        setCell(wsRoster, 'D21', toSheetDate(matchDate));
         setCell(wsRoster, 'D22', eventType);
         setCell(wsRoster, 'D23', location);
         setCell(wsRoster, 'D24', description);
@@ -2683,14 +2733,46 @@ async function exportAllSetsToExcel() {
             return '';
         }
 
-        const validPlayers = (roster || []).map(p => {
+        function normalizeRoleAbbrev(roleValue) {
+            const s = String(roleValue || '').trim();
+            if (!s) return '';
+            const u = s.toUpperCase();
+            if (/^[POMCLS]\d+$/.test(u)) return u;
+            if (u === 'P' || u.startsWith('PAL')) return 'P';
+            if (u === 'O' || u.startsWith('OPP')) return 'O';
+            if (u === 'M' || u.startsWith('SCH') || u.startsWith('MAR')) return 'M';
+            if (u === 'C' || u.startsWith('CEN')) return 'C';
+            if (u === 'L' || u.startsWith('LIB')) return 'L';
+            return u.charAt(0);
+        }
+
+        const validPlayersBase = (roster || []).map(p => {
             const number = pickField(p, ['number', 'numero', 'num', 'jersey', 'jerseyNumber', 'maglia']);
-            const surname = pickField(p, ['surname', 'cognome', 'lastName', 'cognomi']);
             const name = pickField(p, ['name', 'nome', 'firstName', 'nomi']);
+            const surname = pickField(p, ['surname', 'cognome', 'lastName', 'cognomi']);
             const nickname = pickField(p, ['nickname', 'nick', 'soprannome']);
-            const role = pickField(p, ['role', 'ruolo', 'position', 'posizione']);
-            return { number, surname, name, nickname, role };
-        }).filter(p => p && (p.number || p.name || p.surname || p.nickname || p.role));
+            const roleRaw = pickField(p, ['role', 'ruolo', 'position', 'posizione']);
+            const role = normalizeRoleAbbrev(roleRaw);
+            const roleFixed = /^[POMCLS]\d+$/.test(String(role || '').toUpperCase()) ? String(role).toUpperCase() : '';
+            const roleBase = roleFixed ? roleFixed.replace(/\d+$/, '') : String(role || '').toUpperCase();
+            return { number, name, surname, nickname, roleFixed, roleBase };
+        }).filter(p => p && (p.number || p.name || p.surname || p.nickname || p.roleFixed || p.roleBase));
+        const roleTotals = {};
+        validPlayersBase.forEach((p) => {
+            const base = String(p.roleBase || '').trim().toUpperCase();
+            if (!base) return;
+            roleTotals[base] = (roleTotals[base] || 0) + 1;
+        });
+        const roleProgressive = {};
+        const validPlayers = validPlayersBase.map((p) => {
+            if (p.roleFixed) return Object.assign({}, p, { role: p.roleFixed });
+            const base = String(p.roleBase || '').trim().toUpperCase();
+            if (!base) return Object.assign({}, p, { role: '' });
+            if ((roleTotals[base] || 0) <= 1) return Object.assign({}, p, { role: base });
+            const next = (roleProgressive[base] || 0) + 1;
+            roleProgressive[base] = next;
+            return Object.assign({}, p, { role: `${base}${next}` });
+        });
         for (let i = 0; i < validPlayers.length; i++) {
             const p = validPlayers[i] || {};
             const row = 3 + i;
@@ -2734,18 +2816,27 @@ async function exportAllSetsToExcel() {
         }
 
         const matchId = String(match?.id || sessionData?.id || Date.now()).trim();
-        const matchNumber = getMatchNumber(matchId);
-        const teamClubLabel = normalizeFileSegment(getTeamClubLabel(match), 48);
-        const eventLabel = normalizeFileSegment(eventType, 24) || 'Partita';
+        const requireDirectoryHandle = exportOptions.requireDirectoryHandle === true;
+        const disableWriteFileFallback = exportOptions.disableWriteFileFallback === true;
+        const dirHandle = exportOptions.directoryHandle || await getScoutDirectoryHandle();
+        if (requireDirectoryHandle && !dirHandle) {
+            throw new Error('Cartella di destinazione non disponibile');
+        }
+        const matchNumber = await getMatchNumberFromOutputDir(dirHandle, matchId);
+        const teamLabel = normalizeFileSegment(getTeamLabel(match), 48);
+        const eventLabel = abbreviateEventType(eventType);
         const opponentLabel = normalizeFileSegment(opponent, 32) || 'Avversario';
-        const wins = computeWins(match, actionsBySet, setStateBySet, match.setSummary || sessionData.setSummary || {}, location);
+        const wins = computeWins(match, actionsBySet, setStateBySet, match.setSummary || sessionData.setSummary || {});
         const outcomeLabel = (wins.myWins || wins.oppWins) ? (wins.myWins > wins.oppWins ? 'Vinto' : (wins.oppWins > wins.myWins ? 'Perso' : '')) : (matchOutcome || '');
         const resultLabel = (wins.myWins || wins.oppWins) ? (location === 'casa' ? `${wins.myWins}${wins.oppWins}` : `${wins.oppWins}${wins.myWins}`) : String(finalResult || '').replace(/[^\d]/g, '').slice(0, 2);
-        const nameParts = [matchNumber, teamClubLabel, eventLabel, 'Vs', opponentLabel, outcomeLabel, resultLabel].filter(Boolean);
+        const nameParts = [matchNumber, teamLabel, eventLabel, 'Vs', opponentLabel, outcomeLabel, resultLabel].filter(Boolean);
         const fileName = `${nameParts.join(' ')}.xlsx`;
         const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const savedLocal = await saveWorkbookLocal(wbArray, fileName);
+        const savedLocal = await saveWorkbookLocal(wbArray, fileName, dirHandle);
         if (!savedLocal) {
+            if (disableWriteFileFallback || requireDirectoryHandle) {
+                throw new Error('Impossibile salvare automaticamente il file nella cartella selezionata');
+            }
             XLSX.writeFile(wb, fileName, { bookType: 'xlsx' });
         }
         try {
@@ -2781,9 +2872,14 @@ async function exportAllSetsToExcel() {
                 }
             } catch (_) {}
         } catch (_) {}
+        return { success: true, fileName, matchId, matchNumber };
     } catch (e) {
         console.error('Errore exportAllSetsToExcel:', e);
-        alert('Errore durante l\'esportazione della partita');
+        if (!exportOptions.suppressAlert) {
+            alert('Errore durante l\'esportazione della partita');
+        }
+        if (exportOptions.rethrow) throw e;
+        return { success: false, error: e };
     }
 }
 

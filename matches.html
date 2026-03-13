@@ -497,9 +497,9 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="goToGuidesBtn" type="button">Guide e filosofia scout</button>
                     <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
                     <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
+                    <button class="menu-item" id="exportAllMatchesBtn" type="button" style="display:none;">Esporta tutte le gare</button>
                     <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
                     <label class="menu-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
                       <span style="display:flex;flex-direction:column;gap:2px;">
@@ -580,7 +580,6 @@
                 <p id="emptyMatchesHint">Crea una nuova partita.</p>
                 <div class="empty-actions" id="emptyMatchesActions">
                   <button type="button" class="btn btn-primary" id="emptyMatchesCreateBtn" onclick="openNewMatchDialog()">Crea nuova partita</button>
-                  <a href="/guides.html#primi-passi" class="btn btn-secondary" id="emptyMatchesGuideBtn" style="text-decoration:none;">Guida primi passi</a>
                 </div>
             </div>
         </div>
@@ -827,7 +826,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.5.0</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.6.0</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -2588,6 +2587,7 @@
         const accountLogout = document.getElementById('accountLogout');
         const hydrateDataBtn = document.getElementById('hydrateDataBtn');
         const syncDataBtn = document.getElementById('syncDataBtn');
+        const exportAllMatchesBtn = document.getElementById('exportAllMatchesBtn');
         const autoSavesToggle = document.getElementById('autoSavesToggle');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
@@ -2595,7 +2595,6 @@
         const emptyMatchesHint = document.getElementById('emptyMatchesHint');
         const emptyMatchesActions = document.getElementById('emptyMatchesActions');
         const emptyMatchesCreateBtn = document.getElementById('emptyMatchesCreateBtn');
-        const emptyMatchesGuideBtn = document.getElementById('emptyMatchesGuideBtn');
         const loadingScreen = document.getElementById('loadingScreen');
         const importStageOverlay = document.getElementById('importStageOverlay');
         const importMatchDialog = document.getElementById('importMatchDialog');
@@ -2709,6 +2708,7 @@
         let playerAnalysisMatchesDraftSelection = [];
         let playerAnalysisCardFundamentalsByPlayer = {};
         let playerAnalysisDefaultsInitialized = false;
+        let currentMainTab = 'list';
 
         function readAppSettings() {
             try {
@@ -2783,6 +2783,13 @@
             } else {
                 if (matchesArchiveTabLocal) matchesArchiveTabLocal.style.display = '';
             }
+            updateBulkExportMenuVisibility();
+        }
+
+        function updateBulkExportMenuVisibility() {
+            if (!exportAllMatchesBtn) return;
+            const canShow = !computeObserverMode() && currentMainTab === 'list';
+            exportAllMatchesBtn.style.display = canShow ? '' : 'none';
         }
 
         function getInitialArchive() {
@@ -3874,14 +3881,6 @@
                     }
                 });
             }
-            const goToGuidesBtn = document.getElementById('goToGuidesBtn');
-            if (goToGuidesBtn){
-                goToGuidesBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = '/guides.html';
-                });
-            }
             if (hydrateDataBtn){
                 hydrateDataBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
@@ -3929,6 +3928,13 @@
                 syncDataBtn.addEventListener('click', async (e) => {
                     e.preventDefault(); e.stopPropagation();
                     await openSyncCompareDialog();
+                });
+            }
+            if (exportAllMatchesBtn) {
+                exportAllMatchesBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await handleExportAllMatchesFromMenu();
                 });
             }
             const backBtn = document.getElementById('backBtn');
@@ -4345,6 +4351,7 @@
         }
 
         function switchTab(tab){
+            currentMainTab = tab;
             const isList = tab === 'list';
             const isAnalysis = tab === 'analysis';
             const isPlayerAnalysis = tab === 'player-analysis';
@@ -4393,6 +4400,7 @@
             if (isPlayerAnalysis){
                 renderPlayerAnalysis();
             }
+            updateBulkExportMenuVisibility();
         }
 
         // Stato iniziale: Elenco partite → nessun full-height
@@ -4747,6 +4755,7 @@
                     refreshTeamAnalysisRosterCache();
                     renderTeamAnalysisRoster();
                 } catch(_) {}
+                updateBulkExportMenuVisibility();
                 return;
             }
 
@@ -4765,6 +4774,7 @@
             });
 
             renderTeamAnalysisChart(relevant);
+            updateBulkExportMenuVisibility();
         }
 
         function formatItalianDateDisplay(raw) {
@@ -8112,6 +8122,373 @@
             return base;
         }
 
+        function formatMatchLabelForBulkExport(match) {
+            const rawDate = match?.date || match?.matchDate || match?.createdAt || '';
+            const dateLabel = formatItalianDateDisplay(rawDate) || 'Data n/d';
+            const rawType = String(match?.matchType || match?.eventType || 'partita').trim();
+            const typeLabel = rawType ? (rawType.charAt(0).toUpperCase() + rawType.slice(1)) : 'Partita';
+            const opp = String(match?.opponentTeam || match?.opponent || match?.awayTeam || 'Avversario').trim();
+            return [dateLabel, typeLabel, opp].filter(Boolean).join(' • ');
+        }
+
+        function ensureBulkExportSelectDialog() {
+            let dlg = document.getElementById('bulkExportSelectDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'bulkExportSelectDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '10020';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(760px,94vw); max-height:86vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <div style="font-weight:700; font-size:16px;">Esporta tutte le gare</div>
+                        <button id="bulkExportSelectCloseBtn" class="btn btn-light" type="button" style="padding:6px 12px;">Chiudi</button>
+                    </div>
+                    <div id="bulkExportSelectSummary" style="font-size:13px; color:#475569;"></div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="bulkExportSelectAllBtn" class="btn btn-secondary" type="button">Seleziona tutte</button>
+                        <button id="bulkExportSelectNoneBtn" class="btn btn-secondary" type="button">Deseleziona tutte</button>
+                    </div>
+                    <div id="bulkExportSelectList" style="border:1px solid #e2e8f0; border-radius:12px; padding:10px; overflow:auto; background:#fafafa; flex:1 1 auto; min-height:160px;"></div>
+                    <div style="display:flex; justify-content:flex-end; gap:8px;">
+                        <button id="bulkExportSelectCancelBtn" class="btn btn-secondary" type="button">Annulla</button>
+                        <button id="bulkExportSelectRunBtn" class="btn btn-primary" type="button">Procedi</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        function updateBulkExportSelectSummary(dlg) {
+            if (!dlg) return;
+            const checks = Array.from(dlg.querySelectorAll('input[data-export-match-id]'));
+            const selected = checks.filter(ch => ch.checked).length;
+            const total = checks.length;
+            const summary = dlg.querySelector('#bulkExportSelectSummary');
+            if (summary) summary.textContent = total ? `Partite selezionate: ${selected} su ${total}` : 'Nessuna partita disponibile';
+            const runBtn = dlg.querySelector('#bulkExportSelectRunBtn');
+            if (runBtn) runBtn.disabled = selected === 0;
+        }
+
+        function fillBulkExportSelectRows(dlg, candidates) {
+            const list = dlg?.querySelector('#bulkExportSelectList');
+            if (!list) return;
+            list.innerHTML = '';
+            (Array.isArray(candidates) ? candidates : []).forEach((item) => {
+                const id = String(item?.id || '');
+                const row = document.createElement('label');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '8px';
+                row.style.padding = '8px';
+                row.style.borderRadius = '8px';
+                row.style.background = '#fff';
+                row.style.border = '1px solid #e2e8f0';
+                row.style.marginBottom = '6px';
+                row.innerHTML = `
+                    <input type="checkbox" data-export-match-id="${escapeHtml(id)}" checked />
+                    <span style="font-size:13px; color:#0f172a;">${escapeHtml(formatMatchLabelForBulkExport(item))}</span>
+                `;
+                const checkbox = row.querySelector('input[data-export-match-id]');
+                if (checkbox) checkbox.addEventListener('change', () => updateBulkExportSelectSummary(dlg));
+                list.appendChild(row);
+            });
+            updateBulkExportSelectSummary(dlg);
+        }
+
+        function openBulkExportSelectDialog(candidates, options) {
+            return new Promise((resolve) => {
+                const dlg = ensureBulkExportSelectDialog();
+                const opts = (options && typeof options === 'object') ? options : {};
+                const guardMs = Number.isFinite(Number(opts.guardMs)) ? Math.max(0, Number(opts.guardMs)) : 350;
+                const guardUntil = Date.now() + guardMs;
+                fillBulkExportSelectRows(dlg, candidates);
+                dlg.style.display = 'flex';
+                const closeWith = (result) => {
+                    dlg.style.display = 'none';
+                    resolve(result);
+                };
+                const closeBtn = dlg.querySelector('#bulkExportSelectCloseBtn');
+                const cancelBtn = dlg.querySelector('#bulkExportSelectCancelBtn');
+                const runBtn = dlg.querySelector('#bulkExportSelectRunBtn');
+                const allBtn = dlg.querySelector('#bulkExportSelectAllBtn');
+                const noneBtn = dlg.querySelector('#bulkExportSelectNoneBtn');
+                const closeHandler = () => {
+                    if (Date.now() < guardUntil) return;
+                    closeWith(null);
+                };
+                const runHandler = () => {
+                    if (Date.now() < guardUntil) return;
+                    const ids = Array.from(dlg.querySelectorAll('input[data-export-match-id]:checked'))
+                        .map(el => String(el.getAttribute('data-export-match-id') || '').trim())
+                    closeWith(ids);
+                };
+                const allHandler = () => {
+                    dlg.querySelectorAll('input[data-export-match-id]').forEach(el => { el.checked = true; });
+                    updateBulkExportSelectSummary(dlg);
+                };
+                const noneHandler = () => {
+                    dlg.querySelectorAll('input[data-export-match-id]').forEach(el => { el.checked = false; });
+                    updateBulkExportSelectSummary(dlg);
+                };
+                if (closeBtn) closeBtn.onclick = closeHandler;
+                if (cancelBtn) cancelBtn.onclick = closeHandler;
+                if (runBtn) runBtn.onclick = runHandler;
+                if (allBtn) allBtn.onclick = allHandler;
+                if (noneBtn) noneBtn.onclick = noneHandler;
+            });
+        }
+
+        function ensureBulkExportProgressDialog() {
+            let dlg = document.getElementById('bulkExportProgressDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'bulkExportProgressDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '10030';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(760px,94vw); max-height:86vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-weight:700; font-size:16px;">Esportazione in corso</div>
+                    <div id="bulkExportOverallLabel" style="font-size:13px; color:#475569;">Partita 0 di 0</div>
+                    <div style="height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+                        <div id="bulkExportOverallFill" style="height:100%; width:0; background:#2563eb; transition:width .2s ease;"></div>
+                    </div>
+                    <div id="bulkExportProgressList" style="border:1px solid #e2e8f0; border-radius:12px; padding:10px; overflow:auto; background:#fafafa; flex:1 1 auto; min-height:180px;"></div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        function fillBulkExportProgressRows(dlg, selectedMatches) {
+            const list = dlg?.querySelector('#bulkExportProgressList');
+            if (!list) return;
+            list.innerHTML = '';
+            (Array.isArray(selectedMatches) ? selectedMatches : []).forEach((match) => {
+                const row = document.createElement('div');
+                row.setAttribute('data-export-progress-id', String(match?.id || ''));
+                row.style.border = '1px solid #e2e8f0';
+                row.style.borderRadius = '10px';
+                row.style.padding = '10px';
+                row.style.background = '#fff';
+                row.style.marginBottom = '8px';
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <div style="font-size:13px; font-weight:600; color:#0f172a;">${escapeHtml(formatMatchLabelForBulkExport(match))}</div>
+                        <div class="bulk-export-row-status" style="font-size:12px; color:#64748b;">In attesa</div>
+                    </div>
+                    <div style="height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-top:8px;">
+                        <div class="bulk-export-row-fill" style="height:100%; width:0; background:#2563eb; transition:width .2s ease;"></div>
+                    </div>
+                    <div class="bulk-export-row-detail" style="margin-top:6px; font-size:12px; color:#64748b;"></div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function updateBulkExportProgressRow(dlg, matchId, status, percent, detail) {
+            const row = dlg?.querySelector(`[data-export-progress-id="${String(matchId || '')}"]`);
+            if (!row) return;
+            const statusEl = row.querySelector('.bulk-export-row-status');
+            const fillEl = row.querySelector('.bulk-export-row-fill');
+            const detailEl = row.querySelector('.bulk-export-row-detail');
+            const pct = Math.max(0, Math.min(100, Number(percent || 0)));
+            if (statusEl) statusEl.textContent = status;
+            if (fillEl) fillEl.style.width = `${pct}%`;
+            if (detailEl) detailEl.textContent = detail || '';
+            if (fillEl && status === 'Completata') fillEl.style.background = '#16a34a';
+            if (fillEl && status === 'Errore') fillEl.style.background = '#dc2626';
+        }
+
+        function updateBulkExportOverall(dlg, done, total) {
+            const safeDone = Math.max(0, Number(done || 0));
+            const safeTotal = Math.max(0, Number(total || 0));
+            const pct = safeTotal > 0 ? Math.round((safeDone / safeTotal) * 100) : 0;
+            const label = dlg?.querySelector('#bulkExportOverallLabel');
+            const fill = dlg?.querySelector('#bulkExportOverallFill');
+            if (label) label.textContent = `Partita ${Math.min(safeDone, safeTotal)} di ${safeTotal} • ${pct}%`;
+            if (fill) fill.style.width = `${pct}%`;
+        }
+
+        function ensureBulkExportSummaryDialog() {
+            let dlg = document.getElementById('bulkExportSummaryDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('div');
+            dlg.id = 'bulkExportSummaryDialog';
+            dlg.style.position = 'fixed';
+            dlg.style.inset = '0';
+            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.style.display = 'none';
+            dlg.style.alignItems = 'center';
+            dlg.style.justifyContent = 'center';
+            dlg.style.zIndex = '10040';
+            dlg.innerHTML = `
+                <div style="background:#fff; width:min(760px,94vw); max-height:86vh; border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-weight:700; font-size:16px;">Riepilogo esportazione</div>
+                    <div id="bulkExportSummaryText" style="font-size:13px; color:#475569;"></div>
+                    <div id="bulkExportSummaryErrors" style="border:1px solid #e2e8f0; border-radius:12px; padding:10px; overflow:auto; background:#fafafa; max-height:48vh;"></div>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button id="bulkExportSummaryOkBtn" class="btn btn-primary" type="button">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        function closeBulkExportDialogs() {
+            const selectDlg = document.getElementById('bulkExportSelectDialog');
+            const progressDlg = document.getElementById('bulkExportProgressDialog');
+            const summaryDlg = document.getElementById('bulkExportSummaryDialog');
+            if (selectDlg) selectDlg.style.display = 'none';
+            if (progressDlg) progressDlg.style.display = 'none';
+            if (summaryDlg) summaryDlg.style.display = 'none';
+        }
+
+        function showBulkExportSummary(summary) {
+            const dlg = ensureBulkExportSummaryDialog();
+            const text = dlg.querySelector('#bulkExportSummaryText');
+            const errorsBox = dlg.querySelector('#bulkExportSummaryErrors');
+            const okBtn = dlg.querySelector('#bulkExportSummaryOkBtn');
+            const total = Number(summary?.total || 0);
+            const ok = Number(summary?.completed || 0);
+            const failed = Number(summary?.failed || 0);
+            if (text) text.textContent = `Processo completato. Esportate: ${ok} su ${total}. Errori: ${failed}.`;
+            if (errorsBox) {
+                if (!Array.isArray(summary?.errors) || summary.errors.length === 0) {
+                    errorsBox.innerHTML = `<div style="color:#16a34a; font-weight:600;">Nessun errore rilevato.</div>`;
+                } else {
+                    errorsBox.innerHTML = summary.errors.map((err, idx) => `
+                        <div style="border:1px solid #fecaca; background:#fef2f2; border-radius:10px; padding:8px; margin-bottom:8px;">
+                            <div style="font-size:12px; font-weight:700; color:#991b1b;">Errore ${idx + 1}</div>
+                            <div style="font-size:12px; color:#7f1d1d;">File/Partita: ${escapeHtml(err.file || err.match || 'n/d')}</div>
+                            <div style="font-size:12px; color:#7f1d1d;">Dettaglio: ${escapeHtml(err.error || 'Errore sconosciuto')}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+            if (okBtn) okBtn.onclick = () => closeBulkExportDialogs();
+            dlg.style.display = 'flex';
+        }
+
+        async function handleExportAllMatchesFromMenu() {
+            try {
+                const relevant = getRelevantMatchesForSelectedTeam();
+                if (!Array.isArray(relevant) || relevant.length === 0) {
+                    alert('Nessuna partita disponibile da esportare');
+                    return;
+                }
+                if (typeof window.exportAllSetsToExcel !== 'function') {
+                    alert('Funzione di esportazione non disponibile');
+                    return;
+                }
+                if (typeof window.showDirectoryPicker !== 'function') {
+                    alert('In questa preview il salvataggio automatico multiplo non è disponibile. Apri la pagina in browser standard per autorizzare la cartella di destinazione.');
+                    return;
+                }
+                let folderHandle = null;
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        folderHandle = await window.showDirectoryPicker({ id: 'mvsBulkExportFolder', mode: 'readwrite', startIn: 'documents' });
+                    } catch (err) {
+                        const errName = String(err?.name || '');
+                        if (errName === 'AbortError') return;
+                        const msg = String(err?.message || '').toLowerCase();
+                        const isSystemFolderBlock = msg.includes('file di sistema') || msg.includes('system files');
+                        if (isSystemFolderBlock && attempt === 0) {
+                            alert('La cartella scelta è bloccata dal browser. Seleziona una sottocartella dedicata, ad esempio Download\\MyVolleyScoutExport.');
+                            continue;
+                        }
+                        alert('Impossibile autorizzare la cartella di destinazione. Seleziona una cartella non protetta.');
+                        return;
+                    }
+                    if (folderHandle) break;
+                }
+                if (!folderHandle) {
+                    alert('Cartella di destinazione non disponibile');
+                    return;
+                }
+                try {
+                    const perm = await folderHandle.queryPermission({ mode: 'readwrite' });
+                    if (perm !== 'granted') {
+                        const reqPerm = await folderHandle.requestPermission({ mode: 'readwrite' });
+                        if (reqPerm !== 'granted') {
+                            alert('Permesso di scrittura negato sulla cartella di destinazione');
+                            return;
+                        }
+                    }
+                } catch (_) {
+                    alert('Impossibile verificare i permessi di scrittura della cartella');
+                    return;
+                }
+                const selectedIds = await openBulkExportSelectDialog(relevant, { guardMs: 450 });
+                if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+                    alert('Seleziona almeno una partita da esportare');
+                    return;
+                }
+                const selectedSet = new Set(selectedIds.map(v => String(v)));
+                const selectedMatches = relevant.filter(m => selectedSet.has(String(m?.id || '')));
+                if (!selectedMatches.length) {
+                    alert('Le partite selezionate non sono state trovate. Riprova.');
+                    return;
+                }
+                const progressDlg = ensureBulkExportProgressDialog();
+                fillBulkExportProgressRows(progressDlg, selectedMatches);
+                updateBulkExportOverall(progressDlg, 0, selectedMatches.length);
+                progressDlg.style.display = 'flex';
+                const errors = [];
+                for (let i = 0; i < selectedMatches.length; i++) {
+                    const match = selectedMatches[i];
+                    const matchId = String(match?.id || '');
+                    updateBulkExportProgressRow(progressDlg, matchId, 'Preparazione', 10, 'Raccolta dati partita...');
+                    try {
+                        const hydrated = await hydrateMatchForExport(match);
+                        updateBulkExportProgressRow(progressDlg, matchId, 'In esportazione', 45, 'Generazione file XLS in corso...');
+                        const exportOptions = {
+                            match: hydrated,
+                            sessionData: hydrated,
+                            requireDirectoryHandle: true,
+                            disableWriteFileFallback: true,
+                            suppressAlert: true,
+                            rethrow: true
+                        };
+                        if (folderHandle) exportOptions.directoryHandle = folderHandle;
+                        const res = await window.exportAllSetsToExcel(exportOptions);
+                        const fileLabel = String(res?.fileName || hydrated?.excelFileName || formatMatchLabelForBulkExport(match));
+                        updateBulkExportProgressRow(progressDlg, matchId, 'Completata', 100, `File: ${fileLabel}`);
+                    } catch (err) {
+                        const message = String(err?.message || 'Errore sconosciuto');
+                        const fileLabel = String(match?.excelFileName || formatMatchLabelForBulkExport(match));
+                        errors.push({ file: fileLabel, match: formatMatchLabelForBulkExport(match), error: message });
+                        updateBulkExportProgressRow(progressDlg, matchId, 'Errore', 100, message);
+                    }
+                    updateBulkExportOverall(progressDlg, i + 1, selectedMatches.length);
+                }
+                showBulkExportSummary({
+                    total: selectedMatches.length,
+                    completed: selectedMatches.length - errors.length,
+                    failed: errors.length,
+                    errors
+                });
+            } catch (err) {
+                console.error('Errore export massivo partite:', err);
+                alert(String(err?.message || 'Errore durante l\'avvio dell\'export di tutte le gare'));
+            } finally {
+                try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_) {}
+            }
+        }
+
         
 
         let __matchContextMenu = null;
@@ -8427,16 +8804,12 @@
             emptyMatches.style.display = 'block';
             if (isObserverMode) {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
-                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud dal menu utente oppure usa la guida per il flusso completo.';
-                if (emptyMatchesActions) emptyMatchesActions.style.display = '';
-                if (emptyMatchesCreateBtn) emptyMatchesCreateBtn.style.display = 'none';
-                if (emptyMatchesGuideBtn) emptyMatchesGuideBtn.setAttribute('href', '/guides.html#primi-passi');
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud tramite il menu utente in alto a destra, seleziona la voce Aggiorna Locale da Cloud';
+                if (emptyMatchesActions) emptyMatchesActions.style.display = 'none';
             } else {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
                 if (emptyMatchesHint) emptyMatchesHint.textContent = 'Crea una nuova partita.';
                 if (emptyMatchesActions) emptyMatchesActions.style.display = '';
-                if (emptyMatchesCreateBtn) emptyMatchesCreateBtn.style.display = '';
-                if (emptyMatchesGuideBtn) emptyMatchesGuideBtn.setAttribute('href', '/guides.html#primi-passi');
             }
             hideLoadingScreen();
         }
