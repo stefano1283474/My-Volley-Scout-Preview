@@ -129,13 +129,34 @@ class TeamsModule {
                 if (isAuthed && window.firestoreService?.saveTeam) {
                     let currentEmail = '';
                     try { currentEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) {}
+                    const sharedTeamIds = (() => {
+                        const out = new Set();
+                        try {
+                            const raw = JSON.parse(localStorage.getItem('mvsSharedTeamRefs') || '[]');
+                            const arr = Array.isArray(raw) ? raw : [];
+                            arr.forEach((r) => {
+                                const id = String(r?.id || '').trim();
+                                const owner = String(r?.owner || '').trim();
+                                if (id && owner && owner !== currentEmail) out.add(id);
+                            });
+                        } catch(_) {}
+                        try {
+                            const metaRaw = localStorage.getItem('selectedSharedTeamMeta');
+                            const meta = metaRaw ? JSON.parse(metaRaw) : null;
+                            const id = String(meta?.id || '').trim();
+                            const owner = String(meta?.owner || '').trim();
+                            if (id && owner && owner !== currentEmail) out.add(id);
+                        } catch(_) {}
+                        return out;
+                    })();
                     for (const t of this.state.teams) {
                         const isFs = String(t.source||'').toLowerCase()==='firestore';
                         const role = String(t._mvsRole || '').toLowerCase();
                         const owner = String(t._mvsOwner || '').trim();
                         const isShared = !!t._mvsShared || role === 'observer' || String(t.source||'').toLowerCase()==='shared';
                         const isForeignOwner = owner && currentEmail && owner !== currentEmail;
-                        if (!firestoreIds.has(String(t.id)) && !isFs && !isShared && !isForeignOwner) {
+                        const isKnownSharedRef = sharedTeamIds.has(String(t.id || '').trim());
+                        if (!firestoreIds.has(String(t.id)) && !isFs && !isShared && !isForeignOwner && !isKnownSharedRef) {
                             try { await window.firestoreService.saveTeam(t); } catch(_) {}
                         }
                     }

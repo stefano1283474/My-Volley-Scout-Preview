@@ -222,6 +222,27 @@ const firestoreService = {
             try { local = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); } catch(_){ local = []; }
             if (!Array.isArray(local) || !local.length) return { success: true, synced: 0 };
             const conflictMode = String(options?.conflictMode || 'preferLocal');
+            const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
+            const sharedTeamIds = (() => {
+                const out = new Set();
+                try {
+                    const raw = JSON.parse(localStorage.getItem('mvsSharedTeamRefs') || '[]');
+                    const arr = Array.isArray(raw) ? raw : [];
+                    arr.forEach((r) => {
+                        const id = String(r?.id || '').trim();
+                        const owner = String(r?.owner || '').trim();
+                        if (id && owner && owner !== currentEmail) out.add(id);
+                    });
+                } catch(_) {}
+                try {
+                    const metaRaw = localStorage.getItem('selectedSharedTeamMeta');
+                    const meta = metaRaw ? JSON.parse(metaRaw) : null;
+                    const id = String(meta?.id || '').trim();
+                    const owner = String(meta?.owner || '').trim();
+                    if (id && owner && owner !== currentEmail) out.add(id);
+                } catch(_) {}
+                return out;
+            })();
 
             const toEpochMs = (v) => {
                 try {
@@ -240,9 +261,11 @@ const firestoreService = {
             let synced = 0;
             for (const t of local) {
                 // Skip syncing shared teams (teams where I am an observer) to my own collection
-                if (t.source === 'shared' || t._mvsRole === 'observer' || (t.shared && t._mvsOwner && t._mvsOwner !== userRef.id && t._mvsOwner !== authFunctions.getCurrentUser()?.email)) {
+                if (t.source === 'shared' || t._mvsRole === 'observer' || (t.shared && t._mvsOwner && t._mvsOwner !== userRef.id && t._mvsOwner !== currentEmail)) {
                     continue;
                 }
+                const localId = String(t?.id || '').trim();
+                if (localId && sharedTeamIds.has(localId)) continue;
 
                 const club = String(t.clubName||'').trim();
                 const squad = String(t.teamName||t.name||'').trim();
@@ -316,7 +339,6 @@ const firestoreService = {
                     if (shouldSetCreatedAt) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await docRef.set(payload, { merge: true });
                     try {
-                        const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
                         if (currentEmail) {
                             const uaRef = docRef.collection('user_access').doc(currentEmail);
                             await uaRef.set({
@@ -346,12 +368,38 @@ const firestoreService = {
             // Mappa dei team locali: name -> docId
             let localTeams = [];
             try { localTeams = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); } catch(_){ localTeams = []; }
+            const currentEmail = String(authFunctions.getCurrentUser()?.email || '').trim();
+            const sharedTeamIds = (() => {
+                const out = new Set();
+                try {
+                    const raw = JSON.parse(localStorage.getItem('mvsSharedTeamRefs') || '[]');
+                    const arr = Array.isArray(raw) ? raw : [];
+                    arr.forEach((r) => {
+                        const id = String(r?.id || '').trim();
+                        const owner = String(r?.owner || '').trim();
+                        if (id && owner && owner !== currentEmail) out.add(id);
+                    });
+                } catch(_) {}
+                try {
+                    const metaRaw = localStorage.getItem('selectedSharedTeamMeta');
+                    const meta = metaRaw ? JSON.parse(metaRaw) : null;
+                    const id = String(meta?.id || '').trim();
+                    const owner = String(meta?.owner || '').trim();
+                    if (id && owner && owner !== currentEmail) out.add(id);
+                } catch(_) {}
+                return out;
+            })();
             const teamMap = new Map();
             (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
+                const role = String(t?._mvsRole || '').trim().toLowerCase();
+                const source = String(t?.source || '').trim().toLowerCase();
+                const owner = String(t?._mvsOwner || '').trim();
+                const localId = String(t?.id || '').trim();
+                const isShared = !!(t?._mvsShared) || role === 'observer' || source === 'shared' || (!!owner && !!currentEmail && owner !== currentEmail) || (localId && sharedTeamIds.has(localId));
+                if (isShared) return;
                 const club = String(t.clubName||'').trim();
                 const squad = String(t.teamName||t.name||'').trim();
                 const combined = (squad + (club ? ` - ${club}` : '')).trim();
-                const localId = String(t.id || '').trim();
                 const docId = combined || localId;
                 const nameCombined = String(t.name || '').trim() || combined;
                 if (docId) {
@@ -485,6 +533,10 @@ const firestoreService = {
                     try { if (m.teamId) teamId = String(m.teamId); } catch(_){}
                     if (teamId && teamMap.has(teamId)) {
                         teamId = teamMap.get(teamId);
+                    }
+                    if (teamId && sharedTeamIds.has(String(teamId).trim())) {
+                        finalStatus = 'skipped';
+                        continue;
                     }
                     if (!teamId) {
                         const my = String(m.myTeam||m.teamName||'').trim();
@@ -1271,6 +1323,7 @@ const firestoreService = {
         try {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
+            const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
 
             const tId = String(teamId || '').trim();
             if (!tId) return { success: false, error: 'teamId non valido' };
@@ -1428,7 +1481,25 @@ const firestoreService = {
                 : [];
 
             let detailsLoaded = 0;
+            const detailsTotal = idsForDetails.length;
+            let detailsIndex = 0;
             for (const mId of idsForDetails) {
+                detailsIndex++;
+                const progressMatch = mergedTeam.find(m => String(m?.id || '') === mId) || { id: mId, teamId: tId, teamName };
+                if (onProgress) {
+                    try {
+                        onProgress({
+                            phase: 'matches',
+                            status: 'start',
+                            teamId: tId,
+                            teamName,
+                            matchId: mId,
+                            match: progressMatch,
+                            index: detailsIndex,
+                            total: detailsTotal
+                        });
+                    } catch (_) {}
+                }
                 try {
                     const r = await firestoreService.getMatchData(tId, mId);
                     if (r?.success) {
@@ -1451,7 +1522,36 @@ const firestoreService = {
                         }
                         detailsLoaded++;
                     }
-                } catch (_) { }
+                    if (onProgress) {
+                        try {
+                            onProgress({
+                                phase: 'matches',
+                                status: 'done',
+                                teamId: tId,
+                                teamName,
+                                matchId: mId,
+                                match: progressMatch,
+                                index: detailsIndex,
+                                total: detailsTotal
+                            });
+                        } catch (_) {}
+                    }
+                } catch (_) {
+                    if (onProgress) {
+                        try {
+                            onProgress({
+                                phase: 'matches',
+                                status: 'error',
+                                teamId: tId,
+                                teamName,
+                                matchId: mId,
+                                match: progressMatch,
+                                index: detailsIndex,
+                                total: detailsTotal
+                            });
+                        } catch (_) {}
+                    }
+                }
             }
 
             const mergedIds = new Set(mergedTeam.map(m => String(m?.id || '').trim()).filter(Boolean));
@@ -1566,6 +1666,7 @@ const firestoreService = {
         try {
             const user = authFunctions.getCurrentUser();
             if (!user) return { success: false, error: 'Utente non autenticato' };
+            const onProgress = typeof options?.onProgress === 'function' ? options.onProgress : null;
 
             const teamsRes = await firestoreService.hydrateTeamsFromFirestore(options);
             if (!teamsRes?.success) return teamsRes;
@@ -1578,15 +1679,51 @@ const firestoreService = {
                 let teams = [];
                 try { teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]'); } catch (_) { teams = []; }
                 if (!Array.isArray(teams)) teams = [];
+                const validTeams = teams.map(t => ({ id: String(t?.id || '').trim(), name: String(t?.name || '').trim() })).filter(t => t.id);
+                let overallTotal = 0;
+                let overallIndex = 0;
 
-                for (const t of teams) {
-                    const id = String(t?.id || '').trim();
-                    if (!id) continue;
-                    const r = await firestoreService.hydrateTeamMatchesFromFirestore(id, options);
+                if (onProgress) {
+                    try { onProgress({ phase: 'prepare', status: 'start', teamCount: validTeams.length }); } catch (_) {}
+                    for (const t of validTeams) {
+                        try {
+                            const scanRes = await firestoreService.loadTeamMatches(t.id);
+                            const docs = Array.isArray(scanRes?.documents) ? scanRes.documents : [];
+                            overallTotal += docs.length;
+                        } catch (_) {}
+                    }
+                    try { onProgress({ phase: 'prepare', status: 'ready', total: overallTotal, teamCount: validTeams.length }); } catch (_) {}
+                }
+
+                for (const t of validTeams) {
+                    const id = t.id;
+                    if (onProgress) {
+                        try { onProgress({ phase: 'team', status: 'start', teamId: id, teamName: t.name }); } catch (_) {}
+                    }
+                    const r = await firestoreService.hydrateTeamMatchesFromFirestore(id, Object.assign({}, options, {
+                        onProgress: (info) => {
+                            if (!onProgress || !info) return;
+                            if (info.status === 'start') overallIndex += 1;
+                            try {
+                                onProgress(Object.assign({}, info, {
+                                    teamId: info.teamId || id,
+                                    teamName: info.teamName || t.name,
+                                    overallIndex,
+                                    overallTotal
+                                }));
+                            } catch (_) {}
+                        }
+                    }));
                     if (r?.success) {
                         matchesHydrated += Number(r.hydrated || 0);
                         detailsLoaded += Number(r.detailsLoaded || 0);
                     }
+                    if (onProgress) {
+                        try { onProgress({ phase: 'team', status: 'done', teamId: id, teamName: t.name }); } catch (_) {}
+                    }
+                }
+                if (onProgress) {
+                    try { onProgress({ phase: 'complete', status: 'done', overallIndex, overallTotal }); } catch (_) {}
                 }
             }
 

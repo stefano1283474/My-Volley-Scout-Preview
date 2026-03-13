@@ -826,7 +826,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.6.0</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.6.1</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -2762,8 +2762,9 @@
 
         function updateObserverUI() {
             isObserverMode = computeObserverMode();
-            if (syncDataBtn) syncDataBtn.style.display = isObserverMode ? 'none' : '';
-            if (hydrateDataBtn) hydrateDataBtn.style.display = isObserverMode ? 'none' : '';
+            const hideSyncActions = isObserverMode || currentArchive === 'shared';
+            if (syncDataBtn) syncDataBtn.style.display = hideSyncActions ? 'none' : '';
+            if (hydrateDataBtn) hydrateDataBtn.style.display = hideSyncActions ? 'none' : '';
             if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';

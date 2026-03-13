@@ -1,6 +1,6 @@
 // Service Worker per My Volley Scout PWA
 const IS_LOCAL = (self && self.location && (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'));
-const CACHE_NAME = 'my-volley-scout-v17.6.0';
+const CACHE_NAME = 'my-volley-scout-v17.6.1';
 const urlsToCache = [
   '/manifest.json',
   '/icon-192x192.png',
