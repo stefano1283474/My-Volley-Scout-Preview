@@ -980,6 +980,181 @@ const firestoreService = {
         }
     },
 
+    listTeamObserverAccesses: async (teamId) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const tId = String(teamId || '').trim();
+            if (!tId) return { success: false, error: 'teamId non valido' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const currentEmail = String(user.email || '').trim();
+            const teamRef = userRef.collection('teams').doc(tId);
+            const snap = await teamRef.collection('user_access').get();
+            const users = [];
+            snap.forEach((d) => {
+                const data = d.data() || {};
+                const email = String(data?.userEmail || d.id || '').trim();
+                const role = String(data?.role || '').trim().toLowerCase();
+                if (!email || email === currentEmail) return;
+                if (role && role !== 'observer') return;
+                users.push({
+                    id: d.id,
+                    userEmail: email,
+                    role: role || 'observer',
+                    active: data?.active !== false,
+                    accessCount: Number(data?.accessCount || 0),
+                    lastAccessAt: data?.lastAccessAt || null,
+                    lastAccessPage: String(data?.lastAccessPage || '').trim(),
+                    lastAccessArchive: String(data?.lastAccessArchive || '').trim(),
+                    lastAccessAction: String(data?.lastAccessAction || '').trim(),
+                    lastAccessUserAgent: String(data?.lastAccessUserAgent || '').trim(),
+                    updatedAt: data?.updatedAt || null,
+                    createdAt: data?.createdAt || null
+                });
+            });
+            return { success: true, documents: users };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    setTeamObserverAccessState: async (teamId, observerEmail, active) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const tId = String(teamId || '').trim();
+            const email = String(observerEmail || '').trim();
+            if (!tId || !email) return { success: false, error: 'Parametri non validi' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const ownerId = String(userRef?.id || user.email || '').trim();
+            const docRef = userRef.collection('teams').doc(tId).collection('user_access').doc(email);
+            await docRef.set({
+                userEmail: email,
+                role: 'observer',
+                active: !!active,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            try {
+                const observerRef = firestoreService.getUserRefByEmail(email);
+                const mirrorId = `${ownerId}__${tId}`;
+                await observerRef.collection('shared_teams').doc(mirrorId).set({
+                    active: !!active,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (_) {}
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    removeTeamObserverAccess: async (teamId, observerEmail) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const tId = String(teamId || '').trim();
+            const email = String(observerEmail || '').trim();
+            if (!tId || !email) return { success: false, error: 'Parametri non validi' };
+            const userRef = await firestoreService.getUserRefEnsured();
+            const ownerId = String(userRef?.id || user.email || '').trim();
+            const docRef = userRef.collection('teams').doc(tId).collection('user_access').doc(email);
+            await docRef.delete();
+            try {
+                const observerRef = firestoreService.getUserRefByEmail(email);
+                const mirrorId = `${ownerId}__${tId}`;
+                await observerRef.collection('shared_teams').doc(mirrorId).delete();
+            } catch (_) {}
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    bulkSetTeamObserverAccessState: async (teamId, active) => {
+        try {
+            const listRes = await firestoreService.listTeamObserverAccesses(teamId);
+            if (!listRes?.success) return listRes;
+            const docs = Array.isArray(listRes.documents) ? listRes.documents : [];
+            let updated = 0;
+            for (const item of docs) {
+                const email = String(item?.userEmail || '').trim();
+                if (!email) continue;
+                const r = await firestoreService.setTeamObserverAccessState(teamId, email, !!active);
+                if (r?.success) updated++;
+            }
+            return { success: true, updated };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    bulkRemoveTeamObserverAccess: async (teamId) => {
+        try {
+            const listRes = await firestoreService.listTeamObserverAccesses(teamId);
+            if (!listRes?.success) return listRes;
+            const docs = Array.isArray(listRes.documents) ? listRes.documents : [];
+            let removed = 0;
+            for (const item of docs) {
+                const email = String(item?.userEmail || '').trim();
+                if (!email) continue;
+                const r = await firestoreService.removeTeamObserverAccess(teamId, email);
+                if (r?.success) removed++;
+            }
+            return { success: true, removed };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    logObserverTeamAccess: async (ownerId, teamId, context = {}) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const observerEmail = String(user.email || '').trim();
+            const owner = String(ownerId || '').trim();
+            const tId = String(teamId || '').trim();
+            if (!observerEmail || !owner || !tId) return { success: false, error: 'Parametri non validi' };
+            if (owner === observerEmail) return { success: true, skipped: true };
+            const ownerRef = firestoreService.getUserRefByEmail(owner);
+            const accessRef = ownerRef.collection('teams').doc(tId).collection('user_access').doc(observerEmail);
+            const existing = await accessRef.get();
+            const existingData = existing.exists ? (existing.data() || {}) : {};
+            if (existingData?.active === false) return { success: false, error: 'Accesso osservatore sospeso' };
+            const page = String(context?.page || '').trim();
+            const archive = String(context?.archive || '').trim();
+            const action = String(context?.action || '').trim();
+            const userAgent = String((typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '').trim();
+            await accessRef.set({
+                userEmail: observerEmail,
+                role: 'observer',
+                active: true,
+                accessCount: firebase.firestore.FieldValue.increment(1),
+                lastAccessAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastAccessPage: page,
+                lastAccessArchive: archive,
+                lastAccessAction: action,
+                lastAccessUserAgent: userAgent,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: existing.exists ? (existingData?.createdAt || firebase.firestore.FieldValue.serverTimestamp()) : firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            try {
+                const observerRef = firestoreService.getUserRefByEmail(observerEmail);
+                const mirrorId = `${owner}__${tId}`;
+                await observerRef.collection('shared_teams').doc(mirrorId).set({
+                    ownerId: owner,
+                    teamId: tId,
+                    userEmail: observerEmail,
+                    role: 'observer',
+                    active: true,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (_) {}
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
     createTeamInvite: async (teamId) => {
         try {
             const user = authFunctions.getCurrentUser();

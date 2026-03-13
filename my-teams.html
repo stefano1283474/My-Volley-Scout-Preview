@@ -265,6 +265,25 @@
         </div>
       </div>
     </dialog>
+    <dialog id="sharedAccessDialog">
+      <div class="dialog-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div id="sharedAccessTitle" class="dialog-title">Accessi osservatori</div>
+          <button id="sharedAccessCloseTop" type="button" class="btn btn-secondary">Chiudi</button>
+        </div>
+        <div id="sharedAccessSummary" style="font-size:13px; color:#475569; margin-top:6px;"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <button id="sharedAccessSuspendAll" type="button" class="btn btn-secondary">Sospendi tutti</button>
+          <button id="sharedAccessReactivateAll" type="button" class="btn btn-secondary">Riattiva tutti</button>
+          <button id="sharedAccessRemoveAll" type="button" class="btn btn-danger">Rimuovi tutti</button>
+        </div>
+        <div id="sharedAccessHint" style="font-size:12px; color:#64748b; margin-top:8px;"></div>
+        <div id="sharedAccessList" style="margin-top:8px; max-height:52vh; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:8px;"></div>
+        <div class="dialog-actions" style="margin-top:10px;">
+          <button id="sharedAccessCloseBottom" type="button" class="btn btn-primary">OK</button>
+        </div>
+      </div>
+    </dialog>
   </div>
 
   <!-- Firebase compat scripts per definire 'firebase' globale -->
@@ -317,12 +336,24 @@
     const deleteConfirmText = document.getElementById('deleteConfirmText');
     const deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
     const deleteConfirmOk = document.getElementById('deleteConfirmOk');
+    const sharedAccessDialog = document.getElementById('sharedAccessDialog');
+    const sharedAccessTitle = document.getElementById('sharedAccessTitle');
+    const sharedAccessSummary = document.getElementById('sharedAccessSummary');
+    const sharedAccessHint = document.getElementById('sharedAccessHint');
+    const sharedAccessList = document.getElementById('sharedAccessList');
+    const sharedAccessCloseTop = document.getElementById('sharedAccessCloseTop');
+    const sharedAccessCloseBottom = document.getElementById('sharedAccessCloseBottom');
+    const sharedAccessSuspendAll = document.getElementById('sharedAccessSuspendAll');
+    const sharedAccessReactivateAll = document.getElementById('sharedAccessReactivateAll');
+    const sharedAccessRemoveAll = document.getElementById('sharedAccessRemoveAll');
     let pendingDelete = null;
     let currentArchive = 'local';
     let cloudTeams = [];
     let sharedTeams = [];
     let isEditingTeam = false;
     let editingTeamId = null;
+    let accessManageTeamId = '';
+    let accessManageTeamName = '';
     const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
 
     function readAppSettings() {
@@ -945,6 +976,13 @@
                       <path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.5a5 5 0 0 0 7.07 7.07L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
+                  ${t.shared ? `<button class="icon-button icon-button-outline icon-button-circle" data-action="manage-access" data-archive="cloud" data-id="${id}" title="Gestisci Osservatori" aria-label="Gestisci Osservatori">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                      <path d="M20 8v6M17 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>` : ''}
                   <button class="icon-button icon-button-outline icon-button-circle" data-action="edit" data-archive="cloud" data-id="${id}" title="Modifica (Cloud)" aria-label="Modifica (Cloud)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1006,6 +1044,122 @@
             </div>`;
         }).join('');
       }
+    }
+
+    function formatAccessDate(value) {
+      try {
+        if (!value) return 'Mai';
+        let d = null;
+        if (typeof value?.toDate === 'function') d = value.toDate();
+        else if (typeof value?.seconds === 'number') d = new Date(value.seconds * 1000);
+        else if (typeof value === 'string' || typeof value === 'number') d = new Date(value);
+        if (!d || Number.isNaN(d.getTime())) return 'Mai';
+        return d.toLocaleString('it-IT');
+      } catch(_) { return 'Mai'; }
+    }
+
+    function accessLastDetail(item) {
+      const parts = [];
+      const page = String(item?.lastAccessPage || '').trim();
+      const archive = String(item?.lastAccessArchive || '').trim();
+      const action = String(item?.lastAccessAction || '').trim();
+      if (page) parts.push(`Pagina: ${page}`);
+      if (archive) parts.push(`Archivio: ${archive}`);
+      if (action) parts.push(`Azione: ${action}`);
+      return parts.length ? parts.join(' • ') : 'Dettagli non disponibili';
+    }
+
+    function renderAccessRows(list) {
+      if (!sharedAccessList) return;
+      const docs = Array.isArray(list) ? list : [];
+      if (!docs.length) {
+        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun osservatore collegato a questa squadra.</div>`;
+        return;
+      }
+      sharedAccessList.innerHTML = docs.map((item) => {
+        const email = String(item?.userEmail || '').trim();
+        const active = item?.active !== false;
+        const count = Number(item?.accessCount || 0);
+        const statusColor = active ? '#16a34a' : '#b45309';
+        const statusBg = active ? '#dcfce7' : '#fef3c7';
+        const statusTxt = active ? 'Attivo' : 'Sospeso';
+        return `
+          <div style="border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin-bottom:8px; background:#fff;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+              <div style="flex:1;">
+                <div style="font-weight:700; color:#0f172a;">${email.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                <div style="font-size:12px; color:#475569; margin-top:4px;">Accessi: <b>${count}</b> • Ultimo accesso: <b>${formatAccessDate(item?.lastAccessAt)}</b></div>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">${accessLastDetail(item).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+              </div>
+              <span style="font-size:11px; color:${statusColor}; border:1px solid ${statusColor}; background:${statusBg}; border-radius:999px; padding:2px 8px; font-weight:600;">${statusTxt}</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+              <button class="btn btn-secondary" type="button" data-access-action="suspend" data-access-email="${email.replace(/"/g,'&quot;')}" ${active ? '' : 'disabled'}>Sospendi</button>
+              <button class="btn btn-secondary" type="button" data-access-action="reactivate" data-access-email="${email.replace(/"/g,'&quot;')}" ${active ? 'disabled' : ''}>Riattiva</button>
+              <button class="btn btn-danger" type="button" data-access-action="remove" data-access-email="${email.replace(/"/g,'&quot;')}">Rimuovi</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function refreshAccessManagementDialog() {
+      if (!accessManageTeamId) return;
+      if (sharedAccessHint) sharedAccessHint.textContent = 'Caricamento accessi...';
+      const res = await window.firestoreService?.listTeamObserverAccesses?.(accessManageTeamId);
+      if (!res?.success) {
+        if (sharedAccessHint) sharedAccessHint.textContent = res?.error || 'Errore caricamento accessi';
+        renderAccessRows([]);
+        return;
+      }
+      const docs = Array.isArray(res.documents) ? res.documents : [];
+      const activeCount = docs.filter(d => d?.active !== false).length;
+      const suspendedCount = docs.length - activeCount;
+      if (sharedAccessSummary) sharedAccessSummary.textContent = `Osservatori: ${docs.length} • Attivi: ${activeCount} • Sospesi: ${suspendedCount}`;
+      if (sharedAccessHint) sharedAccessHint.textContent = '';
+      renderAccessRows(docs);
+    }
+
+    async function openAccessManagementDialog(teamId, teamName) {
+      accessManageTeamId = String(teamId || '').trim();
+      accessManageTeamName = String(teamName || '').trim();
+      if (!accessManageTeamId || !sharedAccessDialog) return;
+      if (sharedAccessTitle) sharedAccessTitle.textContent = `Accessi osservatori • ${accessManageTeamName || accessManageTeamId}`;
+      if (sharedAccessSummary) sharedAccessSummary.textContent = '';
+      if (sharedAccessHint) sharedAccessHint.textContent = '';
+      if (sharedAccessList) sharedAccessList.innerHTML = '';
+      sharedAccessDialog.showModal();
+      await refreshAccessManagementDialog();
+    }
+
+    function closeAccessManagementDialog() {
+      if (!sharedAccessDialog?.open) return;
+      sharedAccessDialog.close();
+      accessManageTeamId = '';
+      accessManageTeamName = '';
+    }
+
+    async function applyAccessChange(action, userEmail = '') {
+      if (!accessManageTeamId) return;
+      let res = null;
+      if (action === 'suspend') {
+        res = await window.firestoreService?.setTeamObserverAccessState?.(accessManageTeamId, userEmail, false);
+      } else if (action === 'reactivate') {
+        res = await window.firestoreService?.setTeamObserverAccessState?.(accessManageTeamId, userEmail, true);
+      } else if (action === 'remove') {
+        res = await window.firestoreService?.removeTeamObserverAccess?.(accessManageTeamId, userEmail);
+      } else if (action === 'suspend-all') {
+        res = await window.firestoreService?.bulkSetTeamObserverAccessState?.(accessManageTeamId, false);
+      } else if (action === 'reactivate-all') {
+        res = await window.firestoreService?.bulkSetTeamObserverAccessState?.(accessManageTeamId, true);
+      } else if (action === 'remove-all') {
+        res = await window.firestoreService?.bulkRemoveTeamObserverAccess?.(accessManageTeamId);
+      }
+      if (!res?.success) {
+        alert(res?.error || 'Operazione non riuscita');
+        return;
+      }
+      await refreshAccessManagementDialog();
     }
 
     function buildSharedTeamFromInvite(res) {
@@ -1152,6 +1306,15 @@
         const currentEmail = getCurrentUserEmail();
         const owner = String(ownerAttr || '').trim();
         if ((arch === 'cloud' || arch === 'shared') && owner && owner !== currentEmail) {
+          const roleRes = await window.firestoreService?.getTeamRole?.(id, owner);
+          if (!roleRes?.success || roleRes?.role === 'none') {
+            alert('Accesso alla squadra non disponibile o sospeso');
+            try { await loadCloudTeams(); } catch(_) {}
+            return;
+          }
+          try {
+            await window.firestoreService?.logObserverTeamAccess?.(owner, id, { page: 'my-teams', archive: arch, action: 'open-team' });
+          } catch(_) {}
           setSelectedTeamAccess(owner, 'observer');
           const team = (Array.isArray(sharedTeams) ? sharedTeams : []).find(t => String(t?.id || '') === String(id) && String(t?._mvsOwner || '') === owner);
           if (team) setSelectedSharedTeamMeta(team, owner);
@@ -1171,6 +1334,13 @@
       if (action === 'invite') {
         if (arch !== 'cloud') return;
         await createInviteForTeam(id);
+        return;
+      }
+      if (action === 'manage-access') {
+        if (arch !== 'cloud') return;
+        const team = (Array.isArray(cloudTeams) ? cloudTeams : []).find(t => String(t?.id || '') === String(id));
+        const label = normalizeTeamName(team || {}) || String(team?.name || id);
+        await openAccessManagementDialog(id, label);
         return;
       }
       if (action === 'edit') {
@@ -1403,6 +1573,38 @@
           const owner = getInviteOwnerFromUrl() || readPendingInviteOwner();
           const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? '&owner='+encodeURIComponent(owner) : ''}` : '';
           window.location.href = `/auth-login.html${qs}`;
+        });
+      }
+
+      if (sharedAccessCloseTop) sharedAccessCloseTop.addEventListener('click', closeAccessManagementDialog);
+      if (sharedAccessCloseBottom) sharedAccessCloseBottom.addEventListener('click', closeAccessManagementDialog);
+      if (sharedAccessSuspendAll) sharedAccessSuspendAll.addEventListener('click', async () => {
+        const ok = confirm('Sospendere la condivisione per tutti gli osservatori di questa squadra?');
+        if (!ok) return;
+        await applyAccessChange('suspend-all');
+      });
+      if (sharedAccessReactivateAll) sharedAccessReactivateAll.addEventListener('click', async () => {
+        const ok = confirm('Riattivare la condivisione per tutti gli osservatori di questa squadra?');
+        if (!ok) return;
+        await applyAccessChange('reactivate-all');
+      });
+      if (sharedAccessRemoveAll) sharedAccessRemoveAll.addEventListener('click', async () => {
+        const ok = confirm('Rimuovere definitivamente tutti gli osservatori da questa squadra condivisa?');
+        if (!ok) return;
+        await applyAccessChange('remove-all');
+      });
+      if (sharedAccessList) {
+        sharedAccessList.addEventListener('click', async (e) => {
+          const btn = e.target.closest('[data-access-action]');
+          if (!btn) return;
+          const action = String(btn.getAttribute('data-access-action') || '').trim();
+          const email = String(btn.getAttribute('data-access-email') || '').trim();
+          if (!action || !email) return;
+          if (action === 'remove') {
+            const ok = confirm(`Rimuovere l'accesso per ${email}?`);
+            if (!ok) return;
+          }
+          await applyAccessChange(action, email);
         });
       }
 
