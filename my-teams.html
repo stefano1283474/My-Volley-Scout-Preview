@@ -138,6 +138,7 @@
           <div class="menu-item" id="accountEmail">Caricamento...</div>
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
+          <button class="menu-item" id="installAppBtn" type="button">Installa app</button>
           <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
           <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci dati locali</button>
@@ -320,6 +321,7 @@
     const accountBtn = document.getElementById('accountBtn');
     const accountMenu = document.getElementById('accountMenu');
     const accountEmail = document.getElementById('accountEmail');
+    const installAppBtn = document.getElementById('installAppBtn');
     const accountLogout = document.getElementById('accountLogout');
     const syncDataBtn = document.getElementById('syncDataBtn');
     const hydrateDataBtn = document.getElementById('hydrateDataBtn');
@@ -377,6 +379,42 @@
         next.autoSaveCleanupOnSetCompleted = !!autoSavesToggle.checked;
         writeAppSettings(next);
       });
+    }
+
+    function refreshInstallAppButton() {
+      if (!installAppBtn) return;
+      const ctx = window.pwaInstall?.getContext?.() || {};
+      const msg = String(window.pwaInstall?.getMessage?.() || '').trim();
+      if (ctx.isStandalone) {
+        installAppBtn.textContent = 'App installata';
+        installAppBtn.disabled = true;
+        installAppBtn.title = msg || 'App già installata';
+        return;
+      }
+      installAppBtn.disabled = false;
+      if (ctx.canPrompt) {
+        installAppBtn.textContent = 'Installa app';
+        installAppBtn.title = msg || 'Installazione disponibile';
+        return;
+      }
+      if (ctx.isIOS) {
+        installAppBtn.textContent = 'Installa su iPhone';
+        installAppBtn.title = msg || 'Safari → Condividi → Aggiungi a Home';
+        return;
+      }
+      installAppBtn.textContent = 'Come installare';
+      installAppBtn.title = msg || 'Installazione non disponibile ora';
+    }
+
+    async function handleInstallApp() {
+      const res = await window.pwaInstall?.prompt?.();
+      refreshInstallAppButton();
+      if (res?.installed) {
+        alert('Installazione completata');
+        return;
+      }
+      const fallback = String(res?.message || window.pwaInstall?.getMessage?.() || '').trim();
+      if (fallback) alert(fallback);
     }
 
     function isAuthenticated() {
@@ -1566,6 +1604,8 @@
       initMyTeams();
       initAutoSavesToggle();
       updateInviteObserverInfo(isAuthenticated());
+      refreshInstallAppButton();
+      window.addEventListener('mvs-install-state', refreshInstallAppButton);
 
       if (inviteLoginBtn) {
         inviteLoginBtn.addEventListener('click', () => {
@@ -1573,6 +1613,14 @@
           const owner = getInviteOwnerFromUrl() || readPendingInviteOwner();
           const qs = token ? `?invite=${encodeURIComponent(token)}${owner ? '&owner='+encodeURIComponent(owner) : ''}` : '';
           window.location.href = `/auth-login.html${qs}`;
+        });
+      }
+      if (installAppBtn) {
+        installAppBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          await handleInstallApp();
+          try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_) {}
         });
       }
 

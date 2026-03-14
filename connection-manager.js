@@ -110,9 +110,80 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 console.log('Connection Manager inizializzato');
 
 (function () {
-    window.MVS_APP_VERSION = '17.6.2';
+    window.MVS_APP_VERSION = '17.6.3';
     window.appBuild = window.appBuild || { version: '', commit: '' };
     window.appBuild.version = String(window.MVS_APP_VERSION || '');
+    let deferredInstallPrompt = null;
+    function isLocalhost() {
+        const h = String(window.location?.hostname || '').toLowerCase();
+        return h === 'localhost' || h === '127.0.0.1';
+    }
+    function isIosDevice() {
+        const ua = String(navigator.userAgent || '').toLowerCase();
+        const iPhoneOrIPad = /iphone|ipad|ipod/.test(ua);
+        const iPadDesktopUa = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+        return iPhoneOrIPad || iPadDesktopUa;
+    }
+    function isStandaloneMode() {
+        try {
+            const standaloneIOS = window.navigator && window.navigator.standalone === true;
+            const standaloneMedia = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+            return !!(standaloneIOS || standaloneMedia);
+        } catch (_) { return false; }
+    }
+    function getInstallContext() {
+        return {
+            canPrompt: !!deferredInstallPrompt,
+            isIOS: isIosDevice(),
+            isStandalone: isStandaloneMode(),
+            isLocal: isLocalhost()
+        };
+    }
+    function getInstallMessage() {
+        const ctx = getInstallContext();
+        if (ctx.isStandalone) return 'App già installata su questo dispositivo';
+        if (ctx.canPrompt) return 'Installazione disponibile';
+        if (ctx.isIOS) return 'Su iPhone/iPad: Safari → Condividi → Aggiungi a Home';
+        return 'Installazione non disponibile ora. Apri da browser supportato e connessione sicura HTTPS.';
+    }
+    async function promptInstall() {
+        const ctx = getInstallContext();
+        if (ctx.isStandalone) return { success: true, installed: true, reason: 'already-installed' };
+        if (deferredInstallPrompt) {
+            const promptRef = deferredInstallPrompt;
+            deferredInstallPrompt = null;
+            try { window.dispatchEvent(new CustomEvent('mvs-install-state')); } catch (_) {}
+            await promptRef.prompt();
+            const choice = await promptRef.userChoice;
+            return { success: true, installed: choice?.outcome === 'accepted', outcome: choice?.outcome || '' };
+        }
+        if (ctx.isIOS) {
+            return { success: false, installed: false, reason: 'ios-manual', message: getInstallMessage() };
+        }
+        return { success: false, installed: false, reason: 'not-available', message: getInstallMessage() };
+    }
+    window.pwaInstall = Object.assign(window.pwaInstall || {}, {
+        getContext: getInstallContext,
+        getMessage: getInstallMessage,
+        prompt: promptInstall
+    });
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        try { window.dispatchEvent(new CustomEvent('mvs-install-state')); } catch (_) {}
+    });
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        try { window.dispatchEvent(new CustomEvent('mvs-install-state')); } catch (_) {}
+    });
+    if ('serviceWorker' in navigator) {
+        const isSecure = window.isSecureContext || isLocalhost();
+        if (isSecure) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    }
     function renderVersion() {
         const nodes = document.querySelectorAll('.app-version');
         if (!nodes || !nodes.length) return;

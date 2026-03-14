@@ -240,7 +240,7 @@
             </div>
             <div class="logo-text">My Volley Scout</div>
             <div class="logo-subtitle">Accedi al tuo account</div>
-            <div class="app-version">MyVolleyScout Vers. 17.6.2</div>
+            <div class="app-version">MyVolleyScout Vers. 17.6.3</div>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -249,7 +249,7 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Accesso in corso...</p>
-            <div class="app-version">MyVolleyScout Vers. 17.6.2</div>
+            <div class="app-version">MyVolleyScout Vers. 17.6.3</div>
         </div>
 
         <div id="inviteNotice" class="success-message" style="display:none;"></div>
@@ -280,11 +280,12 @@
             </svg>
             Continua con Google
         </button>
+        <button class="btn btn-secondary" id="installAppBtn" type="button" style="margin-top:10px;">Installa app</button>
 
         <div class="auth-switch">
             Non hai un account? <a id="registerLink" href="/auth-register.html">Registrati</a>
         </div>
-        <div class="app-version">MyVolleyScout Vers. 17.6.2</div>
+        <div class="app-version">MyVolleyScout Vers. 17.6.3</div>
     </div>
 
     <!-- Firebase Scripts -->
@@ -304,8 +305,34 @@
         const loading = document.getElementById('loading');
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const installAppBtn = document.getElementById('installAppBtn');
         const inviteNotice = document.getElementById('inviteNotice');
         const registerLink = document.getElementById('registerLink');
+
+        function refreshInstallButton() {
+            if (!installAppBtn) return;
+            const ctx = window.pwaInstall?.getContext?.() || {};
+            const msg = String(window.pwaInstall?.getMessage?.() || '').trim();
+            if (ctx.isStandalone) {
+                installAppBtn.textContent = 'App installata';
+                installAppBtn.disabled = true;
+                installAppBtn.title = msg || 'App già installata';
+                return;
+            }
+            installAppBtn.disabled = false;
+            if (ctx.canPrompt) {
+                installAppBtn.textContent = 'Installa app';
+                installAppBtn.title = msg || 'Installazione disponibile';
+                return;
+            }
+            if (ctx.isIOS) {
+                installAppBtn.textContent = 'Installa su iPhone';
+                installAppBtn.title = msg || 'Safari → Condividi → Aggiungi a Home';
+                return;
+            }
+            installAppBtn.textContent = 'Come installare';
+            installAppBtn.title = msg || 'Installazione non disponibile ora';
+        }
 
         function showError(message) {
             errorMessage.textContent = message;
@@ -388,9 +415,24 @@
                 }
             } catch(_){}
             updateInviteUi();
+            refreshInstallButton();
+            window.addEventListener('mvs-install-state', refreshInstallButton);
             setTimeout(() => { if (typeof window.authFunctions === 'undefined') { showError('Firebase non disponibile'); } }, 2500);
             initializeAuth();
         });
+
+        if (installAppBtn) {
+            installAppBtn.addEventListener('click', async () => {
+                const res = await window.pwaInstall?.prompt?.();
+                refreshInstallButton();
+                if (res?.installed) {
+                    showSuccess('Installazione completata');
+                    return;
+                }
+                const fallback = String(res?.message || window.pwaInstall?.getMessage?.() || '').trim();
+                if (fallback) showSuccess(fallback);
+            });
+        }
 
         function getInviteToken() {
             try {
