@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Impostazioni - MyVolleyScout</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="icon" type="image/png" href="./LOGO_APP.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./LOGO_APP.png" />
+  <link rel="stylesheet" href="./styles.css?v=4" />
+  <style>
+    .settings-main { max-width: 860px; margin: 0 auto; padding: 12px; }
+    .settings-card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 4px 12px rgba(2,6,23,0.06); }
+    .settings-title { font-size:1.05rem; font-weight:700; color:#0f172a; margin-bottom:10px; }
+    .settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid #eef2f7; }
+    .settings-row:first-of-type { border-top:none; padding-top:2px; }
+    .settings-text { display:flex; flex-direction:column; gap:2px; }
+    .settings-label { font-size:0.96rem; font-weight:600; color:#0f172a; }
+    .settings-hint { font-size:0.83rem; color:#64748b; }
+    .settings-select { min-width:170px; border:1px solid #cbd5e1; border-radius:10px; padding:8px 10px; font-size:0.95rem; }
+    .settings-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+    .settings-status { font-size:0.85rem; color:#2563eb; font-weight:600; min-height:18px; text-align:right; }
+    .switch { width:20px; height:20px; }
+    .settings-back-btn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; color:#2563eb; cursor:pointer; }
+    .settings-back-btn:hover { background:#f8fafc; }
+    .cleanup-grid { display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px; }
+    .cleanup-item { display:flex; align-items:flex-start; gap:10px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; }
+    .cleanup-item input { margin-top:2px; }
+    .cleanup-title { font-size:0.93rem; font-weight:700; color:#0f172a; }
+    .cleanup-hint { font-size:0.82rem; color:#64748b; }
+    .cleanup-actions { display:flex; justify-content:space-between; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .cleanup-summary { font-size:0.82rem; color:#475569; margin-top:8px; line-height:1.35; }
+  </style>
+</head>
+<body>
+  <header class="topappbar">
+    <div class="topappbar-content">
+      <div class="topappbar-left">
+        <button id="backFromSettingsBtn" class="settings-back-btn" aria-label="Indietro" title="Indietro" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="topappbar-center">
+        <img src="./LOGO_APP.png" alt="Logo My Volley Scout" class="app-logo" width="64" height="64" />
+      </div>
+      <div class="topappbar-right">
+        <button id="headerMenuToggle" class="top-account-btn" aria-expanded="false" aria-controls="headerMenu" title="Account" type="button">
+          <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div id="headerMenu" class="top-account-menu" hidden>
+          <div class="menu-item" id="accountEmail">-</div>
+          <button id="goToTeamsBtnMobile" class="menu-item" type="button">Vai a Elenco Squadre</button>
+          <button id="goToMatchesBtnMobile" class="menu-item" type="button">Vai a Elenco Partite</button>
+          <button id="signOutBtnMobile" class="menu-item" type="button">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <section class="settings-card">
+      <div class="settings-title">Preferenze App</div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Pulizia salvataggi automatici a set concluso</div>
+          <div class="settings-hint">Elimina i progressivi autosave quando un set risulta completato</div>
+        </div>
+        <input id="autoSaveCleanupOnSetCompleted" class="switch" type="checkbox" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Conferma salvataggio prima di uscire</div>
+          <div class="settings-hint">Mostra avviso quando lasci la pagina con dati non salvati</div>
+        </div>
+        <input id="confirmSaveBeforeExit" class="switch" type="checkbox" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Layout multiplo scouting predefinito</div>
+          <div class="settings-hint">Abilita di default la visualizzazione plus in scouting</div>
+        </div>
+        <input id="defaultMultiLineLayout" class="switch" type="checkbox" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Notifica riparazione roster</div>
+          <div class="settings-hint">Mostra il riepilogo automatico di riparazione roster all'avvio</div>
+        </div>
+        <input id="showRosterRepairToast" class="switch" type="checkbox" />
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Archivio predefinito</div>
+          <div class="settings-hint">Selezione archivio iniziale in elenco partite</div>
+        </div>
+        <select id="defaultArchive" class="settings-select">
+          <option value="cloud">Cloud</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-title">Gestione</div>
+      <div class="settings-actions">
+        <button id="goBackMatchesBtn" class="btn btn-secondary" type="button">Torna alle partite</button>
+        <button id="resetSettingsBtn" class="btn btn-secondary" type="button">Ripristina predefiniti</button>
+        <button id="saveSettingsBtn" class="btn btn-primary" type="button">Salva impostazioni</button>
+      </div>
+      <div id="settingsStatus" class="settings-status"></div>
+      <div class="menu-item app-version menu-item-muted" style="margin-top:6px;">MyVolleyScout Vers. 17.6.4</div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-title">Pulizia Dati Locali</div>
+      <div class="cleanup-grid">
+        <label class="cleanup-item">
+          <input id="cleanAutosaveLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Autosave partita/set in corso</div>
+            <div class="cleanup-hint">Sessione scouting corrente, setup partita e progressivi parziali</div>
+          </span>
+        </label>
+        <label class="cleanup-item">
+          <input id="cleanLegacyMatchesLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Archivio partite locale legacy</div>
+            <div class="cleanup-hint">Vecchi match salvati in locale prima della modalità Cloud-only</div>
+          </span>
+        </label>
+        <label class="cleanup-item">
+          <input id="cleanTeamsCacheLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Cache squadre e riferimenti team</div>
+            <div class="cleanup-hint">Anagrafiche squadra locali e riferimenti selezione team corrente</div>
+          </span>
+        </label>
+        <label class="cleanup-item">
+          <input id="cleanRostersLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Rosters salvati in locale</div>
+            <div class="cleanup-hint">Rosters importati/manuali mantenuti sul dispositivo</div>
+          </span>
+        </label>
+        <label class="cleanup-item">
+          <input id="cleanSessionStorageLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Session storage temporaneo</div>
+            <div class="cleanup-hint">Chiavi temporanee della sessione browser corrente</div>
+          </span>
+        </label>
+        <label class="cleanup-item">
+          <input id="cleanCacheStorageLocal" type="checkbox" />
+          <span>
+            <div class="cleanup-title">Cache offline browser</div>
+            <div class="cleanup-hint">Cache storage del service worker (asset e dati offline)</div>
+          </span>
+        </label>
+      </div>
+      <div class="cleanup-actions">
+        <button id="selectAllCleanupBtn" class="btn btn-secondary" type="button">Seleziona tutto</button>
+        <button id="deselectAllCleanupBtn" class="btn btn-secondary" type="button">Deseleziona</button>
+        <button id="runCleanupBtn" class="btn btn-danger" type="button">Pulisci selezionati</button>
+      </div>
+      <div id="localCleanupSummary" class="cleanup-summary"></div>
+    </section>
+  </main>
+
+  <script src="./connection-manager.js"></script>
+  <script src="./auth-firebase.js"></script>
+  <script src="./auth-functions.js"></script>
+  <script>
+    (function () {
+      const APP_SETTINGS_KEY = 'appSettings';
+      const statusEl = document.getElementById('settingsStatus');
+      const emailEl = document.getElementById('accountEmail');
+      const autoSaveCleanupOnSetCompleted = document.getElementById('autoSaveCleanupOnSetCompleted');
+      const confirmSaveBeforeExit = document.getElementById('confirmSaveBeforeExit');
+      const defaultMultiLineLayout = document.getElementById('defaultMultiLineLayout');
+      const showRosterRepairToast = document.getElementById('showRosterRepairToast');
+      const defaultArchive = document.getElementById('defaultArchive');
+      const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+      const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+      const backFromSettingsBtn = document.getElementById('backFromSettingsBtn');
+      const goBackMatchesBtn = document.getElementById('goBackMatchesBtn');
+      const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+      const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
+      const signOutBtnMobile = document.getElementById('signOutBtnMobile');
+      const headerMenuToggle = document.getElementById('headerMenuToggle');
+      const headerMenu = document.getElementById('headerMenu');
+      const cleanAutosaveLocal = document.getElementById('cleanAutosaveLocal');
+      const cleanLegacyMatchesLocal = document.getElementById('cleanLegacyMatchesLocal');
+      const cleanTeamsCacheLocal = document.getElementById('cleanTeamsCacheLocal');
+      const cleanRostersLocal = document.getElementById('cleanRostersLocal');
+      const cleanSessionStorageLocal = document.getElementById('cleanSessionStorageLocal');
+      const cleanCacheStorageLocal = document.getElementById('cleanCacheStorageLocal');
+      const selectAllCleanupBtn = document.getElementById('selectAllCleanupBtn');
+      const deselectAllCleanupBtn = document.getElementById('deselectAllCleanupBtn');
+      const runCleanupBtn = document.getElementById('runCleanupBtn');
+      const localCleanupSummary = document.getElementById('localCleanupSummary');
+
+      function setStatus(msg) {
+        if (!statusEl) return;
+        statusEl.textContent = msg || '';
+        if (msg) setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 1800);
+      }
+
+      function readSettings() {
+        try {
+          const raw = localStorage.getItem(APP_SETTINGS_KEY);
+          const parsed = raw ? JSON.parse(raw) : {};
+          return (parsed && typeof parsed === 'object') ? parsed : {};
+        } catch (_) {
+          return {};
+        }
+      }
+
+      function writeSettings(next) {
+        try { localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(next || {})); } catch (_) {}
+      }
+
+      function bindSettingsToUi(settings) {
+        autoSaveCleanupOnSetCompleted.checked = settings.autoSaveCleanupOnSetCompleted !== false;
+        confirmSaveBeforeExit.checked = settings.confirmSaveBeforeExit !== false;
+        defaultMultiLineLayout.checked = settings.defaultMultiLineLayout === true;
+        showRosterRepairToast.checked = settings.showRosterRepairToast !== false;
+        const archive = (() => {
+          try { return localStorage.getItem('mvsSelectedArchive') || 'cloud'; } catch (_) { return 'cloud'; }
+        })();
+        defaultArchive.value = 'cloud';
+        defaultArchive.disabled = true;
+      }
+
+      function readUiToSettings() {
+        const current = readSettings();
+        return Object.assign({}, current, {
+          autoSaveCleanupOnSetCompleted: !!autoSaveCleanupOnSetCompleted.checked,
+          confirmSaveBeforeExit: !!confirmSaveBeforeExit.checked,
+          defaultMultiLineLayout: !!defaultMultiLineLayout.checked,
+          showRosterRepairToast: !!showRosterRepairToast.checked
+        });
+      }
+
+      function saveAll() {
+        const next = readUiToSettings();
+        writeSettings(next);
+        try { localStorage.setItem('mvsSelectedArchive', 'cloud'); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('mvs-settings-changed', { detail: next })); } catch (_) {}
+        setStatus('Impostazioni salvate');
+      }
+
+      function resetDefaults() {
+        const next = {
+          autoSaveCleanupOnSetCompleted: true,
+          confirmSaveBeforeExit: true,
+          defaultMultiLineLayout: false,
+          showRosterRepairToast: true
+        };
+        writeSettings(next);
+        try { localStorage.setItem('mvsSelectedArchive', 'cloud'); } catch (_) {}
+        bindSettingsToUi(next);
+        setStatus('Ripristino completato');
+      }
+
+      function updateAccountEmail() {
+        try {
+          const email = window.authFunctions?.getCurrentUser?.()?.email || '-';
+          if (emailEl) emailEl.textContent = email;
+        } catch (_) {}
+      }
+
+      function setMenuOpen(v) {
+        if (!headerMenu || !headerMenuToggle) return;
+        if (v) {
+          headerMenu.removeAttribute('hidden');
+          headerMenuToggle.setAttribute('aria-expanded', 'true');
+        } else {
+          headerMenu.setAttribute('hidden', '');
+          headerMenuToggle.setAttribute('aria-expanded', 'false');
+        }
+      }
+      function goBackFromSettings() {
+        try {
+          if (window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+        } catch (_) {}
+        try {
+          const arch = localStorage.getItem('mvsSelectedArchive') || 'cloud';
+          window.location.href = '/matches.html?archive=' + encodeURIComponent(arch);
+          return;
+        } catch (_) {}
+        window.location.href = '/matches.html';
+      }
+      function parseArrayLength(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          const val = raw ? JSON.parse(raw) : [];
+          return Array.isArray(val) ? val.length : 0;
+        } catch (_) {
+          return 0;
+        }
+      }
+      function parseObjectKeysLength(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          const val = raw ? JSON.parse(raw) : {};
+          return (val && typeof val === 'object') ? Object.keys(val).length : 0;
+        } catch (_) {
+          return 0;
+        }
+      }
+      function renderLocalCleanupSummary() {
+        if (!localCleanupSummary) return;
+        const autosaveSession = localStorage.getItem('currentScoutingSession') ? 1 : 0;
+        const autosaveSetup = localStorage.getItem('currentMatchSetup') ? 1 : 0;
+        const autosaveDrafts = parseObjectKeysLength('mvsPartialSaves');
+        const localMatches = parseArrayLength('volleyMatches');
+        const localTeams = parseArrayLength('volleyTeams');
+        const localRosters = parseArrayLength('savedRosters');
+        const txt = [
+          `Autosave attivi: ${autosaveSession + autosaveSetup} • Draft match: ${autosaveDrafts}`,
+          `Partite locali legacy: ${localMatches}`,
+          `Squadre in cache locale: ${localTeams}`,
+          `Rosters locali: ${localRosters}`
+        ].join(' · ');
+        localCleanupSummary.textContent = txt;
+      }
+      async function runLocalCleanup() {
+        const selected = {
+          autosave: !!cleanAutosaveLocal?.checked,
+          legacy: !!cleanLegacyMatchesLocal?.checked,
+          teams: !!cleanTeamsCacheLocal?.checked,
+          rosters: !!cleanRostersLocal?.checked,
+          session: !!cleanSessionStorageLocal?.checked,
+          cache: !!cleanCacheStorageLocal?.checked
+        };
+        if (!selected.autosave && !selected.legacy && !selected.teams && !selected.rosters && !selected.session && !selected.cache) {
+          setStatus('Seleziona almeno una categoria da pulire');
+          return;
+        }
+        let ok = true;
+        try {
+          if (window.mvsDialog?.confirm) {
+            ok = await window.mvsDialog.confirm('Confermi la pulizia dei dati locali selezionati?', { title: 'Pulizia dati locali', okText: 'Pulisci', cancelText: 'Annulla', variant: 'danger' });
+          } else {
+            ok = window.confirm('Confermi la pulizia dei dati locali selezionati?');
+          }
+        } catch (_) {}
+        if (!ok) return;
+        try {
+          if (selected.autosave) {
+            ['currentScoutingSession', 'currentMatchSetup', 'mvsPartialSaves', 'selectedMatchId', 'allowScoutingEntry', 'importedRoster'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+          }
+          if (selected.legacy) {
+            ['volleyMatches', 'mvsMatchNumbers'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+          }
+          if (selected.teams) {
+            ['volleyTeams', 'mvsSharedTeamRefs', 'selectedSharedTeamMeta', 'selectedTeamId', 'selectedTeamOwner', 'selectedTeamRole'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+          }
+          if (selected.rosters) {
+            ['savedRosters', 'importedRoster'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+          }
+          if (selected.session) {
+            try {
+              const keys = [];
+              for (let i = 0; i < sessionStorage.length; i++) keys.push(sessionStorage.key(i));
+              keys.filter((k) => String(k || '').toLowerCase().includes('mvs') || String(k || '').toLowerCase().includes('scout')).forEach((k) => { try { sessionStorage.removeItem(k); } catch (_) {} });
+            } catch (_) {}
+          }
+          if (selected.cache) {
+            try {
+              if ('caches' in window) {
+                const names = await caches.keys();
+                await Promise.all(names.map((n) => caches.delete(n)));
+              }
+            } catch (_) {}
+          }
+          renderLocalCleanupSummary();
+          setStatus('Pulizia locale completata');
+        } catch (_) {
+          setStatus('Errore durante la pulizia locale');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bindSettingsToUi(readSettings());
+        updateAccountEmail();
+        if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveAll);
+        if (resetSettingsBtn) resetSettingsBtn.addEventListener('click', resetDefaults);
+        if (backFromSettingsBtn) backFromSettingsBtn.addEventListener('click', goBackFromSettings);
+        if (goBackMatchesBtn) goBackMatchesBtn.addEventListener('click', goBackFromSettings);
+        if (goToTeamsBtnMobile) goToTeamsBtnMobile.addEventListener('click', () => { window.location.href = '/my-teams.html'; });
+        if (goToMatchesBtnMobile) goToMatchesBtnMobile.addEventListener('click', () => { window.location.href = '/matches.html'; });
+        if (signOutBtnMobile) signOutBtnMobile.addEventListener('click', async () => {
+          try { await window.authFunctions?.signOut?.(); } catch (_) {}
+          window.location.href = '/auth-login.html';
+        });
+        if (headerMenuToggle) headerMenuToggle.addEventListener('click', (e) => { e.stopPropagation(); setMenuOpen(headerMenu?.hasAttribute('hidden')); });
+        document.addEventListener('click', (e) => {
+          if (!headerMenu || !headerMenuToggle) return;
+          const onToggle = !!e.target.closest('#headerMenuToggle');
+          if (!onToggle && !headerMenu.contains(e.target)) setMenuOpen(false);
+        });
+        if (selectAllCleanupBtn) selectAllCleanupBtn.addEventListener('click', () => {
+          [cleanAutosaveLocal, cleanLegacyMatchesLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = true; });
+        });
+        if (deselectAllCleanupBtn) deselectAllCleanupBtn.addEventListener('click', () => {
+          [cleanAutosaveLocal, cleanLegacyMatchesLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = false; });
+        });
+        if (runCleanupBtn) runCleanupBtn.addEventListener('click', runLocalCleanup);
+        renderLocalCleanupSummary();
+      });
+    })();
+  </script>
+</body>
+</html>

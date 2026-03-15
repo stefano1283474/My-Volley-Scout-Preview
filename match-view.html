@@ -101,13 +101,15 @@
       try {
         const qp = new URLSearchParams(window.location.search || '');
         const urlArch = qp.get('archive');
-        if (urlArch === 'cloud' || urlArch === 'local') return urlArch;
+        if (urlArch === 'shared') return 'shared';
+        if (urlArch === 'cloud' || urlArch === 'local') return 'cloud';
       } catch(_) {}
       try {
         const stored = localStorage.getItem('mvsSelectedArchive');
-        if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
+        if (stored === 'shared') return 'shared';
+        if (stored === 'cloud' || stored === 'local') return 'cloud';
       } catch(_) {}
-      return 'local';
+      return 'cloud';
     }
 
     async function loadMatchData(){
@@ -117,10 +119,6 @@
         const session = (() => { try { return JSON.parse(localStorage.getItem('currentScoutingSession')||'{}'); } catch(_) { return {}; } })();
         const selId = localStorage.getItem('selectedMatchId') || session.id || null;
         let match = null;
-        try {
-          const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
-          match = Array.isArray(list) ? list.find(m => m.id === selId) : null;
-        } catch(_) {}
         if (archive === 'cloud' || archive === 'shared') {
           try {
             const teamId = localStorage.getItem('selectedTeamId') || '';

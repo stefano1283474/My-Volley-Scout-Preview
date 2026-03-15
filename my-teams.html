@@ -97,6 +97,32 @@
     dialog::backdrop { animation: backdropIn 200ms ease both; }
     dialog.closing .dialog-card { animation: dialogOut 180ms ease both; }
     dialog.closing::backdrop { animation: backdropOut 180ms ease both; }
+    #sharedAccessDialog[open] { max-width: 640px; }
+    #sharedAccessDialog .dialog-card { border-radius: 16px; padding: 14px; box-shadow: 0 14px 28px rgba(15,23,42,.14); }
+    #sharedAccessDialog .dialog-title { font-size: 16px; padding: 5px 10px; border-color: #bfdbfe; }
+    .access-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .access-summary { font-size:12px; color:#64748b; margin-top:4px; }
+    .access-bulk { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .access-bulk .btn { padding:7px 11px; font-size:12px; border-radius:9px; line-height:1.1; }
+    .access-filter { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .access-filter .input { font-size:14px; height:38px; border-radius:9px; }
+    .access-hint { font-size:12px; color:#64748b; margin-top:8px; min-height:16px; }
+    .access-list { margin-top:8px; max-height:50vh; overflow:auto; border:1px solid #e2e8f0; border-radius:12px; padding:6px; background:#f8fafc; }
+    .access-footer { margin-top:10px; }
+    .access-footer .btn { padding:7px 12px; font-size:12px; border-radius:9px; }
+    .access-row { border:1px solid #e5e7eb; border-radius:11px; padding:9px; margin-bottom:6px; background:#fff; }
+    .access-row-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .access-row-meta { font-size:12px; color:#475569; margin-top:3px; }
+    .access-row-detail { font-size:12px; color:#64748b; margin-top:3px; }
+    .access-row-left-detail { font-size:12px; color:#475569; margin-top:4px; }
+    .access-status-badge { font-size:11px; border-radius:999px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+    .access-row-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .access-row-actions .btn { padding:6px 10px; font-size:12px; border-radius:9px; line-height:1.1; min-width:84px; }
+    .access-prompt-overlay { display:none; position:absolute; inset:0; border-radius:16px; background:rgba(15,23,42,0.48); align-items:center; justify-content:center; padding:14px; z-index:20; }
+    .access-prompt-card { width:min(410px,100%); background:#fff; border:1px solid #dbe4ef; border-radius:12px; padding:13px; box-shadow:0 12px 28px rgba(15,23,42,.16); }
+    .access-prompt-message { color:#334155; font-size:14px; line-height:1.45; }
+    .access-prompt-actions { margin-top:12px; }
+    .access-prompt-actions .btn { padding:7px 12px; font-size:12px; border-radius:9px; }
     body:has(dialog[open]) .container { filter: blur(4px) brightness(0.94); transition: filter .2s ease; }
     @media (max-width: 600px) {
       .container { padding:16px; }
@@ -165,27 +191,20 @@
     </div>
     <div class="section-card" style="margin-top:24px;">
       <div class="section-title-row">
-        <h2 class="section-title rounded-title" id="archiveTitle">Archivio</h2>
+        <h2 class="section-title rounded-title" id="archiveTitle">Elenco Squadre</h2>
         <div class="list-actions" style="display:flex;align-items:center;gap:10px;">
           <button id="infoBtn" class="icon-button icon-button-primary icon-button-circle" aria-label="Come funziona" title="Come funziona">i</button>
           <button id="createTeamBtn" class="btn btn-icon btn-icon-outline" aria-label="Crea Squadra" title="Crea Squadra">+</button>
         </div>
       </div>
 
-      <div class="archive-tabs" role="tablist" aria-label="Archivio dati">
-        <button id="archiveTabLocal" class="archive-tab active" type="button" role="tab" aria-selected="true">Locale</button>
-        <button id="archiveTabCloud" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud</button>
+      <div class="archive-tabs" role="tablist" aria-label="Elenco Squadre">
+        <button id="archiveTabLocal" class="archive-tab" type="button" role="tab" aria-selected="false" style="display:none;">Locale</button>
+        <button id="archiveTabCloud" class="archive-tab active" type="button" role="tab" aria-selected="true">Cloud</button>
         <button id="archiveTabShared" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud Condiviso</button>
       </div>
 
       <div id="archivePager" class="archive-pager" aria-label="Pagine archivio">
-        <div class="archive-page" data-archive="local">
-          <div id="noTeamsLocal" class="empty-state" style="display:none;">
-            <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_PALLONE.png" alt="Logo" onerror="this.onerror=null; this.src='./LOGO_PALLONE.png';" style="width:80px;height:80px;display:block;margin:0 auto 8px;" />
-            Nessuna squadra locale. Crea una nuova squadra.
-          </div>
-          <div id="teamsGridLocal" class="grid"></div>
-        </div>
         <div class="archive-page" data-archive="cloud">
           <div id="cloudHint" class="empty-state" style="display:none;">
             Accedi per visualizzare e gestire i dati Cloud.
@@ -206,7 +225,7 @@
               <div>1. Accedi o registrati dal pulsante qui sotto.</div>
               <div>2. Torna in My Teams e apri la scheda Cloud Condiviso.</div>
               <div>3. Trova la squadra con badge Osservatore e selezionala.</div>
-              <div>4. Dal menu utente scegli “Aggiorna Locale da Cloud”.</div>
+              <div>4. Apri la squadra condivisa e consulta partite/analisi in Cloud.</div>
               <div>5. Vai in Analisi Team o Match-Stats per consultare i dati.</div>
             </div>
             <div class="observer-info-actions">
@@ -267,21 +286,40 @@
       </div>
     </dialog>
     <dialog id="sharedAccessDialog">
-      <div class="dialog-card">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div class="dialog-card" style="position:relative;">
+        <div class="access-top">
           <div id="sharedAccessTitle" class="dialog-title">Accessi osservatori</div>
           <button id="sharedAccessCloseTop" type="button" class="btn btn-secondary">Chiudi</button>
         </div>
-        <div id="sharedAccessSummary" style="font-size:13px; color:#475569; margin-top:6px;"></div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <div id="sharedAccessSummary" class="access-summary"></div>
+        <div class="access-bulk">
           <button id="sharedAccessSuspendAll" type="button" class="btn btn-secondary">Sospendi tutti</button>
           <button id="sharedAccessReactivateAll" type="button" class="btn btn-secondary">Riattiva tutti</button>
           <button id="sharedAccessRemoveAll" type="button" class="btn btn-danger">Rimuovi tutti</button>
         </div>
-        <div id="sharedAccessHint" style="font-size:12px; color:#64748b; margin-top:8px;"></div>
-        <div id="sharedAccessList" style="margin-top:8px; max-height:52vh; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:8px;"></div>
-        <div class="dialog-actions" style="margin-top:10px;">
+        <div class="access-filter">
+          <input id="sharedAccessSearchInput" type="text" class="input" placeholder="Cerca utente per email" style="flex:1; min-width:220px;">
+          <select id="sharedAccessStatusFilter" class="input" style="width:170px;">
+            <option value="all">Tutti gli stati</option>
+            <option value="active">Solo attivi</option>
+            <option value="suspended">Solo sospesi</option>
+            <option value="left">Recesso/Rifiuto</option>
+          </select>
+        </div>
+        <div id="sharedAccessHint" class="access-hint"></div>
+        <div id="sharedAccessList" class="access-list"></div>
+        <div class="dialog-actions access-footer">
           <button id="sharedAccessCloseBottom" type="button" class="btn btn-primary">OK</button>
+        </div>
+        <div id="sharedAccessPromptOverlay" class="access-prompt-overlay">
+          <div class="access-prompt-card">
+            <div id="sharedAccessPromptTitle" class="dialog-title" style="margin:0 0 8px 0;">Gestione osservatori</div>
+            <div id="sharedAccessPromptMessage" class="access-prompt-message"></div>
+            <div class="dialog-actions access-prompt-actions">
+              <button id="sharedAccessPromptCancel" type="button" class="btn btn-secondary">Annulla</button>
+              <button id="sharedAccessPromptOk" type="button" class="btn btn-danger">Conferma</button>
+            </div>
+          </div>
         </div>
       </div>
     </dialog>
@@ -343,6 +381,13 @@
     const sharedAccessSummary = document.getElementById('sharedAccessSummary');
     const sharedAccessHint = document.getElementById('sharedAccessHint');
     const sharedAccessList = document.getElementById('sharedAccessList');
+    const sharedAccessSearchInput = document.getElementById('sharedAccessSearchInput');
+    const sharedAccessStatusFilter = document.getElementById('sharedAccessStatusFilter');
+    const sharedAccessPromptOverlay = document.getElementById('sharedAccessPromptOverlay');
+    const sharedAccessPromptTitle = document.getElementById('sharedAccessPromptTitle');
+    const sharedAccessPromptMessage = document.getElementById('sharedAccessPromptMessage');
+    const sharedAccessPromptCancel = document.getElementById('sharedAccessPromptCancel');
+    const sharedAccessPromptOk = document.getElementById('sharedAccessPromptOk');
     const sharedAccessCloseTop = document.getElementById('sharedAccessCloseTop');
     const sharedAccessCloseBottom = document.getElementById('sharedAccessCloseBottom');
     const sharedAccessSuspendAll = document.getElementById('sharedAccessSuspendAll');
@@ -356,6 +401,11 @@
     let editingTeamId = null;
     let accessManageTeamId = '';
     let accessManageTeamName = '';
+    let accessChangeBusy = false;
+    let accessSearchTerm = '';
+    let accessStatusFilter = 'all';
+    let accessDocsCache = [];
+    let accessPromptResolver = null;
     const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
 
     function readAppSettings() {
@@ -380,6 +430,41 @@
         writeAppSettings(next);
       });
     }
+
+    async function askConfirm(message, options) {
+      const hasOpenNativeDialog = (() => {
+        try { return !!document.querySelector('dialog[open]'); } catch(_) { return false; }
+      })();
+      try {
+        if (!hasOpenNativeDialog && window.mvsDialog?.confirm) {
+          return await window.mvsDialog.confirm(String(message || ''), options || {});
+        }
+      } catch(_) {}
+      try { return window.confirm(String(message || '')); } catch(_) { return true; }
+    }
+
+    const __nativeAlert = (typeof window !== 'undefined' && typeof window.alert === 'function') ? window.alert.bind(window) : null;
+    async function showAlert(message, options) {
+      const hasOpenNativeDialog = (() => {
+        try { return !!document.querySelector('dialog[open]'); } catch(_) { return false; }
+      })();
+      try {
+        if (!hasOpenNativeDialog && window.mvsDialog?.alert) {
+          await window.mvsDialog.alert(String(message || ''), options || {});
+          return;
+        }
+      } catch(_) {}
+      try { if (__nativeAlert) __nativeAlert(String(message || '')); } catch(_) {}
+    }
+    (function installAlertShim(){
+      try {
+        if (window.__mvsAlertShimInstalled) return;
+        window.__mvsAlertShimInstalled = true;
+        window.alert = function(message){
+          showAlert(String(message || ''), { title: 'Messaggio', okText: 'OK' });
+        };
+      } catch(_) {}
+    })();
 
     function refreshInstallAppButton() {
       if (!installAppBtn) return;
@@ -685,13 +770,14 @@
     }
 
     function setArchive(next) {
-      const v = (next === 'cloud' || next === 'shared') ? next : 'local';
+      const v = (next === 'shared') ? 'shared' : 'cloud';
       currentArchive = v;
       try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
-      if (archiveTitle) archiveTitle.textContent = 'Archivio';
+      if (archiveTitle) archiveTitle.textContent = 'Elenco Squadre';
       if (archiveTabLocal) {
-        archiveTabLocal.classList.toggle('active', v === 'local');
-        archiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
+        archiveTabLocal.classList.remove('active');
+        archiveTabLocal.setAttribute('aria-selected', 'false');
+        archiveTabLocal.style.display = 'none';
       }
       if (archiveTabCloud) {
         archiveTabCloud.classList.toggle('active', v === 'cloud');
@@ -704,12 +790,12 @@
       try {
         if (archivePager) {
           const w = archivePager.clientWidth || window.innerWidth || 1;
-          const x = v === 'cloud' ? w : (v === 'shared' ? w * 2 : 0);
+          const x = v === 'shared' ? w : 0;
           archivePager.scrollTo({ left: x, behavior: 'smooth' });
         }
       } catch(_) {}
       if (createTeamBtn) {
-        createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : (v === 'shared' ? 'Solo lettura' : 'Crea Squadra (Locale)');
+        createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : 'Solo lettura';
         createTeamBtn.disabled = v === 'shared';
       }
       if (hydrateDataBtn) {
@@ -996,18 +1082,11 @@
             <div class="card" data-action="select" data-archive="cloud" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" style="cursor:pointer; display:flex; flex-direction:column; gap:8px; border:1px solid #e5e7eb;">
               <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
                 <div style="flex:1;">
-                   ${clubName ? `<div style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">${clubName}</div>` : ''}
-                   <div class="team-name-click" style="font-size:16px; font-weight:700; color:#0f172a;">${teamName}</div>
+                   ${clubName ? `<div style="font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase;">${clubName}</div>` : ''}
+                   <div class="team-name-click" style="font-size:16px; font-weight:500; color:#0f172a;">${teamName}</div>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-                   <span style="font-size:11px; color:${roleColor}; border:1px solid ${roleBorder}; background:${roleBg}; padding:2px 8px; border-radius:999px; font-weight:600;">${roleLabel}</span>
-                   <span style="font-size:11px; color:#64748b;">Cloud</span>
-                </div>
-              </div>
-
-              <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:8px; margin-top:4px;">
-                <div style="font-size:12px; color:#64748b;">${t.shared ? 'Tua squadra (Condivisa)' : 'Tua squadra'}</div>
-                <div style="display:flex;gap:8px;align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:11px; color:${roleColor}; border:1px solid ${roleBorder}; background:${roleBg}; padding:2px 8px; border-radius:999px; font-weight:600;">${roleLabel}</span>
                   <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Osservatore" aria-label="Invita Osservatore">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L9 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1037,7 +1116,6 @@
                   </button>
                 </div>
               </div>
-              <div style="color:#64748b;">Cloud</div>
             </div>`;
         }).join('');
       }
@@ -1054,6 +1132,7 @@
           const name = normalizeTeamName(t) || String(t?.name || t?.id || '');
           const id = String(t?.id || '').replace(/"/g,'&quot;');
           const owner = String(t?._mvsOwner || '').trim();
+          const ownerLabel = owner || 'non disponibile';
           const teamName = String(t.teamName || (name.includes(' - ') ? name.split(' - ')[0] : name)).trim();
           const clubName = String(t.clubName || (name.includes(' - ') ? name.split(' - ').slice(1).join(' - ') : '')).trim();
           return `
@@ -1062,6 +1141,7 @@
                 <div style="flex:1;">
                    ${clubName ? `<div style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">${clubName}</div>` : ''}
                    <div class="team-name-click" style="font-size:16px; font-weight:700; color:#0f172a;">${teamName}</div>
+                   <div style="font-size:12px; color:#475569; margin-top:3px;">Proprietario: <b>${ownerLabel.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</b></div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
                    <span style="font-size:11px; color:#3b82f6; border:1px solid #bfdbfe; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Osservatore</span>
@@ -1072,6 +1152,8 @@
               <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #f1f5f9; padding-top:8px; margin-top:4px;">
                 <div style="font-size:12px; color:#64748b;">Squadra Condivisa (Sola Lettura)</div>
                 <div style="display:flex;gap:8px;align-items:center;">
+                  <button class="btn btn-secondary" type="button" data-action="reject-shared" data-archive="shared" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" style="padding:6px 10px; font-size:12px;" title="Rifiuta invito" aria-label="Rifiuta invito">Rifiuta</button>
+                  <button class="btn btn-danger" type="button" data-action="leave-shared" data-archive="shared" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" style="padding:6px 10px; font-size:12px;" title="Recedi accesso" aria-label="Recedi accesso">Recedi</button>
                   <button class="icon-button icon-button-outline icon-button-circle" data-action="select" data-archive="shared" data-id="${id}" data-owner="${String(owner).replace(/"/g,'&quot;')}" title="Vai alle Partite" aria-label="Vai alle Partite">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1107,31 +1189,49 @@
       return parts.length ? parts.join(' • ') : 'Dettagli non disponibili';
     }
 
+    function formatObserverExitReason(reason) {
+      const normalized = String(reason || '').trim().toLowerCase();
+      if (normalized === 'rifiuto' || normalized === 'rifiuto_invito') return 'Invito rifiutato';
+      return 'Recesso volontario';
+    }
+
+    function formatObserverExitBadge(reason) {
+      const normalized = String(reason || '').trim().toLowerCase();
+      if (normalized === 'rifiuto' || normalized === 'rifiuto_invito') return 'Invito rifiutato';
+      return 'Recesso osservatore';
+    }
+
     function renderAccessRows(list) {
       if (!sharedAccessList) return;
       const docs = Array.isArray(list) ? list : [];
       if (!docs.length) {
-        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun osservatore collegato a questa squadra.</div>`;
+        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun osservatore trovato.</div>`;
         return;
       }
       sharedAccessList.innerHTML = docs.map((item) => {
         const email = String(item?.userEmail || '').trim();
-        const active = item?.active !== false;
+        const state = String(item?.accessState || (item?.active !== false ? 'active' : 'suspended')).trim().toLowerCase();
+        const isLeft = state === 'observer_left' || state === 'left' || state === 'rejected';
+        const active = !isLeft && item?.active !== false;
         const count = Number(item?.accessCount || 0);
-        const statusColor = active ? '#16a34a' : '#b45309';
-        const statusBg = active ? '#dcfce7' : '#fef3c7';
-        const statusTxt = active ? 'Attivo' : 'Sospeso';
+        const statusColor = isLeft ? '#475569' : (active ? '#16a34a' : '#b45309');
+        const statusBg = isLeft ? '#e2e8f0' : (active ? '#dcfce7' : '#fef3c7');
+        const statusTxt = isLeft ? formatObserverExitBadge(item?.observerLeftReason) : (active ? 'Attivo' : 'Sospeso');
+        const leftDetail = isLeft
+          ? `<div class="access-row-left-detail">Stato osservatore: <b>${formatObserverExitReason(item?.observerLeftReason)}</b> · Data: <b>${formatAccessDate(item?.observerLeftAt)}</b></div>`
+          : '';
         return `
-          <div style="border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin-bottom:8px; background:#fff;">
-            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+          <div class="access-row">
+            <div class="access-row-head">
               <div style="flex:1;">
-                <div style="font-weight:700; color:#0f172a;">${email.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-                <div style="font-size:12px; color:#475569; margin-top:4px;">Accessi: <b>${count}</b> • Ultimo accesso: <b>${formatAccessDate(item?.lastAccessAt)}</b></div>
-                <div style="font-size:12px; color:#64748b; margin-top:4px;">${accessLastDetail(item).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                <div style="font-weight:700; color:#0f172a; font-size:15px;">${email.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                <div class="access-row-meta">Accessi: <b>${count}</b> • Ultimo accesso: <b>${formatAccessDate(item?.lastAccessAt)}</b></div>
+                <div class="access-row-detail">${accessLastDetail(item).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                ${leftDetail}
               </div>
-              <span style="font-size:11px; color:${statusColor}; border:1px solid ${statusColor}; background:${statusBg}; border-radius:999px; padding:2px 8px; font-weight:600;">${statusTxt}</span>
+              <span class="access-status-badge" style="color:${statusColor}; border:1px solid ${statusColor}; background:${statusBg};">${statusTxt}</span>
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <div class="access-row-actions">
               <button class="btn btn-secondary" type="button" data-access-action="suspend" data-access-email="${email.replace(/"/g,'&quot;')}" ${active ? '' : 'disabled'}>Sospendi</button>
               <button class="btn btn-secondary" type="button" data-access-action="reactivate" data-access-email="${email.replace(/"/g,'&quot;')}" ${active ? 'disabled' : ''}>Riattiva</button>
               <button class="btn btn-danger" type="button" data-access-action="remove" data-access-email="${email.replace(/"/g,'&quot;')}">Rimuovi</button>
@@ -1141,21 +1241,60 @@
       }).join('');
     }
 
+    function filterAccessRows(list) {
+      const docs = Array.isArray(list) ? list : [];
+      const query = String(accessSearchTerm || '').trim().toLowerCase();
+      return docs.filter((item) => {
+        const email = String(item?.userEmail || '').trim().toLowerCase();
+        const state = String(item?.accessState || (item?.active !== false ? 'active' : 'suspended')).trim().toLowerCase();
+        const isLeft = state === 'observer_left' || state === 'left' || state === 'rejected';
+        const active = !isLeft && item?.active !== false;
+        if (accessStatusFilter === 'active' && !active) return false;
+        if (accessStatusFilter === 'suspended' && (active || isLeft)) return false;
+        if (accessStatusFilter === 'left' && !isLeft) return false;
+        if (!query) return true;
+        return email.includes(query);
+      });
+    }
+
+    function updateAccessSummary(allDocs, filteredDocs) {
+      const all = Array.isArray(allDocs) ? allDocs : [];
+      const shown = Array.isArray(filteredDocs) ? filteredDocs : [];
+      const leftCount = all.filter(d => {
+        const state = String(d?.accessState || '').trim().toLowerCase();
+        return state === 'observer_left' || state === 'left' || state === 'rejected';
+      }).length;
+      const activeCount = all.filter(d => d?.active !== false && !(['observer_left','left','rejected'].includes(String(d?.accessState || '').trim().toLowerCase()))).length;
+      const suspendedCount = Math.max(0, all.length - activeCount - leftCount);
+      const base = `Osservatori: ${all.length} • Attivi: ${activeCount} • Sospesi: ${suspendedCount} • Recesso/Rifiuto: ${leftCount}`;
+      if (sharedAccessSummary) {
+        sharedAccessSummary.textContent = shown.length === all.length ? base : `${base} • Mostrati: ${shown.length}`;
+      }
+    }
+
+    function renderAccessManagementView() {
+      const filteredDocs = filterAccessRows(accessDocsCache);
+      updateAccessSummary(accessDocsCache, filteredDocs);
+      if (sharedAccessHint) {
+        if (!accessDocsCache.length) sharedAccessHint.textContent = 'Nessun osservatore collegato a questa squadra.';
+        else if (!filteredDocs.length) sharedAccessHint.textContent = 'Nessun osservatore corrisponde ai filtri impostati.';
+        else sharedAccessHint.textContent = '';
+      }
+      renderAccessRows(filteredDocs);
+    }
+
     async function refreshAccessManagementDialog() {
       if (!accessManageTeamId) return;
       if (sharedAccessHint) sharedAccessHint.textContent = 'Caricamento accessi...';
       const res = await window.firestoreService?.listTeamObserverAccesses?.(accessManageTeamId);
       if (!res?.success) {
         if (sharedAccessHint) sharedAccessHint.textContent = res?.error || 'Errore caricamento accessi';
+        accessDocsCache = [];
         renderAccessRows([]);
         return;
       }
-      const docs = Array.isArray(res.documents) ? res.documents : [];
-      const activeCount = docs.filter(d => d?.active !== false).length;
-      const suspendedCount = docs.length - activeCount;
-      if (sharedAccessSummary) sharedAccessSummary.textContent = `Osservatori: ${docs.length} • Attivi: ${activeCount} • Sospesi: ${suspendedCount}`;
-      if (sharedAccessHint) sharedAccessHint.textContent = '';
-      renderAccessRows(docs);
+      accessDocsCache = Array.isArray(res.documents) ? res.documents : [];
+      renderAccessManagementView();
     }
 
     async function openAccessManagementDialog(teamId, teamName) {
@@ -1166,6 +1305,11 @@
       if (sharedAccessSummary) sharedAccessSummary.textContent = '';
       if (sharedAccessHint) sharedAccessHint.textContent = '';
       if (sharedAccessList) sharedAccessList.innerHTML = '';
+      accessSearchTerm = '';
+      accessStatusFilter = 'all';
+      accessDocsCache = [];
+      if (sharedAccessSearchInput) sharedAccessSearchInput.value = '';
+      if (sharedAccessStatusFilter) sharedAccessStatusFilter.value = 'all';
       sharedAccessDialog.showModal();
       await refreshAccessManagementDialog();
     }
@@ -1175,6 +1319,43 @@
       sharedAccessDialog.close();
       accessManageTeamId = '';
       accessManageTeamName = '';
+    }
+
+    function closeAccessPrompt(result) {
+      if (sharedAccessPromptOverlay) sharedAccessPromptOverlay.style.display = 'none';
+      const resolver = accessPromptResolver;
+      accessPromptResolver = null;
+      if (resolver) resolver(!!result);
+    }
+
+    async function askAccessPrompt(message, options = {}) {
+      const opts = options || {};
+      const onlyOk = opts.onlyOk === true;
+      const title = String(opts.title || 'Conferma');
+      const okText = String(opts.okText || (onlyOk ? 'OK' : 'Conferma'));
+      const cancelText = String(opts.cancelText || 'Annulla');
+      const variant = opts.variant === 'danger' ? 'danger' : 'primary';
+
+      if (!sharedAccessDialog?.open || !sharedAccessPromptOverlay || !sharedAccessPromptOk) {
+        if (onlyOk) {
+          await showAlert(String(message || ''), opts);
+          return true;
+        }
+        return await askConfirm(String(message || ''), opts);
+      }
+
+      return await new Promise((resolve) => {
+        accessPromptResolver = resolve;
+        if (sharedAccessPromptTitle) sharedAccessPromptTitle.textContent = title;
+        if (sharedAccessPromptMessage) sharedAccessPromptMessage.textContent = String(message || '');
+        if (sharedAccessPromptCancel) {
+          sharedAccessPromptCancel.style.display = onlyOk ? 'none' : '';
+          sharedAccessPromptCancel.textContent = cancelText;
+        }
+        sharedAccessPromptOk.textContent = okText;
+        sharedAccessPromptOk.className = variant === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
+        sharedAccessPromptOverlay.style.display = 'flex';
+      });
     }
 
     async function applyAccessChange(action, userEmail = '') {
@@ -1194,10 +1375,31 @@
         res = await window.firestoreService?.bulkRemoveTeamObserverAccess?.(accessManageTeamId);
       }
       if (!res?.success) {
-        alert(res?.error || 'Operazione non riuscita');
+        await askAccessPrompt(res?.error || 'Operazione non riuscita', { title: 'Errore', okText: 'OK', onlyOk: true, variant: 'danger' });
         return;
       }
       await refreshAccessManagementDialog();
+    }
+
+    async function confirmAndApplyAccessChange(action, userEmail = '') {
+      if (accessChangeBusy) return;
+      accessChangeBusy = true;
+      try {
+        let ok = true;
+        if (action === 'suspend-all') {
+          ok = await askAccessPrompt('Sospendere la condivisione per tutti gli osservatori di questa squadra?', { title: 'Gestione osservatori', okText: 'Sospendi', cancelText: 'Annulla', variant: 'danger' });
+        } else if (action === 'reactivate-all') {
+          ok = await askAccessPrompt('Riattivare la condivisione per tutti gli osservatori di questa squadra?', { title: 'Gestione osservatori', okText: 'Riattiva', cancelText: 'Annulla' });
+        } else if (action === 'remove-all') {
+          ok = await askAccessPrompt('Rimuovere definitivamente tutti gli osservatori da questa squadra condivisa?', { title: 'Gestione osservatori', okText: 'Rimuovi', cancelText: 'Annulla', variant: 'danger' });
+        } else if (action === 'remove') {
+          ok = await askAccessPrompt(`Rimuovere l'accesso per ${userEmail}?`, { title: 'Gestione osservatori', okText: 'Rimuovi', cancelText: 'Annulla', variant: 'danger' });
+        }
+        if (!ok) return;
+        await applyAccessChange(action, userEmail);
+      } finally {
+        accessChangeBusy = false;
+      }
     }
 
     function buildSharedTeamFromInvite(res) {
@@ -1330,6 +1532,46 @@
       renderLocalTeamsList();
     }
 
+    async function observerLeaveSharedTeam(teamId, ownerId, reason = 'rescissione') {
+      const tId = String(teamId || '').trim();
+      const owner = String(ownerId || '').trim();
+      const normalizedReason = String(reason || 'rescissione').trim().toLowerCase();
+      const isReject = normalizedReason === 'rifiuto' || normalizedReason === 'rifiuto_invito';
+      const confirmMessage = isReject
+        ? 'Vuoi rifiutare questo accesso condiviso? Il team verrà rimosso dalla tua area Cloud Condiviso.'
+        : 'Vuoi recedere dall’accesso a questo team condiviso? Potrai rientrare solo con un nuovo invito del proprietario.';
+      if (!tId || !owner) return;
+      const ok = await askConfirm(confirmMessage, {
+        title: isReject ? 'Rifiuto invito' : 'Recesso osservatore',
+        okText: isReject ? 'Rifiuta' : 'Recedi',
+        cancelText: 'Annulla',
+        variant: 'danger',
+      });
+      if (!ok) return;
+
+      const res = await window.firestoreService?.observerLeaveSharedTeam?.(
+        owner,
+        tId,
+        isReject ? 'rifiuto_invito' : 'rescissione'
+      );
+      if (!res?.success) {
+        await showAlert(res?.error || 'Impossibile completare l’operazione', { title: 'Errore recesso', okText: 'OK' });
+        return;
+      }
+
+      sharedTeams = (Array.isArray(sharedTeams) ? sharedTeams : []).filter((t) => {
+        const sameId = String(t?.id || '').trim() === tId;
+        const sameOwner = String(t?._mvsOwner || '').trim() === owner;
+        return !(sameId && sameOwner);
+      });
+      cacheSharedTeamRefs(sharedTeams);
+      renderSharedTeamsList();
+      await showAlert(
+        isReject ? 'Invito rifiutato con successo.' : 'Accesso al team condiviso revocato con successo.',
+        { title: isReject ? 'Rifiuto completato' : 'Recesso completato', okText: 'OK' }
+      );
+    }
+
     async function handleGridClick(e) {
       const el = e.target.closest('[data-action]');
       if (!el) return;
@@ -1338,9 +1580,19 @@
       const arch = el.getAttribute('data-archive') || currentArchive;
       const ownerAttr = el.getAttribute('data-owner');
       if (!id || !action) return;
+      if (action === 'leave-shared') {
+        if (arch !== 'shared') return;
+        await observerLeaveSharedTeam(id, ownerAttr, 'rescissione');
+        return;
+      }
+      if (action === 'reject-shared') {
+        if (arch !== 'shared') return;
+        await observerLeaveSharedTeam(id, ownerAttr, 'rifiuto_invito');
+        return;
+      }
       if (action === 'select') {
         try { localStorage.setItem('selectedTeamId', String(id)); } catch(_){}
-        try { localStorage.setItem(ARCHIVE_STORAGE_KEY, String(arch === 'shared' ? 'shared' : (arch === 'cloud' ? 'cloud' : 'local'))); } catch(_){}
+        try { localStorage.setItem(ARCHIVE_STORAGE_KEY, String(arch === 'shared' ? 'shared' : 'cloud')); } catch(_){}
         const currentEmail = getCurrentUserEmail();
         const owner = String(ownerAttr || '').trim();
         if ((arch === 'cloud' || arch === 'shared') && owner && owner !== currentEmail) {
@@ -1626,33 +1878,64 @@
 
       if (sharedAccessCloseTop) sharedAccessCloseTop.addEventListener('click', closeAccessManagementDialog);
       if (sharedAccessCloseBottom) sharedAccessCloseBottom.addEventListener('click', closeAccessManagementDialog);
-      if (sharedAccessSuspendAll) sharedAccessSuspendAll.addEventListener('click', async () => {
-        const ok = confirm('Sospendere la condivisione per tutti gli osservatori di questa squadra?');
-        if (!ok) return;
-        await applyAccessChange('suspend-all');
+      if (sharedAccessSuspendAll) sharedAccessSuspendAll.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await confirmAndApplyAccessChange('suspend-all');
       });
-      if (sharedAccessReactivateAll) sharedAccessReactivateAll.addEventListener('click', async () => {
-        const ok = confirm('Riattivare la condivisione per tutti gli osservatori di questa squadra?');
-        if (!ok) return;
-        await applyAccessChange('reactivate-all');
+      if (sharedAccessReactivateAll) sharedAccessReactivateAll.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await confirmAndApplyAccessChange('reactivate-all');
       });
-      if (sharedAccessRemoveAll) sharedAccessRemoveAll.addEventListener('click', async () => {
-        const ok = confirm('Rimuovere definitivamente tutti gli osservatori da questa squadra condivisa?');
-        if (!ok) return;
-        await applyAccessChange('remove-all');
+      if (sharedAccessRemoveAll) sharedAccessRemoveAll.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await confirmAndApplyAccessChange('remove-all');
       });
       if (sharedAccessList) {
         sharedAccessList.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           const btn = e.target.closest('[data-access-action]');
           if (!btn) return;
           const action = String(btn.getAttribute('data-access-action') || '').trim();
           const email = String(btn.getAttribute('data-access-email') || '').trim();
           if (!action || !email) return;
-          if (action === 'remove') {
-            const ok = confirm(`Rimuovere l'accesso per ${email}?`);
-            if (!ok) return;
-          }
-          await applyAccessChange(action, email);
+          await confirmAndApplyAccessChange(action, email);
+        });
+      }
+      if (sharedAccessPromptCancel) {
+        sharedAccessPromptCancel.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAccessPrompt(false);
+        });
+      }
+      if (sharedAccessPromptOk) {
+        sharedAccessPromptOk.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAccessPrompt(true);
+        });
+      }
+      if (sharedAccessPromptOverlay) {
+        sharedAccessPromptOverlay.addEventListener('click', (e) => {
+          if (e.target !== sharedAccessPromptOverlay) return;
+          closeAccessPrompt(false);
+        });
+      }
+      if (sharedAccessSearchInput) {
+        sharedAccessSearchInput.addEventListener('input', () => {
+          accessSearchTerm = String(sharedAccessSearchInput.value || '').trim();
+          renderAccessManagementView();
+        });
+      }
+      if (sharedAccessStatusFilter) {
+        sharedAccessStatusFilter.addEventListener('change', () => {
+          const next = String(sharedAccessStatusFilter.value || 'all').trim();
+          accessStatusFilter = (next === 'active' || next === 'suspended' || next === 'left') ? next : 'all';
+          renderAccessManagementView();
         });
       }
 
@@ -1665,7 +1948,7 @@
         const purgeBtn = document.getElementById('purgeAllBtn');
         if (purgeBtn) purgeBtn.addEventListener('click', async (e) => {
           e.preventDefault(); e.stopPropagation();
-          const ok = confirm('Vuoi pulire tutti i dati locali dell’app su questo dispositivo?\n\nVerranno rimossi dati, cache/offline e impostazioni locali.\nI dati sul Cloud non verranno modificati.');
+          const ok = await askConfirm('Vuoi pulire tutti i dati locali dell’app su questo dispositivo?\n\nVerranno rimossi dati, cache/offline e impostazioni locali.\nI dati sul Cloud non verranno modificati.', { title: 'Pulisci dati locali', okText: 'Pulisci', cancelText: 'Annulla', variant: 'danger' });
           if (!ok) {
             try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); } catch(_){ }
             return;
@@ -1810,7 +2093,7 @@
       if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } }); }
 
       try {
-        if (archiveTabLocal) archiveTabLocal.addEventListener('click', () => setArchive('local'));
+        if (archiveTabLocal) archiveTabLocal.addEventListener('click', () => setArchive('cloud'));
         if (archiveTabCloud) archiveTabCloud.addEventListener('click', () => setArchive('cloud'));
         if (archiveTabShared) archiveTabShared.addEventListener('click', () => setArchive('shared'));
         if (archivePager && !archivePager.__boundScroll) {
@@ -1821,13 +2104,14 @@
             raf = requestAnimationFrame(() => {
               const w = archivePager.clientWidth || window.innerWidth || 1;
               const idx = Math.round((archivePager.scrollLeft || 0) / w);
-              const next = idx === 2 ? 'shared' : (idx === 1 ? 'cloud' : 'local');
+              const next = idx >= 1 ? 'shared' : 'cloud';
               if (next !== currentArchive) {
                 currentArchive = next;
-                if (archiveTitle) archiveTitle.textContent = 'Archivio';
+                if (archiveTitle) archiveTitle.textContent = 'Elenco Squadre';
                 if (archiveTabLocal) {
-                  archiveTabLocal.classList.toggle('active', next === 'local');
-                  archiveTabLocal.setAttribute('aria-selected', (next === 'local').toString());
+                  archiveTabLocal.classList.remove('active');
+                  archiveTabLocal.setAttribute('aria-selected', 'false');
+                  archiveTabLocal.style.display = 'none';
                 }
                 if (archiveTabCloud) {
                   archiveTabCloud.classList.toggle('active', next === 'cloud');
@@ -1838,7 +2122,7 @@
                   archiveTabShared.setAttribute('aria-selected', (next === 'shared').toString());
                 }
                 if (createTeamBtn) {
-                  createTeamBtn.title = next === 'cloud' ? 'Crea Squadra (Cloud)' : (next === 'shared' ? 'Solo lettura' : 'Crea Squadra (Locale)');
+                  createTeamBtn.title = next === 'cloud' ? 'Crea Squadra (Cloud)' : 'Solo lettura';
                   createTeamBtn.disabled = next === 'shared';
                 }
               }
@@ -1849,9 +2133,9 @@
           const qp = new URLSearchParams(window.location.search || '');
           const urlArch = qp.get('archive');
           const storedArch = localStorage.getItem(ARCHIVE_STORAGE_KEY);
-          setArchive(urlArch || storedArch || 'local');
+          setArchive(urlArch || storedArch || 'cloud');
         } catch(_) {
-          setArchive('local');
+          setArchive('cloud');
         }
       } catch(_){}
       if (infoBtn && infoDialog) { infoBtn.addEventListener('click', (e)=>{ e.preventDefault(); infoDialog.showModal(); }); }

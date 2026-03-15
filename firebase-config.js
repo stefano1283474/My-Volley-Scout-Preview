@@ -8,16 +8,22 @@ window.firebaseConfig = window.firebaseConfig || {
   measurementId: "G-GFHR0LSQPR"
 };
 
-window.app = window.app || null;
 window.analytics = window.analytics || null;
-window.auth = window.auth || null;
-window.db = window.db || null;
-window.googleProvider = window.googleProvider || null;
+// Non usare window.app || null perché <div id="app"> diventa window.app (ID HTML = variabile globale)
+// Usare firebase.apps per verificare se già inizializzato
 const isLocal = (typeof location !== 'undefined') && (location.hostname === 'localhost');
 
 if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp === 'function') {
-  window.app = window.app || firebase.initializeApp(window.firebaseConfig);
+  // Inizializza solo se non già fatto (firebase.apps evita il conflitto con <div id="app">)
+  if (!firebase.apps || !firebase.apps.length) {
+    window.app = firebase.initializeApp(window.firebaseConfig);
+  } else {
+    window.app = firebase.app();
+  }
   window.analytics = null;
+  // Resetta auth/db solo se non sono oggetti Firebase validi
+  if (!window.auth || typeof window.auth.onAuthStateChanged !== 'function') window.auth = null;
+  if (!window.db || typeof window.db.collection !== 'function') window.db = null;
   window.auth = window.auth || firebase.auth();
   window.db = window.db || firebase.firestore();
   if (isLocal && firebase && firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
@@ -36,7 +42,8 @@ if (typeof firebase !== 'undefined' && firebase && typeof firebase.initializeApp
       window.db.enablePersistence({ synchronizeTabs: true }).catch(function(){ });
     } catch(_) {}
   }
-  try { if (isLocal && firebase && firebase.auth) { window.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function(){ }); } } catch(_) {}
+  // Usa LOCAL persistence (IndexedDB) sia in locale che in produzione per non perdere la sessione
+  try { if (firebase && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) { window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){ }); } } catch(_) {}
   try {
     if (isLocal) {
       const originalError = console.error;

@@ -95,11 +95,15 @@
                     const ha = meta.homeAway || meta.location || '';
                     sess = {
                       id: matchId,
+                      teamId: team?.id != null ? String(team.id) : null,
+                      myTeam: meta.myTeam || '',
                       opponentTeam: opponent,
                       matchDate: dateStr,
                       matchType: type,
                       homeAway: ha,
                       description: meta.description || '',
+                      finalResult: meta.finalResult || '',
+                      matchOutcome: meta.matchOutcome || '',
                       actionsBySet: d.actionsBySet || {},
                       setMeta: d.setMeta || {},
                       setStateBySet: d.setStateBySet || {},
@@ -116,11 +120,15 @@
               if (found) {
                 sess = {
                   id: found.id,
+                  teamId: found.teamId || null,
+                  myTeam: found.myTeam || found.teamName || '',
                   opponentTeam: found.opponentTeam || found.opponent || '',
                   matchDate: found.matchDate || found.date || '',
                   matchType: found.matchType || found.eventType || '',
                   homeAway: found.homeAway || found.location || '',
                   description: found.description || '',
+                  finalResult: found.finalResult || '',
+                  matchOutcome: found.matchOutcome || '',
                   actionsBySet: found.actionsBySet || {},
                   setMeta: found.setMeta || {},
                   setStateBySet: found.setStateBySet || {},
@@ -148,6 +156,20 @@
         } catch(_) {}
         return '';
       }
+      function parseFinalResult(value){
+        const s = String(value || '').trim();
+        if (!s) return null;
+        const m = s.match(/(\d+)\D+(\d+)/);
+        if (!m) return null;
+        return { my: Number(m[1]) || 0, opp: Number(m[2]) || 0 };
+      }
+      function deriveOutcomeFromResult(value){
+        const r = parseFinalResult(value);
+        if (!r) return '';
+        if (r.my > r.opp) return 'Vinto';
+        if (r.my < r.opp) return 'Perso';
+        return '';
+      }
       function isValidScore(h,a){ const hv = Number(h||0), av = Number(a||0); const bothZero = (hv===0 && av===0); const bothBlank = (String(h||'').trim()==='' && String(a||'').trim()===''); return !(bothZero || bothBlank); }
       function computeSetOutcome(h,a){ if(!isValidScore(h,a)) return ''; return (Number(h)>Number(a)) ? 'Vinto' : (Number(a)>Number(h) ? 'Perso' : ''); }
       function computeOverallOutcome(sess){ let my=0, opp=0; const sum = sess.setSummary || {}; const st = sess.setStateBySet || {}; for(let i=1;i<=6;i++){ const s = sum[i] || {}; const si = st[i] || {}; let h = s.home!=null ? Number(s.home||0) : Number(si.homeScore||0); let a = s.away!=null ? Number(s.away||0) : Number(si.awayScore||0); if (!isValidScore(h,a)) continue; const myScore = h; const oppScore = a; if (myScore>oppScore) my++; else if (oppScore>myScore) opp++; }
@@ -169,6 +191,7 @@
           `<div class="match-item"><div class="match-title">Data</div><div class="match-details"><input id="metaDate" class="meta-input" type="date" value="${date}"></div></div>`,
           `<div class="match-item"><div class="match-title">Tipo Evento</div><div class="match-details"><input id="metaType" class="meta-input" type="text" value="${String(type).replace(/"/g,'&quot;')}"></div></div>`,
           `<div class="match-item"><div class="match-title">Luogo</div><div class="match-details"><select id="metaLocation" class="meta-input"><option value="casa"${location==='casa'?' selected':''}>casa</option><option value="trasferta"${location==='trasferta'?' selected':''}>trasferta</option></select></div></div>`,
+          `<div class="match-item"><div class="match-title">Descrizione</div><div class="match-details"><input id="metaDescription" class="meta-input" type="text" value="${String(sess.description||'').replace(/"/g,'&quot;')}"></div></div>`,
           `<div class="match-item"><div class="match-title">Punteggio</div><div class="match-details"><input id="metaScore" class="meta-input" type="text" value="${String(finalResult).replace(/"/g,'&quot;')}"></div></div>`,
           `<div class="match-item"><div class="match-title">Esito</div><div class="match-details"><input id="metaOutcome" class="meta-input" type="text" value="${String(outcome).replace(/"/g,'&quot;')}"></div></div>`
         ].join('');
@@ -211,8 +234,16 @@
         const date = (document.getElementById('metaDate')?.value || '').trim();
         const type = (document.getElementById('metaType')?.value || '').trim();
         const location = (document.getElementById('metaLocation')?.value || '').trim();
-        const finalResult = (document.getElementById('metaScore')?.value || '').trim();
-        const matchOutcome = (document.getElementById('metaOutcome')?.value || '').trim();
+        const description = (document.getElementById('metaDescription')?.value || '').trim();
+        const scoreRaw = (document.getElementById('metaScore')?.value || '').trim();
+        const outcomeRaw = (document.getElementById('metaOutcome')?.value || '').trim();
+        if (!opponent) { if (status) status.textContent = 'Inserisci avversario'; return false; }
+        if (!date) { if (status) status.textContent = 'Inserisci data'; return false; }
+        if (!type) { if (status) status.textContent = 'Inserisci tipo evento'; return false; }
+        const normalizedLocation = location === 'trasferta' ? 'trasferta' : 'casa';
+        const overall = computeOverallOutcome(currentSession || {});
+        const finalResult = scoreRaw || overall.punteggio || '';
+        const matchOutcome = outcomeRaw || deriveOutcomeFromResult(finalResult) || overall.esito || '';
         const ha = location === 'trasferta' ? 'away' : 'home';
         let teamName = '';
         let teamId = currentSession?.teamId || null;
@@ -236,7 +267,8 @@
           matchType: type || base.matchType || base.eventType || '',
           eventType: type || base.eventType || base.matchType || '',
           homeAway: ha,
-          location: ha === 'home' ? 'casa' : 'trasferta',
+          location: normalizedLocation,
+          description: description,
           finalResult: finalResult,
           matchOutcome: matchOutcome,
           updatedAt
@@ -257,6 +289,11 @@
           const sess = Object.assign({}, getSession(), next);
           localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
         } catch(_) {}
+        try {
+          if (window.appState?.currentMatch && String(window.appState.currentMatch.id || '') === String(next.id || '')) {
+            window.appState.currentMatch = Object.assign({}, window.appState.currentMatch, next);
+          }
+        } catch(_) {}
         try { localStorage.setItem('selectedMatchId', String(next.id)); } catch(_) {}
         currentSession = next;
         if ((window.authModule?.isAuthenticated?.() === true || window.authFunctions?.getCurrentUser?.()) && teamId && window.firestoreService?.saveMatchTree) {
@@ -264,6 +301,8 @@
             await window.firestoreService.saveMatchTree(teamId, next);
           } catch(_) {}
         }
+        renderMeta(currentSession);
+        renderSets(currentSession);
         if (status) status.textContent = 'Salvato';
         return true;
       }
@@ -291,7 +330,7 @@
           }catch(_){ }
         })();
         const saveBtn = document.getElementById('saveMatchMetaBtn');
-        if (saveBtn) saveBtn.addEventListener('click', async (e) => { e.preventDefault(); const ok = await saveMetaChanges(); if (ok) goBackAfterSave(); });
+        if (saveBtn) saveBtn.addEventListener('click', async (e) => { e.preventDefault(); await saveMetaChanges(); });
       });
 
       (function(){

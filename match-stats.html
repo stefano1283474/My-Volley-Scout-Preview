@@ -204,8 +204,14 @@
       </div>
     </main>
 
-  <script src="connection-manager.js"></script>
-  <script src="app.js?v=10"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="./connection-manager.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./firestore-service.js"></script>
+  <script src="./auth.js"></script>
+  <script src="./app.js?v=11"></script>
   <script>
     window.goBackToMatches = function(){
       try {
@@ -219,6 +225,21 @@
       }
     };
     document.addEventListener('DOMContentLoaded', function(){
+      function resolveCurrentUserEmail(){
+        try {
+          const email = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim();
+          if (email) return email;
+        } catch(_) {}
+        try {
+          const email = String(window.authModule?.getCurrentUser?.()?.email || '').trim();
+          if (email) return email;
+        } catch(_) {}
+        try {
+          const email = String(window.auth?.currentUser?.email || '').trim();
+          if (email) return email;
+        } catch(_) {}
+        return '';
+      }
       function resolveObserverStatus(){
         try {
           const role = String(localStorage.getItem('selectedTeamRole') || '').trim();
@@ -227,7 +248,7 @@
           const metaRole = String(meta?.role || '').trim();
           const sharedOwner = String(meta?.owner || '').trim();
           const ownerResolved = String(owner || sharedOwner || '').trim();
-          const userEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim();
+          const userEmail = resolveCurrentUserEmail();
           const archive = (() => { try { return String(localStorage.getItem('mvsSelectedArchive') || '').trim(); } catch(_) { return ''; } })();
           if (archive === 'shared') return true;
           return (role === 'observer') || (metaRole === 'observer') || (!!ownerResolved && (!userEmail || ownerResolved !== userEmail));
@@ -314,8 +335,8 @@
         const emailEl = document.getElementById('accountEmail');
         function updateAccountEmail(){
           try {
-            const email = window.authFunctions?.getCurrentUser?.()?.email;
-            if (emailEl) emailEl.textContent = email || '-';
+            const email = resolveCurrentUserEmail();
+            if (emailEl) emailEl.textContent = email || 'Caricamento...';
           } catch(_) {}
         }
         function closeMenu(){ if (menu){ menu.hidden = true; } if (toggle){ toggle.setAttribute('aria-expanded','false'); } }
@@ -326,10 +347,12 @@
           document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeMenu(); } });
         }
         updateAccountEmail();
+        setTimeout(updateAccountEmail, 600);
+        setTimeout(updateAccountEmail, 1500);
         try {
           if (window.authFunctions?.onAuthStateChanged) {
             window.authFunctions.onAuthStateChanged((user) => {
-              if (emailEl) emailEl.textContent = user?.email || '-';
+              if (emailEl) emailEl.textContent = user?.email || 'Non autenticato';
               applyObserverUI();
             });
           }

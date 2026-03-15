@@ -47,13 +47,13 @@ class MatchesModule {
     getInitialArchive() {
         try {
             const stored = localStorage.getItem('mvsSelectedArchive');
-            if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
+            if (stored === 'cloud' || stored === 'shared') return stored;
         } catch (_) {}
-        return 'local';
+        return 'cloud';
     }
 
     setArchive(next, options = {}) {
-        const v = (next === 'cloud' || next === 'shared') ? next : 'local';
+        const v = (next === 'shared') ? 'shared' : 'cloud';
         const changed = this.state.archive !== v;
         if (!changed && options.force !== true && !options.reload) return;
         
@@ -111,7 +111,7 @@ class MatchesModule {
             this.notifyMatchesUpdate(); // Notify clear immediately
 
             const isSharedArchive = this.state.archive === 'shared';
-            const archive = (this.state.archive === 'cloud' || isSharedArchive) ? 'cloud' : 'local';
+            const archive = 'cloud';
             const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
             const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
             const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
@@ -191,12 +191,6 @@ class MatchesModule {
                 return;
             }
 
-            // Local archive
-            const localMatches = this.getLocalMatches();
-            this.state.matches = this.deduplicateMatchesLocal(localMatches);
-            console.log(`MatchesModule: Loaded ${this.state.matches.length} local matches`);
-            this.notifyMatchesUpdate();
-            
         } catch (error) {
             console.error('Errore nel caricamento partite:', error);
             this.handleError(error);
@@ -385,40 +379,42 @@ class MatchesModule {
      */
     async saveMatch(match) {
         try {
-            const archive = (this.state.archive === 'cloud' || this.state.archive === 'shared') ? 'cloud' : 'local';
             if (this.state.archive === 'shared') {
                 return { success: false, error: 'Archivio condiviso in sola lettura' };
             }
             let updatedMatch = match;
-
-            if (archive === 'cloud') {
-                const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
-                if (!isAuthed || !window.firestoreService?.saveMatchTree) {
-                    return { success: false, error: 'Utente non autenticato' };
-                }
-                const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
-                const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
-                const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
-                if (!teamId) return { success: false, error: 'Squadra non selezionata' };
-                await window.firestoreService.saveMatchTree(teamId, match);
-                if (Array.isArray(match.roster) && window.firestoreService?.saveMatchRosterTree) {
-                    try { await window.firestoreService.saveMatchRosterTree(teamId, match.id, match.roster); } catch(_) {}
-                }
-                if (window.firestoreService?.saveMatchDetailsTree) {
-                    try {
-                        await window.firestoreService.saveMatchDetailsTree(teamId, match.id, {
-                            actionsBySet: match.actionsBySet || {},
-                            setMeta: match.setMeta || {},
-                            setStateBySet: match.setStateBySet || {},
-                            setSummary: match.setSummary || {},
-                            scoreHistoryBySet: match.scoreHistoryBySet || {}
-                        });
-                    } catch(_) {}
-                }
-                updatedMatch = Object.assign({}, match, { source: 'firestore_team' });
-            } else {
-                await this.saveMatchLocally(match);
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (!isAuthed || !window.firestoreService?.saveMatchTree) {
+                return { success: false, error: 'Utente non autenticato' };
             }
+            const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
+            const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
+            const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
+            if (!teamId) return { success: false, error: 'Squadra non selezionata' };
+            await window.firestoreService.saveMatchTree(teamId, match);
+            if (Array.isArray(match.roster) && window.firestoreService?.saveMatchRosterTree) {
+                try { await window.firestoreService.saveMatchRosterTree(teamId, match.id, match.roster); } catch(_) {}
+            }
+            if (window.firestoreService?.saveMatchDetailsTree) {
+                try {
+                    await window.firestoreService.saveMatchDetailsTree(teamId, match.id, {
+                        actionsBySet: match.actionsBySet || {},
+                        setMeta: match.setMeta || {},
+                        setStateBySet: match.setStateBySet || {},
+                        setSummary: match.setSummary || {},
+                        scoreHistoryBySet: match.scoreHistoryBySet || {}
+                    });
+                } catch(_) {}
+            }
+
+            // ── Bridge MVTA ora integrato direttamente in saveMatchTree ───────────
+            // La logica di salvataggio su volley_team_analysis_6_0/{uid}/datasets/
+            // è stata spostata in firestoreService.saveMatchTree per garantire che
+            // OGNI salvataggio MVS (da qualsiasi percorso) raggiunga sempre MVTA.
+            // Questo blocco è stato rimosso per evitare scritture doppie.
+            // ──────────────────────────────────────────────────────────────────────
+
+            updatedMatch = Object.assign({}, match, { source: 'firestore_team' });
             
             // Aggiorna lo stato
             const existingIndex = this.state.matches.findIndex(m => m.id === updatedMatch.id);
@@ -474,33 +470,36 @@ class MatchesModule {
         try {
             // Conferma eliminazione PRIMA di eseguire l'operazione
             if (options?.confirm) {
-                const ok = typeof window !== 'undefined' ? window.confirm("Confermi l'eliminazione di questa partita?") : true;
+                let ok = true;
+                if (typeof window !== 'undefined') {
+                    if (window.mvsDialog?.confirm) {
+                        ok = await window.mvsDialog.confirm("Confermi l'eliminazione di questa partita?", {
+                            title: 'Elimina partita',
+                            okText: 'Elimina',
+                            cancelText: 'Annulla',
+                            variant: 'danger'
+                        });
+                    } else {
+                        ok = window.confirm("Confermi l'eliminazione di questa partita?");
+                    }
+                }
                 if (!ok) {
                     return { success: false, cancelled: true };
                 }
             }
-            const archive = (this.state.archive === 'cloud' || this.state.archive === 'shared') ? 'cloud' : 'local';
             if (this.state.archive === 'shared') {
                 return { success: false, error: 'Archivio condiviso in sola lettura' };
             }
-
-            if (archive === 'cloud') {
-                const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
-                if (!isAuthed || !window.firestoreService?.deleteMatchTree) {
-                    return { success: false, error: 'Utente non autenticato' };
-                }
-                const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
-                const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
-                const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
-                if (!teamId) return { success: false, error: 'Squadra non selezionata' };
-                const res = await window.firestoreService.deleteMatchTree(teamId, String(matchId), { maxSets: 6 });
-                if (!res?.success) return { success: false, error: res?.error || 'Errore eliminazione' };
-            } else {
-                let all = [];
-                try { all = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { all = []; }
-                const kept = (Array.isArray(all) ? all : []).filter(m => String(m?.id) !== String(matchId));
-                localStorage.setItem('volleyMatches', JSON.stringify(kept));
+            const isAuthed = (window.authModule?.isAuthenticated?.() === true) || (!!(window.authFunctions?.getCurrentUser?.()));
+            if (!isAuthed || !window.firestoreService?.deleteMatchTree) {
+                return { success: false, error: 'Utente non autenticato' };
             }
+            const currentTeam = window.teamsModule?.getCurrentTeam?.() || null;
+            const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
+            const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
+            if (!teamId) return { success: false, error: 'Squadra non selezionata' };
+            const res = await window.firestoreService.deleteMatchTree(teamId, String(matchId), { maxSets: 6 });
+            if (!res?.success) return { success: false, error: res?.error || 'Errore eliminazione' };
             
             // Rimuovi dallo stato
             this.state.matches = this.state.matches.filter(m => m.id !== matchId);

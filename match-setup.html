@@ -157,7 +157,8 @@
                 try {
                   const qp = new URLSearchParams(window.location.search || '');
                   const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-                  const a = qp.get('archive') || stored || 'local';
+                  const rawArch = qp.get('archive') || stored || 'cloud';
+                  const a = rawArch === 'shared' ? 'shared' : 'cloud';
                   const out = new URLSearchParams();
                   out.set('archive', a);
                   window.location.href='/matches.html?' + out.toString();
@@ -170,7 +171,8 @@
                 try {
                   const qp = new URLSearchParams(window.location.search || '');
                   const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-                  const a = qp.get('archive') || stored || 'local';
+                  const rawArch = qp.get('archive') || stored || 'cloud';
+                  const a = rawArch === 'shared' ? 'shared' : 'cloud';
                   const out = new URLSearchParams();
                   out.set('archive', a);
                   window.location.href='/my-teams.html?' + out.toString();
@@ -189,7 +191,8 @@
             try {
               const qp = new URLSearchParams(window.location.search || '');
               const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-              const a = qp.get('archive') || stored || 'local';
+              const rawArch = qp.get('archive') || stored || 'cloud';
+              const a = rawArch === 'shared' ? 'shared' : 'cloud';
               try { localStorage.setItem('mvsSelectedArchive', a); } catch(_) {}
               const out = new URLSearchParams();
               out.set('archive', a);
@@ -651,48 +654,25 @@
                     roster: Array.isArray(roster) ? roster : []
                 };
 
-                // 1) Persistenza locale: aggiungi/aggiorna in volleyMatches
-                try {
-                    const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                    const payloadId = String(payload.id || '').trim();
-                    const keyOf = (m) => {
-                        const teamIdK = String(m?.teamId || '').toLowerCase();
-                        const my = String(m?.myTeam || m?.teamName || '').toLowerCase();
-                        const opp = String(m?.opponentTeam || m?.opponent || '').toLowerCase();
-                        const date = String(m?.matchDate || m?.date || '').slice(0,10);
-                        const type = String(m?.matchType || m?.eventType || m?.type || '').toLowerCase();
-                        const ha = String(m?.homeAway || m?.location || '').toLowerCase();
-                        return [teamIdK,my,opp,date,type,ha].join('|');
-                    };
-                    let replaced = false;
-                    if (payloadId) {
-                        const idx = local.findIndex(m => String(m?.id || '').trim() === payloadId);
-                        if (idx >= 0) { local[idx] = payload; replaced = true; }
-                    }
-                    if (!replaced) {
-                        const key = keyOf(payload);
-                        const idx = local.findIndex(m => keyOf(m) === key);
-                        if (idx >= 0) { local[idx] = Object.assign({}, local[idx], payload); replaced = true; }
-                    }
-                    if (!replaced) local.unshift(payload);
-                    localStorage.setItem('volleyMatches', JSON.stringify(local));
-                } catch (e) {
-                    console.warn('Salvataggio locale partita non riuscito:', e);
-                }
-
-                // 2) Persistenza cloud (se utente loggato e funzioni disponibili)
+                // Persistenza cloud obbligatoria
+                let cloudSaved = false;
                 try {
                     if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree && selectedTeamId) {
                         const user = window.authFunctions.getCurrentUser();
                         if (user) {
                             await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
+                            cloudSaved = true;
                         }
                     }
                 } catch (e) {
-                    console.warn('Salvataggio cloud non riuscito (proseguo):', e);
+                    console.warn('Salvataggio cloud non riuscito:', e);
+                }
+                if (!cloudSaved) {
+                    showError('Salvataggio Cloud non riuscito. Verifica accesso e connessione.');
+                    return;
                 }
 
-                // 3) Imposta setup corrente per pagina di roster
+                // Imposta setup corrente per pagina di roster
                 localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
 
                 showSuccess('Partita salvata! Prosegui alla selezione del roster...');

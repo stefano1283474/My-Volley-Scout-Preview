@@ -459,13 +459,27 @@
         .archive-badge { display:inline-flex; align-items:center; gap:8px; border:1px solid #e5e7eb; border-radius:999px; padding:6px 10px; background:#ffffff; color:#0f172a; font-weight:800; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; }
         .archive-badge.local { border-color:#2563eb; }
         .archive-badge.cloud { border-color:#0ea5e9; }
-        .import-dialog { border:1px solid #e9ecef; border-radius:14px; padding:14px; max-width:720px; width:95%; }
+        .import-dialog { border:1px solid #dbeafe; border-radius:14px; padding:14px; max-width:720px; width:min(720px, calc(100vw - 24px)); position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; box-shadow:0 20px 42px rgba(15,23,42,.28); max-height:min(82vh, 760px); overflow:auto; }
+        .import-dialog::backdrop { background: rgba(15,23,42,.48); backdrop-filter: blur(2px); }
         .import-dialog-grid { display:grid; gap:10px; }
         .import-dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
         .import-file-list { border:1px solid #e5e7eb; border-radius:12px; padding:8px; max-height:260px; overflow:auto; display:grid; gap:6px; }
         .import-file-row { display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:8px; background:#f8fafc; }
         .import-file-name { flex:1; font-size:13px; color:#334155; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .import-summary { font-size:12px; color:#64748b; font-weight:600; }
+        .bulk-delete-dialog { border: 1px solid #dbeafe; border-radius: 16px; padding: 0; width: min(760px, calc(100vw - 24px)); box-shadow: 0 20px 42px rgba(15,23,42,.28); }
+        .bulk-delete-dialog::backdrop { background: rgba(15,23,42,.48); backdrop-filter: blur(2px); }
+        .bulk-delete-card { background:#fff; border-radius:16px; padding:14px; }
+        .bulk-delete-title { font-size:22px; font-weight:800; color:#0f172a; margin:0; line-height:1.15; }
+        .bulk-delete-subtitle { font-size:13px; color:#475569; margin-top:8px; }
+        .bulk-delete-list { margin-top:10px; max-height:46vh; overflow:auto; border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#f8fafc; }
+        .bulk-delete-row { display:flex; gap:10px; align-items:flex-start; padding:10px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px; background:#fff; }
+        .bulk-delete-row:last-child { margin-bottom:0; }
+        .bulk-delete-row-label { font-size:13px; color:#0f172a; font-weight:600; line-height:1.35; }
+        .bulk-delete-progress-row { border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; background:#fff; }
+        .bulk-delete-progress-row:last-child { margin-bottom:0; }
+        .bulk-delete-errors { margin-top:10px; max-height:34vh; overflow:auto; border:1px solid #e2e8f0; border-radius:12px; padding:8px; background:#f8fafc; }
+        .bulk-delete-errors:empty { display:none; }
 </style>
 </head>
 <body>
@@ -500,6 +514,8 @@
                     <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
                     <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
                     <button class="menu-item" id="exportAllMatchesBtn" type="button" style="display:none;">Esporta tutte le gare</button>
+                    <button class="menu-item" id="importAllMatchesBtn" type="button" style="display:none;">Importa partite</button>
+                    <button class="menu-item" id="deleteAllMatchesBtn" type="button" style="display:none;">Elimina gare</button>
                     <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
                     <label class="menu-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
                       <span style="display:flex;flex-direction:column;gap:2px;">
@@ -528,8 +544,8 @@
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:block;">
             <div class="archive-tabs" role="tablist" aria-label="Archivio dati partite">
-                <button id="matchesArchiveTabLocal" class="archive-tab active" type="button" role="tab" aria-selected="true">Locale</button>
-                <button id="matchesArchiveTabCloud" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud</button>
+                <button id="matchesArchiveTabLocal" class="archive-tab" type="button" role="tab" aria-selected="false" style="display:none;">Locale</button>
+                <button id="matchesArchiveTabCloud" class="archive-tab active" type="button" role="tab" aria-selected="true">Cloud</button>
             </div>
             <div class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:10px; margin-bottom:10px;">
                 <div style="display:flex; flex-direction:column; gap:8px;">
@@ -826,7 +842,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.6.3</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 17.6.4</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -2561,6 +2577,8 @@
     <script src="./firestore-service.js"></script>
     <script src="./auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="./src/modules/xlsm-full-parser.js"></script>
+    <script src="./src/modules/live-stats-computer.js"></script>
     <script src="./src/modules/teams/teams.js"></script>
     <script src="./src/modules/matches/matches.js"></script>
     <script src="./src/modules/scouting/scouting.js"></script>
@@ -2576,7 +2594,35 @@
         let currentArchive = 'local';
         let importCandidateFiles = [];
         const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
+        const __nativeAlert = (typeof window !== 'undefined' && typeof window.alert === 'function') ? window.alert.bind(window) : null;
+        const __nativeConfirm = (typeof window !== 'undefined' && typeof window.confirm === 'function') ? window.confirm.bind(window) : null;
         let __initRetryCount = 0;
+        async function showAlert(message, options = {}) {
+            try {
+                if (window.mvsDialog?.alert) {
+                    await window.mvsDialog.alert(String(message || ''), options || {});
+                    return;
+                }
+            } catch(_) {}
+            try { if (__nativeAlert) __nativeAlert(String(message || '')); } catch(_) {}
+        }
+        async function askConfirm(message, options = {}) {
+            try {
+                if (window.mvsDialog?.confirm) {
+                    return await window.mvsDialog.confirm(String(message || ''), options || {});
+                }
+            } catch(_) {}
+            try { return __nativeConfirm ? __nativeConfirm(String(message || '')) : true; } catch(_) { return true; }
+        }
+        (function installAlertShim(){
+            try {
+                if (window.__mvsAlertShimInstalled) return;
+                window.__mvsAlertShimInstalled = true;
+                window.alert = function(message){
+                    showAlert(String(message || ''), { title: 'Messaggio', okText: 'OK' });
+                };
+            } catch(_) {}
+        })();
         // Elementi DOM
         const teamName = document.getElementById('teamName');
         const teamStats = document.getElementById('teamStats');
@@ -2588,6 +2634,8 @@
         const hydrateDataBtn = document.getElementById('hydrateDataBtn');
         const syncDataBtn = document.getElementById('syncDataBtn');
         const exportAllMatchesBtn = document.getElementById('exportAllMatchesBtn');
+        const importAllMatchesBtn = document.getElementById('importAllMatchesBtn');
+        const deleteAllMatchesBtn = document.getElementById('deleteAllMatchesBtn');
         const autoSavesToggle = document.getElementById('autoSavesToggle');
         const matchesList = document.getElementById('matchesList');
         const emptyMatches = document.getElementById('emptyMatches');
@@ -2791,6 +2839,8 @@
             if (!exportAllMatchesBtn) return;
             const canShow = !computeObserverMode() && currentMainTab === 'list';
             exportAllMatchesBtn.style.display = canShow ? '' : 'none';
+            if (importAllMatchesBtn) importAllMatchesBtn.style.display = canShow ? '' : 'none';
+            if (deleteAllMatchesBtn) deleteAllMatchesBtn.style.display = canShow ? '' : 'none';
         }
 
         function getInitialArchive() {
@@ -2798,17 +2848,19 @@
             try {
                 const qp = new URLSearchParams(window.location.search || '');
                 const urlArch = qp.get('archive');
-                if (urlArch === 'cloud' || urlArch === 'local' || urlArch === 'shared') return urlArch;
+                if (urlArch === 'shared') return 'shared';
+                if (urlArch === 'cloud' || urlArch === 'local') return 'cloud';
             } catch(_) {}
             try {
                 const stored = localStorage.getItem(ARCHIVE_STORAGE_KEY);
-                if (stored === 'cloud' || stored === 'local' || stored === 'shared') return stored;
+                if (stored === 'shared') return 'shared';
+                if (stored === 'cloud' || stored === 'local') return 'cloud';
             } catch(_) {}
-            return 'local';
+            return 'cloud';
         }
 
         function setArchive(next, options = {}) {
-            const v = (next === 'cloud' || next === 'shared') ? next : 'local';
+            const v = (next === 'shared') ? 'shared' : 'cloud';
             if ((v === 'cloud' || v === 'shared') && authResolved && !isAuthenticated()) {
                 try { alert('Accedi per visualizzare e gestire il Cloud'); } catch(_) {}
                 return;
@@ -2823,8 +2875,9 @@
                 window.history.replaceState(null, '', nextUrl);
             } catch(_) {}
             if (matchesArchiveTabLocal) {
-                matchesArchiveTabLocal.classList.toggle('active', v === 'local');
-                matchesArchiveTabLocal.setAttribute('aria-selected', (v === 'local').toString());
+                matchesArchiveTabLocal.classList.remove('active');
+                matchesArchiveTabLocal.setAttribute('aria-selected', 'false');
+                matchesArchiveTabLocal.style.display = 'none';
             }
             if (matchesArchiveTabCloud) {
                 matchesArchiveTabCloud.classList.toggle('active', v === 'cloud' || v === 'shared');
@@ -3846,7 +3899,7 @@
                     try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_){ }
                     try {
                         const qp = new URLSearchParams();
-                        qp.set('archive', String(currentArchive || 'local'));
+                        qp.set('archive', String(currentArchive || 'cloud'));
                         window.location.href = '/my-teams.html?' + qp.toString();
                     } catch(_) {
                         window.location.href = '/my-teams.html';
@@ -3861,7 +3914,7 @@
                     e.stopPropagation();
                     try {
                         const qp = new URLSearchParams();
-                        qp.set('archive', String(currentArchive || 'local'));
+                        qp.set('archive', String(currentArchive || 'cloud'));
                         window.location.href = '/my-teams.html?' + qp.toString();
                     } catch(_) {
                         window.location.href = '/my-teams.html';
@@ -3875,7 +3928,7 @@
                     e.stopPropagation();
                     try {
                         const qp = new URLSearchParams(window.location.search || '');
-                        qp.set('archive', String(currentArchive || 'local'));
+                        qp.set('archive', String(currentArchive || 'cloud'));
                         window.location.href = '/matches.html?' + qp.toString();
                     } catch(_) {
                         window.location.href = '/matches.html';
@@ -3938,6 +3991,21 @@
                     await handleExportAllMatchesFromMenu();
                 });
             }
+            if (importAllMatchesBtn) {
+                importAllMatchesBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_) {}
+                    handleImportMatchClick();
+                });
+            }
+            if (deleteAllMatchesBtn) {
+                deleteAllMatchesBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await handleDeleteAllMatchesFromMenu();
+                });
+            }
             const backBtn = document.getElementById('backBtn');
             if (backBtn){
                 backBtn.addEventListener('click', (e) => {
@@ -3947,7 +4015,7 @@
                     } else {
                         try {
                             const qp = new URLSearchParams();
-                            qp.set('archive', String(currentArchive || 'local'));
+                            qp.set('archive', String(currentArchive || 'cloud'));
                             window.location.href = '/my-teams.html?' + qp.toString();
                         } catch(_) {
                             window.location.href = '/my-teams.html';
@@ -4129,7 +4197,7 @@
             currentArchive = getInitialArchive();
             setArchive(currentArchive, { reload: false });
             if (matchesArchiveTabLocal) {
-                matchesArchiveTabLocal.addEventListener('click', (e) => { e.preventDefault(); setArchive('local'); });
+                matchesArchiveTabLocal.addEventListener('click', (e) => { e.preventDefault(); setArchive('cloud'); });
             }
             if (matchesArchiveTabCloud) {
                 matchesArchiveTabCloud.addEventListener('click', (e) => { e.preventDefault(); setArchive('cloud'); });
@@ -4165,7 +4233,7 @@
                     if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
                     currentUser = null;
                     try { if (accountEmail) accountEmail.textContent = 'Non autenticato'; } catch(_) {}
-                    try { setArchive('local', { reload: false }); } catch(_) {}
+                    try { setArchive('cloud', { reload: false }); } catch(_) {}
                     loadSelectedTeam();
                     // hideLoadingScreen(); // Rely on loadMatches to hide screen when ready
                     return;
@@ -4661,7 +4729,7 @@
                 const qp = new URLSearchParams();
                 qp.set('team', String(selectedTeam?.id || ''));
                 qp.set('match', String(matchId));
-                qp.set('archive', String(currentArchive || 'local'));
+                qp.set('archive', String(currentArchive || 'cloud'));
                 window.location.href = 'match-setup.html?' + qp.toString();
             } catch(_) {
                 window.location.href = '/match-setup.html';
@@ -8111,8 +8179,9 @@
                 out.setStateBySet = inc.setStateBySet || out.setStateBySet || {};
                 out.setSummary = inc.setSummary || out.setSummary || {};
             }
-            if ((!Array.isArray(out.roster) || out.roster.length === 0) && Array.isArray(inc.roster) && inc.roster.length) {
-                out.roster = inc.roster;
+            if ((!Array.isArray(out.roster) || out.roster.length === 0)) {
+                if (Array.isArray(inc.roster) && inc.roster.length) out.roster = inc.roster;
+                else if (Array.isArray(inc.players) && inc.players.length) out.roster = inc.players;
             }
             return out;
         }
@@ -8139,7 +8208,10 @@
                 if (teamId && isAuthed && window.firestoreService?.getMatchData) {
                     const res = await window.firestoreService.getMatchData(teamId, base.id);
                     if (res?.success) {
-                        if (res.roster && Array.isArray(res.roster) && (!Array.isArray(base.roster) || base.roster.length === 0)) base.roster = res.roster;
+                        if ((!Array.isArray(base.roster) || base.roster.length === 0)) {
+                            if (res.roster && Array.isArray(res.roster) && res.roster.length) base.roster = res.roster;
+                            else if (Array.isArray(res?.meta?.players) && res.meta.players.length) base.roster = res.meta.players;
+                        }
                         if (res.details && typeof res.details === 'object') {
                             const details = res.details || {};
                             base.actionsBySet = base.actionsBySet || details.actionsBySet || {};
@@ -8521,6 +8593,265 @@
             }
         }
 
+        function cleanupPartialSavesForMatch(matchId) {
+            const id = String(matchId || '').trim();
+            if (!id) return false;
+            const map = getPartialSavesMap();
+            if (!Object.prototype.hasOwnProperty.call(map, id)) return false;
+            delete map[id];
+            setPartialSavesMap(map);
+            return true;
+        }
+
+        function formatMatchLabelForDeletion(match) {
+            const date = String(match?.date || match?.matchDate || '').trim();
+            const type = String(match?.tipo || match?.matchType || match?.eventType || '').trim();
+            const teamName = String(selectedTeam?.name || match?.myTeam || '').trim();
+            const inferredOpp = (() => {
+                const direct = String(match?.opponentTeam || match?.opponent || match?.teamOpp || '').trim();
+                if (direct) return direct;
+                const home = String(match?.homeTeam || '').trim();
+                const away = String(match?.awayTeam || '').trim();
+                if (!home && !away) return '';
+                if (teamName && home && away) return home === teamName ? away : home;
+                return away || home;
+            })();
+            const location = String(match?.camp || match?.venue || match?.palestra || match?.location || match?.homeAway || '').trim();
+            const result = String(match?.risultato || match?.finalResult || match?.result || match?.score || '').trim();
+            const head = [date, type, location].filter(Boolean).join(' • ') || 'Data non disponibile';
+            return `${head} • ${inferredOpp || 'Avversario n/d'}${result ? ` • ${result}` : ''}`;
+        }
+
+        function ensureBulkDeleteSelectDialog() {
+            let dlg = document.getElementById('bulkDeleteSelectDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('dialog');
+            dlg.id = 'bulkDeleteSelectDialog';
+            dlg.className = 'bulk-delete-dialog';
+            dlg.innerHTML = `
+              <div class="bulk-delete-card">
+                <h3 class="bulk-delete-title">Elimina gare</h3>
+                <div class="bulk-delete-subtitle">Seleziona le gare da eliminare. I relativi salvataggi automatici verranno rimossi.</div>
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#0f172a;">
+                  <input type="checkbox" id="bulkDeleteSelectAll" />
+                  <span>Seleziona tutte</span>
+                </label>
+                <div id="bulkDeleteSelectList" class="bulk-delete-list"></div>
+                <div class="dialog-actions" style="margin-top:12px;">
+                  <button type="button" class="btn btn-secondary" id="bulkDeleteCancelBtn">Annulla</button>
+                  <button type="button" class="btn btn-danger" id="bulkDeleteRunBtn">Elimina selezionate</button>
+                </div>
+              </div>`;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        function openBulkDeleteSelectDialog(matchList) {
+            return new Promise((resolve) => {
+                const dlg = ensureBulkDeleteSelectDialog();
+                const listEl = dlg.querySelector('#bulkDeleteSelectList');
+                const allEl = dlg.querySelector('#bulkDeleteSelectAll');
+                const cancelBtn = dlg.querySelector('#bulkDeleteCancelBtn');
+                const runBtn = dlg.querySelector('#bulkDeleteRunBtn');
+                if (!listEl || !allEl || !cancelBtn || !runBtn) { resolve([]); return; }
+                const rows = Array.isArray(matchList) ? matchList : [];
+                listEl.innerHTML = rows.map((m) => {
+                    const id = String(m?.id || '');
+                    const label = escapeHtml(formatMatchLabelForDeletion(m));
+                    return `
+                      <label class="bulk-delete-row">
+                        <input type="checkbox" data-match-id="${id.replace(/"/g, '&quot;')}" />
+                        <span class="bulk-delete-row-label">${label}</span>
+                      </label>
+                    `;
+                }).join('');
+                const checkboxes = Array.from(listEl.querySelectorAll('input[type="checkbox"][data-match-id]'));
+                allEl.checked = false;
+                allEl.onchange = () => {
+                    const checked = !!allEl.checked;
+                    checkboxes.forEach((cb) => { cb.checked = checked; });
+                };
+                const finish = (selected) => {
+                    try { dlg.close(); } catch (_) {}
+                    resolve(selected);
+                };
+                cancelBtn.onclick = () => finish([]);
+                runBtn.onclick = () => {
+                    const selected = checkboxes.filter(cb => cb.checked).map(cb => String(cb.getAttribute('data-match-id') || '').trim()).filter(Boolean);
+                    finish(selected);
+                };
+                dlg.oncancel = (ev) => { ev.preventDefault(); finish([]); };
+                try { dlg.showModal(); } catch (_) { dlg.setAttribute('open', ''); }
+            });
+        }
+
+        function ensureBulkDeleteProgressDialog() {
+            let dlg = document.getElementById('bulkDeleteProgressDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('dialog');
+            dlg.id = 'bulkDeleteProgressDialog';
+            dlg.className = 'bulk-delete-dialog';
+            dlg.innerHTML = `
+              <div class="bulk-delete-card">
+                <h3 class="bulk-delete-title">Eliminazione gare in corso</h3>
+                <div id="bulkDeleteOverall" class="bulk-delete-subtitle">Preparazione...</div>
+                <div id="bulkDeleteRows" class="bulk-delete-list"></div>
+              </div>`;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        function fillBulkDeleteProgressRows(dlg, selectedMatches) {
+            const rowsEl = dlg?.querySelector ? dlg.querySelector('#bulkDeleteRows') : null;
+            if (!rowsEl) return;
+            const list = Array.isArray(selectedMatches) ? selectedMatches : [];
+            rowsEl.innerHTML = list.map((m) => {
+                const id = String(m?.id || '');
+                const label = escapeHtml(formatMatchLabelForDeletion(m));
+                return `
+                  <div data-delete-row="${id.replace(/"/g, '&quot;')}" class="bulk-delete-progress-row">
+                    <div style="font-size:13px; font-weight:600; color:#0f172a;">${label}</div>
+                    <div data-delete-row-status style="font-size:12px; color:#334155; margin-top:4px;">In attesa</div>
+                  </div>
+                `;
+            }).join('');
+        }
+
+        function updateBulkDeleteProgress(dlg, processed, total) {
+            const overallEl = dlg?.querySelector ? dlg.querySelector('#bulkDeleteOverall') : null;
+            if (!overallEl) return;
+            overallEl.textContent = `Elaborate ${processed} di ${total} gare`;
+        }
+
+        function updateBulkDeleteProgressRow(dlg, matchId, statusText, detailText) {
+            const row = dlg?.querySelector ? dlg.querySelector(`[data-delete-row="${CSS.escape(String(matchId || ''))}"]`) : null;
+            if (!row) return;
+            const statusEl = row.querySelector('[data-delete-row-status]');
+            if (!statusEl) return;
+            statusEl.innerHTML = `<span style="font-weight:600;">${escapeHtml(statusText || '')}</span>${detailText ? ` • ${escapeHtml(detailText)}` : ''}`;
+        }
+
+        function ensureBulkDeleteSummaryDialog() {
+            let dlg = document.getElementById('bulkDeleteSummaryDialog');
+            if (dlg) return dlg;
+            dlg = document.createElement('dialog');
+            dlg.id = 'bulkDeleteSummaryDialog';
+            dlg.className = 'bulk-delete-dialog';
+            dlg.innerHTML = `
+              <div class="bulk-delete-card">
+                <h3 class="bulk-delete-title">Eliminazione completata</h3>
+                <div id="bulkDeleteSummaryText" class="bulk-delete-subtitle"></div>
+                <div id="bulkDeleteSummaryErrors" class="bulk-delete-errors"></div>
+                <div class="dialog-actions" style="margin-top:12px;">
+                  <button type="button" class="btn btn-primary" id="bulkDeleteSummaryOk">OK</button>
+                </div>
+              </div>`;
+            document.body.appendChild(dlg);
+            return dlg;
+        }
+
+        async function showBulkDeleteSummary(summary) {
+            const dlg = ensureBulkDeleteSummaryDialog();
+            const textEl = dlg.querySelector('#bulkDeleteSummaryText');
+            const errorsEl = dlg.querySelector('#bulkDeleteSummaryErrors');
+            const okBtn = dlg.querySelector('#bulkDeleteSummaryOk');
+            if (textEl) {
+                textEl.textContent = `Totale selezionate: ${summary.total} • Eliminate: ${summary.deleted} • Errori: ${summary.failed} • Autosalvataggi rimossi: ${summary.cleaned}`;
+            }
+            if (errorsEl) {
+                if (!Array.isArray(summary.errors) || !summary.errors.length) {
+                    errorsEl.innerHTML = '<div style="font-size:13px;color:#16a34a;font-weight:600;">Nessun errore rilevato.</div>';
+                } else {
+                    errorsEl.innerHTML = summary.errors.map((err, idx) => `
+                      <div style="border:1px solid #fecaca; background:#fef2f2; border-radius:8px; padding:8px; margin-bottom:8px;">
+                        <div style="font-size:12px; font-weight:700; color:#991b1b;">Errore ${idx + 1}</div>
+                        <div style="font-size:12px; color:#7f1d1d;">Gara: ${escapeHtml(err.match || 'n/d')}</div>
+                        <div style="font-size:12px; color:#7f1d1d;">Dettaglio: ${escapeHtml(err.error || 'Errore sconosciuto')}</div>
+                      </div>
+                    `).join('');
+                }
+            }
+            return new Promise((resolve) => {
+                const finish = () => {
+                    try { dlg.close(); } catch (_) {}
+                    resolve();
+                };
+                if (okBtn) okBtn.onclick = finish;
+                dlg.oncancel = (ev) => { ev.preventDefault(); finish(); };
+                try { dlg.showModal(); } catch (_) { dlg.setAttribute('open', ''); }
+            });
+        }
+
+        async function handleDeleteAllMatchesFromMenu() {
+            try {
+                const relevant = getRelevantMatchesForSelectedTeam();
+                if (!Array.isArray(relevant) || !relevant.length) {
+                    alert('Nessuna gara disponibile da eliminare');
+                    return;
+                }
+                if (!window.matchesModule?.deleteMatch) {
+                    alert('Funzione di eliminazione non disponibile');
+                    return;
+                }
+                const selectedIds = await openBulkDeleteSelectDialog(relevant);
+                if (!Array.isArray(selectedIds) || !selectedIds.length) {
+                    alert('Seleziona almeno una gara da eliminare');
+                    return;
+                }
+                const confirmed = await askConfirm(`Confermi l'eliminazione di ${selectedIds.length} gare? Verranno rimossi anche i salvataggi automatici pregressi.`, {
+                    title: 'Conferma eliminazione',
+                    okText: 'Elimina',
+                    cancelText: 'Annulla',
+                    variant: 'danger'
+                });
+                if (!confirmed) return;
+                const selectedSet = new Set(selectedIds.map(v => String(v)));
+                const selectedMatches = relevant.filter(m => selectedSet.has(String(m?.id || '')));
+                if (!selectedMatches.length) {
+                    alert('Le gare selezionate non sono state trovate. Riprova.');
+                    return;
+                }
+                const progressDlg = ensureBulkDeleteProgressDialog();
+                fillBulkDeleteProgressRows(progressDlg, selectedMatches);
+                updateBulkDeleteProgress(progressDlg, 0, selectedMatches.length);
+                try { progressDlg.showModal(); } catch (_) { progressDlg.setAttribute('open', ''); }
+                const errors = [];
+                let deleted = 0;
+                let cleaned = 0;
+                for (let i = 0; i < selectedMatches.length; i++) {
+                    const match = selectedMatches[i];
+                    const matchId = String(match?.id || '');
+                    updateBulkDeleteProgressRow(progressDlg, matchId, 'In corso', 'Eliminazione gara...');
+                    try {
+                        const res = await window.matchesModule.deleteMatch(matchId, { confirm: false });
+                        if (!res?.success) throw new Error(res?.error || 'Eliminazione non completata');
+                        deleted++;
+                        if (cleanupPartialSavesForMatch(matchId)) cleaned++;
+                        updateBulkDeleteProgressRow(progressDlg, matchId, 'Completata', 'Gara eliminata');
+                    } catch (err) {
+                        const message = String(err?.message || 'Errore sconosciuto');
+                        errors.push({ match: formatMatchLabelForDeletion(match), error: message });
+                        updateBulkDeleteProgressRow(progressDlg, matchId, 'Errore', message);
+                    }
+                    updateBulkDeleteProgress(progressDlg, i + 1, selectedMatches.length);
+                }
+                try { progressDlg.close(); } catch (_) {}
+                await showBulkDeleteSummary({
+                    total: selectedMatches.length,
+                    deleted,
+                    failed: errors.length,
+                    cleaned,
+                    errors
+                });
+                try { await renderMatches(); } catch (_) {}
+            } catch (err) {
+                console.error('Errore eliminazione multipla gare:', err);
+                alert(String(err?.message || 'Errore durante l\'eliminazione delle gare'));
+            } finally {
+                try { accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded', 'false'); } catch(_) {}
+            }
+        }
+
         
 
         let __matchContextMenu = null;
@@ -8534,7 +8865,7 @@
                 const qs = new URLSearchParams();
                 if (teamId) qs.set('team', String(teamId));
                 qs.set('match', String(match.id));
-                qs.set('archive', String(currentArchive || 'local'));
+                qs.set('archive', String(currentArchive || 'cloud'));
                 location.href = '/riepilogo-gara.html' + (qs.toString() ? ('?' + qs.toString()) : '');
             } catch(_) {
                 location.href = '/riepilogo-gara.html';
@@ -8545,6 +8876,7 @@
             try {
                 if (window.matchesModule?.deleteMatch) {
                     const res = await window.matchesModule.deleteMatch(match.id, { confirm: true });
+                    if (res?.success) cleanupPartialSavesForMatch(match.id);
                     if (!res.success && !res.cancelled) alert('Errore nell\'eliminazione: ' + (res.error || 'Sconosciuto'));
                 } else {
                     alert('Modulo partite non disponibile');
@@ -8734,11 +9066,11 @@
                 }
                 if (partialDeleteBtns && partialDeleteBtns.length) {
                     partialDeleteBtns.forEach(btn => {
-                        btn.addEventListener('click', (e) => {
+                        btn.addEventListener('click', async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             const saveId = btn.getAttribute('data-save-id');
-                            const ok = window.confirm('Eliminare questo salvataggio progressivo?');
+                            const ok = await askConfirm('Eliminare questo salvataggio progressivo?', { title: 'Salvataggi progressivi', okText: 'Elimina', cancelText: 'Annulla', variant: 'danger' });
                             if (!ok) return;
                             deletePartialSave(match.id, saveId);
                             renderMatches();
@@ -8746,13 +9078,13 @@
                     });
                 }
                 if (partialCleanupBtn) {
-                    partialCleanupBtn.addEventListener('click', (e) => {
+                    partialCleanupBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         const raw = String(partialCleanupSelect?.value || '3').trim();
                         const keep = parseInt(raw, 10);
                         if (!Number.isFinite(keep) || keep < 0) { alert('Seleziona un valore valido'); return; }
-                        const ok = window.confirm(keep === 0 ? 'Cancellare tutti i salvataggi progressivi?' : `Lasciare solo gli ultimi ${keep} salvataggi progressivi?`);
+                        const ok = await askConfirm(keep === 0 ? 'Cancellare tutti i salvataggi progressivi?' : `Lasciare solo gli ultimi ${keep} salvataggi progressivi?`, { title: 'Salvataggi progressivi', okText: 'Conferma', cancelText: 'Annulla', variant: 'danger' });
                         if (!ok) return;
                         prunePartialSaves(match.id, keep);
                         renderMatches();
@@ -8864,7 +9196,7 @@
             localStorage.setItem('selectedMatchId', matchId);
             try {
                 const qp = new URLSearchParams();
-                qp.set('archive', String(currentArchive || 'local'));
+                qp.set('archive', String(currentArchive || 'cloud'));
                 window.location.href = '/match-view.html?' + qp.toString();
             } catch(_) {
                 window.location.href = '/match-view.html';
@@ -9289,9 +9621,9 @@
  
          // --- Roster management rimosso: nessun listener in questa pagina ---
  
-         function openRosterDialog() {
+        async function openRosterDialog() {
              if (!selectedTeam) {
-                 const go = confirm('Non hai ancora selezionato una squadra. Vuoi andare alla schermata "Squadre" per crearla o importarla?');
+                const go = await askConfirm('Non hai ancora selezionato una squadra. Vuoi andare alla schermata "Squadre" per crearla o importarla?', { title: 'Gestione roster', okText: 'Vai a Squadre', cancelText: 'Resta qui' });
                 if (go) window.location.href = '/my-teams.html';
                  return;
              }
@@ -9468,6 +9800,14 @@
             return s.slice(0,1);
         }
 
+        function readCellText(ws, addr){
+            const c = ws && ws[addr];
+            if (!c) return '';
+            if (c.v !== undefined && c.v !== null && String(c.v).trim() !== '') return String(c.v).trim();
+            if (c.w !== undefined && c.w !== null && String(c.w).trim() !== '') return String(c.w).trim();
+            return '';
+        }
+
         
 
         function isExcelFileName(name){
@@ -9542,12 +9882,50 @@
             if (!files || !files.length) return;
             const queue = [];
             const failed = [];
+
+            // ── Ottieni UID utente per pre-salvare i dati MVTA su Firestore ──────
+            // Il problema originale: i payload con mvtaMatchData (rallies, riepilogo, ecc.)
+            // possono superare il limite di 5MB del sessionStorage quando si importano
+            // più file contemporaneamente. La soluzione: salviamo i dati MVTA completi
+            // IMMEDIATAMENTE su Firestore e nel payload della coda memorizziamo
+            // solo il riferimento (mvtaId), non i dati interi.
+            const _cuMulti = (typeof authFunctions !== 'undefined' && authFunctions)
+                ? authFunctions.getCurrentUser()
+                : (window.auth ? window.auth.currentUser : null);
+            const _uidMulti = _cuMulti ? _cuMulti.uid : null;
+
             for (const file of files){
                 try {
                     showImportStages(file && file.name);
                     const payload = await importMatchFromExcelFile(file, { deferRedirect: true });
-                    if (payload) queue.push(payload);
+                    if (!payload) continue;
+
+                    // ── Pre-salva dati MVTA completi su Firestore ─────────────────
+                    // volley_team_analysis_6_0/{uid}/datasets/{id}
+                    // Questo garantisce che MVTA riceva SEMPRE i dati strutturali
+                    // completi (riepilogo, gioco, giriDiRice, rallies) da ogni import.
+                    let mvtaId = null;
+                    const _mDataMulti = payload.mvtaMatchData;
+                    if (_mDataMulti && _uidMulti && typeof window.saveMVTAMatch === 'function') {
+                        try {
+                            await window.saveMVTAMatch(_uidMulti, _mDataMulti);
+                            mvtaId = _mDataMulti.id || null;
+                            console.log('[MVS→MVTA multi-import] Salvato:', mvtaId);
+                        } catch (_mvtaMultiErr) {
+                            console.warn('[MVS→MVTA multi-import] Pre-salvataggio fallito (non bloccante):', _mvtaMultiErr);
+                        }
+                    }
+
+                    // Payload ridotto: NO mvtaMatchData (risolve overflow sessionStorage)
+                    // Solo mvtaId come riferimento al documento già salvato su Firestore.
+                    queue.push({
+                        matchDraft: payload.matchDraft,
+                        roster: payload.roster,
+                        sourceFileName: payload.sourceFileName,
+                        mvtaId: mvtaId,
+                    });
                 } catch(e){
+                    console.error('[multi-import] Errore elaborazione file:', file && file.name, e);
                     failed.push(file && file.name ? file.name : 'File');
                 }
             }
@@ -9596,20 +9974,33 @@
                     const range = rosterWs['!ref'] ? XLSX.utils.decode_range(rosterWs['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
                     setImportStatus('is_s3','In corso');
                     setImportStageProgress('is_p3', 0);
+                    let emptyStreak = 0;
                     for (let r = 3; r <= (range.e.r + 1); r++) {
-                        const b = rosterWs['B'+r];
-                        const rawB = b && (b.v != null ? String(b.v).trim() : (b.w ? String(b.w).trim() : ''));
-                        if (!rawB) break;
-                        const c = rosterWs['C'+r], d = rosterWs['D'+r], e = rosterWs['E'+r], f = rosterWs['F'+r];
-                        let number = rawB;
+                        const rawNum = readCellText(rosterWs, 'B' + r);
+                        const rawSurname = readCellText(rosterWs, 'C' + r);
+                        let rawName = readCellText(rosterWs, 'D' + r);
+                        const rawNick = readCellText(rosterWs, 'E' + r);
+                        const rawRole = readCellText(rosterWs, 'F' + r);
+                        const rawFullName = readCellText(rosterWs, 'G' + r);
+                        if (!rawName && rawFullName) {
+                            const parts = String(rawFullName).trim().split(/\s+/);
+                            if (parts.length > 1) rawName = parts[0];
+                        }
+                        if (!rawNum && !rawSurname && !rawName && !rawNick && !rawRole) {
+                            emptyStreak++;
+                            if (emptyStreak >= 2) break;
+                            continue;
+                        }
+                        emptyStreak = 0;
+                        let number = rawNum;
                         if (number.startsWith("'")) number = number.slice(1);
                         number = ensureTwoDigits(number);
-                        const surname = c && (c.v != null ? String(c.v).trim() : (c.w ? String(c.w).trim() : ''));
-                        const name = d && (d.v != null ? String(d.v).trim() : (d.w ? String(d.w).trim() : ''));
-                        const nick = e && (e.v != null ? String(e.v).trim() : (e.w ? String(e.w).trim() : ''));
-                        const role = normalizeRoleImport(f && (f.v != null ? String(f.v).trim() : (f.w ? String(f.w).trim() : '')));
+                        const surname = rawSurname;
+                        const name = rawName;
+                        const nick = rawNick;
+                        const role = normalizeRoleImport(rawRole);
                         if (!number && !surname && !name && !nick && !role) continue;
-                        importedRoster.push({ number, surname, name, nickname: nick, role });
+                        importedRoster.push({ number, surname, name, nickname: nick, role, cognome: surname, nome: name, soprannome: nick, ruolo: role });
                         const prog = Math.min(100, Math.round(((r - 3) / Math.max(1, (range.e.r + 1) - 3)) * 100));
                         setImportStageProgress('is_p3', prog);
                     }
@@ -9700,7 +10091,52 @@
                     updatedAt: new Date().toISOString()
                 };
                 try { if (file && file.name) match.excelFileName = String(file.name || ''); } catch (_) {}
-                const payload = { matchDraft: match, roster: importedRoster, sourceFileName: file.name || '' };
+
+                // ── Parsing completo MVTA ──────────────────────────────────
+                // Esegui il parser completo sul workbook per generare la struttura
+                // dati compatibile con My Volley Team Analysis.
+                // I dati vengono SALVATI SUBITO su Firestore (path MVTA), così:
+                //   1. Non si rischia overflow del limite sessionStorage (5MB)
+                //   2. MVTA riceve sempre la struttura completa (riepilogo, rallies, ecc.)
+                //   3. Il payload della coda contiene solo mvtaId (riferimento leggero)
+                let mvtaMatchData = null;
+                try {
+                    if (typeof window.parseXlsmFull === 'function') {
+                        mvtaMatchData = window.parseXlsmFull(wb, file ? file.name : '');
+                    }
+                } catch (mvtaParseErr) {
+                    console.warn('[MVS→MVTA] Errore parsing MVTA (non bloccante):', mvtaParseErr);
+                }
+
+                // ── Pre-salva dati MVTA su Firestore (evita overflow sessionStorage) ─
+                let mvtaIdSingle = null;
+                if (mvtaMatchData) {
+                    const _cuSingle = (typeof authFunctions !== 'undefined' && authFunctions)
+                        ? authFunctions.getCurrentUser()
+                        : (window.auth ? window.auth.currentUser : null);
+                    const _uidSingle = _cuSingle ? _cuSingle.uid : null;
+                    if (_uidSingle && typeof window.saveMVTAMatch === 'function') {
+                        try {
+                            await window.saveMVTAMatch(_uidSingle, mvtaMatchData);
+                            mvtaIdSingle = mvtaMatchData.id || null;
+                            console.log('[MVS→MVTA single-import] Salvato:', mvtaIdSingle);
+                        } catch (_mvtaErrS) {
+                            console.warn('[MVS→MVTA single-import] Pre-salvataggio fallito:', _mvtaErrS);
+                        }
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────
+
+                // Payload: mvtaId = riferimento al doc già salvato
+                // mvtaMatchData incluso solo come fallback se il pre-salvataggio è fallito
+                // (es. utente non autenticato) — evita di perdere i dati
+                const payload = {
+                    matchDraft: match,
+                    roster: importedRoster,
+                    sourceFileName: file.name || '',
+                    mvtaId: mvtaIdSingle,
+                    mvtaMatchData: mvtaIdSingle ? null : mvtaMatchData,
+                };
                 if (options && options.deferRedirect) return payload;
                 try { sessionStorage.setItem('pendingImportMatch', JSON.stringify(payload)); } catch(_){}
                 setImportStatus('is_s5','In corso');

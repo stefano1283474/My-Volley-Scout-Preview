@@ -3,6 +3,74 @@
 
 const firestoreService = {
     _emailKey: (email) => String(email||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'_'),
+    _normalizeEmail: (email) => String(email || '').trim().toLowerCase(),
+    _dotSafeEmail: (email) => String(email || '').trim().replace(/\./g, '_'),
+    _emailVariants: (email) => {
+        const raw = String(email || '').trim();
+        const lower = String(email || '').trim().toLowerCase();
+        const rawSafe = raw.replace(/\./g, '_');
+        const lowerSafe = lower.replace(/\./g, '_');
+        return Array.from(new Set([raw, lower, rawSafe, lowerSafe].filter(Boolean)));
+    },
+
+    observerLeaveSharedTeam: async (ownerId, teamId, reason = 'rescissione') => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const owner = String(ownerId || '').trim();
+            const tId = String(teamId || '').trim();
+            const observerEmail = String(user.email || '').trim();
+            if (!owner || !tId || !observerEmail) return { success: false, error: 'Parametri non validi' };
+            if (owner === observerEmail) return { success: false, error: 'Operazione non valida per il proprietario' };
+
+            const ownerRef = firestoreService.getUserRefByEmail(owner);
+            const accessCol = ownerRef.collection('teams').doc(tId).collection('user_access');
+            const observerVariants = firestoreService._emailVariants(observerEmail);
+            const observerKey = firestoreService._emailCompareKey(observerEmail);
+            const accessIds = new Set(observerVariants);
+            try {
+                const snap = await accessCol.get();
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data() || {};
+                    const idKey = firestoreService._emailCompareKey(docSnap.id);
+                    const userEmailKey = firestoreService._emailCompareKey(data?.userEmail || '');
+                    if (idKey === observerKey || userEmailKey === observerKey) accessIds.add(docSnap.id);
+                });
+            } catch (_) {}
+
+            let updated = 0;
+            const leavePayload = {
+                userEmail: observerEmail,
+                role: 'observer',
+                active: false,
+                accessState: 'observer_left',
+                observerLeftReason: String(reason || 'rescissione').trim() || 'rescissione',
+                observerLeftAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            for (const accessId of accessIds) {
+                try {
+                    await accessCol.doc(accessId).set(leavePayload, { merge: true });
+                    updated++;
+                } catch (_) {}
+            }
+
+            try {
+                const observerRef = firestoreService.getUserRefEnsured ? await firestoreService.getUserRefEnsured() : firestoreService.getUserRef();
+                const ownerVariants = firestoreService._emailVariants(owner);
+                for (const ownerVariant of ownerVariants) {
+                    const mirrorId = `${ownerVariant}__${tId}`;
+                    try { await observerRef.collection('shared_teams').doc(mirrorId).delete(); } catch (_) {}
+                }
+            } catch (_) {}
+
+            if (!updated) return { success: false, error: 'Nessun accesso osservatore trovato per questo team' };
+            return { success: true, updated };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+    _emailCompareKey: (email) => String(email || '').trim().toLowerCase().replace(/\./g, '_'),
     _chooseLocalOrCloud: async (options = {}) => {
         const title = String(options.title || 'Conflitto dati').trim();
         const subtitle = String(options.subtitle || '').trim();
@@ -205,11 +273,20 @@ const firestoreService = {
     },
     _sanitizeRosterPlayers: (players) => {
         const list = Array.isArray(players)?players:[];
-        return list.map(p=>({
-            number: String(p.number||'').trim(),
-            nickname: String(p.nickname||'').trim(),
-            role: String(p.role||'').trim().toUpperCase()
-        })).filter(p=>p.number||p.nickname||p.role);
+        const pick = (obj, keys) => {
+            for (const k of keys) {
+                const v = obj && obj[k];
+                if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+            }
+            return '';
+        };
+        return list.map((p) => ({
+            number: String(pick(p, ['number','numero','num','jersey','jerseyNumber','maglia']) || '').trim(),
+            name: String(pick(p, ['name','nome','firstName','nomi']) || '').trim(),
+            surname: String(pick(p, ['surname','cognome','lastName','cognomi']) || '').trim(),
+            nickname: String(pick(p, ['nickname','soprannome','nick']) || '').trim(),
+            role: String(pick(p, ['role','ruolo','position','posizione']) || '').trim().toUpperCase()
+        })).filter(p=>p.number||p.name||p.surname||p.nickname||p.role);
     },
 
     syncLocalTeamsToFirestore: async (options = {}) => {
@@ -631,6 +708,10 @@ const firestoreService = {
                         // e la generazione di ID parlanti se necessario.
                         await firestoreService.saveMatchTree(teamId, Object.assign({}, metaSource, { id: matchId }));
                         synced++;
+                        // ── Bridge MVTA ora integrato direttamente in saveMatchTree ──────────────
+                        // Il salvataggio su volley_team_analysis_6_0/{uid}/datasets/ è gestito
+                        // internamente da saveMatchTree — nessuna scrittura duplicata qui.
+                        // ─────────────────────────────────────────────────────────────────────────
                     } catch (e) {
                         console.error('Sync error for match', matchId, e);
                         finalStatus = 'error';
@@ -889,6 +970,7 @@ const firestoreService = {
                     for (const d of sharedSnap.docs || []) {
                         const data = d.data() || {};
                         if (data?.active === false) continue;
+                        if (String(data?.accessState || '').trim().toLowerCase() === 'observer_left') continue;
                         const teamId = String(data?.teamId || '').trim();
                         const ownerId = String(data?.ownerId || '').trim();
                         if (!ownerId || !teamId) continue;
@@ -907,7 +989,16 @@ const firestoreService = {
                                 };
                                 addTeam(teamId, fallback, ownerId, data?.role || 'observer');
                             }
-                        } catch (_) {}
+                        } catch (_teamFetchErr) {
+                            // permission-denied = accesso revocato ma mirror orfano (non pulito)
+                            // Auto-pulizia: elimina il mirror così al prossimo caricamento la card sparisce
+                            if (_teamFetchErr?.code === 'permission-denied' && userRef) {
+                                try {
+                                    await userRef.collection('shared_teams').doc(`${ownerId}__${teamId}`).delete();
+                                    console.log('[MVS] mirror orfano auto-eliminato:', `${ownerId}__${teamId}`);
+                                } catch (_) {}
+                            }
+                        }
                     }
                 } catch (_) {}
             }
@@ -925,6 +1016,7 @@ const firestoreService = {
                 for (const access of accesses) {
                     const data = access?.data || {};
                     if (data?.active === false) continue;
+                    if (String(data?.accessState || '').trim().toLowerCase() === 'observer_left') continue;
                     const teamRef = access?.ref?.parent?.parent;
                     if (!teamRef) continue;
                     const teamId = String(teamRef?.id || '').trim();
@@ -971,7 +1063,9 @@ const firestoreService = {
                 } catch (_) {}
             }
             if (data) {
-                if (data?.active === false) return { success: true, role: 'none', ownerId: owner };
+                if (data?.active === false || String(data?.accessState || '').trim().toLowerCase() === 'observer_left') {
+                    return { success: true, role: 'none', ownerId: owner };
+                }
                 return { success: true, role: data?.role || 'observer', ownerId: owner };
             }
             return { success: true, role: 'none', ownerId: owner };
@@ -996,12 +1090,14 @@ const firestoreService = {
                 const email = String(data?.userEmail || d.id || '').trim();
                 const role = String(data?.role || '').trim().toLowerCase();
                 if (!email || email === currentEmail) return;
-                if (role && role !== 'observer') return;
                 users.push({
                     id: d.id,
                     userEmail: email,
                     role: role || 'observer',
                     active: data?.active !== false,
+                    accessState: String(data?.accessState || (data?.active === false ? 'suspended' : 'active')).trim().toLowerCase(),
+                    observerLeftAt: data?.observerLeftAt || null,
+                    observerLeftReason: String(data?.observerLeftReason || '').trim(),
                     accessCount: Number(data?.accessCount || 0),
                     lastAccessAt: data?.lastAccessAt || null,
                     lastAccessPage: String(data?.lastAccessPage || '').trim(),
@@ -1032,6 +1128,9 @@ const firestoreService = {
                 userEmail: email,
                 role: 'observer',
                 active: !!active,
+                accessState: active ? 'active' : 'suspended',
+                observerLeftAt: null,
+                observerLeftReason: '',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             try {
@@ -1039,6 +1138,7 @@ const firestoreService = {
                 const mirrorId = `${ownerId}__${tId}`;
                 await observerRef.collection('shared_teams').doc(mirrorId).set({
                     active: !!active,
+                    accessState: active ? 'active' : 'suspended',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             } catch (_) {}
@@ -1057,12 +1157,47 @@ const firestoreService = {
             if (!tId || !email) return { success: false, error: 'Parametri non validi' };
             const userRef = await firestoreService.getUserRefEnsured();
             const ownerId = String(userRef?.id || user.email || '').trim();
-            const docRef = userRef.collection('teams').doc(tId).collection('user_access').doc(email);
-            await docRef.delete();
+            const accessCol = userRef.collection('teams').doc(tId).collection('user_access');
+            const accessIdsToDelete = new Set(firestoreService._emailVariants(email));
+            const targetKey = firestoreService._emailCompareKey(email);
             try {
-                const observerRef = firestoreService.getUserRefByEmail(email);
-                const mirrorId = `${ownerId}__${tId}`;
-                await observerRef.collection('shared_teams').doc(mirrorId).delete();
+                const allAccessSnap = await accessCol.get();
+                allAccessSnap.forEach((docSnap) => {
+                    const data = docSnap.data() || {};
+                    const idKey = firestoreService._emailCompareKey(docSnap.id);
+                    const userEmailKey = firestoreService._emailCompareKey(data?.userEmail || '');
+                    if (idKey === targetKey || userEmailKey === targetKey) {
+                        accessIdsToDelete.add(docSnap.id);
+                    }
+                });
+            } catch (_) {}
+            const deleteTasks = [];
+            for (const accessId of accessIdsToDelete) {
+                try { deleteTasks.push(accessCol.doc(accessId).delete()); } catch (_) {}
+            }
+            if (deleteTasks.length) {
+                try { await Promise.all(deleteTasks); } catch (_) {}
+            }
+            try {
+                const ownerVariants = firestoreService._emailVariants(ownerId);
+                const observerVariants = firestoreService._emailVariants(email);
+                for (const observerId of observerVariants) {
+                    const observerRef = firestoreService.getUserRefByEmail(observerId);
+                    for (const ownerVariant of ownerVariants) {
+                        const mirrorId = `${ownerVariant}__${tId}`;
+                        const mirrorRef = observerRef.collection('shared_teams').doc(mirrorId);
+                        try {
+                            await mirrorRef.delete();
+                        } catch (_) {
+                            try {
+                                await mirrorRef.set(
+                                    { active: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+                                    { merge: true }
+                                );
+                            } catch (_) {}
+                        }
+                    }
+                }
             } catch (_) {}
             return { success: true };
         } catch (error) {
@@ -1955,7 +2090,10 @@ const firestoreService = {
             const meta = firestoreService._sanitizeMatchMeta(match);
             
             // Roster
-            const roster = Array.isArray(match.roster) ? firestoreService._sanitizeRosterPlayers(match.roster) : [];
+            const rosterSource = Array.isArray(match.roster) && match.roster.length
+                ? match.roster
+                : (Array.isArray(match.players) ? match.players : []);
+            const roster = firestoreService._sanitizeRosterPlayers(rosterSource);
             
             // Dettagli Sets
             const setsData = {};
@@ -1997,6 +2135,7 @@ const firestoreService = {
                 
                 // Roster completo
                 roster: roster,
+                players: roster,
                 
                 // Dettagli completi dei set
                 sets: setsData,
@@ -2018,6 +2157,57 @@ const firestoreService = {
 
             // Scrittura documento unico (sovrascrive o merge)
             await matchDoc.set(payload, { merge: true });
+
+            // ── Bridge MVTA integrato ─────────────────────────────────────────────
+            // Principio fondamentale dell'ecosistema: qualsiasi dato che MVS
+            // archivia in Firestore deve essere disponibile a MVTA nel suo formato.
+            // Questo bridge è il punto unico e canonico di scrittura nel percorso MVTA:
+            //   volley_team_analysis_6_0/{uid}/datasets/{mvtaId}
+            //
+            // Casi gestiti:
+            //   A) match._mvtaId presente → già linkato (import xlsm pre-salvato)
+            //      → aggiorna solo metadata col form dell'utente
+            //   B) match._mvtaId assente → live-scouting
+            //      → converte in formato MVTA + calcola statistiche, poi salva
+            try {
+                const _bridgeCu = authFunctions.getCurrentUser();
+                const _bridgeUid = _bridgeCu ? _bridgeCu.uid : null;
+                if (_bridgeUid && window.db) {
+                    if (match._mvtaId) {
+                        // Caso A: doc MVTA già esistente → aggiorna solo metadata
+                        const _bridgeRef = window.db
+                            .collection('volley_team_analysis_6_0')
+                            .doc(_bridgeUid)
+                            .collection('datasets')
+                            .doc(String(match._mvtaId));
+                        const _bridgeSnap = await _bridgeRef.get();
+                        if (_bridgeSnap.exists) {
+                            const _bridgeUpd = {
+                                '_updatedAt': firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            const _bridgeOpp = String(match.opponentTeam || match.awayTeam || '').trim();
+                            const _bridgeDt  = String(match.date || match.matchDate || '').trim();
+                            const _bridgeTyp = String(match.matchType || match.eventType || '').trim();
+                            const _bridgeHa  = String(match.homeAway || '').toLowerCase().trim();
+                            if (_bridgeOpp) _bridgeUpd['metadata.opponent']  = _bridgeOpp;
+                            if (_bridgeDt)  _bridgeUpd['metadata.date']      = _bridgeDt;
+                            if (_bridgeTyp) _bridgeUpd['metadata.matchType'] = _bridgeTyp;
+                            if (_bridgeHa)  _bridgeUpd['metadata.homeAway']  =
+                                (_bridgeHa === 'away' || _bridgeHa === 'trasferta') ? 'away' : 'home';
+                            await _bridgeRef.update(_bridgeUpd);
+                        }
+                    } else {
+                        // Caso B: live-scouting → converte e salva documento MVTA
+                        // saveMVTAMatchFromLocal usa computeStatsFromLiveScout per
+                        // calcolare riepilogo/gioco/giriDiRice/rallies dal live data
+                        await saveMVTAMatchFromLocal(_bridgeUid, Object.assign({}, match, { id: matchDocId }));
+                    }
+                }
+            } catch (_bridgeErr) {
+                // Non bloccante: l'errore MVTA non impedisce il salvataggio MVS principale
+                console.warn('[saveMatchTree→MVTA] Bridge MVTA fallito (non bloccante):', _bridgeErr);
+            }
+            // ─────────────────────────────────────────────────────────────────────
 
             return { success: true, id: matchDocId };
         } catch (error) {
@@ -2204,7 +2394,9 @@ const firestoreService = {
             const meta = { id: doc.id, ...data }; // Meta include tutto ora
             
             // Estrai roster e details per compatibilità return
-            const roster = data.roster || [];
+            const roster = (Array.isArray(data.roster) && data.roster.length)
+                ? data.roster
+                : (Array.isArray(data.players) ? data.players : []);
             
             const details = {
                 actionsBySet: {},
@@ -2947,6 +3139,302 @@ const firestoreService = {
         }
     }
 };
+
+// ─── Integrazione My Volley Team Analysis ────────────────────────────────────
+// Salva una partita nel formato compatibile con My Volley Team Analysis.
+// Percorso Firestore: volley_team_analysis_6_0/{uid}/datasets/{matchId}
+// Questo permette alle due app di condividere lo stesso dataset Firestore.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MVTA_ROOT = 'volley_team_analysis_6_0';
+
+/**
+ * Sanitizza ricorsivamente un oggetto rimuovendo valori undefined
+ * (Firestore non accetta undefined).
+ */
+function _mvsaSanitize(value) {
+    if (value === undefined) return null;
+    if (value === null) return null;
+    if (Array.isArray(value)) return value.map(_mvsaSanitize);
+    if (value instanceof Date) return value;
+    if (typeof value !== 'object') return value;
+    const out = {};
+    Object.keys(value).forEach(function (k) {
+        out[k] = _mvsaSanitize(value[k]);
+    });
+    return out;
+}
+
+/**
+ * Trasforma un match nel formato MVS locale (localStorage) in un documento parziale
+ * compatibile con la struttura MVTA. Usato durante "Aggiorna Cloud da Locale".
+ *
+ * I campi riepilogo/gioco/giriDiRice non sono disponibili dai dati live-scouting:
+ * vengono impostati a null. Le analisi MVTA che li richiedono restituiranno null/vuoto.
+ *
+ * @param {object} mvsMatch  - Match nel formato MVS da localStorage
+ * @returns {object|null}    - Documento parziale MVTA, o null se matchId mancante
+ */
+function _mvsLocalToMVTAPartial(mvsMatch) {
+    const matchId = String(mvsMatch?.id || '').trim();
+    if (!matchId) return null;
+
+    // ID MVTA deterministico derivato dall'ID MVS locale
+    const sanitized = matchId.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').substring(0, 80);
+    const mvtaId = 'mvs_live_' + sanitized;
+
+    // ── metadata ──────────────────────────────────────────────────────────────
+    const haRaw = String(mvsMatch?.homeAway || '').toLowerCase().trim();
+    const homeAway = (haRaw === 'away' || haRaw === 'trasferta') ? 'away' : 'home';
+
+    // MVTA (dataParser.js) si aspetta: teamName, opponent, date, matchType, homeAway, phase
+    const myTeamName = String(mvsMatch?.myTeam || mvsMatch?.homeTeam || '').trim() || null;
+    const metadata = {
+        teamName:  myTeamName,                                                        // campo richiesto da MVTA
+        opponent:  String(mvsMatch?.opponentTeam || mvsMatch?.awayTeam || '').trim() || null,
+        date:      String(mvsMatch?.date || mvsMatch?.matchDate || '').trim() || null,
+        matchType: String(mvsMatch?.matchType || mvsMatch?.eventType || '').trim() || null,
+        homeAway:  homeAway,
+        phase:     String(mvsMatch?.phase || mvsMatch?.matchPhase || '').trim() || null, // non sempre disponibile
+        myTeam:    myTeamName,                                                        // campo aggiuntivo MVS
+        location:  String(mvsMatch?.location || '').trim() || null,
+    };
+
+    // Calcola risultato dai set se non disponibile direttamente
+    const sc = mvsMatch?.score;
+    if (sc && (Number(sc.home || 0) || Number(sc.away || 0))) {
+        metadata.result = Number(sc.home || 0) + '-' + Number(sc.away || 0);
+    } else {
+        let myWins = 0, oppWins = 0;
+        for (let i = 1; i <= 6; i++) {
+            const st  = (mvsMatch?.setStateBySet || {})[i] || (mvsMatch?.setStateBySet || {})[String(i)] || {};
+            const sum = (mvsMatch?.setSummary || {})[i]    || (mvsMatch?.setSummary || {})[String(i)]    || {};
+            const mine = Number(st.homeScore ?? st.myScore    ?? sum.home  ?? 0);
+            const opp  = Number(st.awayScore ?? st.theirScore ?? sum.away  ?? 0);
+            if (mine + opp > 0) { mine > opp ? myWins++ : oppWins++; }
+        }
+        if (myWins + oppWins > 0) metadata.result = myWins + '-' + oppWins;
+    }
+
+    // ── roster ────────────────────────────────────────────────────────────────
+    // MVTA (dataParser.js) si aspetta: number, surname, name, nickname, role, fullName
+    const rosterSrc = Array.isArray(mvsMatch?.roster) ? mvsMatch.roster
+                    : (Array.isArray(mvsMatch?.players) ? mvsMatch.players : []);
+    const roster = rosterSrc.map(function(p) {
+        const sur  = String(p?.surname  || p?.lastName  || '').trim();
+        const nm   = String(p?.name     || p?.firstName || p?.playerName || '').trim();
+        const nick = String(p?.nickname || p?.nick      || '').trim();
+        const numRaw = p?.number != null ? p.number : (p?.shirtNumber != null ? p.shirtNumber : null);
+        const num    = numRaw != null ? String(numRaw).replace(/^'+/, '') : null;
+        return {
+            number:   num,
+            surname:  sur,
+            name:     nm,
+            nickname: nick,
+            role:     String(p?.role || p?.position || '').trim(),
+            fullName: (sur + (nm ? ' ' + nm : '')).trim(),
+        };
+    }).filter(function(p) { return p.surname || p.name || p.number != null; });
+
+    // ── sets: flat array {number, ourScore, theirScore, margin, won} ──────────
+    // Stesso formato di dataParser.js e xlsm-full-parser.js di MVTA.
+    const sets = [];
+    for (let i = 1; i <= 5; i++) {
+        const sm  = (mvsMatch?.setMeta        || {})[i] || (mvsMatch?.setMeta        || {})[String(i)];
+        const st  = (mvsMatch?.setStateBySet  || {})[i] || (mvsMatch?.setStateBySet  || {})[String(i)];
+        const su  = (mvsMatch?.setSummary     || {})[i] || (mvsMatch?.setSummary     || {})[String(i)];
+        if (sm || st || su) {
+            const our  = Number(st?.homeScore  ?? st?.myScore    ?? sm?.myScore    ?? su?.home  ?? 0) || 0;
+            const opp  = Number(st?.awayScore  ?? st?.theirScore ?? sm?.theirScore ?? su?.away  ?? 0) || 0;
+            if (our > 0 || opp > 0) {
+                sets.push({
+                    number:          i,
+                    ourScore:        our,
+                    theirScore:      opp,
+                    margin:          our - opp,
+                    won:             our > opp,
+                    oppStartRotation: null,
+                    ourStartRotation: null,
+                });
+            }
+        }
+    }
+
+    // ── Calcolo statistiche dal live-scouting ─────────────────────────────────
+    // Se actionsBySet è disponibile, emula le formule Excel DataVolley in JS
+    // tramite live-stats-computer.js. Produce riepilogo/gioco/giriDiRice/rallies
+    // equivalenti a quelli estratti dall'xlsm, senza richiedere il file.
+    var computedStats = { riepilogo: null, gioco: null, giriDiRice: null, rallies: [] };
+    try {
+        if (typeof window !== 'undefined' && typeof window.computeStatsFromLiveScout === 'function') {
+            computedStats = window.computeStatsFromLiveScout(mvsMatch);
+        }
+    } catch (_cse) {
+        console.warn('[MVS→MVTA] Errore calcolo statistiche live (non bloccante):', _cse);
+    }
+
+    return {
+        id:          mvtaId,
+        fileName:    matchId,
+        _source:     'my_volley_scout_live',
+        metadata:    metadata,
+        roster:      roster,
+        sets:        sets,
+        // Statistiche calcolate emulando le formule Excel del DataVolley xlsm.
+        // Se actionsBySet non ha dati (match non ancora scouting), restano null/[].
+        riepilogo:   computedStats.riepilogo,
+        gioco:       computedStats.gioco,
+        giriDiRice:  computedStats.giriDiRice,
+        rallies:     computedStats.rallies,
+    };
+}
+
+/**
+ * Salva un match MVS locale nel percorso MVTA durante "Aggiorna Cloud da Locale".
+ *
+ * Logica di merge:
+ * - Se il doc MVTA esiste già con dati ricchi (xlsm: riepilogo + rallies popolati)
+ *   → aggiorna solo i metadata (non sovrascrivere dati statistici preziosi).
+ * - Se il doc MVTA non esiste o è anch'esso da live-scouting (parziale)
+ *   → crea/sovrascrive con i dati disponibili.
+ *
+ * @param {string} uid       - Firebase Auth UID
+ * @param {object} mvsMatch  - Match MVS da localStorage
+ * @returns {Promise<{success: boolean, id?: string, error?: string}>}
+ */
+async function saveMVTAMatchFromLocal(uid, mvsMatch) {
+    try {
+        if (!uid)         return { success: false, error: 'UID utente mancante' };
+        if (!window.db)   return { success: false, error: 'Firestore non disponibile' };
+        if (!mvsMatch)    return { success: false, error: 'Dati match mancanti' };
+
+        const partial = _mvsLocalToMVTAPartial(mvsMatch);
+        if (!partial) return { success: false, error: 'Impossibile trasformare dati MVS (id mancante)' };
+
+        const docRef = window.db
+            .collection(MVTA_ROOT)
+            .doc(uid)
+            .collection('datasets')
+            .doc(partial.id);
+
+        const snap = await docRef.get();
+
+        if (snap.exists) {
+            const existing = snap.data() || {};
+            // Dati "ricchi" = provengono da importazione xlsm con riepilogo e rallies
+            const hasRichData = existing.riepilogo != null
+                && Array.isArray(existing.rallies)
+                && existing.rallies.length > 0;
+
+            if (hasRichData) {
+                // Aggiorna solo i metadati base — non toccare riepilogo/rallies/gioco/giriDiRice
+                const meta = partial.metadata || {};
+                const upd = { '_updatedAt': firebase.firestore.FieldValue.serverTimestamp() };
+                if (meta.opponent  != null) upd['metadata.opponent']  = meta.opponent;
+                if (meta.date      != null) upd['metadata.date']      = meta.date;
+                if (meta.matchType != null) upd['metadata.matchType'] = meta.matchType;
+                if (meta.homeAway  != null) upd['metadata.homeAway']  = meta.homeAway;
+                if (meta.result    != null) upd['metadata.result']    = meta.result;
+                await docRef.update(upd);
+                console.log('[MVS→MVTA] Metadata aggiornati (dati xlsm preservati):', partial.id);
+            } else {
+                // Documento parziale / live-scout → sovrascriviamo
+                const payload = _mvsaSanitize(Object.assign({}, partial, {
+                    _type:       'match',
+                    _updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+                }));
+                await docRef.set(payload, { merge: false });
+                console.log('[MVS→MVTA] Documento parziale aggiornato:', partial.id);
+            }
+        } else {
+            // Documento non esiste — crea nuovo documento parziale
+            const payload = _mvsaSanitize(Object.assign({}, partial, {
+                _type:      'match',
+                _createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                _updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            }));
+            await docRef.set(payload);
+            console.log('[MVS→MVTA] Nuovo documento parziale creato:', partial.id);
+        }
+
+        return { success: true, id: partial.id };
+    } catch (error) {
+        console.error('[MVS→MVTA] Errore saveMVTAMatchFromLocal:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Salva una partita nel formato MVTA su Firestore.
+ * @param {string} uid        - Firebase Auth UID dell'utente corrente
+ * @param {object} mvtaMatch  - Oggetto match MVTA (output di parseXlsmFull)
+ * @returns {Promise<{success: boolean, id: string, error?: string}>}
+ */
+async function saveMVTAMatch(uid, mvtaMatch) {
+    try {
+        if (!uid) throw new Error('UID utente mancante');
+        if (!mvtaMatch || !mvtaMatch.id) throw new Error('Dati partita MVTA non validi');
+        if (!window.db) throw new Error('Firestore non disponibile');
+
+        const docRef = window.db
+            .collection(MVTA_ROOT)
+            .doc(uid)
+            .collection('datasets')
+            .doc(mvtaMatch.id);
+
+        const payload = _mvsaSanitize(Object.assign({}, mvtaMatch, {
+            _type: 'match',
+            _source: 'my_volley_scout',
+            _updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }));
+
+        // Gestione createdAt: non sovrascrivere se il documento esiste già
+        let shouldSetCreatedAt = true;
+        try {
+            const snap = await docRef.get();
+            if (snap.exists) shouldSetCreatedAt = false;
+        } catch (_) {}
+
+        if (shouldSetCreatedAt) {
+            payload._createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+
+        await docRef.set(payload, { merge: false });
+
+        console.log('[MVS→MVTA] Partita salvata:', mvtaMatch.id);
+        return { success: true, id: mvtaMatch.id };
+    } catch (error) {
+        console.error('[MVS→MVTA] Errore salvataggio:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Elimina una partita dal dataset MVTA su Firestore.
+ * @param {string} uid     - Firebase Auth UID
+ * @param {string} matchId - ID del documento match in MVTA
+ */
+async function deleteMVTAMatch(uid, matchId) {
+    try {
+        if (!uid || !matchId) return { success: false, error: 'Parametri mancanti' };
+        if (!window.db) return { success: false, error: 'Firestore non disponibile' };
+        await window.db
+            .collection(MVTA_ROOT)
+            .doc(uid)
+            .collection('datasets')
+            .doc(matchId)
+            .delete();
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Esponi le funzioni di integrazione MVTA globalmente
+window.saveMVTAMatch = saveMVTAMatch;
+window.saveMVTAMatchFromLocal = saveMVTAMatchFromLocal;
+window._mvsLocalToMVTAPartial = _mvsLocalToMVTAPartial;
+window.deleteMVTAMatch = deleteMVTAMatch;
 
 // Esposizione globale del servizio
 window.firestoreService = firestoreService;
