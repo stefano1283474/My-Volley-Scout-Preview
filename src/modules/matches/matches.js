@@ -498,8 +498,36 @@ class MatchesModule {
             const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
             const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
             if (!teamId) return { success: false, error: 'Squadra non selezionata' };
-            const res = await window.firestoreService.deleteMatchTree(teamId, String(matchId), { maxSets: 6 });
-            if (!res?.success) return { success: false, error: res?.error || 'Errore eliminazione' };
+
+            // ── Determina sorgente partita e parametri di cancellazione ──────────
+            // Necessario per gestire correttamente partite provenienti da due percorsi:
+            //   'firestore_team'  → doc in  users/{uid}/teams/{teamId}/matches/{matchId}
+            //   'mvta_datasets'   → doc in  volley_team_analysis_6_0/{uid}/datasets/{matchId}
+            const matchInState = this.state.matches.find(m => String(m?.id || '') === String(matchId));
+            const matchSource  = matchInState?.source;   // 'firestore_team' | 'mvta_datasets'
+            const matchMvtaId  = matchInState?._mvtaId;  // ID doc MVTA se presente
+            const cu           = window.authFunctions?.getCurrentUser?.() || (window.auth ? window.auth.currentUser : null);
+            const uid          = cu ? cu.uid : null;
+
+            if (matchSource === 'mvta_datasets') {
+                // Partita solo in MVTA datasets (importata da xlsm in MVTA senza doc MVS)
+                // → elimina direttamente dal percorso MVTA
+                if (!uid || typeof window.deleteMVTAMatch !== 'function') {
+                    return { success: false, error: 'Funzione di eliminazione MVTA non disponibile' };
+                }
+                const res = await window.deleteMVTAMatch(uid, String(matchId));
+                if (!res?.success) return { success: false, error: res?.error || 'Errore eliminazione MVTA' };
+            } else {
+                // Partita in percorso MVS teams/ → elimina il doc MVS
+                const res = await window.firestoreService.deleteMatchTree(teamId, String(matchId), { maxSets: 6 });
+                if (!res?.success) return { success: false, error: res?.error || 'Errore eliminazione' };
+                // Cascata MVTA: se la partita è linkata a un doc MVTA (_mvtaId), eliminalo anch'esso.
+                // Senza questa cascata il doc MVTA rimane in volley_team_analysis_6_0/{uid}/datasets/
+                // e la partita riappare in MVS al prossimo caricamento via loadTeamMatches (percorso MVTA).
+                if (matchMvtaId && uid && typeof window.deleteMVTAMatch === 'function') {
+                    await window.deleteMVTAMatch(uid, String(matchMvtaId)).catch(() => {});
+                }
+            }
             
             // Rimuovi dallo stato
             this.state.matches = this.state.matches.filter(m => m.id !== matchId);
