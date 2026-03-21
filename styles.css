@@ -1438,6 +1438,40 @@ body {
 .selected-info .token-fundamental { font-weight: 500; }
 .selected-info .token-player { font-weight: 700; }
 .selected-info .token-eval { font-weight: 700; }
+.selected-info .token-player {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-right: 4px;
+}
+.selected-info .token-player .token-player-label {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.selected-info .token-delete-btn {
+  flex: 0 0 auto;
+  border: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #d32f2f;
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.selected-info .token-delete-btn:active {
+  transform: scale(0.95);
+}
 
 /* Pillola ANNULLA quando si sostituisce il player nella sezione "Hai selezionato" */
 .selected-info .token-cancel {
@@ -1812,6 +1846,19 @@ body {
     margin: 0;                    /* nessun margine orizzontale interno, usa gap */
     text-align: center;
     box-sizing: border-box;       /* includi bordo+padding nel 100% */
+}
+.selected-info #pressed-buttons-log .token.token-player {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+.selected-info #pressed-buttons-log .token.token-player .token-player-label {
+    flex: 0 1 auto;
+    padding: 0;
+    min-width: 0;
 }
 .selected-info #pressed-buttons-log.multiline .multi-line-item > * {
     justify-self: stretch !important; /* ogni item della griglia riempie la cella */

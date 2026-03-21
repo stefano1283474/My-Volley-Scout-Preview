@@ -281,7 +281,7 @@ const firestoreService = {
             return '';
         };
         return list.map((p) => ({
-            number: String(pick(p, ['number','numero','num','jersey','jerseyNumber','maglia']) || '').trim(),
+            number: String(pick(p, ['number','numero','num','jersey','jerseyNumber','maglia']) || '').trim().padStart(2, '0'),
             name: String(pick(p, ['name','nome','firstName','nomi']) || '').trim(),
             surname: String(pick(p, ['surname','cognome','lastName','cognomi']) || '').trim(),
             nickname: String(pick(p, ['nickname','soprannome','nick']) || '').trim(),
@@ -708,10 +708,6 @@ const firestoreService = {
                         // e la generazione di ID parlanti se necessario.
                         await firestoreService.saveMatchTree(teamId, Object.assign({}, metaSource, { id: matchId }));
                         synced++;
-                        // ── Bridge MVTA ora integrato direttamente in saveMatchTree ──────────────
-                        // Il salvataggio su volley_team_analysis_6_0/{uid}/datasets/ è gestito
-                        // internamente da saveMatchTree — nessuna scrittura duplicata qui.
-                        // ─────────────────────────────────────────────────────────────────────────
                     } catch (e) {
                         console.error('Sync error for match', matchId, e);
                         finalStatus = 'error';
@@ -2116,12 +2112,39 @@ const firestoreService = {
                 }
             }
 
+            // ── Calcolo risultato finale se non presente ──
+            const score = meta.score || { home: 0, away: 0 };
+            const finalResult = meta.finalResult || `${score.home || 0}-${score.away || 0}`;
+
+            // ── Determinazione casa/trasferta ──
+            const loc = String(meta.location || match.location || '').toLowerCase();
+            const homeAway = loc.includes('casa') ? 'home' : (loc.includes('trasf') ? 'away' : '');
+
             const payload = {
                 id: matchDocId,
-                // Metadati principali
+                _type: 'match',
+                _source: 'mvs',
+                _version: '2.0',
+
+                // ── Metadata strutturato (wrapper per MVTA) ──
+                metadata: {
+                    date: meta.date,
+                    time: meta.time || '',
+                    opponent: meta.opponentTeam || meta.awayTeam || '',
+                    myTeam: meta.myTeam || meta.homeTeam || '',
+                    matchType: meta.matchType || 'partita',
+                    location: meta.location || '',
+                    homeAway: homeAway,
+                    phase: String(match.phase || '').trim(),
+                    matchNumber: meta.matchNumber || '',
+                    description: meta.description || '',
+                    teamName: meta.myTeam || meta.homeTeam || '',
+                    result: finalResult,
+                },
+
+                // ── Campi flat mantenuti per backward compatibility ──
                 date: meta.date,
-                matchDate: meta.date, // ridondanza utile
-                time: meta.time || '',
+                matchDate: meta.date,
                 matchType: meta.matchType,
                 homeTeam: meta.homeTeam,
                 awayTeam: meta.awayTeam,
@@ -2130,22 +2153,16 @@ const firestoreService = {
                 location: meta.location || '',
                 description: meta.description || '',
                 status: meta.status,
-                score: meta.score, // { home, away }
-                finalResult: meta.finalResult || '',
+                score: score,
+                finalResult: finalResult,
 
-                // Roster completo
+                // ── Roster ──
                 roster: roster,
-                players: roster,
 
-                // Dettagli completi dei set
+                // ── Set data (struttura nested) ──
                 sets: setsData,
 
-                // Link al documento MVTA corrispondente (se disponibile).
-                // Persistito in Firestore (non solo localStorage) per garantire
-                // che cloud-to-cloud sync funzioni anche dopo cambio dispositivo.
-                ...(match._mvtaId ? { _mvtaId: String(match._mvtaId) } : {}),
-
-                // Timestamps
+                // ── Timestamps ──
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -2162,73 +2179,6 @@ const firestoreService = {
 
             // Scrittura documento unico (sovrascrive o merge)
             await matchDoc.set(payload, { merge: true });
-
-            // ── Bridge MVTA integrato ─────────────────────────────────────────────
-            // Principio fondamentale dell'ecosistema: qualsiasi dato che MVS
-            // archivia in Firestore deve essere disponibile a MVTA nel suo formato.
-            // Questo bridge è il punto unico e canonico di scrittura nel percorso MVTA:
-            //   volley_team_analysis_6_0/{uid}/datasets/{mvtaId}
-            //
-            // Casi gestiti:
-            //   A) match._mvtaId presente → già linkato (import xlsm pre-salvato)
-            //      → aggiorna solo metadata col form dell'utente
-            //   B) match._mvtaId assente → live-scouting
-            //      → converte in formato MVTA + calcola statistiche, poi salva
-            try {
-                const _bridgeCu = authFunctions.getCurrentUser();
-                const _bridgeUid = _bridgeCu ? _bridgeCu.uid : null;
-                if (_bridgeUid && window.db) {
-                    // _mvsTeamId garantisce che il doc MVTA sia ricercabile
-                    // per team dall'altra app e da loadTeamMatches stesso.
-                    const _bridgeMatchForSave = Object.assign({}, match, {
-                        id: matchDocId,
-                        _mvsTeamId: String(teamId),
-                    });
-
-                    if (match._mvtaId) {
-                        // Caso A: partita già linkata a un doc MVTA (import xlsm o live precedente)
-                        const _bridgeRef = window.db
-                            .collection('volley_team_analysis_6_0')
-                            .doc(_bridgeUid)
-                            .collection('datasets')
-                            .doc(String(match._mvtaId));
-                        const _bridgeSnap = await _bridgeRef.get();
-                        if (_bridgeSnap.exists) {
-                            // Doc esiste → aggiorna metadata modificabili + _mvsTeamId
-                            const _bridgeUpd = {
-                                '_updatedAt':  firebase.firestore.FieldValue.serverTimestamp(),
-                                '_mvsTeamId':  String(teamId),
-                            };
-                            const _bridgeOpp = String(match.opponentTeam || match.awayTeam || '').trim();
-                            const _bridgeDt  = String(match.date || match.matchDate || '').trim();
-                            const _bridgeTyp = String(match.matchType || match.eventType || '').trim();
-                            const _bridgeHa  = String(match.homeAway || '').toLowerCase().trim();
-                            if (_bridgeOpp) _bridgeUpd['metadata.opponent']  = _bridgeOpp;
-                            if (_bridgeDt)  _bridgeUpd['metadata.date']      = _bridgeDt;
-                            if (_bridgeTyp) _bridgeUpd['metadata.matchType'] = _bridgeTyp;
-                            if (_bridgeHa)  _bridgeUpd['metadata.homeAway']  =
-                                (_bridgeHa === 'away' || _bridgeHa === 'trasferta') ? 'away' : 'home';
-                            await _bridgeRef.update(_bridgeUpd);
-                        } else {
-                            // Doc MVTA assente (es. utente ha cancellato il dataset da MVTA) →
-                            // ricrealo dai dati MVS disponibili, esattamente come farebbe Case B.
-                            // Per partite live-scouted: rigenera riepilogo/gioco/rallies da actionsBySet.
-                            // Per partite xlsm senza actionsBySet: crea almeno un doc parziale con metadata.
-                            console.warn('[saveMatchTree→MVTA] Doc MVTA assente per _mvtaId', match._mvtaId, '— ricreazione da dati MVS');
-                            await saveMVTAMatchFromLocal(_bridgeUid, Object.assign({}, _bridgeMatchForSave, { _forceId: String(match._mvtaId) }));
-                        }
-                    } else {
-                        // Caso B: live-scouting → converte e salva documento MVTA
-                        // saveMVTAMatchFromLocal usa computeStatsFromLiveScout per
-                        // calcolare riepilogo/gioco/giriDiRice/rallies dal live data
-                        await saveMVTAMatchFromLocal(_bridgeUid, _bridgeMatchForSave);
-                    }
-                }
-            } catch (_bridgeErr) {
-                // Non bloccante: l'errore MVTA non impedisce il salvataggio MVS principale
-                console.warn('[saveMatchTree→MVTA] Bridge MVTA fallito (non bloccante):', _bridgeErr);
-            }
-            // ─────────────────────────────────────────────────────────────────────
 
             return { success: true, id: matchDocId };
         } catch (error) {
@@ -2314,15 +2264,11 @@ const firestoreService = {
             const userRef = await firestoreService.getUserRefEnsured();
             const matchesSnap = await userRef.collection('teams').doc(String(teamId)).collection('matches').orderBy('createdAt','desc').get();
             const out = [];
-            // Set di _mvtaId già presenti dal percorso MVS: usato per deduplicare
-            // quando lo stesso match appare anche nell'archivio MVTA condiviso.
-            const seenMvtaIds = new Set();
 
             matchesSnap.forEach(doc => {
                 const data = doc.data();
                 const adapted = { id: doc.id, ...data, source: 'firestore_team' };
                 adapted.teamId = String(teamId);
-                if (data._mvtaId) seenMvtaIds.add(String(data._mvtaId));
 
                 if (data.sets) {
                     adapted.actionsBySet = {};
@@ -2342,68 +2288,6 @@ const firestoreService = {
                 }
                 out.push(adapted);
             });
-
-            // ── Legge anche dall'archivio condiviso MVTA ─────────────────────────
-            // Qualsiasi partita in volley_team_analysis_6_0/{uid}/datasets/ con
-            // _mvsTeamId === teamId è parte di questo archivio squadra.
-            // Questo permette alle due app di condividere un unico dataset Firestore:
-            // - Partite salvate da MVS → bridge scrive su MVTA datasets con _mvsTeamId
-            // - Partite importate direttamente in MVTA (con _mvsTeamId) → visibili in MVS
-            // - Cancellazioni in MVTA → non compaiono più nemmeno in MVS (unica fonte di verità)
-            try {
-                const cu = authFunctions.getCurrentUser();
-                const uid = cu ? cu.uid : null;
-                if (uid && window.db) {
-                    const mvtaSnap = await window.db
-                        .collection('volley_team_analysis_6_0')
-                        .doc(uid)
-                        .collection('datasets')
-                        .where('_mvsTeamId', '==', String(teamId))
-                        .get();
-                    mvtaSnap.forEach(mvtaDoc => {
-                        const d = mvtaDoc.data();
-                        if (!d || d._type !== 'match') return;
-                        // Deduplica: se il doc è già nel percorso MVS (via _mvtaId), salta
-                        if (seenMvtaIds.has(String(mvtaDoc.id))) return;
-                        // Mappa formato MVTA → formato MVS atteso dal frontend
-                        const meta = d.metadata || {};
-                        const haRaw = String(meta.homeAway || '').toLowerCase();
-                        const isHome = !(haRaw === 'away' || haRaw === 'trasferta');
-                        const setsArr = Array.isArray(d.sets) ? d.sets : [];
-                        const ourWins   = setsArr.filter(s => s.won).length;
-                        const theirWins = setsArr.filter(s => !s.won).length;
-                        out.push({
-                            id:           mvtaDoc.id,
-                            _mvtaId:      mvtaDoc.id,
-                            _mvsTeamId:   String(teamId),
-                            _source:      d._source || 'mvta_import',
-                            source:       'mvta_datasets',
-                            teamId:       String(teamId),
-                            date:         meta.date || '',
-                            matchDate:    meta.date || '',
-                            matchType:    meta.matchType || '',
-                            homeAway:     isHome ? 'home' : 'away',
-                            myTeam:       meta.teamName || '',
-                            homeTeam:     isHome ? (meta.teamName || '') : (meta.opponent || ''),
-                            awayTeam:     isHome ? (meta.opponent || '') : (meta.teamName || ''),
-                            opponentTeam: meta.opponent || '',
-                            score:        { home: ourWins, away: theirWins },
-                            finalResult:  `${ourWins}-${theirWins}`,
-                            roster:       Array.isArray(d.roster) ? d.roster : [],
-                            players:      Array.isArray(d.roster) ? d.roster : [],
-                            // Dati statistici ricchi disponibili direttamente dall'archivio MVTA
-                            riepilogo:    d.riepilogo  || null,
-                            gioco:        d.gioco      || null,
-                            giriDiRice:   d.giriDiRice || null,
-                            rallies:      Array.isArray(d.rallies) ? d.rallies : [],
-                        });
-                    });
-                }
-            } catch (_mvtaReadErr) {
-                // Non bloccante: fallback ai soli dati MVS
-                console.warn('[loadTeamMatches] Lettura archivio MVTA fallita (non bloccante):', _mvtaReadErr);
-            }
-            // ────────────────────────────────────────────────────────────────────
 
             return { success: true, documents: out };
         } catch (error) {
@@ -2967,6 +2851,9 @@ const firestoreService = {
             const matchToSave = {
                 ...matchData,
                 id: matchRef.id,
+                _type: 'match',
+                _source: 'mvs',
+                _version: '2.0',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -3225,307 +3112,6 @@ const firestoreService = {
         }
     }
 };
-
-// ─── Integrazione My Volley Team Analysis ────────────────────────────────────
-// Salva una partita nel formato compatibile con My Volley Team Analysis.
-// Percorso Firestore: volley_team_analysis_6_0/{uid}/datasets/{matchId}
-// Questo permette alle due app di condividere lo stesso dataset Firestore.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MVTA_ROOT = 'volley_team_analysis_6_0';
-
-/**
- * Sanitizza ricorsivamente un oggetto rimuovendo valori undefined
- * (Firestore non accetta undefined).
- */
-function _mvsaSanitize(value) {
-    if (value === undefined) return null;
-    if (value === null) return null;
-    if (Array.isArray(value)) return value.map(_mvsaSanitize);
-    if (value instanceof Date) return value;
-    if (typeof value !== 'object') return value;
-    const out = {};
-    Object.keys(value).forEach(function (k) {
-        out[k] = _mvsaSanitize(value[k]);
-    });
-    return out;
-}
-
-/**
- * Trasforma un match nel formato MVS locale (localStorage) in un documento parziale
- * compatibile con la struttura MVTA. Usato durante "Aggiorna Cloud da Locale".
- *
- * I campi riepilogo/gioco/giriDiRice non sono disponibili dai dati live-scouting:
- * vengono impostati a null. Le analisi MVTA che li richiedono restituiranno null/vuoto.
- *
- * @param {object} mvsMatch  - Match nel formato MVS da localStorage
- * @returns {object|null}    - Documento parziale MVTA, o null se matchId mancante
- */
-function _mvsLocalToMVTAPartial(mvsMatch) {
-    const matchId = String(mvsMatch?.id || '').trim();
-    if (!matchId) return null;
-
-    // Se fornito esplicitamente (es. ricreazione doc MVTA cancellato) usa _forceId,
-    // altrimenti genera ID MVTA deterministico dall'ID MVS locale.
-    const mvtaId = mvsMatch?._forceId
-        ? String(mvsMatch._forceId)
-        : ('mvs_live_' + matchId.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').substring(0, 80));
-
-    // ── metadata ──────────────────────────────────────────────────────────────
-    const haRaw = String(mvsMatch?.homeAway || '').toLowerCase().trim();
-    const homeAway = (haRaw === 'away' || haRaw === 'trasferta') ? 'away' : 'home';
-
-    // MVTA (dataParser.js) si aspetta: teamName, opponent, date, matchType, homeAway, phase
-    const myTeamName = String(mvsMatch?.myTeam || mvsMatch?.homeTeam || '').trim() || null;
-    const metadata = {
-        teamName:  myTeamName,                                                        // campo richiesto da MVTA
-        opponent:  String(mvsMatch?.opponentTeam || mvsMatch?.awayTeam || '').trim() || null,
-        date:      String(mvsMatch?.date || mvsMatch?.matchDate || '').trim() || null,
-        matchType: String(mvsMatch?.matchType || mvsMatch?.eventType || '').trim() || null,
-        homeAway:  homeAway,
-        phase:     String(mvsMatch?.phase || mvsMatch?.matchPhase || '').trim() || null, // non sempre disponibile
-        myTeam:    myTeamName,                                                        // campo aggiuntivo MVS
-        location:  String(mvsMatch?.location || '').trim() || null,
-    };
-
-    // Calcola risultato dai set se non disponibile direttamente
-    const sc = mvsMatch?.score;
-    if (sc && (Number(sc.home || 0) || Number(sc.away || 0))) {
-        metadata.result = Number(sc.home || 0) + '-' + Number(sc.away || 0);
-    } else {
-        let myWins = 0, oppWins = 0;
-        for (let i = 1; i <= 6; i++) {
-            const st  = (mvsMatch?.setStateBySet || {})[i] || (mvsMatch?.setStateBySet || {})[String(i)] || {};
-            const sum = (mvsMatch?.setSummary || {})[i]    || (mvsMatch?.setSummary || {})[String(i)]    || {};
-            const mine = Number(st.homeScore ?? st.myScore    ?? sum.home  ?? 0);
-            const opp  = Number(st.awayScore ?? st.theirScore ?? sum.away  ?? 0);
-            if (mine + opp > 0) { mine > opp ? myWins++ : oppWins++; }
-        }
-        if (myWins + oppWins > 0) metadata.result = myWins + '-' + oppWins;
-    }
-
-    // ── roster ────────────────────────────────────────────────────────────────
-    // MVTA (dataParser.js) si aspetta: number, surname, name, nickname, role, fullName
-    const rosterSrc = Array.isArray(mvsMatch?.roster) ? mvsMatch.roster
-                    : (Array.isArray(mvsMatch?.players) ? mvsMatch.players : []);
-    const roster = rosterSrc.map(function(p) {
-        const sur  = String(p?.surname  || p?.lastName  || '').trim();
-        const nm   = String(p?.name     || p?.firstName || p?.playerName || '').trim();
-        const nick = String(p?.nickname || p?.nick      || '').trim();
-        const numRaw = p?.number != null ? p.number : (p?.shirtNumber != null ? p.shirtNumber : null);
-        const num    = numRaw != null ? String(numRaw).replace(/^'+/, '') : null;
-        return {
-            number:   num,
-            surname:  sur,
-            name:     nm,
-            nickname: nick,
-            role:     String(p?.role || p?.position || '').trim(),
-            fullName: (sur + (nm ? ' ' + nm : '')).trim(),
-        };
-    }).filter(function(p) { return p.surname || p.name || p.number != null; });
-
-    // ── sets: flat array {number, ourScore, theirScore, margin, won} ──────────
-    // Stesso formato di dataParser.js e xlsm-full-parser.js di MVTA.
-    const sets = [];
-    for (let i = 1; i <= 5; i++) {
-        const sm  = (mvsMatch?.setMeta        || {})[i] || (mvsMatch?.setMeta        || {})[String(i)];
-        const st  = (mvsMatch?.setStateBySet  || {})[i] || (mvsMatch?.setStateBySet  || {})[String(i)];
-        const su  = (mvsMatch?.setSummary     || {})[i] || (mvsMatch?.setSummary     || {})[String(i)];
-        if (sm || st || su) {
-            const our  = Number(st?.homeScore  ?? st?.myScore    ?? sm?.myScore    ?? su?.home  ?? 0) || 0;
-            const opp  = Number(st?.awayScore  ?? st?.theirScore ?? sm?.theirScore ?? su?.away  ?? 0) || 0;
-            if (our > 0 || opp > 0) {
-                sets.push({
-                    number:          i,
-                    ourScore:        our,
-                    theirScore:      opp,
-                    margin:          our - opp,
-                    won:             our > opp,
-                    oppStartRotation: null,
-                    ourStartRotation: null,
-                });
-            }
-        }
-    }
-
-    // ── Calcolo statistiche dal live-scouting ─────────────────────────────────
-    // Se actionsBySet è disponibile, emula le formule Excel DataVolley in JS
-    // tramite live-stats-computer.js. Produce riepilogo/gioco/giriDiRice/rallies
-    // equivalenti a quelli estratti dall'xlsm, senza richiedere il file.
-    var computedStats = { riepilogo: null, gioco: null, giriDiRice: null, rallies: [] };
-    try {
-        if (typeof window !== 'undefined' && typeof window.computeStatsFromLiveScout === 'function') {
-            computedStats = window.computeStatsFromLiveScout(mvsMatch);
-        }
-    } catch (_cse) {
-        console.warn('[MVS→MVTA] Errore calcolo statistiche live (non bloccante):', _cse);
-    }
-
-    return {
-        id:          mvtaId,
-        fileName:    matchId,
-        _source:     'my_volley_scout_live',
-        // Collega il doc MVTA alla squadra MVS originale → usato da loadTeamMatches
-        // per leggere dall'archivio MVTA (unico archivio condiviso tra le due app).
-        _mvsTeamId:  mvsMatch._mvsTeamId ? String(mvsMatch._mvsTeamId) : null,
-        metadata:    metadata,
-        roster:      roster,
-        sets:        sets,
-        // Statistiche calcolate emulando le formule Excel del DataVolley xlsm.
-        // Se actionsBySet non ha dati (match non ancora scouting), restano null/[].
-        riepilogo:   computedStats.riepilogo,
-        gioco:       computedStats.gioco,
-        giriDiRice:  computedStats.giriDiRice,
-        rallies:     computedStats.rallies,
-    };
-}
-
-/**
- * Salva un match MVS locale nel percorso MVTA durante "Aggiorna Cloud da Locale".
- *
- * Logica di merge:
- * - Se il doc MVTA esiste già con dati ricchi (xlsm: riepilogo + rallies popolati)
- *   → aggiorna solo i metadata (non sovrascrivere dati statistici preziosi).
- * - Se il doc MVTA non esiste o è anch'esso da live-scouting (parziale)
- *   → crea/sovrascrive con i dati disponibili.
- *
- * @param {string} uid       - Firebase Auth UID
- * @param {object} mvsMatch  - Match MVS da localStorage
- * @returns {Promise<{success: boolean, id?: string, error?: string}>}
- */
-async function saveMVTAMatchFromLocal(uid, mvsMatch) {
-    try {
-        if (!uid)         return { success: false, error: 'UID utente mancante' };
-        if (!window.db)   return { success: false, error: 'Firestore non disponibile' };
-        if (!mvsMatch)    return { success: false, error: 'Dati match mancanti' };
-
-        const partial = _mvsLocalToMVTAPartial(mvsMatch);
-        if (!partial) return { success: false, error: 'Impossibile trasformare dati MVS (id mancante)' };
-
-        const docRef = window.db
-            .collection(MVTA_ROOT)
-            .doc(uid)
-            .collection('datasets')
-            .doc(partial.id);
-
-        const snap = await docRef.get();
-
-        if (snap.exists) {
-            const existing = snap.data() || {};
-            // Dati "ricchi" = provengono da importazione xlsm con riepilogo e rallies
-            const hasRichData = existing.riepilogo != null
-                && Array.isArray(existing.rallies)
-                && existing.rallies.length > 0;
-
-            if (hasRichData) {
-                // Aggiorna solo i metadati base — non toccare riepilogo/rallies/gioco/giriDiRice
-                const meta = partial.metadata || {};
-                const upd = { '_updatedAt': firebase.firestore.FieldValue.serverTimestamp() };
-                if (meta.opponent  != null) upd['metadata.opponent']  = meta.opponent;
-                if (meta.date      != null) upd['metadata.date']      = meta.date;
-                if (meta.matchType != null) upd['metadata.matchType'] = meta.matchType;
-                if (meta.homeAway  != null) upd['metadata.homeAway']  = meta.homeAway;
-                if (meta.result    != null) upd['metadata.result']    = meta.result;
-                await docRef.update(upd);
-                console.log('[MVS→MVTA] Metadata aggiornati (dati xlsm preservati):', partial.id);
-            } else {
-                // Documento parziale / live-scout → sovrascriviamo
-                const payload = _mvsaSanitize(Object.assign({}, partial, {
-                    _type:       'match',
-                    _updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
-                }));
-                await docRef.set(payload, { merge: false });
-                console.log('[MVS→MVTA] Documento parziale aggiornato:', partial.id);
-            }
-        } else {
-            // Documento non esiste — crea nuovo documento parziale
-            const payload = _mvsaSanitize(Object.assign({}, partial, {
-                _type:      'match',
-                _createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                _updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            }));
-            await docRef.set(payload);
-            console.log('[MVS→MVTA] Nuovo documento parziale creato:', partial.id);
-        }
-
-        return { success: true, id: partial.id };
-    } catch (error) {
-        console.error('[MVS→MVTA] Errore saveMVTAMatchFromLocal:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * Salva una partita nel formato MVTA su Firestore.
- * @param {string} uid        - Firebase Auth UID dell'utente corrente
- * @param {object} mvtaMatch  - Oggetto match MVTA (output di parseXlsmFull)
- * @returns {Promise<{success: boolean, id: string, error?: string}>}
- */
-async function saveMVTAMatch(uid, mvtaMatch) {
-    try {
-        if (!uid) throw new Error('UID utente mancante');
-        if (!mvtaMatch || !mvtaMatch.id) throw new Error('Dati partita MVTA non validi');
-        if (!window.db) throw new Error('Firestore non disponibile');
-
-        const docRef = window.db
-            .collection(MVTA_ROOT)
-            .doc(uid)
-            .collection('datasets')
-            .doc(mvtaMatch.id);
-
-        const payload = _mvsaSanitize(Object.assign({}, mvtaMatch, {
-            _type: 'match',
-            _source: 'my_volley_scout',
-            _updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        }));
-
-        // Gestione createdAt: non sovrascrivere se il documento esiste già
-        let shouldSetCreatedAt = true;
-        try {
-            const snap = await docRef.get();
-            if (snap.exists) shouldSetCreatedAt = false;
-        } catch (_) {}
-
-        if (shouldSetCreatedAt) {
-            payload._createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        }
-
-        await docRef.set(payload, { merge: false });
-
-        console.log('[MVS→MVTA] Partita salvata:', mvtaMatch.id);
-        return { success: true, id: mvtaMatch.id };
-    } catch (error) {
-        console.error('[MVS→MVTA] Errore salvataggio:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * Elimina una partita dal dataset MVTA su Firestore.
- * @param {string} uid     - Firebase Auth UID
- * @param {string} matchId - ID del documento match in MVTA
- */
-async function deleteMVTAMatch(uid, matchId) {
-    try {
-        if (!uid || !matchId) return { success: false, error: 'Parametri mancanti' };
-        if (!window.db) return { success: false, error: 'Firestore non disponibile' };
-        await window.db
-            .collection(MVTA_ROOT)
-            .doc(uid)
-            .collection('datasets')
-            .doc(matchId)
-            .delete();
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Esponi le funzioni di integrazione MVTA globalmente
-window.saveMVTAMatch = saveMVTAMatch;
-window.saveMVTAMatchFromLocal = saveMVTAMatchFromLocal;
-window._mvsLocalToMVTAPartial = _mvsLocalToMVTAPartial;
-window.deleteMVTAMatch = deleteMVTAMatch;
 
 // Esposizione globale del servizio
 window.firestoreService = firestoreService;

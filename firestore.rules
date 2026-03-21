@@ -212,7 +212,56 @@ service cloud.firestore {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // REGOLE MY VOLLEY TEAM ANALYSIS (MVTA)
+    // REGOLE UNIFICATE MVTA (nuove sub-collection sotto users/)
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Shared access config (users/{uid}/shared_access/config)
+    match /users/{ownerUid}/shared_access/{docId} {
+      allow read: if isUser(ownerUid)
+        || (isSignedIn()
+            && isShareEnabled(resource.data)
+            && (hasPublicAccess(resource.data) || hasRestrictedAccess(resource.data)));
+      allow create, update, delete: if isUser(ownerUid);
+    }
+
+    // News (users/{uid}/news/{docId})
+    match /users/{ownerUid}/news/{docId} {
+      allow read: if isUser(ownerUid) || isAllowedReader(ownerUid);
+      allow create, update, delete: if isUser(ownerUid) || isAllowedWriter(ownerUid);
+    }
+
+    // Offers (users/{uid}/offers/{docId})
+    match /users/{ownerUid}/offers/{docId} {
+      allow read: if isUser(ownerUid) || isAllowedReader(ownerUid);
+      allow create, update, delete: if isUser(ownerUid) || isAllowedWriter(ownerUid);
+    }
+
+    // Usage log (users/{uid}/usage/{docId})
+    match /users/{ownerUid}/usage/{docId} {
+      allow get: if isUser(ownerUid) || isAdminUser();
+      allow list: if isAdminUser();
+      allow create, update: if isUser(ownerUid);
+      allow delete: if isAdminUser();
+    }
+
+    // Global share tokens (users/_global_tokens/share_tokens/{token})
+    match /users/_global_tokens/share_tokens/{token} {
+      allow read: if isSignedIn()
+        && isShareEnabled(resource.data)
+        && (resource.data.ownerUid == request.auth.uid
+            || isAllowedReader(resource.data.ownerUid));
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Admin content (users/_admin/content/{docId})
+    match /users/_admin/content/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdminUser();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // REGOLE MY VOLLEY TEAM ANALYSIS (MVTA) — LEGACY
     // ══════════════════════════════════════════════════════════════════════
 
     // Dataset match e calendario

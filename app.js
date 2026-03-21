@@ -7234,7 +7234,7 @@ function updateDescriptiveQuartet() {
                 : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-                : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
+                : `<span class="token token-player" data-row-kind="current"><button type="button" class="token-delete-btn" data-row-kind="current" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
             lines.push(`<div class="multi-line-item"><span class="token token-fundamental" data-row-kind="current">${fTok}</span>${playerCell}${evalSpan}</div>`);
         } else if (evalVal) {
             // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
@@ -7277,7 +7277,7 @@ function updateDescriptiveQuartet() {
 
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence' && appState.replaceTarget.index === i)
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-                : `<span class="${pCls}" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>`;
+                : `<span class="${pCls}" data-row-kind="sequence" data-row-index="${i}"><button type="button" class="token-delete-btn" data-row-kind="sequence" data-row-index="${i}" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
             const evalCell = `<span class="${eCls}" data-row-kind="sequence" data-row-index="${i}">${eTok}</span>`;
             lines.push(`<div class="multi-line-item"><span class="${fCls}" data-row-kind="sequence" data-row-index="${i}">${fTok}</span>${playerCell}${evalCell}</div>`);
         }
@@ -7298,6 +7298,10 @@ function updateDescriptiveQuartet() {
                     const idx = indexStr != null ? parseInt(indexStr, 10) : null;
                     enterReplacePlayerModeFor(kind, Number.isFinite(idx) ? idx : null, span);
                 });
+            });
+            const deleteButtons = el.querySelectorAll('.token-delete-btn');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', deleteQuartetRowFromButton);
             });
         } catch(_) {}
         try {
@@ -7362,7 +7366,7 @@ function updateDescriptiveQuartet() {
             : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
         const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
             ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-            : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
+            : `<span class="token token-player" data-row-kind="current"><button type="button" class="token-delete-btn" data-row-kind="current" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
         const html = `
             <span class="token token-fundamental" data-row-kind="current">${fTok}</span>
             ${playerCell}
@@ -7408,6 +7412,10 @@ function updateDescriptiveQuartet() {
             span.style.cursor = 'pointer';
             span.title = 'Cambia giocatore della quartina';
             span.addEventListener('click', enterReplacePlayerModeFromSpan);
+        });
+        const deleteButtons = el.querySelectorAll('.token-delete-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', deleteQuartetRowFromButton);
         });
     } catch(_) {}
     try {
@@ -7477,6 +7485,74 @@ function cancelReplacePlayerMode(){
         if (selectedInfo) selectedInfo.classList.remove('replace-mode');
         selectedInfo?.querySelectorAll('.token-player.replace-target').forEach(s => s.classList.remove('replace-target'));
     } catch(_) {}
+}
+
+function deleteQuartetRowFromButton(e){
+    try {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        const kind = btn?.dataset?.rowKind || 'current';
+        const indexRaw = btn?.dataset?.rowIndex;
+        const index = indexRaw != null ? parseInt(indexRaw, 10) : null;
+        deleteQuartetRow(kind, Number.isFinite(index) ? index : null);
+    } catch(_) {}
+}
+
+function deleteQuartetRow(kind, index){
+    const targetKind = String(kind || 'current').toLowerCase();
+    if (targetKind === 'sequence') {
+        if (!Array.isArray(appState.currentSequence)) appState.currentSequence = [];
+        if (!Number.isInteger(index) || index < 0 || index >= appState.currentSequence.length) return;
+        appState.currentSequence.splice(index, 1);
+        if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence') {
+            const currentIndex = Number.isFinite(appState.replaceTarget.index) ? appState.replaceTarget.index : null;
+            if (currentIndex === index) {
+                appState.replacePlayerMode = false;
+                appState.replaceTarget = null;
+            } else if (currentIndex != null && currentIndex > index) {
+                appState.replaceTarget.index = currentIndex - 1;
+            }
+        }
+    } else {
+        appState.selectedPlayer = null;
+        appState.selectedEvaluation = null;
+        appState.justClosedAction = false;
+        if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current') {
+            appState.replacePlayerMode = false;
+            appState.replaceTarget = null;
+        }
+        if (appState.autoCloseTimerId) {
+            clearTimeout(appState.autoCloseTimerId);
+            appState.autoCloseTimerId = null;
+        }
+        appState.autoClosePending = false;
+        appState.autoClosePayload = null;
+        try {
+            document.querySelectorAll('.eval-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.classList.remove('timer-pending');
+                btn.style.removeProperty('--pulse-duration');
+                btn.disabled = false;
+            });
+            document.querySelectorAll('.player-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.disabled = false;
+            });
+        } catch(_) {}
+        const selectedPlayerText = document.getElementById('selected-player-text');
+        const selectedEvaluationText = document.getElementById('selected-evaluation-text');
+        if (selectedPlayerText) selectedPlayerText.textContent = '-';
+        if (selectedEvaluationText) selectedEvaluationText.textContent = '-';
+    }
+    appState.nextFundamentalPreview = null;
+    appState.calculatedFundamental = null;
+    appState.overrideFundamental = null;
+    try { updateActionSummary(); } catch(_) {}
+    try { updateDescriptiveQuartet(); } catch(_) {}
+    try { updateScoutingUI(); } catch(_) {}
+    try { updateNextFundamental(); } catch(_) {}
+    try { updatePlayersGrid(); } catch(_) {}
 }
 
 // Attiva l'override MURO per la singola azione corrente
