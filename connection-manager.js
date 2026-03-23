@@ -110,7 +110,7 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 console.log('Connection Manager inizializzato');
 
 (function () {
-    window.MVS_APP_VERSION = '1.1.1 Preview';
+    window.MVS_APP_VERSION = '1.1.2 Preview';
     window.appBuild = window.appBuild || { version: '', commit: '' };
     window.appBuild.version = String(window.MVS_APP_VERSION || '');
     let deferredInstallPrompt = null;
