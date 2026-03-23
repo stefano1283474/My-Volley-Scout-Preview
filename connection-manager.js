@@ -110,7 +110,7 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 console.log('Connection Manager inizializzato');
 
 (function () {
-    window.MVS_APP_VERSION = '1.1 Preview';
+    window.MVS_APP_VERSION = '1.1.1 Preview';
     window.appBuild = window.appBuild || { version: '', commit: '' };
     window.appBuild.version = String(window.MVS_APP_VERSION || '');
     let deferredInstallPrompt = null;
@@ -342,8 +342,6 @@ console.log('Connection Manager inizializzato');
                 goToMatchesBtnMobile: 'Vai a Elenco Partite',
                 goToSettingsBtn: 'Impostazioni',
                 installAppBtn: 'Installa app',
-                hydrateDataBtn: 'Aggiorna Locale da Cloud',
-                syncDataBtn: 'Aggiorna Cloud da Locale',
                 purgeAllBtn: 'Pulisci dati locali',
                 accountLogout: 'Logout',
                 signOutBtnMobile: 'Logout',
@@ -392,7 +390,7 @@ console.log('Connection Manager inizializzato');
             if (emailNode) emailNode.classList.add('menu-item', 'menu-item-muted');
             const quickSaveNodes = extract(['save-match-btn']);
             const navNodes = extract(['goToTeamsBtn', 'goToTeamsBtnMobile', 'goToMatchesBtn', 'goToMatchesBtnMobile']);
-            const actionNodes = extract(['installAppBtn', 'exportSetsBtnMobile', 'importAllMatchesBtn', 'deleteAllMatchesBtn', 'exportAllMatchesBtn', 'hydrateDataBtn', 'syncDataBtn', 'purgeAllBtn']);
+            const actionNodes = extract(['installAppBtn', 'exportSetsBtnMobile', 'importAllMatchesBtn', 'deleteAllMatchesBtn', 'exportAllMatchesBtn', 'purgeAllBtn']);
             const sessionNodes = extract(['exitToWelcomeBtnMobile', 'accountLogout', 'signOutBtnMobile']);
             const settingsNodes = entries.filter((el) => isLegacySettingsNode(el));
             const settingsEntry = (() => {

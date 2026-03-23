@@ -347,6 +347,18 @@
             background: #f8f9fa; /* scala di bianco */
         }
 
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -511,8 +523,6 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
-                    <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
                     <button class="menu-item" id="exportAllMatchesBtn" type="button" style="display:none;">Esporta tutte le gare</button>
                     <button class="menu-item" id="importAllMatchesBtn" type="button" style="display:none;">Importa partite</button>
                     <button class="menu-item" id="deleteAllMatchesBtn" type="button" style="display:none;">Elimina gare</button>
@@ -543,23 +553,23 @@
 
         <!-- Tab: Elenco Partite -->
         <div id="listSection" class="matches-section tab-panel" style="display:block;">
-            <div class="archive-tabs" role="tablist" aria-label="Archivio dati partite">
+            <div id="matchesArchiveTabs" class="archive-tabs" role="tablist" aria-label="Archivio dati partite" style="display:none;">
                 <button id="matchesArchiveTabLocal" class="archive-tab" type="button" role="tab" aria-selected="false" style="display:none;">Locale</button>
                 <button id="matchesArchiveTabCloud" class="archive-tab active" type="button" role="tab" aria-selected="true">Cloud</button>
             </div>
-            <div class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:10px; margin-bottom:10px;">
+            <div id="teamContextHeader" class="team-context-header" style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:12px; padding:10px; margin-bottom:10px;">
                 <div style="display:flex; flex-direction:column; gap:8px;">
-                    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <div id="clubNameTop" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">—</div>
-                        <span style="font-size:12px; color:#64748b; font-weight:600;">•</span>
-                        <div id="teamNameBottom" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;">—</div>
+                    <div id="teamIdentityRow" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div id="clubNameTop" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;"></div>
+                        <span id="teamIdentitySeparator" style="font-size:12px; color:#64748b; font-weight:600;">•</span>
+                        <div id="teamNameBottom" style="font-size:12px; color:#64748b; font-weight:600; text-transform:uppercase;"></div>
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <div id="teamRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;">—</div>
+                        <div id="teamBadgeContainer" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <div id="teamRoleBadge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:#e2e8f0; color:#475569;"></div>
                             <div id="sharedReadOnlyBadge" style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; display:none;">Sola lettura</div>
                         </div>
-                        <div class="list-actions" style="display:flex;align-items:center;gap:8px;">
+                        <div id="topMatchesActionsBar" class="list-actions" style="display:flex;align-items:center;gap:8px;margin-left:auto;">
                             <button id="sortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                                     <path d="M7 4h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -590,7 +600,29 @@
             </div>
 
             <!-- Empty State -->
-            <div class="empty-state" id="emptyMatches" style="display: none;">
+            <div class="empty-state" id="emptyMatches" style="display: none; position:relative;">
+                <div id="emptyMatchesToolbar" style="position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:8px;">
+                    <button id="emptySortByDateBtn" class="icon-button" aria-label="Ordina per data" title="Ordina per data">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M7 4h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M7 10h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M7 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M17 16l2 2 2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button id="emptyImportMatchBtn" class="icon-button" aria-label="Importa Partita (Xls)" title="Importa Partita (Xls)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 4v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M8 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 18h16a2 2 0 0 0 2-2v-2H2v2a2 2 0 0 0 2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button id="emptyNewMatchBtn" class="icon-button" aria-label="Nuova partita" title="Nuova partita">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
                 <img class="empty-icon" src="./LOGO_PALLONE.png" alt="Pallone" />
                 <p id="emptyMatchesTitle">Nessuna partita disponibile</p>
                 <p id="emptyMatchesHint">Crea una nuova partita.</p>
@@ -842,7 +874,7 @@
         <div style="text-align: center;">
             <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
             <p>Caricamento...</p>
-            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 1.1 Preview</div>
+            <div class="app-version" style="margin-top:10px;font-size:0.85rem;color:#6b7280;font-weight:600;">MyVolleyScout Vers. 1.1.1 Preview</div>
         </div>
     </div>
     <div id="importStageOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); display: none; align-items: center; justify-content: center; z-index: 10000;">
@@ -912,14 +944,18 @@
             </div>
             <div class="import-dialog-grid">
                 <div class="import-dialog-actions">
-                    <button type="button" class="btn btn-primary" id="importFolderBtn">Seleziona cartella</button>
+                    <button type="button" class="btn btn-secondary" id="importFolderBtn">Seleziona cartelle</button>
                     <button type="button" class="btn btn-secondary" id="importFilesBtn">Seleziona file</button>
                 </div>
                 <div class="import-summary" id="importSelectionSummary">Nessun file selezionato</div>
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#334155;">
+                    <input type="checkbox" id="importAutoConfirmToggle">
+                    Conferma automatica: salva tutte le partite valide senza revisione manuale
+                </label>
                 <div class="import-file-list" id="importFilesList"></div>
                 <div style="display:flex; gap:8px; justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary" id="importDialogCancelBtn">Annulla</button>
-                    <button type="button" class="btn btn-primary" id="importDialogRunBtn">Importa selezionati</button>
+                    <button type="button" class="btn btn-primary" id="importDialogRunBtn" disabled>Importa selezionati</button>
                 </div>
             </div>
         </form>
@@ -2593,6 +2629,9 @@
         let __sortAsc = false;
         let currentArchive = 'local';
         let importCandidateFiles = [];
+        let importDetectedClubNames = [];
+        let importDetectedTeamNames = [];
+        let pendingOpenImportRequested = false;
         const ARCHIVE_STORAGE_KEY = 'mvsSelectedArchive';
         const __nativeAlert = (typeof window !== 'undefined' && typeof window.alert === 'function') ? window.alert.bind(window) : null;
         const __nativeConfirm = (typeof window !== 'undefined' && typeof window.confirm === 'function') ? window.confirm.bind(window) : null;
@@ -2643,6 +2682,11 @@
         const emptyMatchesHint = document.getElementById('emptyMatchesHint');
         const emptyMatchesActions = document.getElementById('emptyMatchesActions');
         const emptyMatchesCreateBtn = document.getElementById('emptyMatchesCreateBtn');
+        const matchesArchiveTabs = document.getElementById('matchesArchiveTabs');
+        const teamContextHeader = document.getElementById('teamContextHeader');
+        const teamIdentityRow = document.getElementById('teamIdentityRow');
+        const teamIdentitySeparator = document.getElementById('teamIdentitySeparator');
+        const teamBadgeContainer = document.getElementById('teamBadgeContainer');
         const loadingScreen = document.getElementById('loadingScreen');
         const importStageOverlay = document.getElementById('importStageOverlay');
         const importMatchDialog = document.getElementById('importMatchDialog');
@@ -2653,8 +2697,13 @@
         const importDialogCloseBtn = document.getElementById('importDialogCloseBtn');
         const importDialogCancelBtn = document.getElementById('importDialogCancelBtn');
         const importDialogRunBtn = document.getElementById('importDialogRunBtn');
+        const importAutoConfirmToggle = document.getElementById('importAutoConfirmToggle');
         const importFilesList = document.getElementById('importFilesList');
         const importSelectionSummary = document.getElementById('importSelectionSummary');
+        const importClubNameInput = document.getElementById('importClubNameInput');
+        const importTeamNameInput = document.getElementById('importTeamNameInput');
+        const importClubSuggestions = document.getElementById('importClubSuggestions');
+        const importTeamSuggestions = document.getElementById('importTeamSuggestions');
         const tabList = document.getElementById('tabList');
         const tabRoster = document.getElementById('tabRoster');
         const tabAnalysis = document.getElementById('tabAnalysis');
@@ -2677,6 +2726,11 @@
         const newMatchBtn = document.getElementById('newMatchBtn');
         const importMatchBtn = document.getElementById('importMatchBtn');
         const sortByDateBtn = document.getElementById('sortByDateBtn');
+        const topMatchesActionsBar = document.getElementById('topMatchesActionsBar');
+        const emptyMatchesToolbar = document.getElementById('emptyMatchesToolbar');
+        const emptySortByDateBtn = document.getElementById('emptySortByDateBtn');
+        const emptyImportMatchBtn = document.getElementById('emptyImportMatchBtn');
+        const emptyNewMatchBtn = document.getElementById('emptyNewMatchBtn');
         const listActions = document.getElementById('listActions');
         const matchesArchiveBadge = document.getElementById('matchesArchiveBadge');
         const matchesArchiveTabLocal = document.getElementById('matchesArchiveTabLocal');
@@ -2800,6 +2854,30 @@
             } catch(_) { return null; }
         }
 
+        function getFallbackOwnedTeam() {
+            const isCandidate = (team) => {
+                if (!team || team.id == null) return false;
+                const role = String(team._mvsRole || '').trim().toLowerCase();
+                const source = String(team.source || '').trim().toLowerCase();
+                if (team._mvsShared) return false;
+                if (role === 'observer') return false;
+                if (source === 'shared') return false;
+                return true;
+            };
+            try {
+                const fromModule = (window.teamsModule?.getTeams?.() || []).find(isCandidate);
+                if (fromModule) return fromModule;
+            } catch(_) {}
+            try {
+                const fromStorage = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                if (Array.isArray(fromStorage)) {
+                    const hit = fromStorage.find(isCandidate);
+                    if (hit) return hit;
+                }
+            } catch(_) {}
+            return null;
+        }
+
         function computeObserverMode() {
             const role = getSelectedTeamRole();
             if (role === 'observer') return true;
@@ -2815,6 +2893,8 @@
             if (hydrateDataBtn) hydrateDataBtn.style.display = hideSyncActions ? 'none' : '';
             if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (emptyImportMatchBtn) emptyImportMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (emptyNewMatchBtn) emptyNewMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';
             
             // Hide Roster tab for observers
@@ -2829,10 +2909,15 @@
                         setArchive('shared', { reload: false });
                     }
                 }
-            } else {
-                if (matchesArchiveTabLocal) matchesArchiveTabLocal.style.display = '';
             }
+            if (matchesArchiveTabCloud) matchesArchiveTabCloud.style.display = 'none';
+            if (matchesArchiveTabs) matchesArchiveTabs.style.display = 'none';
             updateBulkExportMenuVisibility();
+        }
+
+        function handleSortToggle() {
+            __sortAsc = !__sortAsc;
+            renderMatches();
         }
 
         function updateBulkExportMenuVisibility() {
@@ -2843,20 +2928,33 @@
             if (deleteAllMatchesBtn) deleteAllMatchesBtn.style.display = canShow ? '' : 'none';
         }
 
+        function setTeamContextCompactMode(compact) {
+            if (teamIdentityRow) teamIdentityRow.style.display = compact ? 'none' : 'flex';
+            if (teamBadgeContainer) teamBadgeContainer.style.display = compact ? 'none' : 'flex';
+        }
+
         function getInitialArchive() {
-            let syncSucceeded = false;
+            return 'cloud';
+        }
+
+        function consumeOpenImportFlag() {
             try {
                 const qp = new URLSearchParams(window.location.search || '');
-                const urlArch = qp.get('archive');
-                if (urlArch === 'shared') return 'shared';
-                if (urlArch === 'cloud' || urlArch === 'local') return 'cloud';
-            } catch(_) {}
-            try {
-                const stored = localStorage.getItem(ARCHIVE_STORAGE_KEY);
-                if (stored === 'shared') return 'shared';
-                if (stored === 'cloud' || stored === 'local') return 'cloud';
-            } catch(_) {}
-            return 'cloud';
+                const fromQuery = qp.get('openImport') === '1';
+                let fromSession = false;
+                try {
+                    fromSession = sessionStorage.getItem('mvsOpenImport') === '1';
+                    if (fromSession) sessionStorage.removeItem('mvsOpenImport');
+                } catch(_) {}
+                if (!fromQuery && !fromSession) return false;
+                qp.delete('openImport');
+                const nextQs = qp.toString();
+                const nextUrl = nextQs ? (window.location.pathname + '?' + nextQs) : window.location.pathname;
+                window.history.replaceState(null, '', nextUrl);
+                return true;
+            } catch(_) {
+                return false;
+            }
         }
 
         function setArchive(next, options = {}) {
@@ -2883,7 +2981,9 @@
                 matchesArchiveTabCloud.classList.toggle('active', v === 'cloud' || v === 'shared');
                 matchesArchiveTabCloud.setAttribute('aria-selected', (v === 'cloud' || v === 'shared').toString());
                 matchesArchiveTabCloud.textContent = v === 'shared' ? 'Cloud Condiviso' : 'Cloud';
+                matchesArchiveTabCloud.style.display = 'none';
             }
+            if (matchesArchiveTabs) matchesArchiveTabs.style.display = 'none';
             if (options?.reload !== false) {
                 loadSelectedTeam();
             }
@@ -4024,17 +4124,20 @@
                 });
             }
             if (newMatchBtn) newMatchBtn.addEventListener('click', openNewMatchDialog);
+            if (emptyNewMatchBtn) emptyNewMatchBtn.addEventListener('click', openNewMatchDialog);
             if (tabList) tabList.addEventListener('click', (e) => { e.preventDefault(); switchTab('list'); });
             if (tabRoster) tabRoster.addEventListener('click', (e) => { e.preventDefault(); location.href = '/roster.html'; });
             if (tabAnalysis) tabAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('analysis'); });
             if (tabPlayerAnalysis) tabPlayerAnalysis.addEventListener('click', (e) => { e.preventDefault(); switchTab('player-analysis'); });
-            if (sortByDateBtn) sortByDateBtn.addEventListener('click', () => { __sortAsc = !__sortAsc; renderMatches(); });
+            if (sortByDateBtn) sortByDateBtn.addEventListener('click', handleSortToggle);
+            if (emptySortByDateBtn) emptySortByDateBtn.addEventListener('click', handleSortToggle);
             const importBtn = document.getElementById('importMatchBtn');
             if (importBtn) importBtn.addEventListener('click', handleImportMatchClick);
+            if (emptyImportMatchBtn) emptyImportMatchBtn.addEventListener('click', handleImportMatchClick);
             if (importFolderBtn) importFolderBtn.addEventListener('click', () => { if (importFolderInput) importFolderInput.click(); });
             if (importFilesBtn) importFilesBtn.addEventListener('click', () => { if (importFilesInput) importFilesInput.click(); });
-            if (importFolderInput) importFolderInput.addEventListener('change', () => { setImportDialogFiles(importFolderInput.files); });
-            if (importFilesInput) importFilesInput.addEventListener('change', () => { setImportDialogFiles(importFilesInput.files); });
+            if (importFolderInput) importFolderInput.addEventListener('change', async () => { await setImportDialogFiles(importFolderInput.files); });
+            if (importFilesInput) importFilesInput.addEventListener('change', async () => { await setImportDialogFiles(importFilesInput.files); });
             if (importDialogCloseBtn) importDialogCloseBtn.addEventListener('click', closeImportMatchDialog);
             if (importDialogCancelBtn) importDialogCancelBtn.addEventListener('click', closeImportMatchDialog);
             if (importDialogRunBtn) importDialogRunBtn.addEventListener('click', handleImportDialogRun);
@@ -4248,11 +4351,22 @@
         }
 
         function loadSelectedTeam() {
+            if (!pendingOpenImportRequested) {
+                try { pendingOpenImportRequested = consumeOpenImportFlag(); } catch(_) { pendingOpenImportRequested = false; }
+            }
             const teamId = localStorage.getItem('selectedTeamId');
             if (window.teamsModule) {
                 // Se esiste un team corrente nel modulo, usalo, altrimenti prova con l'id memorizzato
                 const current = window.teamsModule.getCurrentTeam();
                 selectedTeam = current || (teamId ? window.teamsModule.getTeamById(teamId) : null);
+            }
+
+            if (!selectedTeam && pendingOpenImportRequested) {
+                const fallbackOwned = getFallbackOwnedTeam();
+                if (fallbackOwned && fallbackOwned.id != null) {
+                    selectedTeam = fallbackOwned;
+                    try { localStorage.setItem('selectedTeamId', String(fallbackOwned.id)); } catch(_) {}
+                }
             }
 
             if (!selectedTeam) {
@@ -4273,6 +4387,10 @@
             }
 
             if (!selectedTeam) {
+                if (pendingOpenImportRequested) {
+                    pendingOpenImportRequested = false;
+                    alert('Seleziona prima una squadra da Elenco Squadre per importare le partite');
+                }
                 updateObserverUI();
                 switchTab('list');
                 const dateInput = document.getElementById('match-date');
@@ -4310,6 +4428,12 @@
             // Prompt roster rimosso: questa pagina mostra solo l'elenco partite
 
             loadMatches();
+            try {
+                if (!isObserverMode && pendingOpenImportRequested) {
+                    pendingOpenImportRequested = false;
+                    setTimeout(() => { try { openImportMatchDialog(); } catch(_) {} }, 150);
+                }
+            } catch(_) {}
             enforceObserverAccessAndLog();
         }
 
@@ -4329,7 +4453,7 @@
                         localStorage.removeItem('selectedSharedTeamMeta');
                         localStorage.removeItem('selectedTeamId');
                     } catch(_) {}
-                    alert('Accesso osservatore sospeso o rimosso per questa squadra');
+                    alert('Accesso Ospiete sospeso o rimosso per questa squadra');
                     window.location.href = '/my-teams.html?archive=shared';
                     return;
                 }
@@ -4344,18 +4468,27 @@
         }
 
         function updateTeamInfo() {
-            if (!selectedTeam) return;
             const clubEl = document.getElementById('clubNameTop');
             const teamEl = document.getElementById('teamNameBottom');
             const roleEl = document.getElementById('teamRoleBadge');
+            const hasRelevantMatches = getRelevantMatchesForSelectedTeam().length > 0;
+            setTeamContextCompactMode(!hasRelevantMatches);
+            if (!selectedTeam) {
+                if (clubEl) clubEl.textContent = '';
+                if (teamEl) teamEl.textContent = '';
+                if (roleEl) roleEl.textContent = '';
+                if (teamIdentitySeparator) teamIdentitySeparator.style.display = 'none';
+                return;
+            }
             
             const nameCombined = selectedTeam.name || '';
             const parts = String(nameCombined).split(' - ');
             const inferredTeam = selectedTeam.teamName || (parts.length ? parts[0] : '');
             const inferredClub = selectedTeam.clubName || (parts.length >= 2 ? parts.slice(1).join(' - ') : '');
             
-            if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '—';
-            if (teamEl) teamEl.textContent = inferredTeam || '—';
+            if (clubEl) clubEl.textContent = inferredClub || inferredTeam || '';
+            if (teamEl) teamEl.textContent = inferredTeam || '';
+            if (teamIdentitySeparator) teamIdentitySeparator.style.display = (inferredClub && inferredTeam) ? 'inline' : 'none';
             
             if (roleEl) {
                 const owner = localStorage.getItem('selectedTeamOwner');
@@ -4364,7 +4497,7 @@
                 const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
                 
                 if (isObserver) {
-                    roleEl.textContent = 'Osservatore';
+                    roleEl.textContent = 'Ospiete';
                     roleEl.style.background = '#eff6ff';
                     roleEl.style.color = '#3b82f6';
                     roleEl.style.border = '1px solid #bfdbfe';
@@ -4843,6 +4976,7 @@
         function renderMatches() {
             const relevant = getRelevantMatchesForSelectedTeam();
             if (relevant.length === 0) {
+                setTeamContextCompactMode(true);
                 showEmptyMatches();
                 if (teamAnalysisChart && teamAnalysisChartEmpty) {
                     teamAnalysisChart.style.display = 'none';
@@ -4864,6 +4998,12 @@
                 const tb = getMatchDateEpoch(b);
                 return __sortAsc ? (ta - tb) : (tb - ta);
             });
+            setTeamContextCompactMode(false);
+            if (teamContextHeader) teamContextHeader.style.display = '';
+            try {
+                document.querySelectorAll('.team-context-header').forEach((el) => { el.style.display = ''; });
+            } catch(_) {}
+            if (topMatchesActionsBar) topMatchesActionsBar.style.display = 'flex';
 
             matchesList.innerHTML = '';
             emptyMatches.style.display = 'none';
@@ -8963,7 +9103,9 @@
             const card = document.createElement('div');
             card.className = 'match-card';
 
-            const opp = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === selectedTeam?.name) ? match.awayTeam : match.homeTeam) : 'Avversario');
+            const _oppBase = match.opponent || match.opponentTeam || ((match.homeTeam || match.awayTeam) ? ((match.homeTeam === selectedTeam?.name) ? match.awayTeam : match.homeTeam) : 'Avversario');
+            const _descMR = (match.description || '').toLowerCase();
+            const opp = (_descMR === 'andata' ? '(A) ' : _descMR === 'ritorno' ? '(R) ' : '') + _oppBase;
             const rawDate = match.date || match.matchDate || match.createdAt || '';
             const dateLabel = formatItalianDateDisplay(rawDate);
             const rawType = match.matchType || match.eventType || match.type || 'partita';
@@ -9166,9 +9308,16 @@
         function showEmptyMatches() {
             matchesList.innerHTML = '';
             emptyMatches.style.display = 'block';
+            if (teamContextHeader) teamContextHeader.style.display = 'none';
+            try {
+                document.querySelectorAll('.team-context-header').forEach((el) => { el.style.display = 'none'; });
+            } catch(_) {}
+            if (topMatchesActionsBar) topMatchesActionsBar.style.display = 'none';
+            if (emptyMatchesToolbar) emptyMatchesToolbar.style.display = 'flex';
+            setTeamContextCompactMode(true);
             if (isObserverMode) {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
-                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud tramite il menu utente in alto a destra, seleziona la voce Aggiorna Locale da Cloud';
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Usa la voce Importa partite nel menu utente in alto a destra';
                 if (emptyMatchesActions) emptyMatchesActions.style.display = 'none';
             } else {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
@@ -9814,9 +9963,74 @@
             return /\.(xls|xlsx|xlsm)$/i.test(String(name||''));
         }
 
-        function setImportDialogFiles(fileList){
+        function normalizeSuggestionText(value){
+            return String(value || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function parseFilePathSuggestions(file){
+            const out = { club: '', team: '' };
+            const rawPath = String(file?.webkitRelativePath || file?.name || '').replace(/\\/g, '/');
+            const parts = rawPath.split('/').filter(Boolean);
+            if (parts.length >= 2) out.club = normalizeSuggestionText(parts[parts.length - 2]);
+            if (parts.length >= 1) {
+                const base = String(parts[parts.length - 1] || '').replace(/\.(xls|xlsx|xlsm)$/i, '');
+                out.team = normalizeSuggestionText(base.replace(/[_-]+/g, ' '));
+            }
+            return out;
+        }
+
+        async function inspectImportFileSuggestions(file){
+            const out = { club: '', team: '' };
+            try {
+                const pathGuess = parseFilePathSuggestions(file);
+                out.club = pathGuess.club;
+                out.team = pathGuess.team;
+                const ab = await file.arrayBuffer();
+                const wb = XLSX.read(ab, { type: 'array', cellDates: true, raw: true, sheetRows: 60 });
+                const rosterWs = wb.Sheets['El. Gioc.'] || wb.Sheets[(wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')))] || null;
+                if (rosterWs) {
+                    const clubFromSheet = normalizeSuggestionText(readCellText(rosterWs, 'D18'));
+                    const teamFromSheet = normalizeSuggestionText(readCellText(rosterWs, 'D19'));
+                    if (clubFromSheet) out.club = clubFromSheet;
+                    if (teamFromSheet) out.team = teamFromSheet;
+                }
+            } catch(_) {}
+            return out;
+        }
+
+        function renderImportNameSuggestions(){
+            if (importClubSuggestions) {
+                importClubSuggestions.innerHTML = '';
+                importDetectedClubNames.forEach((name) => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    importClubSuggestions.appendChild(opt);
+                });
+            }
+            if (importTeamSuggestions) {
+                importTeamSuggestions.innerHTML = '';
+                importDetectedTeamNames.forEach((name) => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    importTeamSuggestions.appendChild(opt);
+                });
+            }
+        }
+
+        async function setImportDialogFiles(fileList){
             const files = Array.from(fileList || []).filter(f => isExcelFileName(f && f.name));
-            importCandidateFiles = files.map(f => ({ file: f, selected: true, label: f.webkitRelativePath || f.name || 'File' }));
+            importCandidateFiles = files.map(f => ({ file: f, selected: true, label: f.webkitRelativePath || f.name || 'File', suggestions: null }));
+            const clubSet = new Set();
+            const teamSet = new Set();
+            for (const item of importCandidateFiles) {
+                const found = await inspectImportFileSuggestions(item.file);
+                item.suggestions = found;
+                if (found?.club) clubSet.add(found.club);
+                if (found?.team) teamSet.add(found.team);
+            }
+            importDetectedClubNames = Array.from(clubSet);
+            importDetectedTeamNames = Array.from(teamSet);
+            renderImportNameSuggestions();
             renderImportFilesList();
         }
 
@@ -9837,7 +10051,7 @@
                 checkbox.onchange = () => { item.selected = checkbox.checked; updateImportSelectionSummary(); };
                 const nameEl = document.createElement('div');
                 nameEl.className = 'import-file-name';
-                nameEl.textContent = item.label;
+                nameEl.textContent = String(item?.file?.name || item.label || 'File');
                 row.appendChild(checkbox);
                 row.appendChild(nameEl);
                 importFilesList.appendChild(row);
@@ -9851,11 +10065,84 @@
             const selected = importCandidateFiles.filter(x => x.selected).length;
             if (!total) importSelectionSummary.textContent = 'Nessun file selezionato';
             else importSelectionSummary.textContent = 'Selezionati ' + selected + ' di ' + total + ' file';
+            if (importDialogRunBtn) importDialogRunBtn.disabled = selected <= 0;
+        }
+
+        function resolveSelectedTeamContext(){
+            if (selectedTeam && selectedTeam.id != null) return selectedTeam;
+            const fallbackTeamId = (() => {
+                try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; }
+            })();
+            let resolved = null;
+            try {
+                const current = window.teamsModule?.getCurrentTeam?.();
+                if (current && current.id != null) resolved = current;
+            } catch(_) {}
+            if (!resolved && fallbackTeamId != null) {
+                try {
+                    const fromList = window.teamsModule?.getTeamById?.(fallbackTeamId);
+                    if (fromList && fromList.id != null) resolved = fromList;
+                } catch(_) {}
+            }
+            if (!resolved) {
+                const sharedMeta = getSelectedSharedTeamMeta();
+                const owner = getSelectedTeamOwner();
+                const sharedId = String(sharedMeta?.id || fallbackTeamId || '').trim();
+                if (sharedId) {
+                    resolved = {
+                        id: sharedId,
+                        name: String(sharedMeta?.name || '').trim(),
+                        teamName: String(sharedMeta?.teamName || '').trim(),
+                        clubName: String(sharedMeta?.clubName || '').trim(),
+                        players: Array.isArray(sharedMeta?.players) ? sharedMeta.players : [],
+                        _mvsShared: true,
+                        _mvsOwner: String(owner || sharedMeta?.owner || '').trim(),
+                        _mvsRole: String(sharedMeta?.role || 'observer').trim()
+                    };
+                }
+            }
+            if (!resolved && fallbackTeamId != null) {
+                const sameTeamMatch = Array.isArray(matches)
+                    ? matches.find((m) => String(m?.teamId || '').trim() === String(fallbackTeamId).trim())
+                    : null;
+                const fallbackMatch = sameTeamMatch || (Array.isArray(matches) ? matches[0] : null);
+                const inferredName = String(
+                    fallbackMatch?.myTeam ||
+                    fallbackMatch?.teamName ||
+                    fallbackMatch?.homeTeam ||
+                    ''
+                ).trim();
+                if (inferredName) {
+                    resolved = {
+                        id: String(fallbackTeamId),
+                        name: inferredName,
+                        teamName: inferredName,
+                        clubName: '',
+                        players: []
+                    };
+                }
+            }
+            if (resolved && resolved.id != null) {
+                selectedTeam = resolved;
+                try { localStorage.setItem('selectedTeamId', String(resolved.id)); } catch(_) {}
+            }
+            return selectedTeam;
         }
 
         function openImportMatchDialog(){
             if (!importMatchDialog) return;
+            const activeTeam = resolveSelectedTeamContext();
+            if (!activeTeam || activeTeam.id == null) {
+                alert('Seleziona una squadra prima di importare una partita');
+                return;
+            }
+            importDetectedClubNames = [];
+            importDetectedTeamNames = [];
+            renderImportNameSuggestions();
+            if (importTeamNameInput) importTeamNameInput.value = String(activeTeam?.teamName || activeTeam?.name || '').trim();
+            if (importClubNameInput) importClubNameInput.value = String(activeTeam?.clubName || '').trim();
             setImportDialogFiles([]);
+            if (importAutoConfirmToggle) importAutoConfirmToggle.checked = false;
             if (!importMatchDialog.open) importMatchDialog.showModal();
         }
 
@@ -9874,11 +10161,64 @@
                 alert('Seleziona almeno un file da importare');
                 return;
             }
+            const autoConfirm = !!(importAutoConfirmToggle && importAutoConfirmToggle.checked);
+            const activeTeam = resolveSelectedTeamContext();
+            const overrideNames = {
+                clubName: normalizeSuggestionText(activeTeam?.clubName || ''),
+                teamName: normalizeSuggestionText(activeTeam?.teamName || activeTeam?.name || '')
+            };
             closeImportMatchDialog();
-            await importMatchesFromFiles(files);
+            await importMatchesFromFiles(files, { autoConfirm, overrideNames });
         }
 
-        async function importMatchesFromFiles(files){
+        async function saveImportedPayloadQueue(queue){
+            const saved = [];
+            const errors = [];
+            if (!window.matchesModule || typeof window.matchesModule.saveMatch !== 'function') {
+                return { saved, errors: ['Modulo partite non disponibile'] };
+            }
+            for (const item of (Array.isArray(queue) ? queue : [])) {
+                const sourceFileName = String(item?.sourceFileName || 'File').trim() || 'File';
+                try {
+                    const draft = item?.matchDraft && typeof item.matchDraft === 'object'
+                        ? Object.assign({}, item.matchDraft)
+                        : null;
+                    if (!draft) {
+                        errors.push(`${sourceFileName}: dati import non validi`);
+                        continue;
+                    }
+                    const roster = Array.isArray(item?.roster)
+                        ? item.roster
+                        : (Array.isArray(draft.roster) ? draft.roster : []);
+                    draft.roster = roster;
+                    draft.players = roster;
+                    let validation = null;
+                    try {
+                        if (typeof window.matchesModule.validateMatchData === 'function') {
+                            validation = window.matchesModule.validateMatchData(draft);
+                        }
+                    } catch(_) {}
+                    if (validation && !validation.isValid) {
+                        const reason = Array.isArray(validation.errors) && validation.errors.length
+                            ? validation.errors.join(', ')
+                            : 'validazione fallita';
+                        errors.push(`${sourceFileName}: ${reason}`);
+                        continue;
+                    }
+                    const res = await window.matchesModule.saveMatch(draft);
+                    if (res?.success) {
+                        saved.push(sourceFileName);
+                    } else {
+                        errors.push(`${sourceFileName}: ${String(res?.error || 'errore salvataggio')}`);
+                    }
+                } catch(e) {
+                    errors.push(`${sourceFileName}: ${String(e?.message || 'errore salvataggio')}`);
+                }
+            }
+            return { saved, errors };
+        }
+
+        async function importMatchesFromFiles(files, options = {}){
             if (!files || !files.length) return;
             const queue = [];
             const failed = [];
@@ -9886,7 +10226,7 @@
             for (const file of files){
                 try {
                     showImportStages(file && file.name);
-                    const payload = await importMatchFromExcelFile(file, { deferRedirect: true });
+                    const payload = await importMatchFromExcelFile(file, { deferRedirect: true, overrideNames: options?.overrideNames || {} });
                     if (!payload) continue;
                     queue.push({
                         matchDraft: payload.matchDraft,
@@ -9901,6 +10241,24 @@
             if (!queue.length){
                 hideImportStages();
                 alert('Nessun file importabile');
+                return;
+            }
+            if (options && options.autoConfirm) {
+                const saveResult = await saveImportedPayloadQueue(queue);
+                hideImportStages();
+                const lines = [];
+                if (saveResult.saved.length) lines.push(`Partite salvate: ${saveResult.saved.length}`);
+                if (failed.length) lines.push(`File non importati: ${failed.length}`);
+                if (saveResult.errors.length) lines.push(`Errori salvataggio: ${saveResult.errors.length}`);
+                if (!lines.length) lines.push('Nessuna partita salvata');
+                alert(lines.join('\n'));
+                if (failed.length) {
+                    alert('Alcuni file non sono stati importati:\n' + failed.map(f => '• ' + f).join('\n'));
+                }
+                if (saveResult.errors.length) {
+                    alert('Alcune partite non sono state salvate:\n' + saveResult.errors.map(e => '• ' + e).join('\n'));
+                }
+                try { await loadMatches(); } catch(_) {}
                 return;
             }
             try {
@@ -9921,7 +10279,8 @@
 
         async function importMatchFromExcelFile(file, options = {}){
             try {
-                if (!selectedTeam){
+                const activeTeam = resolveSelectedTeamContext();
+                if (!activeTeam || activeTeam.id == null){
                     alert('Seleziona una squadra prima di importare una partita');
                     return;
                 }
@@ -9937,7 +10296,7 @@
                 const wb = XLSX.read(ab, { type: 'array', cellDates: true, raw: true, sheetRows: 220 });
                 await new Promise(r => setTimeout(r, 0));
                 const rosterWs = wb.Sheets['El. Gioc.'] || wb.Sheets[(wb.SheetNames||[]).find(n => /gioc/i.test(String(n||'')))];
-                const meta = { opponent: '', matchDate: '', eventType: '', location: '', description: '', finalResult: '', matchOutcome: '' };
+                const meta = { opponent: '', matchDate: '', eventType: '', location: '', description: '', finalResult: '', matchOutcome: '', clubName: '', teamName: '' };
                 const importedRoster = [];
                 if (rosterWs){
                     const range = rosterWs['!ref'] ? XLSX.utils.decode_range(rosterWs['!ref']) : { s: { r: 0, c: 0 }, e: { r: 200, c: 10 } };
@@ -9973,6 +10332,8 @@
                         const prog = Math.min(100, Math.round(((r - 3) / Math.max(1, (range.e.r + 1) - 3)) * 100));
                         setImportStageProgress('is_p3', prog);
                     }
+                    meta.clubName = normalizeSuggestionText(readCellText(rosterWs, 'D18'));
+                    meta.teamName = normalizeSuggestionText(readCellText(rosterWs, 'D19'));
                     meta.opponent = rosterWs['D20'] && (rosterWs['D20'].v != null ? String(rosterWs['D20'].v).trim() : (rosterWs['D20'].w ? String(rosterWs['D20'].w).trim() : ''));
                     let matchDate = rosterWs['D21'] && (rosterWs['D21'].v != null ? rosterWs['D21'].v : (rosterWs['D21'].w ? rosterWs['D21'].w : ''));
                     if (typeof matchDate === 'number'){
@@ -10034,14 +10395,18 @@
                 }
                 setImportStatus('is_s4','Completato');
                 setImportStageProgress('is_p4', 100);
-                const myTeamName = selectedTeam?.name || '';
+                const overrideTeamName = normalizeSuggestionText(options?.overrideNames?.teamName || '');
+                const overrideClubName = normalizeSuggestionText(options?.overrideNames?.clubName || '');
+                const myTeamName = overrideTeamName || meta.teamName || activeTeam?.teamName || activeTeam?.name || '';
                 const opponentName = meta.opponent || '';
                 const isHome = meta.location === 'casa' ? true : (meta.location === 'trasferta' ? false : true);
-                const matchId = `${String(selectedTeam?.id||'team')}_${Date.now()}`;
+                const matchId = `${String(activeTeam?.id||'team')}_${Date.now()}`;
                 const match = {
                     id: matchId,
-                    teamId: selectedTeam?.id || null,
+                    teamId: activeTeam?.id || null,
                     myTeam: myTeamName,
+                    teamName: myTeamName,
+                    clubName: overrideClubName || meta.clubName || String(activeTeam?.clubName || '').trim(),
                     opponentTeam: opponentName || 'Avversario',
                     homeAway: isHome ? 'home' : 'away',
                     matchType: meta.eventType || 'partita',
