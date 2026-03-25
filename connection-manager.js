@@ -110,7 +110,7 @@ window.safeFirestoreOperation = async (operation, operationName) => {
 console.log('Connection Manager inizializzato');
 
 (function () {
-    window.MVS_APP_VERSION = '1.1.2 Preview';
+    window.MVS_APP_VERSION = '1.1.5';
     window.appBuild = window.appBuild || { version: '', commit: '' };
     window.appBuild.version = String(window.MVS_APP_VERSION || '');
     let deferredInstallPrompt = null;
@@ -259,7 +259,7 @@ console.log('Connection Manager inizializzato');
                     }
                 };
                 overlay.addEventListener('keydown', onKey);
-                document.body.appendChild(overlay);
+                document.documentElement.appendChild(overlay);   // FIX: append to <html> instead of <body> — body has a persistent transform from pageIn animation that breaks position:fixed
                 okBtn.focus();
             } catch (_) {
                 resolve(false);
@@ -390,7 +390,7 @@ console.log('Connection Manager inizializzato');
             if (emailNode) emailNode.classList.add('menu-item', 'menu-item-muted');
             const quickSaveNodes = extract(['save-match-btn']);
             const navNodes = extract(['goToTeamsBtn', 'goToTeamsBtnMobile', 'goToMatchesBtn', 'goToMatchesBtnMobile']);
-            const actionNodes = extract(['installAppBtn', 'exportSetsBtnMobile', 'importAllMatchesBtn', 'deleteAllMatchesBtn', 'exportAllMatchesBtn', 'purgeAllBtn']);
+            const actionNodes = extract(['installAppBtn', 'exportSetsBtnMobile', 'importAllMatchesBtn', 'deleteAllMatchesBtn', 'exportAllMatchesBtn', 'hydrateDataBtn', 'syncDataBtn', 'purgeAllBtn']);
             const sessionNodes = extract(['exitToWelcomeBtnMobile', 'accountLogout', 'signOutBtnMobile']);
             const settingsNodes = entries.filter((el) => isLegacySettingsNode(el));
             const settingsEntry = (() => {

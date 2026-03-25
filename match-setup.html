@@ -30,7 +30,9 @@
       .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
       .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
       .icon-button { background: #ffffff; color: #0d6efd; border: 1px solid #e9ecef; padding: 6px; border-radius: 8px; cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
-      .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+      @media (hover: hover) {
+        .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+      }
       .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
       .icon-button-circle { width:32px; height:32px; min-width:32px; min-height:32px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:0; }
       .icon-button-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
@@ -66,11 +68,13 @@
       .radio-option {
         transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
       }
-      .btn:hover,
-      .icon-button:hover,
-      .radio-option:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      @media (hover: hover) {
+        .btn:hover,
+        .icon-button:hover,
+        .radio-option:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+        }
       }
       .btn:active,
       .icon-button:active,
@@ -83,6 +87,7 @@
         .form-actions .btn { width: auto !important; }
       }
     </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
     <div class="container">

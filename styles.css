@@ -109,9 +109,11 @@ body {
     min-width: 100px;
 }
 
-.nav-btn:hover {
+@media (hover: hover) {
+  .nav-btn:hover {
     background: rgba(255,255,255,0.3);
     transform: translateY(-2px);
+  }
 }
 
 .nav-btn.active {
@@ -270,12 +272,12 @@ body {
 }
 .dialog .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #e3f2fd; }
 .dialog .dialog-header h3 { font-size: clamp(1.1rem, 2.4vw, 1.4rem); font-weight: 700; color: #1f2937; }
-.dialog .close-btn { border: 1px solid #e5e7eb; background: #fff; color: #374151; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.dialog .close-btn { border: 1px solid #e5e7eb; background: #fff; color: #374151; border-radius: 8px; padding: 5px 14px; font-size: clamp(0.8rem, 2vw, 0.9rem); cursor: pointer; white-space: nowrap; line-height: 1.3; }
 .dialog .close-btn:hover { background: #f8fafc; }
 .dialog .dialog-body { padding-top: 10px; display: grid; gap: 10px; }
-.dialog .dialog-footer { display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+.dialog .dialog-footer { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
 .dialog .dialog-footer .primary-btn,
-.dialog .dialog-footer .secondary-btn { flex: 1 1 160px; min-width: 140px; padding: clamp(10px, 2.8vw, 14px); border-radius: 10px; }
+.dialog .dialog-footer .secondary-btn { flex: 1 1 0; min-width: 0; padding: clamp(8px, 2.5vw, 14px) clamp(6px, 2vw, 16px); border-radius: 10px; font-size: clamp(0.82rem, 2.2vw, 0.95rem); }
 .dialog .dialog-footer .primary-btn,
 .dialog .dialog-footer .secondary-btn,
 .dialog .dialog-footer .mvs-actions-add-btn {
@@ -285,8 +287,8 @@ body {
   text-align: center;
 }
 .dialog .dialog-footer .mvs-actions-add-btn {
-  flex: 0 0 44px;
-  min-width: 44px;
+  flex: 0 0 40px;
+  min-width: 40px;
   padding: 8px 0;
   font-size: 20px;
   line-height: 1;
@@ -433,6 +435,100 @@ body {
   flex: 1 1 0;
 }
 
+/* [MOD-5] Editor Quartine: nasconde freccia dropdown nativa dai select */
+.mvs-quartine-dialog .mvs-select,
+#action-editor-dialog .mvs-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: none;
+  padding-right: 6px;  /* rimuove spazio extra per freccia */
+}
+
+/* [MOD-6] Dialog Dettaglio Azione: coerenza con stile scouting */
+.mvs-detail-dialog .dialog-content {
+  width: min(92vw, 700px);
+}
+.mvs-detail-dialog .dialog-footer {
+  justify-content: flex-end;
+}
+.mvs-detail-dialog .dialog-footer .secondary-btn {
+  flex: 0 1 auto;
+  min-width: auto;
+  background: #fff;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+}
+.mvs-detail-dialog .dialog-footer .secondary-btn:hover {
+  background: #e3f2fd;
+}
+
+/* [MOD-7] Progr. Azioni: pulsanti footer coerenti outline */
+.mvs-actions-dialog .dialog-footer .secondary-btn {
+  background: #fff;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+}
+.mvs-actions-dialog .dialog-footer .secondary-btn:hover {
+  background: #e3f2fd;
+}
+.mvs-actions-dialog .dialog-footer .primary-btn {
+  background: #1976d2;
+  color: #fff;
+  border: 2px solid #1976d2;
+}
+.mvs-actions-dialog .dialog-footer .primary-btn:hover {
+  background: #1565c0;
+}
+.mvs-actions-dialog .dialog-footer .mvs-actions-add-btn {
+  background: #fff;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+}
+.mvs-actions-dialog .dialog-footer .mvs-actions-add-btn:hover {
+  background: #e3f2fd;
+}
+
+/* [MOD-7b] Editor Quartine footer: coerenza pulsanti */
+#action-editor-dialog .dialog-footer .secondary-btn {
+  background: #fff;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+}
+#action-editor-dialog .dialog-footer .secondary-btn:hover {
+  background: #e3f2fd;
+}
+#action-editor-dialog .dialog-footer .primary-btn {
+  background: #1976d2;
+  color: #fff;
+  border: 2px solid #1976d2;
+}
+#action-editor-dialog .dialog-footer .primary-btn:hover {
+  background: #1565c0;
+}
+
+/* [MOD-7c] Close button coerenza colori in tutti i dialog */
+.dialog .close-btn {
+  border: 2px solid #1976d2;
+  color: #1976d2;
+  font-weight: 600;
+}
+.dialog .close-btn:hover {
+  background: #e3f2fd;
+}
+
+/* [MOD-7d] Icon buttons (matita/cestino) coerenza colori */
+.icon-btn.mvs-icon-btn {
+  border-color: #1976d2;
+  color: #1976d2;
+}
+.icon-btn.mvs-icon-btn:hover {
+  background: #e3f2fd;
+}
+.icon-btn.mvs-icon-btn svg {
+  stroke: #1976d2;
+}
+
 /* End-Set dialog specifics */
 #end-set-dialog .dialog-content { width: min(92vw, 560px); }
 #end-set-title { font-weight: 700; color: #111827; }
@@ -440,10 +536,46 @@ body {
 #end-set-outcome { font-size: clamp(1rem, 2.6vw, 1.2rem); font-weight: 600; color: #374151; }
 #endSetAskAgain { width: 18px; height: 18px; }
 
+/* Dialog layout: header/footer fissi, body scrollabile */
+.mvs-actions-dialog .dialog-content.mvs-dialog-content,
+.mvs-detail-dialog .dialog-content.mvs-dialog-content,
+.mvs-quartine-dialog .dialog-content.mvs-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: min(75vh, calc(100dvh - 60px));
+  overflow: hidden;
+}
+.mvs-actions-dialog .dialog-header.mvs-dialog-header,
+.mvs-detail-dialog .dialog-header.mvs-dialog-header,
+.mvs-quartine-dialog .dialog-header.mvs-dialog-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+.mvs-actions-dialog .dialog-body,
+.mvs-detail-dialog .dialog-body,
+.mvs-quartine-dialog .dialog-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+.mvs-actions-dialog .dialog-footer,
+.mvs-detail-dialog .dialog-footer,
+.mvs-quartine-dialog .dialog-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 2;
+}
+
 @media (max-width: 600px) {
-  .dialog .dialog-content { width: 100%; height: auto; max-height: 85vh; border-radius: 12px; }
-  .dialog .dialog-body { overflow-y: auto; }
-  .dialog .dialog-footer { position: sticky; bottom: 0; background: #fff; padding-bottom: 10px; }
+  .dialog .dialog-content { width: 100%; height: auto; max-height: 85vh; border-radius: 12px; display: flex; flex-direction: column; }
+  .dialog .dialog-body { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .dialog .dialog-header { flex-shrink: 0; position: sticky; top: 0; background: #fff; z-index: 2; }
+  .dialog .dialog-footer { flex-shrink: 0; position: sticky; bottom: 0; background: #fff; padding-bottom: 10px; z-index: 2; }
 }
 
 .btn-primary {
@@ -451,9 +583,11 @@ body {
     color: white;
 }
 
-.btn-primary:hover {
+@media (hover: hover) {
+  .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+  }
 }
 
 .btn-secondary {
@@ -503,7 +637,37 @@ body {
   opacity: 1; 
   transform: translateX(0); 
   pointer-events: auto; 
-  transition: transform .22s ease-out, opacity .2s ease-out, visibility 0s; 
+  transition: transform .22s ease-out, opacity .2s ease-out, visibility 0s;
+}
+
+@media (min-width: 769px) {
+  .main.with-sidebar,
+  .main.with-sidebar.sidebar-open {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .main.with-sidebar .set-sidebar {
+    position: fixed;
+    left: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h, 56px));
+    height: calc(100dvh - var(--topbar-h, 56px) - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    transform: translateX(-110%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .main.with-sidebar.sidebar-open .set-sidebar {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .main.with-sidebar > :not(.set-sidebar) {
+    grid-column: 1;
+    width: min(100%, 980px);
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .topbar-toggle { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 6px 8px; border-radius: 12px; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -674,9 +838,11 @@ body {
     color: white;
 }
 
-.btn-danger:hover {
+@media (hover: hover) {
+  .btn-danger:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+  }
 }
 
 /* Match list */
@@ -757,10 +923,12 @@ body {
 }
 
 .match-item:hover,
-.roster-item:hover {
+@media (hover: hover) {
+  .roster-item:hover {
     border-color: #2196F3;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
 }
 
 .roster-info { flex: 1; }
@@ -1551,13 +1719,32 @@ body {
   gap: 6px;
   width: 100%;
 }
-.multi-line-item { 
+.multi-line-item {
   display: grid;
   grid-template-columns: minmax(0, 0.22fr) minmax(0, 0.5fr) minmax(0, 0.28fr);
-  gap: 8px; 
-  align-items: stretch; 
+  gap: 8px;
+  align-items: stretch;
   justify-items: stretch; /* forza ogni cella a riempire il suo spazio */
   width: 100%;
+}
+#pressed-buttons-log.multiline.edit-mode .multi-line-item {
+  grid-template-columns: 24px minmax(0, 0.2fr) minmax(0, 0.52fr) minmax(0, 0.28fr);
+}
+#pressed-buttons-log.multiline .multi-line-delete {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 0;
+  background: #e53935;
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
 }
 /* In modalità multi‑linea, ogni pill occupa esattamente 1/3 della riga */
 #pressed-buttons-log.multiline .multi-line-item .token {
@@ -1864,6 +2051,91 @@ body {
     justify-self: stretch !important; /* ogni item della griglia riempie la cella */
     width: 100% !important;
 }
+.selected-info #pressed-buttons-log.multiline .multi-line-item > .multi-line-delete {
+    justify-self: center !important;
+    width: 24px !important;
+}
+
+/* ── Desktop/Tablet responsive per scouting ── */
+@media (min-width: 769px) {
+  #scouting-section {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 12px 16px 24px;
+  }
+  #scouting-dialog.embedded,
+  #scouting-dialog.embedded .dialog-content,
+  #scouting-dialog.embedded .scaffold {
+    transform: none !important;
+  }
+  #scouting-dialog.embedded .dialog-content {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px;
+  }
+  #scouting-dialog.embedded .players-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #scouting-dialog.embedded .player-btn {
+    min-height: 88px;
+    padding: 10px;
+  }
+  #scouting-dialog.embedded .evaluation-buttons {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #scouting-dialog.embedded .evaluation-buttons .eval-btn {
+    min-height: 64px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 1024px) and (orientation: landscape) {
+  #scouting-section {
+    width: min(100%, 860px);
+    margin: 0 auto;
+    padding: 12px 10px 20px;
+  }
+  #scouting-dialog.embedded .dialog-content {
+    width: 100%;
+    max-width: 860px;
+    padding: 10px;
+  }
+  #scouting-dialog.embedded .players-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  #scouting-dialog.embedded .player-btn {
+    min-height: 74px;
+    padding: 8px;
+  }
+  #scouting-dialog.embedded .evaluation-buttons .eval-btn {
+    min-height: 56px;
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .main.with-sidebar {
+    grid-template-columns: minmax(0, var(--sidebar-width)) minmax(0, 1fr);
+  }
+  .main.with-sidebar > #punteggio-section,
+  .main.with-sidebar > #scouting-dialog {
+    width: min(100%, 980px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #scouting-dialog.embedded .scaffold {
+    gap: 12px;
+  }
+  #scouting-dialog.embedded .scaffold > .section-panel,
+  #scouting-dialog.embedded .scaffold > .next-fundamental-info,
+  #scouting-dialog.embedded .scaffold > .score-display {
+    width: 100%;
+  }
+}
 
 /* Stili per la sezione punteggio */
 .score-display {
@@ -2147,9 +2419,11 @@ body {
     }
 }
 
-.eval-btn:hover {
+@media (hover: hover) {
+  .eval-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  }
 }
 
 .eval-btn:active {
@@ -3279,6 +3553,7 @@ body {
 
 .dialog.is-open {
     display: flex;
+    overflow: hidden;
 }
 
 .dialog-content {
@@ -3493,8 +3768,10 @@ body {
     transition: box-shadow 0.2s;
 }
 
-.action-item:hover {
+@media (hover: hover) {
+  .action-item:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Nuovo stile compatto: una riga per azione */
@@ -3686,7 +3963,9 @@ body {
 /* Report summary grid and cards */
 .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .report-card { display: block; text-align: left; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease; }
-.report-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.10); border-color: #dbeafe; }
+@media (hover: hover) {
+  .report-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.10); border-color: #dbeafe; }
+}
 .report-card .card-title { font-weight: 600; color: #0f172a; margin-bottom: 6px; }
 .report-card .card-desc { color: #475569; font-size: .95rem; }
 
@@ -3919,7 +4198,7 @@ body {
 /* Scaffold interno del pannello embedded: usa gap uniforme */
 #scouting-dialog.embedded .scaffold {
   display: grid;
-  gap: 16px;               /* raddoppia lo spazio tra le sezioni */
+  gap: 11px;               /* ridotto del 30% da 16px → 11px */
 }
 
 /* Nella scaffold usiamo SOLO il gap: rimuovi i margini verticali degli item */
@@ -3929,9 +4208,94 @@ body {
   margin: 0; /* evita somma gap+margini che crea spazi diversi */
 }
 
+/* Override desktop: forza layout a colonna singola con sidebar overlay */
+@media (min-width: 1024px) {
+  .main.with-sidebar,
+  .main.with-sidebar.sidebar-open {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+  .main.with-sidebar .set-sidebar {
+    position: fixed !important;
+    left: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + var(--topbar-h, 56px));
+    height: calc(100dvh - var(--topbar-h, 56px) - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    transform: translateX(-110%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .main.with-sidebar.sidebar-open .set-sidebar {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .main.with-sidebar > :not(.set-sidebar) {
+    grid-column: 1 !important;
+    width: min(100%, 1120px) !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .main.with-sidebar > #punteggio-section { margin-bottom: 2px; }
+  .main.with-sidebar > #scouting-dialog { margin-top: 0; }
+  #scouting-dialog.embedded .dialog-content {
+    max-width: 1120px;
+    width: 100%;
+    padding: 12px;
+  }
+  #scouting-dialog.embedded .scaffold { gap: 7px; }
+  #scouting-dialog.embedded .players-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #scouting-dialog.embedded .player-btn {
+    min-height: 96px;
+    padding: 10px;
+  }
+  #scouting-dialog.embedded .player-btn .player-number { font-size: 1.15rem; }
+  #scouting-dialog.embedded .player-btn .player-line2 .player-name {
+    font-size: 0.95rem;
+    line-height: 1.1;
+  }
+  #scouting-dialog.embedded .opponent-error-btn .player-line1 .player-name,
+  #scouting-dialog.embedded .opponent-error-btn .player-line2 .player-name,
+  #scouting-dialog.embedded .muro-override-btn .player-line1 .player-name,
+  #scouting-dialog.embedded .muro-override-btn .player-line2 .player-name {
+    font-size: 0.9rem !important;
+  }
+}
+
 /* Specifico per la sezione Punteggio: riduci lo spazio superfluo sotto la scritta */
-#punteggio-section { margin: 6px 0; }
-#punteggio-section .score-current { margin-bottom: 4px; padding-bottom: 0; }
+#punteggio-section { margin: 4px 0; }
+#punteggio-section .score-current { margin-bottom: 2px; padding-bottom: 0; }
+/* Toolbar icon unificata: Edit, Reset, Rotazione — stesso colore, stesso design */
+.mvs-toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  color: #1976d2;
+  border: 1.5px solid #1976d2;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.mvs-toolbar-icon:hover { background: #e3f2fd; }
+.mvs-toolbar-icon:active { transform: scale(0.92); }
+.mvs-toolbar-icon svg { display: block; pointer-events: none; }
+/* Edit toggle: stato attivo evidenziato */
+label.mvs-toolbar-icon { position: relative; }
+label.mvs-toolbar-icon input:checked + svg { color: #fff; }
+label.mvs-toolbar-icon:has(input:checked) {
+  background: #1976d2;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(25,118,210,0.25);
+}
 /* Pillola stato salvataggio */
 .save-status-pill {
   position: fixed;
@@ -4055,4 +4419,84 @@ body.page-report #punteggio-section { display: none !important; }
   color: #111827;
   font-weight: 600;
   font-size: 1rem;
+}
+
+/* [MOD-1] Riduzione padding verticale sezioni scouting del ~30% */
+#scouting-dialog.embedded .scaffold > .section-panel {
+  padding-top: 7px;     /* da 10px → 7px */
+  padding-bottom: 7px;
+}
+#scouting-dialog.embedded .scaffold > .next-fundamental-info {
+  padding-top: 5px;     /* da 8px → 5px */
+  padding-bottom: 5px;
+}
+#scouting-dialog.embedded .scaffold > .score-display {
+  padding-top: 10px;    /* da 16px → 10px */
+  padding-bottom: 10px;
+}
+
+/* [MOD-2] Sezione Valutazione: padding-bottom = padding-top per simmetria */
+#scouting-dialog.embedded .scaffold > .section-panel:has(.evaluation-buttons) {
+  padding-bottom: 7px;
+}
+#scouting-dialog.embedded .evaluation-buttons {
+  margin-bottom: 0;
+}
+
+/* [MOD-3a] Progr. Punti: rimuovi sottolineatura titolo */
+.score-display .score-header h4 {
+  text-decoration: none !important;
+}
+
+/* [MOD-3b] Pulsante Vis. Azioni: outline blu, icona + testo */
+#view-actions-btn.secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #ffffff;
+  color: #1976d2;
+  border: 1.5px solid #1976d2;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.82em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+#view-actions-btn.secondary-btn:hover {
+  background-color: #e3f2fd;
+}
+#view-actions-btn.secondary-btn svg { display: block; flex-shrink: 0; }
+
+/* Close button icona × nei dialog */
+.mvs-close-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 !important;
+  border: 1.5px solid #94a3b8 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #64748b !important;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.mvs-close-icon:hover {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #64748b !important;
+}
+.mvs-close-icon:active { transform: scale(0.92); }
+.mvs-close-icon svg { display: block; }
+
+#next-fundamental {
+  font-weight: 800;
+  font-size: 0.84em;
+  text-transform: uppercase;
+  color: #1976d2;
+  text-shadow: none;
 }

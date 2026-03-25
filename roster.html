@@ -54,12 +54,14 @@
     .icon-button-circle {
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
-    .btn:hover,
-    .icon-button:hover,
-    .icon-button-outline:hover,
-    .icon-button-circle:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    @media (hover: hover) {
+      .btn:hover,
+      .icon-button:hover,
+      .icon-button-outline:hover,
+      .icon-button-circle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      }
     }
     .btn:active,
     .icon-button:active,
@@ -71,6 +73,7 @@
     @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .page-slide-in { animation: pageSlideIn .24s ease-out; }
   </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <div class="container">
@@ -241,7 +244,8 @@
             }
             if (!team) {
                 try {
-                     const list = JSON.parse(localStorage.getItem('volleyTeams')||'[]');
+                     // Cloud-only: localStorage removed for volleyTeams
+                     const list = [];
                      team = list.find(t => String(t.id) === String(teamId));
                 } catch(_) {}
             }
@@ -262,7 +266,7 @@
                      const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
                      
                      if (isObserver) {
-                         roleEl.textContent = 'Osservatore';
+                         roleEl.textContent = 'Ospiete';
                          roleEl.style.background = '#eff6ff';
                          roleEl.style.color = '#3b82f6';
                          roleEl.style.border = '1px solid #bfdbfe';

@@ -34,6 +34,7 @@
     .cleanup-actions { display:flex; justify-content:space-between; gap:8px; margin-top:10px; flex-wrap:wrap; }
     .cleanup-summary { font-size:0.82rem; color:#475569; margin-top:8px; line-height:1.35; }
   </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <header class="topappbar">
@@ -84,38 +85,21 @@
       </div>
       <div class="settings-row">
         <div class="settings-text">
-          <div class="settings-label">Layout multiplo scouting predefinito</div>
-          <div class="settings-hint">Abilita di default la visualizzazione plus in scouting</div>
-        </div>
-        <input id="defaultMultiLineLayout" class="switch" type="checkbox" />
-      </div>
-      <div class="settings-row">
-        <div class="settings-text">
           <div class="settings-label">Notifica riparazione roster</div>
           <div class="settings-hint">Mostra il riepilogo automatico di riparazione roster all'avvio</div>
         </div>
         <input id="showRosterRepairToast" class="switch" type="checkbox" />
-      </div>
-      <div class="settings-row">
-        <div class="settings-text">
-          <div class="settings-label">Archivio predefinito</div>
-          <div class="settings-hint">Selezione archivio iniziale in elenco partite</div>
-        </div>
-        <select id="defaultArchive" class="settings-select">
-          <option value="cloud">Cloud</option>
-        </select>
       </div>
     </section>
 
     <section class="settings-card">
       <div class="settings-title">Gestione</div>
       <div class="settings-actions">
-        <button id="goBackMatchesBtn" class="btn btn-secondary" type="button">Torna alle partite</button>
         <button id="resetSettingsBtn" class="btn btn-secondary" type="button">Ripristina predefiniti</button>
         <button id="saveSettingsBtn" class="btn btn-primary" type="button">Salva impostazioni</button>
       </div>
       <div id="settingsStatus" class="settings-status"></div>
-      <div class="menu-item app-version menu-item-muted" style="margin-top:6px;">MyVolleyScout Vers. 1.1.2 Preview</div>
+      <div class="menu-item app-version menu-item-muted" style="margin-top:6px;">MyVolleyScout Vers. 1.1.5 Preview</div>
     </section>
 
     <section class="settings-card">
@@ -126,13 +110,6 @@
           <span>
             <div class="cleanup-title">Autosave partita/set in corso</div>
             <div class="cleanup-hint">Sessione scouting corrente, setup partita e progressivi parziali</div>
-          </span>
-        </label>
-        <label class="cleanup-item">
-          <input id="cleanLegacyMatchesLocal" type="checkbox" />
-          <span>
-            <div class="cleanup-title">Archivio partite locale legacy</div>
-            <div class="cleanup-hint">Vecchi match salvati in locale prima della modalità Cloud-only</div>
           </span>
         </label>
         <label class="cleanup-item">
@@ -183,20 +160,16 @@
       const emailEl = document.getElementById('accountEmail');
       const autoSaveCleanupOnSetCompleted = document.getElementById('autoSaveCleanupOnSetCompleted');
       const confirmSaveBeforeExit = document.getElementById('confirmSaveBeforeExit');
-      const defaultMultiLineLayout = document.getElementById('defaultMultiLineLayout');
       const showRosterRepairToast = document.getElementById('showRosterRepairToast');
-      const defaultArchive = document.getElementById('defaultArchive');
       const saveSettingsBtn = document.getElementById('saveSettingsBtn');
       const resetSettingsBtn = document.getElementById('resetSettingsBtn');
       const backFromSettingsBtn = document.getElementById('backFromSettingsBtn');
-      const goBackMatchesBtn = document.getElementById('goBackMatchesBtn');
       const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
       const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
       const signOutBtnMobile = document.getElementById('signOutBtnMobile');
       const headerMenuToggle = document.getElementById('headerMenuToggle');
       const headerMenu = document.getElementById('headerMenu');
       const cleanAutosaveLocal = document.getElementById('cleanAutosaveLocal');
-      const cleanLegacyMatchesLocal = document.getElementById('cleanLegacyMatchesLocal');
       const cleanTeamsCacheLocal = document.getElementById('cleanTeamsCacheLocal');
       const cleanRostersLocal = document.getElementById('cleanRostersLocal');
       const cleanSessionStorageLocal = document.getElementById('cleanSessionStorageLocal');
@@ -229,13 +202,7 @@
       function bindSettingsToUi(settings) {
         autoSaveCleanupOnSetCompleted.checked = settings.autoSaveCleanupOnSetCompleted !== false;
         confirmSaveBeforeExit.checked = settings.confirmSaveBeforeExit !== false;
-        defaultMultiLineLayout.checked = settings.defaultMultiLineLayout === true;
         showRosterRepairToast.checked = settings.showRosterRepairToast !== false;
-        const archive = (() => {
-          try { return localStorage.getItem('mvsSelectedArchive') || 'cloud'; } catch (_) { return 'cloud'; }
-        })();
-        defaultArchive.value = 'cloud';
-        defaultArchive.disabled = true;
       }
 
       function readUiToSettings() {
@@ -243,7 +210,6 @@
         return Object.assign({}, current, {
           autoSaveCleanupOnSetCompleted: !!autoSaveCleanupOnSetCompleted.checked,
           confirmSaveBeforeExit: !!confirmSaveBeforeExit.checked,
-          defaultMultiLineLayout: !!defaultMultiLineLayout.checked,
           showRosterRepairToast: !!showRosterRepairToast.checked
         });
       }
@@ -260,7 +226,6 @@
         const next = {
           autoSaveCleanupOnSetCompleted: true,
           confirmSaveBeforeExit: true,
-          defaultMultiLineLayout: false,
           showRosterRepairToast: true
         };
         writeSettings(next);
@@ -323,13 +288,11 @@
         const autosaveSession = localStorage.getItem('currentScoutingSession') ? 1 : 0;
         const autosaveSetup = localStorage.getItem('currentMatchSetup') ? 1 : 0;
         const autosaveDrafts = parseObjectKeysLength('mvsPartialSaves');
-        const localMatches = parseArrayLength('volleyMatches');
         const localTeams = parseArrayLength('volleyTeams');
         const localRosters = parseArrayLength('savedRosters');
         const txt = [
-          `Autosave attivi: ${autosaveSession + autosaveSetup} • Draft match: ${autosaveDrafts}`,
-          `Partite locali legacy: ${localMatches}`,
-          `Squadre in cache locale: ${localTeams}`,
+          `Autosave attivi: ${autosaveSession + autosaveSetup} • Draft: ${autosaveDrafts}`,
+          `Squadre in cache: ${localTeams}`,
           `Rosters locali: ${localRosters}`
         ].join(' · ');
         localCleanupSummary.textContent = txt;
@@ -337,13 +300,12 @@
       async function runLocalCleanup() {
         const selected = {
           autosave: !!cleanAutosaveLocal?.checked,
-          legacy: !!cleanLegacyMatchesLocal?.checked,
           teams: !!cleanTeamsCacheLocal?.checked,
           rosters: !!cleanRostersLocal?.checked,
           session: !!cleanSessionStorageLocal?.checked,
           cache: !!cleanCacheStorageLocal?.checked
         };
-        if (!selected.autosave && !selected.legacy && !selected.teams && !selected.rosters && !selected.session && !selected.cache) {
+        if (!selected.autosave && !selected.teams && !selected.rosters && !selected.session && !selected.cache) {
           setStatus('Seleziona almeno una categoria da pulire');
           return;
         }
@@ -359,9 +321,6 @@
         try {
           if (selected.autosave) {
             ['currentScoutingSession', 'currentMatchSetup', 'mvsPartialSaves', 'selectedMatchId', 'allowScoutingEntry', 'importedRoster'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
-          }
-          if (selected.legacy) {
-            ['volleyMatches', 'mvsMatchNumbers'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
           }
           if (selected.teams) {
             ['volleyTeams', 'mvsSharedTeamRefs', 'selectedSharedTeamMeta', 'selectedTeamId', 'selectedTeamOwner', 'selectedTeamRole'].forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
@@ -397,7 +356,6 @@
         if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveAll);
         if (resetSettingsBtn) resetSettingsBtn.addEventListener('click', resetDefaults);
         if (backFromSettingsBtn) backFromSettingsBtn.addEventListener('click', goBackFromSettings);
-        if (goBackMatchesBtn) goBackMatchesBtn.addEventListener('click', goBackFromSettings);
         if (goToTeamsBtnMobile) goToTeamsBtnMobile.addEventListener('click', () => { window.location.href = '/my-teams.html'; });
         if (goToMatchesBtnMobile) goToMatchesBtnMobile.addEventListener('click', () => { window.location.href = '/matches.html'; });
         if (signOutBtnMobile) signOutBtnMobile.addEventListener('click', async () => {
@@ -411,10 +369,10 @@
           if (!onToggle && !headerMenu.contains(e.target)) setMenuOpen(false);
         });
         if (selectAllCleanupBtn) selectAllCleanupBtn.addEventListener('click', () => {
-          [cleanAutosaveLocal, cleanLegacyMatchesLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = true; });
+          [cleanAutosaveLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = true; });
         });
         if (deselectAllCleanupBtn) deselectAllCleanupBtn.addEventListener('click', () => {
-          [cleanAutosaveLocal, cleanLegacyMatchesLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = false; });
+          [cleanAutosaveLocal, cleanTeamsCacheLocal, cleanRostersLocal, cleanSessionStorageLocal, cleanCacheStorageLocal].forEach((el) => { if (el) el.checked = false; });
         });
         if (runCleanupBtn) runCleanupBtn.addEventListener('click', runLocalCleanup);
         renderLocalCleanupSummary();

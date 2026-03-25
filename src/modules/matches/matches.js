@@ -56,10 +56,10 @@ class MatchesModule {
         const v = (next === 'shared') ? 'shared' : 'cloud';
         const changed = this.state.archive !== v;
         if (!changed && options.force !== true && !options.reload) return;
-        
+
         this.state.archive = v;
         try { localStorage.setItem('mvsSelectedArchive', v); } catch (_) {}
-        
+
         if (options.reload !== false) {
             this.loadMatches();
         }
@@ -143,17 +143,17 @@ class MatchesModule {
                 let targetTeamId = teamId;
                 let altTeamId = '';
                 try {
-                    const localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    // Cloud-only: usare currentTeam per risolvere l'ID
                     const teamMap = new Map();
-                    (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
-                        const id = String(t.id || '').trim();
-                        const squad = String(t.teamName || t.name || '').trim();
-                        const club = String(t.clubName || '').trim();
+                    if (currentTeam) {
+                        const id = String(currentTeam.id || '').trim();
+                        const squad = String(currentTeam?.teamName || currentTeam?.name || '').trim();
+                        const club = String(currentTeam?.clubName || '').trim();
                         const combined = (squad + (club ? ` - ${club}` : '')).trim();
                         const target = combined || id;
                         if (id) teamMap.set(id, target);
                         if (combined) teamMap.set(combined, target);
-                    });
+                    }
                     if (teamMap.has(teamId)) targetTeamId = teamMap.get(teamId);
                     else {
                         // Fallback se teamId non è nella mappa ma abbiamo l'oggetto team corrente
@@ -203,19 +203,8 @@ class MatchesModule {
      * Ottiene le partite dal localStorage
      */
     getLocalMatches() {
-        let list = [];
-        try { list = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { list = []; }
-        const currentTeam = window.teamsModule?.getCurrentTeam?.();
-        if (!currentTeam) return Array.isArray(list) ? list : [];
-        const selId = currentTeam?.id != null ? String(currentTeam.id) : null;
-        const selName = currentTeam?.name || '';
-        return (Array.isArray(list) ? list : []).filter(m => {
-            const teamIdMatch = m.teamId != null && selId ? String(m.teamId) === selId : false;
-            const my = m.myTeam || m.teamName;
-            const home = m.homeTeam;
-            const away = m.awayTeam;
-            return teamIdMatch || (selName && (my === selName || home === selName || away === selName));
-        });
+        // Cloud-only: nessun match salvato in localStorage
+        return [];
     }
 
     /**
@@ -431,15 +420,8 @@ class MatchesModule {
      * Salva la partita nel localStorage
      */
     async saveMatchLocally(match) {
-        let all = [];
-        try { all = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { all = []; }
-        const existingIndex = all.findIndex(m => m.id === match.id);
-        if (existingIndex >= 0) {
-            all[existingIndex] = match;
-        } else {
-            all.unshift(match);
-        }
-        localStorage.setItem('volleyMatches', JSON.stringify(all));
+        // Cloud-only: i match vengono salvati esclusivamente in Firestore
+        return { success: true, message: 'Cloud-only mode' };
     }
 
     /**

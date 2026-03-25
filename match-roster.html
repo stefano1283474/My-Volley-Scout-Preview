@@ -51,12 +51,14 @@
     .icon-button-circle {
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
-    .btn:hover,
-    .icon-button:hover,
-    .icon-button-outline:hover,
-    .icon-button-circle:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    @media (hover: hover) {
+      .btn:hover,
+      .icon-button:hover,
+      .icon-button-outline:hover,
+      .icon-button-circle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      }
     }
     .btn:active,
     .icon-button:active,
@@ -68,6 +70,7 @@
     @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .page-slide-in { animation: pageSlideIn .24s ease-out; }
   </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <div class="container">
@@ -475,7 +478,7 @@
         if (!matchId) { matchId = String(Date.now()); try { const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); localStorage.setItem('currentMatchSetup', JSON.stringify(Object.assign({}, setup, { id: matchId }))); } catch(_){} }
 
         try { const setup = JSON.parse(localStorage.getItem('currentMatchSetup')||'{}'); setup.roster = finalRoster; localStorage.setItem('currentMatchSetup', JSON.stringify(setup)); } catch(_){}
-        try { const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); const idx = local.findIndex(m => String(m.id) === String(matchId)); if (idx >= 0){ const m = local[idx]; m.roster = finalRoster; m.players = finalRoster; m.updatedAt = new Date().toISOString(); local[idx] = m; localStorage.setItem('volleyMatches', JSON.stringify(local)); } } catch(_){}
+        // Cloud-only: localStorage removed for volleyMatches - saved via Firestore only
         try { if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchRosterTree && selTeamId && matchId) { await window.firestoreService.saveMatchRosterTree(selTeamId, matchId, finalRoster); } } catch(_){}
 
         const qp = new URLSearchParams(); qp.set('team', selTeamId||''); qp.set('match', String(matchId));
@@ -496,7 +499,8 @@
             }
             if (!team) {
                 try {
-                     const list = JSON.parse(localStorage.getItem('volleyTeams')||'[]');
+                     // Cloud-only: localStorage removed for volleyTeams
+                     const list = [];
                      team = list.find(t => String(t.id) === String(teamId));
                 } catch(_) {}
             }
@@ -517,7 +521,7 @@
                      const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
                      
                      if (isObserver) {
-                         roleEl.textContent = 'Osservatore';
+                         roleEl.textContent = 'Ospiete';
                          roleEl.style.background = '#eff6ff';
                          roleEl.style.color = '#3b82f6';
                          roleEl.style.border = '1px solid #bfdbfe';

@@ -30,7 +30,9 @@
     .section-title{font-size:22px;font-weight:600;color:#333}
     .title-actions{display:inline-flex;align-items:center;gap:8px}
     .icon-button{background:#ffffff;color:#0d6efd;border:1px solid #e9ecef;padding:6px;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease,transform .15s ease}
-    .icon-button:hover{background:#f8f9fa;border-color:#dbe1e6;transform:translateY(-1px)}
+    @media (hover: hover) {
+      .icon-button:hover{background:#f8f9fa;border-color:#dbe1e6;transform:translateY(-1px)}
+    }
     .file-chip{background:#ffffff;color:#555;border:1px solid #e9ecef;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
     .field{display:flex;flex-direction:column;gap:6px}
@@ -69,6 +71,7 @@
   <script src="./src/modules/teams/teams.js"></script>
   <script src="./src/modules/matches/matches.js"></script>
   <script src="./src/modules/live-stats-computer.js"></script>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <div class="container">

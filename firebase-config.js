@@ -63,10 +63,10 @@ const authFunctions = (function(){
   if (window.auth && typeof window.auth === 'object') {
     return {
       signUp: async (email, password) => {
-        try { const userCredential = await window.auth.createUserWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+        return { success: false, error: 'Email/password disabilitato', code: 'auth/operation-not-allowed' };
       },
       signIn: async (email, password) => {
-        try { const userCredential = await window.auth.signInWithEmailAndPassword(email, password); return { success: true, user: userCredential.user }; } catch (error) { return { success: false, error: error.message, code: error.code }; }
+        return { success: false, error: 'Email/password disabilitato', code: 'auth/operation-not-allowed' };
       },
       signInWithGoogle: async () => {
         try {

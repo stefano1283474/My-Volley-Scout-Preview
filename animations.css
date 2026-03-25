@@ -34,15 +34,19 @@ a.back-btn {
   will-change: transform, opacity;
 }
 
-button:hover,
-.btn:hover,
-.icon-button:hover,
-.back-btn:hover,
-.menu-item:hover,
-a.btn:hover,
-a.back-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-hover);
+/* Hover only on devices with a real pointer (mouse/trackpad) — avoids
+   the mobile "first-tap-activates-hover" bug that swallows clicks. */
+@media (hover: hover) {
+  button:hover,
+  .btn:hover,
+  .icon-button:hover,
+  .back-btn:hover,
+  .menu-item:hover,
+  a.btn:hover,
+  a.back-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-hover);
+  }
 }
 
 button:active,
@@ -79,14 +83,16 @@ a.back-btn:focus-visible {
               transform var(--motion-duration-fast) var(--motion-ease);
 }
 
-.card:hover,
-.list-item:hover,
-.panel:hover,
-.section:hover,
-.config-section:hover,
-.match-info:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-hover);
+@media (hover: hover) {
+  .card:hover,
+  .list-item:hover,
+  .panel:hover,
+  .section:hover,
+  .config-section:hover,
+  .match-info:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-hover);
+  }
 }
 
 /* Respect reduced motion preferences */

@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
   <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="stylesheet" href="animations.css?v=1" />
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <header class="topappbar" style="--topbar-h:81px;">
@@ -142,7 +143,8 @@
             }
           } catch(_) {}
         }
-        const opponent = (match?.opponentTeam || match?.opponent) || ((match?.homeAway === 'home') ? (match?.awayTeam || match?.opponentTeam) : (match?.homeTeam || match?.opponentTeam)) || (session?.opponentTeam) || '-';
+        const _mrMVP = (match?.description || session?.description || '').toLowerCase();
+        const opponent = (_mrMVP === 'andata' ? '(A) ' : _mrMVP === 'ritorno' ? '(R) ' : '') + ((match?.opponentTeam || match?.opponent) || ((match?.homeAway === 'home') ? (match?.awayTeam || match?.opponentTeam) : (match?.homeTeam || match?.opponentTeam)) || (session?.opponentTeam) || '-');
         const rawDate = match?.date || match?.matchDate || session?.matchDate || null;
         const type = (match?.matchType || match?.eventType || match?.type || session?.matchType || 'partita');
         const ha = match?.homeAway || session?.homeAway || null;

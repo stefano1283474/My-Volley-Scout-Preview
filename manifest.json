@@ -1,26 +1,55 @@
 {
   "name": "MyVolleyScout",
-  "short_name": "MyVolleyScout",
+  "short_name": "MVScout",
   "description": "Applicazione PWA per lo scouting nel volley",
   "start_url": "/my-teams.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait",
+  "lang": "it",
+  "categories": ["sports", "productivity"],
   "icons": [
     {
       "src": "LOGO_APP.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
     },
     {
       "src": "LOGO_APP.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "LOGO_APP.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "LOGO_APP.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["sports", "productivity"],
-  "lang": "it"
+  "shortcuts": [
+    {
+      "name": "Nuova Partita",
+      "short_name": "Partita",
+      "description": "Avvia una nuova sessione di scouting",
+      "url": "/match-setup.html",
+      "icons": [{ "src": "LOGO_APP.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Le mie Squadre",
+      "short_name": "Squadre",
+      "description": "Gestisci le tue squadre",
+      "url": "/my-teams.html",
+      "icons": [{ "src": "LOGO_APP.png", "sizes": "96x96" }]
+    }
+  ]
 }

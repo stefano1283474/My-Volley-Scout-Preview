@@ -16,7 +16,8 @@ if (!window.appState) { window.appState = {
     selectedPlayer: null,
     selectedEvaluation: null,
     scoreHistory: [], // Storico progressivo dei punti
-    multiLineLayout: false, // Layout "a riga multipla" per la progressione
+    multiLineLayout: true, // Layout "a riga multipla" per la progressione
+    editRowsMode: false,
     // Blocco temporaneo e auto-chiusura azione
     autoClosePending: false,
     autoCloseTimerId: null,
@@ -218,15 +219,20 @@ function __normalizeRosterPlayer(player) {
 function __enrichRosterForPersistence(primaryRoster, fallbackRoster) {
     const primary = Array.isArray(primaryRoster) ? primaryRoster : [];
     const fallback = Array.isArray(fallbackRoster) ? fallbackRoster : [];
+    // Se il roster primario è vuoto, usa il fallback come base
+    const effective = primary.length > 0 ? primary : fallback;
+    if (!effective.length) return [];
     const byNum = new Map();
     const byNick = new Map();
-    fallback.map(__normalizeRosterPlayer).forEach((p) => {
+    // Se usiamo il primary, arricchisci con dati dal fallback; altrimenti il fallback è già la base
+    const enrichSource = primary.length > 0 ? fallback : [];
+    enrichSource.map(__normalizeRosterPlayer).forEach((p) => {
         const n = String(p.number || '').replace(/^0+/, '').trim();
         if (n && !byNum.has(n)) byNum.set(n, p);
         const nick = String(p.nickname || '').trim().toLowerCase();
         if (nick && !byNick.has(nick)) byNick.set(nick, p);
     });
-    return primary.map((raw) => {
+    return effective.map((raw) => {
         const p = __normalizeRosterPlayer(raw);
         const n = String(p.number || '').replace(/^0+/, '').trim();
         const nick = String(p.nickname || '').trim().toLowerCase();
@@ -242,6 +248,8 @@ function __enrichRosterForPersistence(primaryRoster, fallbackRoster) {
 }
 
 function __repairHistoricalMatchRostersLocal() {
+    // Cloud-only: la riparazione dei roster storici viene gestita direttamente in Firestore
+    // Non si accede più a localStorage per i dati permanenti delle partite
     try {
         const teamFallback = (() => {
             try {
@@ -250,22 +258,6 @@ function __repairHistoricalMatchRostersLocal() {
                 return Array.isArray(arr) ? arr : [];
             } catch(_) { return []; }
         })();
-        const raw = localStorage.getItem('volleyMatches');
-        if (!raw) return { updated: 0 };
-        const list = JSON.parse(raw);
-        if (!Array.isArray(list) || !list.length) return { updated: 0 };
-        let updated = 0;
-        const next = list.map((m) => {
-            const base = (m && typeof m === 'object') ? m : {};
-            const roster = Array.isArray(base.roster) ? base.roster : (Array.isArray(base.players) ? base.players : []);
-            if (!Array.isArray(roster) || !roster.length) return base;
-            const fixed = __enrichRosterForPersistence(roster, teamFallback);
-            const changed = JSON.stringify(fixed) !== JSON.stringify(roster);
-            if (!changed) return base;
-            updated++;
-            return Object.assign({}, base, { roster: fixed, players: fixed, updatedAt: new Date().toISOString() });
-        });
-        if (updated > 0) localStorage.setItem('volleyMatches', JSON.stringify(next));
         try {
             const sessRaw = localStorage.getItem('currentScoutingSession');
             const sess = sessRaw ? JSON.parse(sessRaw) : null;
@@ -277,7 +269,7 @@ function __repairHistoricalMatchRostersLocal() {
                 }
             }
         } catch(_) {}
-        return { updated };
+        return { updated: 0 };
     } catch (_) {
         return { updated: 0 };
     }
@@ -427,6 +419,32 @@ function cancelAutosave() {
     } catch (_) {}
 }
 
+// --- Dirty-flag autosave (pattern da ReNew) ---
+let __scoutingAutosaveDirty = false;
+function __markScoutingAutosaveDirty() {
+    __scoutingAutosaveDirty = true;
+}
+function __scheduleScoutingAutosave(delayMs = 1200) {
+    try {
+        if (!__scoutingAutosaveDirty) return;
+        __scoutingAutosaveDirty = false;
+        scheduleAutosave(delayMs, { reason: 'scouting-edit' });
+    } catch(_) {}
+}
+// --- Fine dirty-flag autosave ---
+
+function __persistCurrentSequenceQuick() {
+    try {
+        const raw = localStorage.getItem('currentScoutingSession');
+        if (!raw) return;
+        const sd = JSON.parse(raw);
+        const cs = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
+        sd.currentSequenceBySet = sd.currentSequenceBySet || {};
+        sd.currentSequenceBySet[cs] = (window.appState && Array.isArray(window.appState.currentSequence)) ? window.appState.currentSequence : [];
+        localStorage.setItem('currentScoutingSession', JSON.stringify(sd));
+    } catch(_) {}
+}
+
 // Esporta stato su window per compatibilità tra script
 window.appState = appState;
 
@@ -452,6 +470,17 @@ window.loadScoutingSession = function(sessionData) {
                     const t = selId ? window.teamsModule.getTeamById(selId) : null;
                     if (t && t.name) return t.name;
                 }
+            } catch(_) {}
+            // fallback da matchId (formato "TEAM NAME_timestamp")
+            try {
+                const _mid = String(md.id || md.matchId || '');
+                const _ux = _mid.lastIndexOf('_');
+                if (_ux > 0) { const _n = _mid.substring(0, _ux); if (_n && _n !== '-') return _n; }
+            } catch(_) {}
+            // fallback da vpa_owner_team in localStorage
+            try {
+                const _vpa = localStorage.getItem('vpa_owner_team');
+                if (_vpa) return _vpa;
             } catch(_) {}
             return md.myTeam || md.teamName || '-';
         })();
@@ -506,30 +535,8 @@ window.loadScoutingSession = function(sessionData) {
                     if (team && Array.isArray(team.players)) loadedRoster = team.players;
                 }
             }
-            if (!loadedRoster.length) {
-                try {
-                    const matchId = md.id || md.matchId || localStorage.getItem('selectedMatchId') || null;
-                    const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                    const found = matchId ? local.find(m => String(m.id) === String(matchId)) : null;
-                    const rr = found ? (Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])) : [];
-                    if (rr.length) loadedRoster = rr;
-                } catch(_) {}
-            }
-            if (!loadedRoster.length) {
-                const selId = localStorage.getItem('selectedTeamId');
-                try {
-                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
-                    let team = null;
-                    if (selId) {
-                        team = storedTeams.find(t => String(t.id) === String(selId));
-                    }
-                    if (!team && (md.myTeam || md.teamName)) {
-                        const targetName = (md.myTeam || md.teamName).toLowerCase();
-                        team = storedTeams.find(t => String(t.name || '').toLowerCase() === targetName);
-                    }
-                    if (team && Array.isArray(team.players)) loadedRoster = team.players;
-                } catch(_) {}
-            }
+            // Cloud-only: nessun fallback da volleyMatches/volleyTeams localStorage
+            // Il roster viene caricato da teamsModule (già tentato sopra) o dalla sessione di scouting
             if (!Array.isArray(loadedRoster) || !loadedRoster.length) {
                 try {
                     const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
@@ -546,6 +553,13 @@ window.loadScoutingSession = function(sessionData) {
             }
         } catch(_) {}
         appState.currentRoster = Array.isArray(loadedRoster) ? loadedRoster : [];
+        // Persisti il roster nella sessione localStorage se trovato da fallback ma assente nella sessione
+        try {
+            if (appState.currentRoster.length > 0 && (!Array.isArray(md.roster) || md.roster.length === 0)) {
+                md.roster = appState.currentRoster;
+                try { localStorage.setItem('currentScoutingSession', JSON.stringify(md)); } catch(_) {}
+            }
+        } catch(_) {}
         try {
             const rosterMissing = !Array.isArray(appState.currentRoster) || appState.currentRoster.length === 0;
             const teamId = String(localStorage.getItem('selectedTeamId') || md?.teamId || '').trim();
@@ -591,7 +605,21 @@ window.loadScoutingSession = function(sessionData) {
                 }
             })();
 
-            const needsHydration = (rosterMissing || sessionMismatch || !hasAnyDetails || hasProgressWithoutActions);
+            // Check aggiuntivo: se ci sono setMeta ma le azioni sono vuote per quei set → dati corrotti, serve idratazione
+            const hasMetaWithoutActions = (() => {
+                try {
+                    const sm = (md && md.setMeta && typeof md.setMeta === 'object') ? md.setMeta : {};
+                    const ab = (md && md.actionsBySet && typeof md.actionsBySet === 'object') ? md.actionsBySet : {};
+                    const metaKeys = Object.keys(sm);
+                    if (!metaKeys.length) return false;
+                    for (const k of metaKeys) {
+                        const acts = __normalizeIndexedMapToArray(ab[k]);
+                        if (!Array.isArray(acts) || acts.length === 0) return true;
+                    }
+                    return false;
+                } catch(_) { return false; }
+            })();
+            const needsHydration = (rosterMissing || sessionMismatch || !hasAnyDetails || hasProgressWithoutActions || hasMetaWithoutActions);
             const isAuthed = (window.authModule?.isAuthenticated?.() === true) || !!(window.authFunctions?.getCurrentUser?.());
             const role = (() => { try { return String(localStorage.getItem('selectedTeamRole') || '').trim(); } catch(_) { return ''; } })();
             const ownerId = (() => { try { return String(localStorage.getItem('selectedTeamOwner') || '').trim(); } catch(_) { return ''; } })();
@@ -600,62 +628,6 @@ window.loadScoutingSession = function(sessionData) {
             const currentEmail = (() => { try { return String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) { return ''; } })();
             const shouldUseOwner = role === 'observer' || (!!ownerResolved && !!currentEmail && ownerResolved !== currentEmail);
             const canFirestore = !!(isAuthed && (window.firestoreService?.getMatchData || window.firestoreService?.getMatchDataByOwner));
-
-            if (needsHydration && !canFirestore && !window.__mvsHydratingMatchFromLocal) {
-                window.__mvsHydratingMatchFromLocal = true;
-                try {
-                    if (!matchId) return;
-                    const list = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                    const found = Array.isArray(list) ? list.find(m => String(m.id) === String(matchId)) : null;
-                    if (!found) return;
-                    const next = Object.assign({}, md);
-                    next.id = matchId;
-                    next.opponentTeam = found.opponentTeam || found.opponent || next.opponentTeam || '';
-                    next.matchDate = found.matchDate || found.date || next.matchDate || '';
-                    next.matchType = found.matchType || found.eventType || next.matchType || '';
-                    next.homeAway = found.homeAway || found.location || next.homeAway || '';
-                    next.description = found.description || next.description || '';
-                    const lr = Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : []);
-                    if (Array.isArray(lr) && lr.length && (!Array.isArray(next.roster) || next.roster.length === 0)) next.roster = lr;
-
-                    const cloudActionsBySet = __normalizePerSetCollections(found.actionsBySet || {});
-                    const localActionsBySet = __normalizePerSetCollections(next.actionsBySet || {});
-                    Object.keys(cloudActionsBySet || {}).forEach((k) => {
-                        const c = cloudActionsBySet[k];
-                        const l = localActionsBySet[k];
-                        if (!Array.isArray(l) || l.length === 0) localActionsBySet[k] = c;
-                        else if (Array.isArray(c) && c.length > l.length) localActionsBySet[k] = c;
-                    });
-                    next.actionsBySet = localActionsBySet || {};
-
-                    const cloudScoreHistoryBySet = __normalizePerSetCollections(found.scoreHistoryBySet || {});
-                    const localScoreHistoryBySet = __normalizePerSetCollections(next.scoreHistoryBySet || {});
-                    Object.keys(cloudScoreHistoryBySet || {}).forEach((k) => {
-                        const c = cloudScoreHistoryBySet[k];
-                        const l = localScoreHistoryBySet[k];
-                        if (!Array.isArray(l) || l.length === 0) localScoreHistoryBySet[k] = c;
-                        else if (Array.isArray(c) && c.length > l.length) localScoreHistoryBySet[k] = c;
-                    });
-                    next.scoreHistoryBySet = localScoreHistoryBySet || {};
-
-                    next.setMeta = (next.setMeta && typeof next.setMeta === 'object') ? next.setMeta : {};
-                    const cloudSetMeta = (found.setMeta && typeof found.setMeta === 'object') ? found.setMeta : {};
-                    Object.keys(cloudSetMeta).forEach((k) => { if (!next.setMeta[k]) next.setMeta[k] = cloudSetMeta[k]; });
-
-                    next.setStateBySet = (next.setStateBySet && typeof next.setStateBySet === 'object') ? next.setStateBySet : {};
-                    const cloudSetState = (found.setStateBySet && typeof found.setStateBySet === 'object') ? found.setStateBySet : {};
-                    Object.keys(cloudSetState).forEach((k) => { if (!next.setStateBySet[k]) next.setStateBySet[k] = cloudSetState[k]; });
-
-                    next.setSummary = (next.setSummary && typeof next.setSummary === 'object') ? next.setSummary : {};
-                    const cloudSetSummary = (found.setSummary && typeof found.setSummary === 'object') ? found.setSummary : {};
-                    Object.keys(cloudSetSummary).forEach((k) => { if (!next.setSummary[k]) next.setSummary[k] = cloudSetSummary[k]; });
-
-                    try { localStorage.setItem('currentScoutingSession', JSON.stringify(next)); } catch(_) {}
-                    try { window.loadScoutingSession(next); } catch(_) {}
-                } catch (_) {} finally {
-                    try { window.__mvsHydratingMatchFromLocal = false; } catch(_) {}
-                }
-            }
             if (needsHydration && !window.__mvsHydratingMatchFromFirestore) {
                 window.__mvsHydratingMatchFromFirestore = true;
                 (async function(){
@@ -702,7 +674,13 @@ window.loadScoutingSession = function(sessionData) {
                             next.setStateBySet = (next.setStateBySet && typeof next.setStateBySet === 'object') ? next.setStateBySet : {};
                             const cloudSetState = (res.details.setStateBySet && typeof res.details.setStateBySet === 'object') ? res.details.setStateBySet : {};
                             Object.keys(cloudSetState).forEach((k) => {
-                                if (!next.setStateBySet[k]) next.setStateBySet[k] = cloudSetState[k];
+                                const localSt = next.setStateBySet[k];
+                                const cloudSt = cloudSetState[k];
+                                if (!localSt) { next.setStateBySet[k] = cloudSt; return; }
+                                // Cloud vince se ha score più alti (il locale potrebbe avere 0:0 da reset)
+                                const localTotal = Number(localSt.homeScore||0) + Number(localSt.awayScore||0);
+                                const cloudTotal = Number(cloudSt.homeScore||0) + Number(cloudSt.awayScore||0);
+                                if (cloudTotal > localTotal) next.setStateBySet[k] = cloudSt;
                             });
 
                             next.setSummary = (next.setSummary && typeof next.setSummary === 'object') ? next.setSummary : {};
@@ -712,10 +690,47 @@ window.loadScoutingSession = function(sessionData) {
                             });
                         }
                         try { localStorage.setItem('currentScoutingSession', JSON.stringify(next)); } catch(_) {}
+                        // Aggiorna direttamente appState.currentMatch con i dati idratati
                         try {
-                            window.loadScoutingSession(next);
-                            return;
+                            if (window.appState?.currentMatch) {
+                                window.appState.currentMatch.actionsBySet = next.actionsBySet || {};
+                                window.appState.currentMatch.scoreHistoryBySet = next.scoreHistoryBySet || {};
+                                window.appState.currentMatch.setStateBySet = next.setStateBySet || {};
+                                window.appState.currentMatch.setSummary = next.setSummary || {};
+                            }
+                            // Aggiorna roster se mancante
+                            if (Array.isArray(next.roster) && next.roster.length && (!Array.isArray(window.appState?.currentRoster) || !window.appState.currentRoster.length)) {
+                                window.appState.currentRoster = next.roster;
+                            }
                         } catch(_) {}
+                        // Ripristina dati del set corrente direttamente in appState e aggiorna UI
+                        try {
+                            const _curSet = window.appState?.currentSet || 1;
+                            const _hActs = Array.isArray(next.actionsBySet?.[_curSet]) ? next.actionsBySet[_curSet] : [];
+                            const _hHist = Array.isArray(next.scoreHistoryBySet?.[_curSet]) ? next.scoreHistoryBySet[_curSet] : [];
+                            const _hState = next.setStateBySet?.[_curSet] || {};
+                            const _hHome = Number(_hState.homeScore || 0);
+                            const _hAway = Number(_hState.awayScore || 0);
+                            const _hasData = (_hActs.length > 0 || _hHist.length > 0 || _hHome > 0 || _hAway > 0);
+                            if (_hasData) {
+                                window.appState.actionsLog = _hActs;
+                                window.appState.scoreHistory = _hHist;
+                                window.appState.homeScore = _hHome;
+                                window.appState.awayScore = _hAway;
+                                if (_hState.currentPhase) window.appState.currentPhase = _hState.currentPhase;
+                                if (_hState.currentRotation) window.appState.currentRotation = (typeof normalizeRotation === 'function') ? normalizeRotation(_hState.currentRotation) : _hState.currentRotation;
+                                window.appState.setStarted = true;
+                                // Aggiorna UI
+                                try { if (typeof updateMatchInfo === 'function') updateMatchInfo(); } catch(_) {}
+                                try { if (typeof updateScoutingUI === 'function') updateScoutingUI(); } catch(_) {}
+                                try { if (typeof updateCurrentPhaseDisplay === 'function') updateCurrentPhaseDisplay(); } catch(_) {}
+                                try { if (typeof updatePlayersGrid === 'function') updatePlayersGrid(); } catch(_) {}
+                                try { if (typeof updateScoreHistoryDisplay === 'function') updateScoreHistoryDisplay(); } catch(_) {}
+                                try { if (typeof updateSetSidebarColors === 'function') updateSetSidebarColors(); } catch(_) {}
+                                try { if (typeof renderRosterTable === 'function') renderRosterTable(); } catch(_) {}
+                            }
+                        } catch(_) {}
+                        return;
                     } catch(_) {} finally {
                         try { window.__mvsHydratingMatchFromFirestore = false; } catch(_) {}
                     }
@@ -760,9 +775,11 @@ window.loadScoutingSession = function(sessionData) {
             // Punteggio da stato sintetico del set o dall'ultimo elemento dello storico
             try {
                 const setState = md.setStateBySet && md.setStateBySet[cs];
-                if (setState) {
-                    if (typeof setState.homeScore === 'number') appState.homeScore = setState.homeScore;
-                    if (typeof setState.awayScore === 'number') appState.awayScore = setState.awayScore;
+                const ssHome = setState ? Number(setState.homeScore || 0) : 0;
+                const ssAway = setState ? Number(setState.awayScore || 0) : 0;
+                if (setState && (ssHome > 0 || ssAway > 0)) {
+                    appState.homeScore = ssHome;
+                    appState.awayScore = ssAway;
                     if (setState.currentPhase) appState.currentPhase = setState.currentPhase;
                     if (setState.currentRotation) appState.currentRotation = setState.currentRotation;
                 } else if (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0) {
@@ -771,6 +788,12 @@ window.loadScoutingSession = function(sessionData) {
                         appState.homeScore = last.homeScore;
                         appState.awayScore = last.awayScore;
                     }
+                } else if (setState) {
+                    // Fallback: setStateBySet con zero (set appena iniziato)
+                    appState.homeScore = ssHome;
+                    appState.awayScore = ssAway;
+                    if (setState.currentPhase) appState.currentPhase = setState.currentPhase;
+                    if (setState.currentRotation) appState.currentRotation = setState.currentRotation;
                 }
             } catch(_) {}
             // Contrassegna come set avviato quando si riprende
@@ -1009,7 +1032,7 @@ function goToSet(setNumber, options) {
     } catch (_) {}
 
     try { saveCurrentMatch(); } catch (_) {}
-    try { scheduleAutosave(0); } catch (_) {}
+    try { __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(0); } catch (_) {}
 
     try { appState.currentSet = n; } catch (_) {}
     try { __persistSetNumberToSession(n); } catch (_) {}
@@ -1212,20 +1235,16 @@ function renderMatchStats() {
     try {
         const selectedMatchId = (() => { try { return String(localStorage.getItem('selectedMatchId') || '').trim(); } catch (_) { return ''; } })();
         const effectiveMatchId = selectedMatchId || String(currentMatch?.id || '').trim();
+        // Cloud-only: non si legge più da volleyMatches localStorage
         let storedMatch = null;
-        if (effectiveMatchId) {
-            try {
-                const localMatches = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-                storedMatch = Array.isArray(localMatches) ? localMatches.find(m => String(m?.id || '').trim() === effectiveMatchId) : null;
-            } catch (_) {}
-        }
         const candidates = [];
         if (currentMatch) candidates.push(currentMatch);
         if (sessionDataCache) candidates.push(sessionDataCache);
         if (storedMatch) candidates.push(storedMatch);
 
         const summarySource = storedMatch || currentMatch || sessionDataCache || {};
-        const opponent = summarySource.opponent || summarySource.opponentTeam || '';
+        const _mr1228 = (summarySource.description || '').toLowerCase();
+        const opponent = (_mr1228 === 'andata' ? '(A) ' : _mr1228 === 'ritorno' ? '(R) ' : '') + (summarySource.opponent || summarySource.opponentTeam || '');
         const rawDate = summarySource.matchDate || summarySource.date || summarySource.createdAt || '';
         const type = summarySource.matchType || summarySource.eventType || summarySource.type || 'partita';
         const formatItalianDate = (raw) => {
@@ -1350,8 +1369,11 @@ function renderMatchStats() {
                 (appState?.selectedTeamId != null ? String(appState.selectedTeamId) : null) ||
                 (() => { try { return String(localStorage.getItem('selectedTeamId') || '').trim() || null; } catch(_) { return null; } })();
 
-            const teams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
-            const team = Array.isArray(teams) ? teams.find(t => String(t?.id) === String(selectedTeamId)) : null;
+            // Cloud-only: si usa teamsModule per i dati del team
+            let team = null;
+            if (selectedTeamId && window.teamsModule && typeof window.teamsModule.getTeamById === 'function') {
+                team = window.teamsModule.getTeamById(selectedTeamId);
+            }
             const cand = team && Array.isArray(team.players) ? team.players : [];
             if (cand.length) roster = cand;
         } catch(_) {}
@@ -1427,16 +1449,9 @@ function renderMatchStats() {
 
 // Trova una partita locale plausibile se appState.currentMatch manca
 function getBestLocalMatch() {
-    try {
-        const local = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
-        if (!Array.isArray(local) || local.length === 0) return null;
-        // Preferisci quella in_progress, altrimenti la più recente per updatedAt
-        const inProgress = local.filter(m => m && m.status === 'in_progress');
-        if (inProgress.length > 0) {
-            return inProgress.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0))[0];
-        }
-        return local.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0))[0];
-    } catch (_) { return null; }
+    // Cloud-only: nessun match permanente in localStorage
+    // I match vengono caricati esclusivamente da Firestore
+    return null;
 }
 
 function buildScoreHistoryFromLogs(logs) {
@@ -1529,7 +1544,7 @@ function sanitizeDisplayName(value) {
 function buildHeaderHTML() {
     return `<tr>
       <th style="min-width:48px;">N°</th>
-      <th style="max-width:8ch;">Cognome</th>
+      <th style="max-width:8ch;">Nick</th>
       <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
       <th>Tot</th><th>%</th><th>Efficacia</th><th>Efficienza</th>
     </tr>`;
@@ -1552,7 +1567,7 @@ function buildPerPlayerTablesHTML(agg, roster) {
                 const surname = pick(p, ['surname','cognome','lastName','cognomi']);
                 const name = pick(p, ['name','nome','firstName','nomi']);
                 const nickname = pick(p, ['nickname','soprannome','nick']);
-                const display = surname || name || sanitizeDisplayName(nickname) || nickname || '';
+                const display = nickname || sanitizeDisplayName(nickname) || surname || name || '';
                 playerNameByNumber[String(numStr)] = display;
             }
         });
@@ -1615,7 +1630,7 @@ function buildHeaderSymbolsHTML() {
     return `<tr>
       <th>N°</th>
       <th>R</th>
-      <th>COG</th>
+      <th>NICK</th>
       <th>#</th><th>+</th><th>\\</th><th>-</th><th>=</th>
       <th>Tot</th><th>%</th><th>Pos</th><th>Eff</th>
     </tr>`;
@@ -1652,7 +1667,7 @@ function buildPerPlayerTablesAll(agg, roster, logs = []) {
                 const surname = pick(p, ['surname','cognome','lastName','cognomi']);
                 const name = pick(p, ['name','nome','firstName','nomi']);
                 const nickname = pick(p, ['nickname','soprannome','nick']);
-                const display = surname || name || sanitizeDisplayName(nickname) || nickname || '';
+                const display = nickname || sanitizeDisplayName(nickname) || surname || name || '';
                 playerNameByNumber[numStr] = display;
                 const roleRaw = (pick(p, ['role','ruolo','position','posizione']) || '').trim();
                 const role = roleRaw ? roleRaw.toUpperCase().slice(0, 1) : '';
@@ -1853,7 +1868,7 @@ function initializeApp() {
     try {
         try {
             const settings = __readAppSettings();
-            appState.multiLineLayout = settings.defaultMultiLineLayout === true;
+            appState.multiLineLayout = true;
         } catch(_) {}
         let __localRosterRepairUpdated = 0;
         try {
@@ -1940,26 +1955,7 @@ function initializeApp() {
         if (analysisBtn) {
             analysisBtn.addEventListener('click', () => switchPage('analysis'));
         }
-        try {
-            const rawTeams = localStorage.getItem('volleyTeams');
-            const teams = rawTeams ? JSON.parse(rawTeams) : [];
-            let changed = false;
-            const fixed = teams.map(t => {
-                if (!Array.isArray(t.players) || t.players.length === 0) {
-                    try {
-                        const list = JSON.parse(localStorage.getItem('savedRosters') || '[]');
-                        const nameKey = String(t.name||'').toLowerCase();
-                        const found = list.find(r => String(r.name||'').toLowerCase() === nameKey);
-                        if (found && Array.isArray(found.players) && found.players.length) {
-                            changed = true;
-                            return { ...t, players: found.players };
-                        }
-                    } catch(_) {}
-                }
-                return t;
-            });
-            if (changed) localStorage.setItem('volleyTeams', JSON.stringify(fixed));
-        } catch(_) {}
+        // Cloud-only: la riparazione dei team viene gestita in Firestore, rimosso accesso a volleyTeams localStorage
 
         // Delegazione click per i pulsanti filtro set (Riepilogo All)
         document.addEventListener('click', (ev) => {
@@ -2266,13 +2262,14 @@ function initializeApp() {
             }
         } catch(_) {}
 
-        // Toggle layout "a riga multipla" nella sezione selezionato
+        // Toggle edit mode (multiline sempre attivo)
         try {
-            const layoutToggle = document.getElementById('multi-line-toggle');
+            const layoutToggle = document.getElementById('edit-mode-toggle');
             if (layoutToggle) {
-                layoutToggle.checked = !!appState.multiLineLayout;
+                appState.multiLineLayout = true;
+                layoutToggle.checked = !!appState.editRowsMode;
                 layoutToggle.addEventListener('change', () => {
-                    appState.multiLineLayout = layoutToggle.checked;
+                    appState.editRowsMode = layoutToggle.checked;
                     updateDescriptiveQuartet();
                 });
             }
@@ -2304,8 +2301,12 @@ function initializeApp() {
                     }
                     const n = __parseSetFromHash();
                     if (n && typeof __getSetMetaPresence === 'function' && !__getSetMetaPresence(n) && typeof window.openSetMetaDialog === 'function') {
-                        window.openSetMetaDialog(n);
-                        return;
+                        // Non mostrare dialog se il set è completed (punteggio finale raggiunto)
+                        const _setStatus = (typeof __computeSetStatus === 'function') ? __computeSetStatus(n) : null;
+                        if (_setStatus !== 'completed') {
+                            window.openSetMetaDialog(n);
+                            return;
+                        }
                     }
                     if (n && typeof window.goToSet === 'function') {
                         window.goToSet(n, { updateHash: false });
@@ -2344,8 +2345,10 @@ function __isAutosaveDisabled() {
     } catch(_) {}
     return false;
 }
-function scheduleAutosave(delayMs = 1500) {
+function scheduleAutosave(delayMs = 1500, options = {}) {
     try {
+        const reason = String(options && options.reason ? options.reason : '').trim().toLowerCase();
+        if (reason !== 'scouting-edit') return;
         if (__isAutosaveDisabled()) return;
         if (__autosaveTimerId) clearTimeout(__autosaveTimerId);
         __autosaveTimerId = setTimeout(async () => {
@@ -2398,19 +2401,36 @@ function __buildCurrentSavePayloadSnapshot(opts) {
             const currentSetNum = (window.appState && window.appState.currentSet) ? window.appState.currentSet : 1;
             // Azioni per set
             sessionData.actionsBySet = __normalizePerSetCollections(sessionData.actionsBySet || (window.appState?.currentMatch?.actionsBySet) || {});
-            sessionData.actionsBySet[currentSetNum] = actions;
             // Storico punteggio per set
             sessionData.scoreHistoryBySet = __normalizePerSetCollections(sessionData.scoreHistoryBySet || (window.appState?.currentMatch?.scoreHistoryBySet) || {});
-            sessionData.scoreHistoryBySet[currentSetNum] = scoreHistory;
-            // Stato sintetico del set (punteggio, fase, rotazione)
+            // Stato sintetico del set
             sessionData.setStateBySet = sessionData.setStateBySet || (window.appState?.currentMatch?.setStateBySet) || {};
-            sessionData.setStateBySet[currentSetNum] = {
-                homeScore: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
-                awayScore: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0,
-                currentPhase: (window.appState && window.appState.currentPhase) ? window.appState.currentPhase : 'servizio',
-                currentRotation: (window.appState && window.appState.currentRotation) ? window.appState.currentRotation : 'P1',
-                setStarted: !!(window.appState && window.appState.setStarted)
-            };
+
+            // NON sovrascrivere dati del set corrente se:
+            // 1) L'idratazione da Firestore è in corso (i dati correnti sono provvisori/vuoti)
+            // 2) I dati correnti sono vuoti ma quelli esistenti sono significativi
+            const _existingActions = Array.isArray(sessionData.actionsBySet[currentSetNum]) ? sessionData.actionsBySet[currentSetNum] : [];
+            const _existingHistory = Array.isArray(sessionData.scoreHistoryBySet[currentSetNum]) ? sessionData.scoreHistoryBySet[currentSetNum] : [];
+            const _existingState = sessionData.setStateBySet[currentSetNum] || {};
+            const _existingTotal = Number(_existingState.homeScore||0) + Number(_existingState.awayScore||0);
+            const _currentTotal = ((window.appState?.homeScore||0) + (window.appState?.awayScore||0));
+            const _currentHasData = (actions.length > 0 || scoreHistory.length > 0 || _currentTotal > 0);
+            const _existingHasData = (_existingActions.length > 0 || _existingHistory.length > 0 || _existingTotal > 0);
+            const _isHydrating = !!window.__mvsHydratingMatchFromFirestore;
+
+            // Se idratazione in corso e dati correnti vuoti → non scrivere (evita di corrompere dati in arrivo dal cloud)
+            const _shouldWriteSetData = !_isHydrating && (_currentHasData || !_existingHasData);
+            if (_shouldWriteSetData) {
+                sessionData.actionsBySet[currentSetNum] = actions;
+                sessionData.scoreHistoryBySet[currentSetNum] = scoreHistory;
+                sessionData.setStateBySet[currentSetNum] = {
+                    homeScore: (window.appState && typeof window.appState.homeScore === 'number') ? window.appState.homeScore : 0,
+                    awayScore: (window.appState && typeof window.appState.awayScore === 'number') ? window.appState.awayScore : 0,
+                    currentPhase: (window.appState && window.appState.currentPhase) ? window.appState.currentPhase : 'servizio',
+                    currentRotation: (window.appState && window.appState.currentRotation) ? window.appState.currentRotation : 'P1',
+                    setStarted: !!(window.appState && window.appState.setStarted)
+                };
+            }
             if (persistSession) {
                 try { localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData)); } catch(_) {}
             }
@@ -2464,6 +2484,21 @@ function __buildCurrentSavePayloadSnapshot(opts) {
             if (r1 && r1.length) return r1;
             const r2 = (window.appState && Array.isArray(window.appState.currentRoster)) ? window.appState.currentRoster : null;
             if (r2 && r2.length) return r2;
+            // Fallback: prova dal match corrente (players)
+            const r3 = Array.isArray(currentMatch?.players) ? currentMatch.players : (Array.isArray(currentMatch?.roster) ? currentMatch.roster : null);
+            if (r3 && r3.length) return r3;
+            // Fallback: prova dal setup della partita
+            try {
+                const setup = JSON.parse(localStorage.getItem('currentMatchSetup') || '{}');
+                const r4 = Array.isArray(setup?.roster) ? setup.roster : (Array.isArray(setup?.players) ? setup.players : null);
+                if (r4 && r4.length) return r4;
+            } catch(_) {}
+            // Fallback: prova dal team corrente
+            try {
+                const team = window.teamsModule?.getCurrentTeam?.();
+                const r5 = Array.isArray(team?.players) ? team.players : null;
+                if (r5 && r5.length) return r5;
+            } catch(_) {}
             return [];
         })();
         const fallbackRoster = (() => {
@@ -2524,10 +2559,26 @@ function __getCurrentCoreSignature() {
 
 function __needsSavePromptOnExit() {
     try {
+        // 1) Controllo classico: signature cambiata
         const sig = __getCurrentCoreSignature();
-        if (!sig) return false;
-        if (!__lastSavedCoreSignature) return true;
-        return sig !== __lastSavedCoreSignature;
+        if (sig) {
+            if (!__lastSavedCoreSignature) return true;
+            if (sig !== __lastSavedCoreSignature) return true;
+        }
+        // 2) Se c'è una sessione di scouting attiva, serve il prompt per fare cleanup
+        try {
+            const session = localStorage.getItem('currentScoutingSession');
+            if (session && session !== '{}' && session !== 'null') return true;
+        } catch(_) {}
+        // 3) Se ci sono partial saves per il match corrente, serve il prompt per fare cleanup
+        try {
+            const matchId = String(window.appState?.currentMatch?.id || localStorage.getItem('selectedMatchId') || '').trim();
+            if (matchId) {
+                const map = __readPartialSavesMap();
+                if (map && Object.prototype.hasOwnProperty.call(map, matchId)) return true;
+            }
+        } catch(_) {}
+        return false;
     } catch (_) {
         return false;
     }
@@ -2543,7 +2594,18 @@ async function __confirmSaveBeforeExit() {
             okText: 'Salva ora',
             cancelText: 'Esci senza salvare'
         });
-        if (!doSave) return true;
+        if (!doSave) {
+            // Esci senza salvare: pulisci comunque i dati di autosave/sessione
+            try { cancelAutosave(); } catch(_) {}
+            try {
+                const _matchId = String(window.appState?.currentMatch?.id || localStorage.getItem('selectedMatchId') || '').trim();
+                if (_matchId) __cleanupAllPartialSavesForMatch(_matchId);
+                localStorage.removeItem('currentScoutingSession');
+                localStorage.removeItem('currentMatchSetup');
+                localStorage.removeItem('allowScoutingEntry');
+            } catch(_) {}
+            return true;
+        }
         try { cancelAutosave(); } catch(_) {}
         const ok = await saveCurrentMatch({ mode: 'manual' });
         if (ok === false) {
@@ -2551,6 +2613,14 @@ async function __confirmSaveBeforeExit() {
             await __showAlert(reason ? (`Salvataggio non riuscito. Rimango nella pagina.\n${reason}`) : 'Salvataggio non riuscito. Rimango nella pagina.', { title: 'Conferma uscita', okText: 'OK' });
             return false;
         }
+        // Salvataggio riuscito: pulizia dati autosave della partita corrente
+        try {
+            const _matchId = String(window.appState?.currentMatch?.id || localStorage.getItem('selectedMatchId') || '').trim();
+            if (_matchId) __cleanupAllPartialSavesForMatch(_matchId);
+            localStorage.removeItem('currentScoutingSession');
+            localStorage.removeItem('currentMatchSetup');
+            localStorage.removeItem('allowScoutingEntry');
+        } catch(_) {}
         return true;
     } catch (_) {
         return true;
@@ -2663,6 +2733,15 @@ async function saveCurrentMatch(options = {}) {
 
         const payloadBase = __buildCurrentSavePayloadSnapshot({ persistSession: true });
         if (!payloadBase) return true;
+        // Ultimo tentativo: se il roster è vuoto nel payload, prova a recuperarlo da appState o team
+        if (!Array.isArray(payloadBase.roster) || payloadBase.roster.length === 0) {
+            try {
+                const rFallback = Array.isArray(window.appState?.currentRoster) && window.appState.currentRoster.length
+                    ? window.appState.currentRoster
+                    : (Array.isArray(window.teamsModule?.getCurrentTeam?.()?.players) ? window.teamsModule.getCurrentTeam().players : []);
+                if (rFallback.length) payloadBase.roster = rFallback.map(__normalizeRosterPlayer);
+            } catch(_) {}
+        }
         const payload = Object.assign({}, payloadBase, {
             scoutingEndTime: new Date().toISOString(),
             createdAt: new Date().toISOString(),
@@ -2857,13 +2936,7 @@ async function exportAllSetsToExcel(options = {}) {
                     const n = Number(map[k] || 0);
                     if (n > maxNum) maxNum = n;
                 });
-                try {
-                    const list = safeJsonParse(localStorage.getItem('volleyMatches'), []);
-                    (Array.isArray(list) ? list : []).forEach(m => {
-                        const n = Number(m?.matchNumber || m?.matchNo || m?.fileNumber || 0);
-                        if (n > maxNum) maxNum = n;
-                    });
-                } catch (_) {}
+                // Cloud-only: non si legge più da volleyMatches per i numeri partita
                 const next = maxNum + 1;
                 if (map && matchId) {
                     map[matchId] = next;
@@ -3060,7 +3133,8 @@ async function exportAllSetsToExcel(options = {}) {
 
         let roster = pickRosterList();
 
-        const opponent = sessionData.opponent || sessionData.opponentTeam || match.opponentTeam || match.opponent || match.awayTeam || match.opponentName || 'Avversario';
+        const _mr3064 = (sessionData.description || match.description || '').toLowerCase();
+        const opponent = (_mr3064 === 'andata' ? '(A) ' : _mr3064 === 'ritorno' ? '(R) ' : '') + (sessionData.opponent || sessionData.opponentTeam || match.opponentTeam || match.opponent || match.awayTeam || match.opponentName || 'Avversario');
         const matchDate = sessionData.matchDate || match.matchDate || match.date || new Date().toISOString().slice(0, 10);
         const eventType = sessionData.eventType || sessionData.matchType || match.eventType || match.matchType || match.type || 'partita';
         const location = String(sessionData.location || match.location || '').trim().toLowerCase() || normalizeHomeAwayLabel(match, sessionData);
@@ -3218,14 +3292,7 @@ async function exportAllSetsToExcel(options = {}) {
             const excelMeta = Object.assign(
                 { name: fileName, updatedAt: new Date().toISOString() }
             );
-            const stored = safeJsonParse(localStorage.getItem('volleyMatches'), []);
-            if (Array.isArray(stored)) {
-                const idx = stored.findIndex(m => String(m?.id || '').trim() === matchId);
-                if (idx >= 0) {
-                    stored[idx] = Object.assign({}, stored[idx], { matchNumber, excelFileName: excelMeta.name, excelFileUrl: '', excelFilePath: '' });
-                }
-                try { localStorage.setItem('volleyMatches', JSON.stringify(stored)); } catch (_) {}
-            }
+            // Cloud-only: i metadati Excel vengono aggiornati solo nella sessione corrente e in Firestore
             try {
                 const sess = safeJsonParse(localStorage.getItem('currentScoutingSession'), {});
                 sess.excelFileName = excelMeta.name;
@@ -3259,6 +3326,37 @@ async function exportAllSetsToExcel(options = {}) {
 }
 
 window.exportAllSetsToExcel = exportAllSetsToExcel;
+
+// --- Protezione perdita dati: flush su localStorage prima di chiudere o nascondere la pagina ---
+window.addEventListener('beforeunload', function() {
+    try {
+        var hasActions = window.appState && Array.isArray(window.appState.actionsLog) && window.appState.actionsLog.length > 0;
+        var hasSequence = window.appState && Array.isArray(window.appState.currentSequence) && window.appState.currentSequence.length > 0;
+        if (!hasActions && !hasSequence) {
+            console.log('[MVS] beforeunload: nessun dato da salvare, skip');
+            return;
+        }
+        __buildCurrentSavePayloadSnapshot({ persistSession: true });
+        console.log('[MVS] beforeunload: stato salvato in localStorage');
+    } catch (err) {
+        console.warn('[MVS] beforeunload flush fallito:', err);
+    }
+});
+
+document.addEventListener('visibilitychange', function() {
+    try {
+        if (document.visibilityState === 'hidden') {
+            var _ha = window.appState && Array.isArray(window.appState.actionsLog) && window.appState.actionsLog.length > 0;
+            var _hs = window.appState && Array.isArray(window.appState.currentSequence) && window.appState.currentSequence.length > 0;
+            if (!_ha && !_hs) return;
+            __buildCurrentSavePayloadSnapshot({ persistSession: true });
+            console.log('[MVS] visibilitychange(hidden): stato salvato in localStorage');
+        }
+    } catch (err) {
+        console.warn('[MVS] visibilitychange flush fallito:', err);
+    }
+});
+// --- Fine protezione perdita dati ---
 
 // Avvio automatico dopo il caricamento dello script
 if (document.readyState === 'loading') {
@@ -3545,13 +3643,7 @@ function initializeScoutingPage() {
                     const team = window.teamsModule.getCurrentTeam();
                     if (team && Array.isArray(team.players)) roster = team.players;
                 }
-                // 2) fallback: dal localStorage usando selectedTeamId
-                if (!roster || roster.length === 0) {
-                    const selId = localStorage.getItem('selectedTeamId');
-                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
-                    const team = storedTeams.find(t => String(t.id) === String(selId));
-                    if (team && Array.isArray(team.players)) roster = team.players;
-                }
+                // Cloud-only: rimosso fallback da volleyTeams localStorage (il roster viene da teamsModule sopra)
                 if (Array.isArray(roster) && roster.length > 0) {
                     appState.currentRoster = roster;
                 } else {
@@ -3842,7 +3934,7 @@ function recomputeFromActionsLog() {
         updateCurrentPhaseDisplay();
         updateNextFundamental();
         updateScoreHistoryDisplay();
-        scheduleAutosave(600);
+        __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(600);
     } catch (err) {
         console.error('Errore nel ricalcolo da actionsLog:', err);
     }
@@ -4948,7 +5040,7 @@ function updateActionsLog() {
     if (countBadge) countBadge.textContent = String(appState.actionsLog.length);
 
     // Pianifica autosave dopo aggiornamento log
-    try { scheduleAutosave(1500); } catch(_) {}
+    try { __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(1500); } catch(_) {}
 }
 
 // Utility aggiunte: display fase e predizione/aggiornamento fondamentale
@@ -5071,10 +5163,31 @@ function updateNextFundamental() {
                 ? rotationRaw.toUpperCase()
                 : `P${rotationRaw}`.toUpperCase()
             : '';
-        // Header dinamico: "SET X AZIONE IN P#:" (oppure "SET X AZIONE:")
+        // Header dinamico: "SET X IN P#:" (oppure "SET X:")
         const setNum = (window.appState?.currentSet) ? window.appState.currentSet : 1;
         const prefix = `SET ${setNum} `;
-        el.textContent = rotationNorm ? `${prefix}AZIONE IN ${rotationNorm}:` : `${prefix}AZIONE:`;
+        el.textContent = rotationNorm ? `${prefix}IN ${rotationNorm}:` : `${prefix}:`;
+        // Pulsante "inverti rotazione" accanto all'header
+        try {
+            let swapBtn = document.getElementById('rotation-swap-btn');
+            if (!swapBtn) {
+                swapBtn = document.createElement('button');
+                swapBtn.id = 'rotation-swap-btn';
+                swapBtn.type = 'button';
+                swapBtn.className = 'mvs-toolbar-icon rotation-swap-btn';
+                swapBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+                swapBtn.title = 'Inverti rotazione';
+                swapBtn.addEventListener('click', __openRotationSwapDialog);
+                // Inserisci nel gruppo .layout-switch insieme a Edit e Reset
+                const layoutSwitch = document.querySelector('.layout-switch');
+                if (layoutSwitch) {
+                    layoutSwitch.insertBefore(swapBtn, layoutSwitch.firstChild);
+                } else {
+                    el.parentElement.appendChild(swapBtn);
+                }
+            }
+            swapBtn.style.display = rotationNorm ? '' : 'none';
+        } catch(_) {}
     }
     const cur = document.getElementById('current-fundamental');
     if (cur) {
@@ -5118,8 +5231,10 @@ function startSet() {
         const hasGlobalCfgValid = !!(__rotCfg2 && cfg.phase);
         const allowUninitialized = !!(appState && appState.allowUninitializedSet === setNumber);
 
+        // Se il set è completed, non serve il dialog di configurazione
+        const __setCompleted5117 = (typeof __computeSetStatus === 'function') ? (__computeSetStatus(setNumber) === 'completed') : false;
         // Se non abbiamo configurazione valida, apri il dialog di setup set e interrompi
-        if (!hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1) && !allowUninitialized) {
+        if (!__setCompleted5117 && !hasMetaForSet && (!hasGlobalCfgValid || setNumber !== 1) && !allowUninitialized) {
             try {
                 appState.currentSet = setNumber;
                 appState.homeScore = 0;
@@ -5150,14 +5265,21 @@ function startSet() {
             try { appState.allowUninitializedSet = null; } catch(_) {}
         }
 
+        // Per set completed senza meta completa, leggi rotazione/fase da setStateBySet o setMeta parziale
+        const __smPartial = sessionData.setMeta && sessionData.setMeta[setNumber];
+        const __stState = sessionData.setStateBySet && sessionData.setStateBySet[setNumber];
+        const __cmState = appState?.currentMatch?.setStateBySet?.[setNumber];
         rotation = hasMetaForSet
             ? sm.ourRotation
-            : ((__rotCfg2 && String(__rotCfg2).startsWith('P')) ? __rotCfg2 : (__rotCfg2 ? `P${__rotCfg2}` : 'P1'));
-        phase = hasMetaForSet ? sm.phase : (cfg.phase || 'servizio');
+            : (__smPartial?.ourRotation || __stState?.currentRotation || __cmState?.currentRotation ||
+               ((__rotCfg2 && String(__rotCfg2).startsWith('P')) ? __rotCfg2 : (__rotCfg2 ? `P${__rotCfg2}` : 'P1')));
+        phase = hasMetaForSet
+            ? sm.phase
+            : (__stState?.currentPhase || __cmState?.currentPhase || cfg.phase || 'servizio');
         // Opponent rotation opzionale (usata nel testo descrittivo iniziale)
         var opponentRotation = hasMetaForSet
             ? (sm.opponentRotation || null)
-            : (cfg.opponentRotation || null);
+            : (__smPartial?.opponentRotation || cfg.opponentRotation || null);
     }
     
     appState.currentSet = setNumber;
@@ -5172,20 +5294,26 @@ function startSet() {
         const shBySet = sessionData.scoreHistoryBySet || {};
         const abSet = sessionData.actionsBySet || {};
         const stBySet = sessionData.setStateBySet || {};
-        if (Array.isArray(shBySet[setNumber]) || Array.isArray(abSet[setNumber]) || stBySet[setNumber]) {
-            appState.actionsLog = abSet[setNumber] || [];
-            appState.scoreHistory = shBySet[setNumber] || [];
-            const st = stBySet[setNumber] || {};
-            if (Array.isArray(appState.scoreHistory) && appState.scoreHistory.length > 0) {
-                const last = appState.scoreHistory[appState.scoreHistory.length - 1];
-                appState.homeScore = (typeof st.homeScore === 'number') ? st.homeScore : (last?.homeScore ?? 0);
-                appState.awayScore = (typeof st.awayScore === 'number') ? st.awayScore : (last?.awayScore ?? 0);
+        const _rawActions = Array.isArray(abSet[setNumber]) ? abSet[setNumber] : [];
+        const _rawHistory = Array.isArray(shBySet[setNumber]) ? shBySet[setNumber] : [];
+        const _rawState = stBySet[setNumber] || {};
+        const _stH = Number(_rawState.homeScore || 0);
+        const _stA = Number(_rawState.awayScore || 0);
+        // Solo se i dati sono significativi (non vuoti/zero) consideriamo il ripristino riuscito
+        const _hasRealData = (_rawActions.length > 0 || _rawHistory.length > 0 || _stH > 0 || _stA > 0);
+        if (_hasRealData) {
+            appState.actionsLog = _rawActions;
+            appState.scoreHistory = _rawHistory;
+            if (_rawHistory.length > 0) {
+                const last = _rawHistory[_rawHistory.length - 1];
+                appState.homeScore = (_stH > 0 || _stA > 0) ? _stH : (last?.homeScore ?? 0);
+                appState.awayScore = (_stH > 0 || _stA > 0) ? _stA : (last?.awayScore ?? 0);
             } else {
-                appState.homeScore = (typeof st.homeScore === 'number') ? st.homeScore : 0;
-                appState.awayScore = (typeof st.awayScore === 'number') ? st.awayScore : 0;
+                appState.homeScore = _stH;
+                appState.awayScore = _stA;
             }
-            if (st.currentPhase) appState.currentPhase = st.currentPhase;
-            if (st.currentRotation) appState.currentRotation = normalizeRotation(st.currentRotation);
+            if (_rawState.currentPhase) appState.currentPhase = _rawState.currentPhase;
+            if (_rawState.currentRotation) appState.currentRotation = normalizeRotation(_rawState.currentRotation);
             // Prepara la fase di inizio del prossimo rally dopo ripristino
             appState.rallyStartPhase = appState.currentPhase;
             appState.setStarted = true;
@@ -5193,6 +5321,35 @@ function startSet() {
         }
     } catch(_) {}
 
+    // Fallback: se non ripristinato da localStorage, prova da appState.currentMatch (dati cloud/caricati)
+    if (!restored) {
+        try {
+            const cm = appState?.currentMatch || {};
+            const cmAb = cm.actionsBySet || {};
+            const cmSh = cm.scoreHistoryBySet || {};
+            const cmSt = cm.setStateBySet || {};
+            const cmActions = Array.isArray(cmAb[setNumber]) ? cmAb[setNumber] : [];
+            const cmHistory = Array.isArray(cmSh[setNumber]) ? cmSh[setNumber] : [];
+            const cmState = cmSt[setNumber] || {};
+            if (cmActions.length || cmHistory.length || (cmState.homeScore > 0 || cmState.awayScore > 0)) {
+                appState.actionsLog = cmActions;
+                appState.scoreHistory = cmHistory;
+                if (cmHistory.length > 0) {
+                    const last = cmHistory[cmHistory.length - 1];
+                    appState.homeScore = (typeof cmState.homeScore === 'number') ? cmState.homeScore : (last?.homeScore ?? 0);
+                    appState.awayScore = (typeof cmState.awayScore === 'number') ? cmState.awayScore : (last?.awayScore ?? 0);
+                } else {
+                    appState.homeScore = (typeof cmState.homeScore === 'number') ? cmState.homeScore : 0;
+                    appState.awayScore = (typeof cmState.awayScore === 'number') ? cmState.awayScore : 0;
+                }
+                if (cmState.currentPhase) appState.currentPhase = cmState.currentPhase;
+                if (cmState.currentRotation) appState.currentRotation = normalizeRotation(cmState.currentRotation);
+                appState.rallyStartPhase = appState.currentPhase;
+                appState.setStarted = true;
+                restored = true;
+            }
+        } catch(_) {}
+    }
     if (!restored) {
         appState.homeScore = 0;
         appState.awayScore = 0;
@@ -5237,8 +5394,11 @@ function startSet() {
     updateNextFundamental();
     updatePlayersGrid();
     updateScoreHistoryDisplay(); // Aggiorna anche lo storico punteggio
-    // Persisti subito l'inizializzazione del nuovo set
-    scheduleAutosave(250);
+    // Persisti subito l'inizializzazione del nuovo set, ma NON se dati vuoti con idratazione in corso
+    // (evita di sovrascrivere dati cloud con zeri)
+    if (restored || !window.__mvsHydratingMatchFromFirestore) {
+        __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(restored ? 250 : 1000);
+    }
     
     // Apri l'interfaccia guidata se esiste (versione completa)
     if (typeof showScoutingStep === 'function') {
@@ -5270,7 +5430,8 @@ function updateMatchSummary() {
         const date = appState.currentMatch.date || '-';
         const type = appState.currentMatch.matchType || '-';
         const myTeam = appState.currentMatch.myTeam || appState.currentMatch.homeTeam || '-';
-        const opponent = appState.currentMatch.opponentTeam || appState.currentMatch.awayTeam || '-';
+        const _mr5273 = (appState.currentMatch.description || '').toLowerCase();
+        const opponent = (_mr5273 === 'andata' ? '(A) ' : _mr5273 === 'ritorno' ? '(R) ' : '') + (appState.currentMatch.opponentTeam || appState.currentMatch.awayTeam || '-');
         teamsEl.textContent = `${myTeam} vs ${opponent}`;
         dateEl.textContent = date;
         typeEl.textContent = type;
@@ -5345,11 +5506,33 @@ function updateScoutingUI() {
     if (scoreAwayEl) scoreAwayEl.textContent = appState.awayScore;
 
     // Aggiorna nomi squadre nella testata punteggio (mia squadra + avversaria)
-    const myTeamName = appState?.currentMatch?.myTeam || appState?.currentMatch?.homeTeam || '';
+    // Risolve myTeam con fallback robusti: myTeam → teamsModule → matchId → localStorage
+    const _rawMy = appState?.currentMatch?.myTeam;
+    let myTeamName = (_rawMy && _rawMy !== '-') ? _rawMy : '';
+    if (!myTeamName) myTeamName = (appState?.currentMatch?.homeAway === 'home'
+        ? appState?.currentMatch?.homeTeam
+        : appState?.currentMatch?.awayTeam) || '';
+    if (!myTeamName || myTeamName === '-') {
+        try {
+            const _t = window.teamsModule?.getCurrentTeam?.();
+            if (_t?.name) myTeamName = _t.name;
+        } catch(_) {}
+    }
+    if (!myTeamName || myTeamName === '-') {
+        try {
+            const _mid = String(appState?.currentMatch?.id || '');
+            const _ux = _mid.lastIndexOf('_');
+            if (_ux > 0) myTeamName = _mid.substring(0, _ux);
+        } catch(_) {}
+    }
+    if (!myTeamName || myTeamName === '-') {
+        try { myTeamName = localStorage.getItem('vpa_owner_team') || ''; } catch(_) {}
+    }
     // Mostra solo il nome della società per la mia squadra (rimuove eventuale "Nome Squadra - Nome Società")
     const partsMy = String(myTeamName).split(' - ');
     const myClubOnly = partsMy.length >= 2 ? partsMy.slice(1).join(' - ') : myTeamName;
-    const opponentName = appState?.currentMatch?.opponentTeam || appState?.currentMatch?.awayTeam || '';
+    const _mr5352 = (appState?.currentMatch?.description || '').toLowerCase();
+    const opponentName = (_mr5352 === 'andata' ? '(A) ' : _mr5352 === 'ritorno' ? '(R) ' : '') + (appState?.currentMatch?.opponentTeam || appState?.currentMatch?.awayTeam || '');
     const scoreTeamMyEl = document.getElementById('score-team-my');
     if (scoreTeamMyEl) scoreTeamMyEl.textContent = abbreviateWithDots(myClubOnly || '-', 16);
     const scoreTeamOppEl = document.getElementById('score-team-opponent');
@@ -5673,7 +5856,7 @@ function updateScoreHistoryDisplay() {
                         // Rimuove l'ultima azione scoutizzata e ricalcola tutto
                         __removeLastActionForSet(currentSetNum);
                         recomputeFromActionsLog();
-                        scheduleAutosave(600);
+                        __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(600);
                     } catch (e) {
                         console.warn('Eliminazione ultima riga fallita:', e);
                     }
@@ -5843,7 +6026,7 @@ function __mvsInsertRowAfterTarget(target) {
         updateActionSummary();
         updateDescriptiveQuartet();
         updateNextFundamental();
-        scheduleAutosave(600);
+        __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(600);
     } catch(_) {}
 }
 
@@ -6058,8 +6241,9 @@ window.openActionsDialog = function(){
             title.appendChild(total);
             var close = document.createElement('button');
             close.type = 'button';
-            close.textContent = 'Chiudi';
-            close.className = 'close-btn';
+            close.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            close.className = 'close-btn mvs-close-icon';
+            close.title = 'Chiudi';
             close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             header.appendChild(title);
             header.appendChild(close);
@@ -6192,80 +6376,44 @@ window.openActionViewer = function(index){
         if (!dlg) {
             dlg = document.createElement('div');
             dlg.id = 'action-viewer-dialog';
-            dlg.className = 'dialog is-open';
-            dlg.style.position = 'fixed';
-            dlg.style.inset = '0';
-            dlg.style.background = 'rgba(0,0,0,0.35)';
+            dlg.className = 'dialog is-open mvs-detail-dialog';
             dlg.style.zIndex = '1003';
-            dlg.style.display = 'flex';
-            dlg.style.alignItems = 'center';
-            dlg.style.justifyContent = 'center';
-            dlg.style.display = 'flex';
-            dlg.style.alignItems = 'center';
-            dlg.style.justifyContent = 'center';
             var panel = document.createElement('div');
-            panel.className = 'dialog-panel';
-            panel.style.maxWidth = '700px';
-            panel.style.width = 'min(700px, calc(100% - 16px))';
-            panel.style.margin = '0 12px';
-            panel.style.background = '#fff';
-            panel.style.borderRadius = '12px';
-            panel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-            panel.style.display = 'flex';
-            panel.style.flexDirection = 'column';
-            panel.style.maxHeight = '80vh';
-            panel.style.overflow = 'hidden';
+            panel.className = 'dialog-content mvs-dialog-content';
             var header = document.createElement('div');
-            header.className = 'dialog-header';
-            header.style.display = 'flex';
-            header.style.alignItems = 'center';
-            header.style.justifyContent = 'space-between';
-            header.style.padding = '12px 16px';
-            header.style.position = 'sticky';
-            header.style.top = '0';
-            header.style.background = '#fff';
-            header.style.zIndex = '1';
+            header.className = 'dialog-header mvs-dialog-header';
             var h3 = document.createElement('h3');
             h3.textContent = 'Dettaglio Azione';
             h3.style.margin = '0';
             var close = document.createElement('button');
             close.type = 'button';
-            close.textContent = 'Chiudi';
+            close.className = 'close-btn mvs-close-icon';
+            close.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            close.title = 'Chiudi';
             close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
-            try{ close.style.background='#fff'; close.style.color='#0d6efd'; close.style.border='1px solid #0d6efd'; close.style.borderRadius='10px'; close.style.padding='6px 10px'; close.style.fontWeight='600'; }catch(_){}
             header.appendChild(h3);
             header.appendChild(close);
             var body = document.createElement('div');
             body.className = 'dialog-body';
-            body.style.padding = '12px 16px';
-            body.style.flex = '1 1 auto';
             body.style.overflowX = 'auto';
             body.style.whiteSpace = 'nowrap';
             var meta = document.createElement('div');
+            meta.className = 'mvs-action-meta';
             var score = String(item.score || '0-0');
             var phase = String(item.phase || appState.currentPhase || '');
             var rot = String(item.rotation || '');
             var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
-            meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot + '  '; // extra spacing before action
-            meta.style.fontWeight = '700';
-            meta.style.color = '#0d6efd';
+            meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot;
             var action = document.createElement('span');
+            action.className = 'mvs-action-str';
             action.textContent = String(item.action || '');
-            action.style.fontFamily = 'monospace';
-            action.style.whiteSpace = 'nowrap';
             body.appendChild(meta);
             body.appendChild(action);
             var footer = document.createElement('div');
             footer.className = 'dialog-footer';
-            footer.style.display = 'flex';
-            footer.style.justifyContent = 'space-between';
-            footer.style.gap = '8px';
-            footer.style.padding = '10px 12px';
-            footer.style.position = 'sticky';
-            footer.style.bottom = '0';
-            footer.style.background = '#fff';
             var addFull = document.createElement('button');
             addFull.type = 'button';
+            addFull.className = 'secondary-btn';
             addFull.textContent = 'Aggiungi intera azione';
             addFull.addEventListener('click', function(){
                 try {
@@ -6279,14 +6427,7 @@ window.openActionViewer = function(index){
                     window.openActionEditor(null);
                 } catch(_) {}
             });
-            try{ addFull.style.background='#fff'; addFull.style.color='#0d6efd'; addFull.style.border='1px solid #0d6efd'; addFull.style.borderRadius='10px'; addFull.style.padding='6px 10px'; addFull.style.fontWeight='600'; }catch(_){}
-            var close2 = document.createElement('button');
-            close2.type = 'button';
-            close2.textContent = 'Chiudi';
-            close2.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
-            try{ close2.style.background='#fff'; close2.style.color='#0d6efd'; close2.style.border='1px solid #0d6efd'; close2.style.borderRadius='10px'; close2.style.padding='6px 10px'; close2.style.fontWeight='600'; }catch(_){}
             footer.appendChild(addFull);
-            footer.appendChild(close2);
             panel.appendChild(header);
             panel.appendChild(body);
             panel.appendChild(footer);
@@ -6303,17 +6444,15 @@ window.openActionViewer = function(index){
                 body.style.overflowX = 'auto';
                 body.style.whiteSpace = 'nowrap';
                 var meta = document.createElement('div');
+                meta.className = 'mvs-action-meta';
                 var score = String(item.score || '0-0');
                 var phase = String(item.phase || appState.currentPhase || '');
                 var rot = String(item.rotation || '');
                 var phaseAbbr = (phase === 'servizio') ? 'S' : (phase === 'ricezione' ? 'R' : phase);
-                meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot + '  ';
-                meta.style.fontWeight = '700';
-                meta.style.color = '#0d6efd';
+                meta.textContent = score + ' • ' + phaseAbbr + ' ' + rot;
                 var action = document.createElement('span');
+                action.className = 'mvs-action-str';
                 action.textContent = String(item.action || '');
-                action.style.fontFamily = 'monospace';
-                action.style.whiteSpace = 'nowrap';
                 body.appendChild(meta);
                 body.appendChild(action);
             }
@@ -6346,12 +6485,13 @@ window.openActionEditor = function(index){
             var header = document.createElement('div');
             header.className = 'dialog-header mvs-dialog-header';
             var h3 = document.createElement('h3');
-            h3.textContent = 'Editor Quartine';
+            h3.textContent = 'Editor Azione';
             header.appendChild(h3);
             var close = document.createElement('button');
             close.type = 'button';
-            close.textContent = 'Chiudi';
-            close.className = 'close-btn';
+            close.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            close.className = 'close-btn mvs-close-icon';
+            close.title = 'Chiudi';
             close.addEventListener('click', function(){ try{ __mvsCloseModalElement(dlg); }catch(_){} });
             header.appendChild(close);
             var body = document.createElement('div');
@@ -6606,6 +6746,8 @@ function __ensureSetInitializedForScouting(){
     try {
         const setNum = (appState && Number.isInteger(appState.currentSet)) ? appState.currentSet : 1;
         if (__getSetMetaPresence(setNum)) return true;
+        // Se il set è completed (punteggio finale raggiunto), non serve il dialog
+        if (__computeSetStatus(setNum) === 'completed') return true;
         if (typeof window.openSetMetaDialog === 'function') {
             window.openSetMetaDialog(setNum, {
                 onSkip: function(){}
@@ -6672,6 +6814,28 @@ function __getSetDataSnapshot(setNum){
             started = !!st.setStarted;
         }
     } catch(_) {}
+    // Fallback: se non ci sono dati da localStorage, leggi da appState.currentMatch (dati cloud)
+    if (!home && !away && actions.length === 0) {
+        try {
+            const cm = appState?.currentMatch || {};
+            const cmSh = cm.scoreHistoryBySet || {};
+            const cmAb = cm.actionsBySet || {};
+            const cmSt = cm.setStateBySet || {};
+            const cmActions = Array.isArray(cmAb[setNum]) ? cmAb[setNum] : [];
+            const cmArr = Array.isArray(cmSh[setNum]) ? cmSh[setNum] : [];
+            const cmLast = cmArr.length ? cmArr[cmArr.length - 1] : null;
+            const cmState = cmSt[setNum] || {};
+            if (cmActions.length) actions = cmActions;
+            if (cmLast && (typeof cmLast.homeScore === 'number' || typeof cmLast.awayScore === 'number')) {
+                home = Number(cmLast.homeScore||0);
+                away = Number(cmLast.awayScore||0);
+            } else if (typeof cmState.homeScore === 'number' || typeof cmState.awayScore === 'number') {
+                home = Number(cmState.homeScore||0);
+                away = Number(cmState.awayScore||0);
+            }
+            if (cmActions.length || home || away) started = true;
+        } catch(_) {}
+    }
     return { actions, home, away, started };
 }
 
@@ -6688,9 +6852,11 @@ function __computeSetStatus(setNum){
     const hasMeta = __getSetMetaPresence(setNum);
     const snap = __getSetDataSnapshot(setNum);
     const completed = __isSetCompleted(setNum, snap.home, snap.away);
-    if (!hasMeta) return 'none';
+    // Completed ha priorità: se i punteggi dimostrano che il set è concluso, è completed
     if (completed) return 'completed';
-    return 'partial';
+    if (!hasMeta && !snap.started && snap.actions.length === 0) return 'none';
+    if (hasMeta || snap.started || snap.actions.length > 0) return 'partial';
+    return 'none';
 }
 
 function updateSetSidebarColors(){
@@ -7055,6 +7221,20 @@ function openSetMetaDialog(setNumber, options){
                 sessionData.setMeta[targetSet] = { ourRotation: ourRot, phase: phase, opponentRotation: oppRot || null };
                 localStorage.setItem('currentScoutingSession', JSON.stringify(sessionData));
             } catch(_){ }
+            // Cloud-only: salva dati di inizio set in Firestore — AWAIT
+            try {
+                var _teamId = sessionData?.teamId || localStorage.getItem('selectedTeamId') || '';
+                var _matchId = sessionData?.id || localStorage.getItem('selectedMatchId') || '';
+                if (_teamId && _matchId && window.firestoreService && typeof window.firestoreService.saveSetStartTree === 'function') {
+                    await window.firestoreService.saveSetStartTree(_teamId, _matchId, targetSet, {
+                        phase: phase,
+                        rotation: ourRot,
+                        opponentRotation: oppRot || null,
+                        startTime: new Date().toISOString()
+                    });
+                    console.log('[MVS] saveSetStartTree set ' + targetSet + ' completato');
+                }
+            } catch(e) { console.warn('[MVS] saveSetStartTree set ' + targetSet + ' fallito:', e); }
             try { appState.currentSet = targetSet; } catch(_){ }
             try {
                 var desired = '#/set/' + String(targetSet);
@@ -7234,8 +7414,9 @@ function updateDescriptiveQuartet() {
                 : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-                : `<span class="token token-player" data-row-kind="current"><button type="button" class="token-delete-btn" data-row-kind="current" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
-            lines.push(`<div class="multi-line-item"><span class="token token-fundamental" data-row-kind="current">${fTok}</span>${playerCell}${evalSpan}</div>`);
+                : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
+            const deleteCell = appState.editRowsMode ? `<button type="button" class="multi-line-delete" data-row-kind="current" aria-label="Elimina riga">×</button>` : '';
+            lines.push(`<div class="multi-line-item">${deleteCell}<span class="token token-fundamental" data-row-kind="current">${fTok}</span>${playerCell}${evalSpan}</div>`);
         } else if (evalVal) {
             // Nessun player ancora: mostra fondamentale previsto + valutazione selezionata
             const fTok = (typeof escapeHtml === 'function') ? escapeHtml(fundamentalUpper) : fundamentalUpper;
@@ -7277,12 +7458,14 @@ function updateDescriptiveQuartet() {
 
             const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence' && appState.replaceTarget.index === i)
                 ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-                : `<span class="${pCls}" data-row-kind="sequence" data-row-index="${i}"><button type="button" class="token-delete-btn" data-row-kind="sequence" data-row-index="${i}" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
+                : `<span class="${pCls}" data-row-kind="sequence" data-row-index="${i}">${pTok}</span>`;
+            const deleteCell = appState.editRowsMode ? `<button type="button" class="multi-line-delete" data-row-kind="sequence" data-row-index="${i}" aria-label="Elimina riga">×</button>` : '';
             const evalCell = `<span class="${eCls}" data-row-kind="sequence" data-row-index="${i}">${eTok}</span>`;
-            lines.push(`<div class="multi-line-item"><span class="${fCls}" data-row-kind="sequence" data-row-index="${i}">${fTok}</span>${playerCell}${evalCell}</div>`);
+            lines.push(`<div class="multi-line-item">${deleteCell}<span class="${fCls}" data-row-kind="sequence" data-row-index="${i}">${fTok}</span>${playerCell}${evalCell}</div>`);
         }
 
         el.classList.add('multiline');
+        el.classList.toggle('edit-mode', !!appState.editRowsMode);
         el.innerHTML = lines.join('');
         if (box) box.style.display = lines.length ? 'block' : 'none';
         // Rende cliccabili TUTTE le pillole player visibili per avviare la sostituzione
@@ -7299,9 +7482,16 @@ function updateDescriptiveQuartet() {
                     enterReplacePlayerModeFor(kind, Number.isFinite(idx) ? idx : null, span);
                 });
             });
-            const deleteButtons = el.querySelectorAll('.token-delete-btn');
-            deleteButtons.forEach(btn => {
-                btn.addEventListener('click', deleteQuartetRowFromButton);
+            const deleteButtons = el.querySelectorAll('.multi-line-delete');
+            deleteButtons.forEach((btn) => {
+                btn.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    const kind = btn.getAttribute('data-row-kind') || '';
+                    const idxRaw = btn.getAttribute('data-row-index');
+                    const idx = idxRaw == null ? null : parseInt(idxRaw, 10);
+                    __mvsDeleteActionRow(kind, Number.isFinite(idx) ? idx : null);
+                });
             });
         } catch(_) {}
         try {
@@ -7366,7 +7556,7 @@ function updateDescriptiveQuartet() {
             : `<span class="token token-eval token-placeholder" data-row-kind="current"></span>`;
         const playerCell = (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current')
             ? `<span class="token token-cancel" onclick="cancelReplacePlayerMode()" title="Annulla sostituzione">ANNULLA</span>`
-            : `<span class="token token-player" data-row-kind="current"><button type="button" class="token-delete-btn" data-row-kind="current" aria-label="Elimina quartina" title="Elimina quartina">×</button><span class="token-player-label">${pTok}</span></span>`;
+            : `<span class="token token-player" data-row-kind="current">${pTok}</span>`;
         const html = `
             <span class="token token-fundamental" data-row-kind="current">${fTok}</span>
             ${playerCell}
@@ -7413,9 +7603,16 @@ function updateDescriptiveQuartet() {
             span.title = 'Cambia giocatore della quartina';
             span.addEventListener('click', enterReplacePlayerModeFromSpan);
         });
-        const deleteButtons = el.querySelectorAll('.token-delete-btn');
-        deleteButtons.forEach(btn => {
-            btn.addEventListener('click', deleteQuartetRowFromButton);
+        const deleteButtons = el.querySelectorAll('.multi-line-delete');
+        deleteButtons.forEach((btn) => {
+            btn.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const kind = btn.getAttribute('data-row-kind') || '';
+                const idxRaw = btn.getAttribute('data-row-index');
+                const idx = idxRaw == null ? null : parseInt(idxRaw, 10);
+                __mvsDeleteActionRow(kind, Number.isFinite(idx) ? idx : null);
+            });
         });
     } catch(_) {}
     try {
@@ -7487,72 +7684,189 @@ function cancelReplacePlayerMode(){
     } catch(_) {}
 }
 
-function deleteQuartetRowFromButton(e){
+function __mvsDeleteActionRow(kind, index){
     try {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = e.currentTarget;
-        const kind = btn?.dataset?.rowKind || 'current';
-        const indexRaw = btn?.dataset?.rowIndex;
-        const index = indexRaw != null ? parseInt(indexRaw, 10) : null;
-        deleteQuartetRow(kind, Number.isFinite(index) ? index : null);
-    } catch(_) {}
-}
-
-function deleteQuartetRow(kind, index){
-    const targetKind = String(kind || 'current').toLowerCase();
-    if (targetKind === 'sequence') {
-        if (!Array.isArray(appState.currentSequence)) appState.currentSequence = [];
-        if (!Number.isInteger(index) || index < 0 || index >= appState.currentSequence.length) return;
-        appState.currentSequence.splice(index, 1);
-        if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence') {
-            const currentIndex = Number.isFinite(appState.replaceTarget.index) ? appState.replaceTarget.index : null;
-            if (currentIndex === index) {
-                appState.replacePlayerMode = false;
-                appState.replaceTarget = null;
-            } else if (currentIndex != null && currentIndex > index) {
-                appState.replaceTarget.index = currentIndex - 1;
+        const targetKind = String(kind || '').trim();
+        if (targetKind === 'current') {
+            appState.selectedPlayer = null;
+            appState.selectedEvaluation = null;
+            appState.selectedEvaluationButtonText = '';
+            appState.opponentErrorPressed = false;
+            if (appState.autoCloseTimerId) {
+                clearTimeout(appState.autoCloseTimerId);
+                appState.autoCloseTimerId = null;
             }
-        }
-    } else {
-        appState.selectedPlayer = null;
-        appState.selectedEvaluation = null;
-        appState.justClosedAction = false;
-        if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'current') {
-            appState.replacePlayerMode = false;
-            appState.replaceTarget = null;
-        }
-        if (appState.autoCloseTimerId) {
-            clearTimeout(appState.autoCloseTimerId);
-            appState.autoCloseTimerId = null;
-        }
-        appState.autoClosePending = false;
-        appState.autoClosePayload = null;
-        try {
-            document.querySelectorAll('.eval-btn').forEach(btn => {
+            appState.autoClosePending = false;
+            appState.autoClosePayload = null;
+            document.querySelectorAll('.eval-btn').forEach((btn) => {
                 btn.classList.remove('selected');
                 btn.classList.remove('timer-pending');
                 btn.style.removeProperty('--pulse-duration');
-                btn.disabled = false;
             });
-            document.querySelectorAll('.player-btn').forEach(btn => {
-                btn.classList.remove('selected');
-                btn.disabled = false;
-            });
-        } catch(_) {}
-        const selectedPlayerText = document.getElementById('selected-player-text');
-        const selectedEvaluationText = document.getElementById('selected-evaluation-text');
-        if (selectedPlayerText) selectedPlayerText.textContent = '-';
-        if (selectedEvaluationText) selectedEvaluationText.textContent = '-';
+        } else if (targetKind === 'sequence') {
+            const idx = Number.isFinite(index) ? index : parseInt(index, 10);
+            if (Number.isFinite(idx) && Array.isArray(appState.currentSequence) && idx >= 0 && idx < appState.currentSequence.length) {
+                appState.currentSequence.splice(idx, 1);
+                try { __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(600); } catch(_) {}
+                if (appState.replacePlayerMode && appState.replaceTarget && appState.replaceTarget.kind === 'sequence') {
+                    const tIdx = Number(appState.replaceTarget.index);
+                    if (Number.isFinite(tIdx) && tIdx === idx) {
+                        appState.replacePlayerMode = false;
+                        appState.replaceTarget = null;
+                    }
+                }
+            }
+        }
+    } catch(_) {}
+    try { updateNextFundamental(); } catch(_) {}
+    try { updateDescriptiveQuartet(); } catch(_) {}
+}
+
+function resetCurrentRally() {
+    // Se non c'è nessuna sequenza in corso, niente da resettare
+    if (!appState.currentSequence || appState.currentSequence.length === 0) {
+        // Reset comunque player/eval selezionati
+        appState.selectedPlayer = null;
+        appState.selectedEvaluation = null;
+        appState.selectedEvaluationButtonText = '';
+        appState.overrideFundamental = null;
+        appState.nextFundamentalPreview = null;
+        appState.calculatedFundamental = null;
+        appState.justClosedAction = false;
+        if (appState.pressedButtons) appState.pressedButtons = [];
+        try { updatePressedButtonsDisplay(); } catch(_) {}
+        try { updateScoutingUI(); } catch(_) {}
+        try { updateNextFundamental(); } catch(_) {}
+        try { updateDescriptiveQuartet(); } catch(_) {}
+        return;
     }
+
+    // Cancella la sequenza corrente
+    appState.currentSequence = [];
+    appState.selectedPlayer = null;
+    appState.selectedEvaluation = null;
+    appState.selectedEvaluationButtonText = '';
+    appState.opponentErrorPressed = false;
+    appState.overrideFundamental = null;
     appState.nextFundamentalPreview = null;
     appState.calculatedFundamental = null;
-    appState.overrideFundamental = null;
-    try { updateActionSummary(); } catch(_) {}
-    try { updateDescriptiveQuartet(); } catch(_) {}
+    appState.justClosedAction = false;
+    try { __persistCurrentSequenceQuick(); } catch(_) {}
+
+    // Cancella auto-close timer se attivo
+    if (appState.autoCloseTimerId) {
+        clearTimeout(appState.autoCloseTimerId);
+        appState.autoCloseTimerId = null;
+    }
+    appState.autoClosePending = false;
+    appState.autoClosePayload = null;
+
+    // Reset fase inizio rally alla fase corrente
+    appState.rallyStartPhase = appState.currentPhase;
+
+    // Reset display tasti premuti
+    if (appState.pressedButtons) appState.pressedButtons = [];
+    try { updatePressedButtonsDisplay(); } catch(_) {}
+
+    // Aggiorna UI
     try { updateScoutingUI(); } catch(_) {}
     try { updateNextFundamental(); } catch(_) {}
-    try { updatePlayersGrid(); } catch(_) {}
+    try { updateDescriptiveQuartet(); } catch(_) {}
+}
+window.resetCurrentRally = resetCurrentRally;
+
+// Mappa inversione rotazione: P1↔P4, P2↔P5, P3↔P6
+var __rotationSwapMap = { 'P1':'P4', 'P2':'P5', 'P3':'P6', 'P4':'P1', 'P5':'P2', 'P6':'P3' };
+
+function __openRotationSwapDialog() {
+    var curRot = (window.appState?.currentRotation) ? String(window.appState.currentRotation).toUpperCase() : '';
+    if (!curRot.startsWith('P')) curRot = 'P' + curRot;
+    var newRot = __rotationSwapMap[curRot];
+    if (!newRot) return;
+
+    // Rimuovi dialog precedente se esiste
+    var old = document.getElementById('rotation-swap-dialog');
+    if (old) old.remove();
+
+    // Crea dialog di conferma
+    var dlg = document.createElement('div');
+    dlg.id = 'rotation-swap-dialog';
+    dlg.className = 'dialog is-open';
+
+    var panel = document.createElement('div');
+    panel.className = 'dialog-content';
+    panel.style.maxWidth = '380px';
+    panel.style.width = '88%';
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'dialog-header';
+    var h3 = document.createElement('h3');
+    h3.textContent = 'Inversione Rotazione';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'close-btn';
+    closeBtn.textContent = 'Chiudi';
+    closeBtn.addEventListener('click', function(){ closeDialog('rotation-swap-dialog'); });
+    header.appendChild(h3);
+    header.appendChild(closeBtn);
+
+    // Body
+    var body = document.createElement('div');
+    body.className = 'dialog-body';
+    body.style.textAlign = 'center';
+    var msg = document.createElement('p');
+    msg.style.fontSize = '1rem';
+    msg.style.color = '#374151';
+    msg.style.margin = '8px 0';
+    msg.textContent = 'Confermi di invertire la rotazione da ' + curRot + ' a ' + newRot + '?';
+    body.appendChild(msg);
+
+    // Footer
+    var footer = document.createElement('div');
+    footer.className = 'dialog-footer';
+    footer.style.justifyContent = 'center';
+
+    var btnCancel = document.createElement('button');
+    btnCancel.type = 'button';
+    btnCancel.className = 'secondary-btn';
+    btnCancel.textContent = 'Annulla';
+    btnCancel.style.background = '#fff';
+    btnCancel.style.color = '#374151';
+    btnCancel.style.border = '1px solid #d1d5db';
+    btnCancel.addEventListener('click', function(){ closeDialog('rotation-swap-dialog'); });
+
+    var btnConfirm = document.createElement('button');
+    btnConfirm.type = 'button';
+    btnConfirm.className = 'primary-btn';
+    btnConfirm.textContent = 'Conferma';
+    btnConfirm.style.background = '#2563eb';
+    btnConfirm.style.color = '#fff';
+    btnConfirm.style.border = '1px solid #2563eb';
+    btnConfirm.addEventListener('click', function(){
+        __applyRotationSwap(curRot, newRot);
+        closeDialog('rotation-swap-dialog');
+    });
+
+    footer.appendChild(btnCancel);
+    footer.appendChild(btnConfirm);
+
+    panel.appendChild(header);
+    panel.appendChild(body);
+    panel.appendChild(footer);
+    dlg.appendChild(panel);
+    document.body.appendChild(dlg);
+}
+
+function __applyRotationSwap(fromRot, toRot) {
+    try {
+        appState.currentRotation = toRot;
+        // Aggiorna UI
+        try { updateNextFundamental(); } catch(_) {}
+        try { updateDescriptiveQuartet(); } catch(_) {}
+        // Persisti il cambio
+        try { __markScoutingAutosaveDirty(); __scheduleScoutingAutosave(1500); } catch(_) {}
+    } catch(_) {}
 }
 
 // Attiva l'override MURO per la singola azione corrente

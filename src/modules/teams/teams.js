@@ -113,56 +113,8 @@ class TeamsModule {
             const allTeams = [...localTeams, ...firestoreTeams];
             this.state.teams = this.deduplicateTeams(allTeams);
 
-            try {
-                const firestoreIds = new Set(firestoreTeams.map(t => String(t.id)));
-                const toStore = this.state.teams.map(t => ({
-                    id: t.id,
-                    name: t.name,
-                    teamName: t.teamName,
-                    clubName: t.clubName,
-                    players: Array.isArray(t.players) ? t.players : [],
-                    _mvsShared: !!t._mvsShared,
-                    _mvsOwner: t._mvsOwner || '',
-                    _mvsRole: t._mvsRole || ''
-                }));
-                localStorage.setItem('volleyTeams', JSON.stringify(toStore));
-                if (isAuthed && window.firestoreService?.saveTeam) {
-                    let currentEmail = '';
-                    try { currentEmail = String(window.authFunctions?.getCurrentUser?.()?.email || '').trim(); } catch(_) {}
-                    const sharedTeamIds = (() => {
-                        const out = new Set();
-                        try {
-                            const raw = JSON.parse(localStorage.getItem('mvsSharedTeamRefs') || '[]');
-                            const arr = Array.isArray(raw) ? raw : [];
-                            arr.forEach((r) => {
-                                const id = String(r?.id || '').trim();
-                                const owner = String(r?.owner || '').trim();
-                                if (id && owner && owner !== currentEmail) out.add(id);
-                            });
-                        } catch(_) {}
-                        try {
-                            const metaRaw = localStorage.getItem('selectedSharedTeamMeta');
-                            const meta = metaRaw ? JSON.parse(metaRaw) : null;
-                            const id = String(meta?.id || '').trim();
-                            const owner = String(meta?.owner || '').trim();
-                            if (id && owner && owner !== currentEmail) out.add(id);
-                        } catch(_) {}
-                        return out;
-                    })();
-                    for (const t of this.state.teams) {
-                        const isFs = String(t.source||'').toLowerCase()==='firestore';
-                        const role = String(t._mvsRole || '').toLowerCase();
-                        const owner = String(t._mvsOwner || '').trim();
-                        const isShared = !!t._mvsShared || role === 'observer' || String(t.source||'').toLowerCase()==='shared';
-                        const isForeignOwner = owner && currentEmail && owner !== currentEmail;
-                        const isKnownSharedRef = sharedTeamIds.has(String(t.id || '').trim());
-                        if (!firestoreIds.has(String(t.id)) && !isFs && !isShared && !isForeignOwner && !isKnownSharedRef) {
-                            try { await window.firestoreService.saveTeam(t); } catch(_) {}
-                        }
-                    }
-                }
-            } catch(_) {}
-            
+            // Cloud-only: le squadre vengono salvate esclusivamente in Firestore
+
             this.notifyTeamsUpdate();
 
         } catch (error) {
@@ -182,33 +134,8 @@ class TeamsModule {
      * Ottiene le squadre dal localStorage
      */
     getLocalTeams() {
-        try {
-            const raw = localStorage.getItem('volleyTeams');
-            const arr = raw ? JSON.parse(raw) : [];
-            if (!Array.isArray(arr)) return [];
-            return arr.map(t => {
-                const id = t.id != null ? t.id : Date.now();
-                const nameStr = String(t.name || '').trim();
-                const teamName = String(t.teamName || (nameStr ? nameStr.split(' - ')[0] : '')).trim();
-                const clubName = String(t.clubName || (() => {
-                    const parts = nameStr.split(' - ');
-                    return parts.length >= 2 ? parts.slice(1).join(' - ') : '';
-                })()).trim();
-                const combinedName = teamName + (clubName ? ` - ${clubName}` : '');
-                return {
-                    id,
-                    name: combinedName,
-                    teamName,
-                    clubName,
-                    players: Array.isArray(t.players) ? t.players : [],
-                    _mvsShared: !!t._mvsShared,
-                    _mvsOwner: t._mvsOwner || '',
-                    _mvsRole: t._mvsRole || ''
-                };
-            });
-        } catch (_) {
-            return [];
-        }
+        // Cloud-only: usare loadCloudTeams() per caricare i team da Firestore
+        return [];
     }
 
     /**
@@ -294,16 +221,7 @@ class TeamsModule {
      * Salva la squadra nel localStorage
      */
     async saveTeamLocally(team) {
-        const teams = this.getLocalTeams();
-        const existingIndex = teams.findIndex(t => t.id === team.id);
-        
-        if (existingIndex >= 0) {
-            teams[existingIndex] = team;
-        } else {
-            teams.push(team);
-        }
-        
-        localStorage.setItem('volleyTeams', JSON.stringify(teams));
+        // Cloud-only: le squadre vengono salvate esclusivamente in Firestore
     }
 
     /**
@@ -331,23 +249,15 @@ class TeamsModule {
             let cloudSuccess = false;
             let cloudDeleted = 0;
 
-            // Rimuovi dal localStorage (lista squadre)
-            const localTeams = this.getLocalTeams();
-            const filteredTeams = localTeams.filter(t => String(t.id) !== idStr);
-            localStorage.setItem('volleyTeams', JSON.stringify(filteredTeams));
+            // Cloud-only: le squadre vengono eliminate da Firestore
 
-            // Elimina eventuali roster associati nel vecchio storage locale
+            // Elimina eventuali roster associati
             try {
                 if (teamName && window.firestoreService?.deleteLocalRostersByName) {
                     window.firestoreService.deleteLocalRostersByName(teamName);
-                } else if (teamName) {
-                    // Fallback manuale se il servizio non è disponibile
-                    const storedRosters = JSON.parse(localStorage.getItem('volleyRosters') || '[]');
-                    const filteredRosters = storedRosters.filter((r) => (r?.name || '').toLowerCase() !== teamName.toLowerCase());
-                    localStorage.setItem('volleyRosters', JSON.stringify(filteredRosters));
                 }
             } catch (e) {
-                console.warn('Errore nella rimozione roster locali per squadra:', e);
+                console.warn('Errore nella rimozione roster per squadra:', e);
             }
 
             // Rimuovi dallo stato

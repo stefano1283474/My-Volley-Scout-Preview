@@ -23,13 +23,13 @@
     .account-actions { position:absolute; top:12px; right:12px; display:flex; align-items:center; z-index:2; }
     .back-actions { position:absolute; top:12px; left:12px; display:flex; align-items:center; z-index:2; }
     .icon-button { background:#ffffff; color:#2563eb; border:1px solid #e5e7eb; padding:8px; border-radius:10px; cursor:pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
-    .icon-button:hover { background:#f8fafc; border-color:#dbe1e6; transform: translateY(-1px); }
+    @media (hover: hover) { .icon-button:hover { background:#f8fafc; border-color:#dbe1e6; transform: translateY(-1px); } }
     .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
-    .icon-button-primary:hover { background:#1e4fd4; border-color:#1e4fd4; }
+    @media (hover: hover) { .icon-button-primary:hover { background:#1e4fd4; border-color:#1e4fd4; } }
     .icon-button-circle { width:36px; height:36px; min-width:36px; min-height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:0; }
     .account-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); min-width:200px; }
     .account-dropdown .menu-item { width:100%; padding:12px 14px; text-align:left; background:transparent; border:none; cursor:pointer; color:#334155; }
-    .account-dropdown .menu-item:hover { background:#f1f5f9; }
+    @media (hover: hover) { .account-dropdown .menu-item:hover { background:#f1f5f9; } }
     .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 10px 0; }
     .section-title { font-size:20px; font-weight:700; color:#0f172a; }
     .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
@@ -44,6 +44,11 @@
     .btn-danger { background:#ef4444; border-color:#ef4444; color:#fff; }
     .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; width:100%; }
     .empty-state { color:#64748b; padding:12px 2px; text-align:center; }
+    .empty-state-card { border:1px solid #e2e8f0; border-radius:14px; background:#f8fafc; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .empty-state-icon { width:108px; height:108px; border-radius:999px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; }
+    .empty-state-icon img { width:90px; height:90px; object-fit:contain; display:block; }
+    .empty-state-title { font-size:18px; font-weight:700; color:#0f172a; }
+    .empty-state-desc { color:#64748b; }
     .section-card { border:1px solid #2563eb; border-radius:16px; padding:16px; background:#fff; }
     .hero-card { background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:8px; }
     .hero-title { font-size:24px; font-weight:700; color:#0f172a; text-align:center; }
@@ -51,7 +56,7 @@
     .card { border:1px solid #e5e7eb; border-radius:14px; padding:14px; background:#fff; display:flex; flex-direction:column; gap:8px; }
     .btn-icon { width:36px; height:36px; min-width:36px; min-height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; }
     .btn-icon-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
-    .btn-icon-outline:hover { background:#f8fafc; }
+    @media (hover: hover) { .btn-icon-outline:hover { background:#f8fafc; } }
     @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .page-slide-in { animation: pageSlideIn .24s ease-out; }
     /* Animazione uniforme per elementi cliccabili (stile card squadra) */
@@ -61,12 +66,14 @@
     .btn-icon-outline {
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
-    .btn:hover,
-    .icon-button:hover,
-    .btn-icon:hover,
-    .btn-icon-outline:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+    @media (hover: hover) {
+      .btn:hover,
+      .icon-button:hover,
+      .btn-icon:hover,
+      .btn-icon-outline:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+      }
     }
     .btn:active,
     .icon-button:active,
@@ -143,6 +150,7 @@
     .archive-badge.local { border-color:#2563eb; }
     .archive-badge.cloud { border-color:#0ea5e9; }
   </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
   <div class="container">
@@ -165,8 +173,7 @@
           <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
           <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
           <button class="menu-item" id="installAppBtn" type="button">Installa app</button>
-          <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
-          <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
+          <button class="menu-item" id="importAllMatchesBtn" type="button">Importa partite</button>
           <button class="menu-item" id="purgeAllBtn" type="button">Pulisci dati locali</button>
           <div class="menu-item" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">Impostazioni</div>
           <label class="menu-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;">
@@ -198,44 +205,32 @@
         </div>
       </div>
 
-      <div class="archive-tabs" role="tablist" aria-label="Elenco Squadre">
-        <button id="archiveTabLocal" class="archive-tab" type="button" role="tab" aria-selected="false" style="display:none;">Locale</button>
-        <button id="archiveTabCloud" class="archive-tab active" type="button" role="tab" aria-selected="true">Cloud</button>
-        <button id="archiveTabShared" class="archive-tab" type="button" role="tab" aria-selected="false">Cloud Condiviso</button>
-      </div>
-
-      <div id="archivePager" class="archive-pager" aria-label="Pagine archivio">
-        <div class="archive-page" data-archive="cloud">
-          <div id="cloudHint" class="empty-state" style="display:none;">
-            Accedi per visualizzare e gestire i dati Cloud.
-          </div>
-          <div id="noTeamsCloud" class="empty-state" style="display:none;">
-            Nessuna squadra su Cloud. Crea una nuova squadra.
-          </div>
-          <div id="teamsGridCloud" class="grid"></div>
-        </div>
-        <div class="archive-page" data-archive="shared">
-          <div id="sharedHint" class="empty-state" style="display:none;">
-            Accedi per visualizzare le squadre condivise.
+      <div id="archivePager" class="archive-pager" aria-label="Elenco squadre" style="display:block;">
+        <div class="archive-page" data-archive="cloud" style="min-width:100%; padding-top:12px;">
+          <div id="teamsHint" class="empty-state" style="display:none;">
+            Accedi per visualizzare e gestire le tue squadre.
           </div>
           <div id="inviteObserverInfo" class="observer-info" style="display:none;">
-            <div class="observer-info-title">Invito Osservatore</div>
+            <div class="observer-info-title">Invito Ospiete</div>
             <div class="observer-info-text">Per usare l’invito devi prima autenticarti. Il token verrà collegato al tuo account così avrai accesso alla squadra.</div>
             <div class="observer-info-steps">
               <div>1. Accedi o registrati dal pulsante qui sotto.</div>
-              <div>2. Torna in My Teams e apri la scheda Cloud Condiviso.</div>
-              <div>3. Trova la squadra con badge Osservatore e selezionala.</div>
-              <div>4. Apri la squadra condivisa e consulta partite/analisi in Cloud.</div>
-              <div>5. Vai in Analisi Team o Match-Stats per consultare i dati.</div>
+              <div>2. Torna in My Teams e troverai la squadra con badge Ospiete.</div>
+              <div>3. Apri la squadra condivisa e consulta partite/analisi in Cloud.</div>
             </div>
             <div class="observer-info-actions">
               <button id="inviteLoginBtn" class="btn btn-primary" type="button">Accedi / Registrati</button>
             </div>
           </div>
-          <div id="noTeamsShared" class="empty-state" style="display:none;">
-            Nessuna squadra condivisa. Attendi un invito.
+          <div id="noTeamsUnified" class="empty-state" style="display:none;">
+            <div class="empty-state-card">
+              <div class="empty-state-icon"><img src="LOGO_PALLONE.png" alt="Logo pallone"></div>
+              <div class="empty-state-title">Nessuna squadra disponibile</div>
+              <div class="empty-state-desc">Crea la tua prima squadra o attendi un invito Ospiete.</div>
+              <button class="btn btn-primary" type="button" onclick="openCreate()">Crea nuova squadra</button>
+            </div>
           </div>
-          <div id="teamsGridShared" class="grid"></div>
+          <div id="teamsGridUnified" class="grid"></div>
         </div>
       </div>
     </div>
@@ -341,13 +336,10 @@
 
   <script>
     const teamsGridLocal = document.getElementById('teamsGridLocal');
-    const teamsGridCloud = document.getElementById('teamsGridCloud');
-    const teamsGridShared = document.getElementById('teamsGridShared');
+    const teamsGridUnified = document.getElementById('teamsGridUnified');
     const noTeamsLocal = document.getElementById('noTeamsLocal');
-    const noTeamsCloud = document.getElementById('noTeamsCloud');
-    const noTeamsShared = document.getElementById('noTeamsShared');
-    const cloudHint = document.getElementById('cloudHint');
-    const sharedHint = document.getElementById('sharedHint');
+    const noTeamsUnified = document.getElementById('noTeamsUnified');
+    const teamsHint = document.getElementById('teamsHint');
     const inviteObserverInfo = document.getElementById('inviteObserverInfo');
     const inviteLoginBtn = document.getElementById('inviteLoginBtn');
     const archiveTitle = document.getElementById('archiveTitle');
@@ -360,6 +352,7 @@
     const accountMenu = document.getElementById('accountMenu');
     const accountEmail = document.getElementById('accountEmail');
     const installAppBtn = document.getElementById('installAppBtn');
+    const importAllMatchesBtn = document.getElementById('importAllMatchesBtn');
     const accountLogout = document.getElementById('accountLogout');
     const syncDataBtn = document.getElementById('syncDataBtn');
     const hydrateDataBtn = document.getElementById('hydrateDataBtn');
@@ -394,7 +387,7 @@
     const sharedAccessReactivateAll = document.getElementById('sharedAccessReactivateAll');
     const sharedAccessRemoveAll = document.getElementById('sharedAccessRemoveAll');
     let pendingDelete = null;
-    let currentArchive = 'local';
+    let currentArchive = 'cloud';
     let cloudTeams = [];
     let sharedTeams = [];
     let isEditingTeam = false;
@@ -770,9 +763,8 @@
     }
 
     function setArchive(next) {
-      const v = (next === 'shared') ? 'shared' : 'cloud';
-      currentArchive = v;
-      try { localStorage.setItem(ARCHIVE_STORAGE_KEY, v); } catch(_) {}
+      currentArchive = 'cloud';
+      try { localStorage.setItem(ARCHIVE_STORAGE_KEY, 'cloud'); } catch(_) {}
       if (archiveTitle) archiveTitle.textContent = 'Elenco Squadre';
       if (archiveTabLocal) {
         archiveTabLocal.classList.remove('active');
@@ -780,53 +772,40 @@
         archiveTabLocal.style.display = 'none';
       }
       if (archiveTabCloud) {
-        archiveTabCloud.classList.toggle('active', v === 'cloud');
-        archiveTabCloud.setAttribute('aria-selected', (v === 'cloud').toString());
+        archiveTabCloud.classList.remove('active');
+        archiveTabCloud.setAttribute('aria-selected', 'false');
+        archiveTabCloud.style.display = 'none';
       }
       if (archiveTabShared) {
-        archiveTabShared.classList.toggle('active', v === 'shared');
-        archiveTabShared.setAttribute('aria-selected', (v === 'shared').toString());
+        archiveTabShared.classList.remove('active');
+        archiveTabShared.setAttribute('aria-selected', 'false');
+        archiveTabShared.style.display = 'none';
       }
-      try {
-        if (archivePager) {
-          const w = archivePager.clientWidth || window.innerWidth || 1;
-          const x = v === 'shared' ? w : 0;
-          archivePager.scrollTo({ left: x, behavior: 'smooth' });
-        }
-      } catch(_) {}
+      if (archivePager) archivePager.style.display = 'block';
       if (createTeamBtn) {
-        createTeamBtn.title = v === 'cloud' ? 'Crea Squadra (Cloud)' : 'Solo lettura';
-        createTeamBtn.disabled = v === 'shared';
+        createTeamBtn.title = 'Crea Squadra (Cloud)';
+        createTeamBtn.disabled = false;
       }
       if (hydrateDataBtn) {
-        hydrateDataBtn.disabled = v === 'shared';
-        hydrateDataBtn.title = v === 'shared' ? 'Non disponibile in Cloud Condiviso' : 'Aggiorna Locale da Cloud';
-        hydrateDataBtn.style.display = v === 'shared' ? 'none' : '';
+        hydrateDataBtn.disabled = false;
+        hydrateDataBtn.title = 'Aggiorna Locale da Cloud';
+        hydrateDataBtn.style.display = '';
       }
       if (syncDataBtn) {
-        syncDataBtn.disabled = v === 'shared';
-        syncDataBtn.title = v === 'shared' ? 'Non disponibile in Cloud Condiviso' : 'Aggiorna Cloud da Locale';
-        syncDataBtn.style.display = v === 'shared' ? 'none' : '';
+        syncDataBtn.disabled = false;
+        syncDataBtn.title = 'Aggiorna Cloud da Locale';
+        syncDataBtn.style.display = '';
       }
-      if (v === 'cloud') {
-        if (cloudHint) {
-          cloudHint.textContent = 'Caricamento Cloud...';
-          cloudHint.style.display = 'block';
-        }
-        try { loadCloudTeams(); } catch(_) {}
+      if (teamsHint) {
+        teamsHint.textContent = 'Caricamento squadre...';
+        teamsHint.style.display = 'block';
       }
-      if (v === 'shared') {
-        if (sharedHint) {
-          sharedHint.textContent = 'Caricamento Cloud condiviso...';
-          sharedHint.style.display = 'block';
-        }
-        try { loadCloudTeams(); } catch(_) {}
-      }
+      try { loadCloudTeams(); } catch(_) {}
     }
 
     function getLocalTeamsRaw() {
       try {
-        const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+        const list = [];
         const arr = Array.isArray(list) ? list : [];
         const currentEmail = getCurrentUserEmail();
         const sharedIds = (() => {
@@ -887,7 +866,7 @@
 
     function removeSharedTeamsLocal() {
       try {
-        const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+        const list = [];
         const arr = Array.isArray(list) ? list : [];
         const currentEmail = getCurrentUserEmail();
         const sharedIds = (() => {
@@ -911,7 +890,7 @@
           if (idStr && sharedIds.has(idStr)) return false;
           return true;
         });
-        localStorage.setItem('volleyTeams', JSON.stringify(cleaned));
+        // localStorage.setItem('volleyTeams', JSON.stringify(cleaned)); // Cloud-only, disabled
       } catch(_) {}
     }
 
@@ -928,7 +907,7 @@
 
     function addOrUpdateSharedTeamLocal(team, ownerId, role) {
       try {
-        const list = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+        const list = [];
         const arr = Array.isArray(list) ? list : [];
         const idStr = String(team?.id || team?.teamId || '').trim();
         if (!idStr) return;
@@ -946,7 +925,7 @@
         const idx = arr.findIndex(t => String(t?.id || '').trim() === idStr && String(t?._mvsOwner || '').trim() === String(ownerId || '').trim());
         if (idx >= 0) arr[idx] = Object.assign({}, arr[idx], payload);
         else arr.push(payload);
-        localStorage.setItem('volleyTeams', JSON.stringify(arr));
+        // localStorage.setItem('volleyTeams', JSON.stringify(arr)); // Cloud-only, disabled
       } catch(_) {}
     }
 
@@ -972,7 +951,7 @@
       if (teamsGridLocal) teamsGridLocal.innerHTML = '';
       if (!list.length) return;
       let matchesLocal = [];
-      try { matchesLocal = JSON.parse(localStorage.getItem('volleyMatches') || '[]'); } catch(_) {}
+      try { matchesLocal = []; } catch(_) {}
       if (teamsGridLocal) {
         teamsGridLocal.innerHTML = list.map(t => {
           const selId = t?.id != null ? String(t.id) : null;
@@ -1006,16 +985,12 @@
     }
 
     async function loadCloudTeams() {
-      if (cloudHint) cloudHint.style.display = 'none';
-      if (sharedHint) sharedHint.style.display = 'none';
-      if (noTeamsCloud) noTeamsCloud.style.display = 'none';
-      if (noTeamsShared) noTeamsShared.style.display = 'none';
-      if (teamsGridCloud) teamsGridCloud.innerHTML = '';
-      if (teamsGridShared) teamsGridShared.innerHTML = '';
+      if (teamsHint) teamsHint.style.display = 'none';
+      if (noTeamsUnified) noTeamsUnified.style.display = 'none';
+      if (teamsGridUnified) teamsGridUnified.innerHTML = '';
       const currentUser = window.authFunctions?.getCurrentUser?.();
       if (!isAuthenticated() || !currentUser?.email) {
-        if (cloudHint) cloudHint.style.display = 'block';
-        if (sharedHint) sharedHint.style.display = 'block';
+        if (teamsHint) teamsHint.style.display = 'block';
         updateInviteObserverInfo(false);
         return;
       }
@@ -1026,9 +1001,9 @@
             cloudTeams = Array.isArray(res.documents) ? res.documents : [];
         } else {
             console.error('Failed to load user teams:', res?.error);
-            if (cloudHint) {
-                cloudHint.textContent = res?.error ? String(res.error) : 'Errore caricamento Cloud';
-                cloudHint.style.display = 'block';
+            if (teamsHint) {
+                teamsHint.textContent = res?.error ? String(res.error) : 'Errore caricamento squadre';
+                teamsHint.style.display = 'block';
             }
         }
 
@@ -1043,30 +1018,23 @@
             cacheSharedTeamRefs([]);
         }
 
-        renderCloudTeamsList();
-        renderSharedTeamsList();
+        renderUnifiedTeamsList();
         updateInviteObserverInfo(true);
       } catch (err) {
         console.error('Critical error loading cloud teams:', err);
-        if (cloudHint) {
-          cloudHint.textContent = err?.message ? String(err.message) : 'Errore caricamento Cloud';
-          cloudHint.style.display = 'block';
-        }
-        if (sharedHint) {
-          sharedHint.textContent = err?.message ? String(err.message) : 'Errore caricamento Cloud condiviso';
-          sharedHint.style.display = 'block';
+        if (teamsHint) {
+          teamsHint.textContent = err?.message ? String(err.message) : 'Errore caricamento squadre';
+          teamsHint.style.display = 'block';
         }
       }
     }
 
-    function renderCloudTeamsList() {
+    function renderUnifiedTeamsList() {
       const list = Array.isArray(cloudTeams) ? cloudTeams.slice() : [];
-      if (teamsGridCloud) teamsGridCloud.innerHTML = '';
+      const shared = Array.isArray(sharedTeams) ? sharedTeams.slice() : [];
+      if (teamsGridUnified) teamsGridUnified.innerHTML = '';
       if (!isAuthenticated()) return;
-      if (noTeamsCloud) noTeamsCloud.style.display = list.length ? 'none' : 'block';
-      if (!list.length) return;
-      if (teamsGridCloud) {
-        teamsGridCloud.innerHTML = list.map(t => {
+      const ownedHtml = list.map(t => {
           const name = normalizeTeamName(t) || String(t?.name || t?.id || '');
           const id = String(t?.id || '').replace(/"/g,'&quot;');
           const owner = '';
@@ -1085,50 +1053,42 @@
                    ${clubName ? `<div style="font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase;">${clubName}</div>` : ''}
                    <div class="team-name-click" style="font-size:16px; font-weight:500; color:#0f172a;">${teamName}</div>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Ospiete" aria-label="Invita Ospiete">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L9 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.5a5 5 0 0 0 7.07 7.07L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                    ${t.shared ? `<button class="icon-button icon-button-outline icon-button-circle" data-action="manage-access" data-archive="cloud" data-id="${id}" title="Gestisci Osservatori" aria-label="Gestisci Osservatori">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20 8v6M17 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </button>` : ''}
+                    <button class="icon-button icon-button-outline icon-button-circle" data-action="edit" data-archive="cloud" data-id="${id}" title="Modifica (Cloud)" aria-label="Modifica (Cloud)">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                    <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-archive="cloud" data-id="${id}" title="Elimina (Cloud)" aria-label="Elimina (Cloud)">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
                   <span style="font-size:11px; color:${roleColor}; border:1px solid ${roleBorder}; background:${roleBg}; padding:2px 8px; border-radius:999px; font-weight:600;">${roleLabel}</span>
-                  <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Osservatore" aria-label="Invita Osservatore">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L9 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.5a5 5 0 0 0 7.07 7.07L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  ${t.shared ? `<button class="icon-button icon-button-outline icon-button-circle" data-action="manage-access" data-archive="cloud" data-id="${id}" title="Gestisci Osservatori" aria-label="Gestisci Osservatori">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                      <path d="M20 8v6M17 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </button>` : ''}
-                  <button class="icon-button icon-button-outline icon-button-circle" data-action="edit" data-archive="cloud" data-id="${id}" title="Modifica (Cloud)" aria-label="Modifica (Cloud)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L8 18l-4 1 1-4 11.5-11.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button class="icon-button icon-button-outline icon-button-circle" data-action="delete" data-archive="cloud" data-id="${id}" title="Elimina (Cloud)" aria-label="Elimina (Cloud)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>`;
         }).join('');
-      }
-    }
-
-    function renderSharedTeamsList() {
-      const shared = Array.isArray(sharedTeams) ? sharedTeams.slice() : [];
-      if (teamsGridShared) teamsGridShared.innerHTML = '';
-      if (!isAuthenticated()) return;
-      if (noTeamsShared) noTeamsShared.style.display = shared.length ? 'none' : 'block';
-      if (!shared.length) return;
-      if (teamsGridShared) {
-        teamsGridShared.innerHTML = shared.map(t => {
+      const sharedHtml = shared.map(t => {
           const name = normalizeTeamName(t) || String(t?.name || t?.id || '');
           const id = String(t?.id || '').replace(/"/g,'&quot;');
           const owner = String(t?._mvsOwner || '').trim();
@@ -1144,7 +1104,7 @@
                    <div style="font-size:12px; color:#475569; margin-top:3px;">Proprietario: <b>${ownerLabel.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</b></div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-                   <span style="font-size:11px; color:#3b82f6; border:1px solid #bfdbfe; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Osservatore</span>
+                   <span style="font-size:11px; color:#3b82f6; border:1px solid #bfdbfe; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Ospiete</span>
                    <span style="font-size:11px; color:#64748b;">Cloud Condiviso</span>
                 </div>
               </div>
@@ -1162,8 +1122,16 @@
                 </div>
               </div>
             </div>`;
-        }).join('');
-      }
+      }).join('');
+      const html = `${ownedHtml}${sharedHtml}`;
+      if (noTeamsUnified) noTeamsUnified.style.display = html ? 'none' : 'block';
+      if (teamsGridUnified) teamsGridUnified.innerHTML = html;
+    }
+
+    function renderCloudTeamsList() { renderUnifiedTeamsList(); }
+
+    function renderSharedTeamsList() {
+      renderUnifiedTeamsList();
     }
 
     function formatAccessDate(value) {
@@ -1198,14 +1166,14 @@
     function formatObserverExitBadge(reason) {
       const normalized = String(reason || '').trim().toLowerCase();
       if (normalized === 'rifiuto' || normalized === 'rifiuto_invito') return 'Invito rifiutato';
-      return 'Recesso osservatore';
+      return 'Recesso Ospiete';
     }
 
     function renderAccessRows(list) {
       if (!sharedAccessList) return;
       const docs = Array.isArray(list) ? list : [];
       if (!docs.length) {
-        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun osservatore trovato.</div>`;
+        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun Ospiete trovato.</div>`;
         return;
       }
       sharedAccessList.innerHTML = docs.map((item) => {
@@ -1218,7 +1186,7 @@
         const statusBg = isLeft ? '#e2e8f0' : (active ? '#dcfce7' : '#fef3c7');
         const statusTxt = isLeft ? formatObserverExitBadge(item?.observerLeftReason) : (active ? 'Attivo' : 'Sospeso');
         const leftDetail = isLeft
-          ? `<div class="access-row-left-detail">Stato osservatore: <b>${formatObserverExitReason(item?.observerLeftReason)}</b> · Data: <b>${formatAccessDate(item?.observerLeftAt)}</b></div>`
+          ? `<div class="access-row-left-detail">Stato Ospiete: <b>${formatObserverExitReason(item?.observerLeftReason)}</b> · Data: <b>${formatAccessDate(item?.observerLeftAt)}</b></div>`
           : '';
         return `
           <div class="access-row">
@@ -1276,8 +1244,8 @@
       const filteredDocs = filterAccessRows(accessDocsCache);
       updateAccessSummary(accessDocsCache, filteredDocs);
       if (sharedAccessHint) {
-        if (!accessDocsCache.length) sharedAccessHint.textContent = 'Nessun osservatore collegato a questa squadra.';
-        else if (!filteredDocs.length) sharedAccessHint.textContent = 'Nessun osservatore corrisponde ai filtri impostati.';
+        if (!accessDocsCache.length) sharedAccessHint.textContent = 'Nessun Ospiete collegato a questa squadra.';
+        else if (!filteredDocs.length) sharedAccessHint.textContent = 'Nessun Ospiete corrisponde ai filtri impostati.';
         else sharedAccessHint.textContent = '';
       }
       renderAccessRows(filteredDocs);
@@ -1509,11 +1477,11 @@
       const idStr = String(teamId);
       const localTeams = getLocalTeamsRaw();
       const filteredTeams = localTeams.filter(t => String(t?.id) !== idStr);
-      localStorage.setItem('volleyTeams', JSON.stringify(filteredTeams));
+      // localStorage.setItem('volleyTeams', JSON.stringify(filteredTeams)); // Cloud-only, disabled
       try {
-        const localMatches = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+        const localMatches = [];
         const kept = Array.isArray(localMatches) ? localMatches.filter(m => String(m?.teamId || '') !== idStr) : [];
-        localStorage.setItem('volleyMatches', JSON.stringify(kept));
+        // localStorage.setItem('volleyMatches', JSON.stringify(kept)); // Cloud-only, disabled
       } catch(_){}
       try {
         const selected = localStorage.getItem('selectedTeamId');
@@ -1542,7 +1510,7 @@
         : 'Vuoi recedere dall’accesso a questo team condiviso? Potrai rientrare solo con un nuovo invito del proprietario.';
       if (!tId || !owner) return;
       const ok = await askConfirm(confirmMessage, {
-        title: isReject ? 'Rifiuto invito' : 'Recesso osservatore',
+        title: isReject ? 'Rifiuto invito' : 'Recesso Ospiete',
         okText: isReject ? 'Rifiuta' : 'Recedi',
         cancelText: 'Annulla',
         variant: 'danger',
@@ -1694,6 +1662,7 @@
     }
 
     function openCreate() {
+      createTeamDialog.classList.remove('closing');
       createTeamDialog.showModal();
       if (!isEditingTeam) {
         teamInput.value = '';
@@ -1707,8 +1676,16 @@
       createTeamDialog.classList.add('closing');
       const card = createTeamDialog.querySelector('.dialog-card');
       if (card) {
-        const end = () => { createTeamDialog.classList.remove('closing'); createTeamDialog.close(); card.removeEventListener('animationend', end); };
+        let closed = false;
+        const end = () => {
+          if (closed) return;
+          closed = true;
+          createTeamDialog.classList.remove('closing');
+          createTeamDialog.close();
+          card.removeEventListener('animationend', end);
+        };
         card.addEventListener('animationend', end);
+        setTimeout(end, 260);
       } else {
         createTeamDialog.classList.remove('closing');
         createTeamDialog.close();
@@ -1751,7 +1728,7 @@
           updatedAt: new Date().toISOString()
         };
         all.push(team);
-        localStorage.setItem('volleyTeams', JSON.stringify(all));
+        // localStorage.setItem('volleyTeams', JSON.stringify(all)); // Cloud-only, disabled
         try { window.teamsModule?.loadTeams?.(); } catch(_){ }
         closeCreate();
         renderLocalTeamsList();
@@ -1823,22 +1800,7 @@
           const invitePending = !!(getInviteTokenFromUrl() || readPendingInvite());
           const selectedRole = String(localStorage.getItem('selectedTeamRole') || '').trim().toLowerCase();
           const shouldSkipAutoSync = invitePending || selectedRole === 'observer' || currentArchive === 'shared';
-          if (!shouldSkipAutoSync) {
-            try {
-              const flag = localStorage.getItem('__teamsSyncedFs');
-              if (!flag && window.firestoreService?.syncLocalTeamsToFirestore) {
-                localStorage.setItem('__teamsSyncedFs','1');
-                await window.firestoreService.syncLocalTeamsToFirestore();
-              }
-            } catch(_){ }
-            try {
-              const mflag = localStorage.getItem('__matchesSyncedFs');
-              if (!mflag && window.firestoreService?.syncLocalMatchesToFirestore) {
-                localStorage.setItem('__matchesSyncedFs','1');
-                await window.firestoreService.syncLocalMatchesToFirestore();
-              }
-            } catch(_){ }
-          }
+          void shouldSkipAutoSync;
           try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
           try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.(()=>{ renderLocalTeamsList(); }); } } catch(_){ }
           renderLocalTeamsList();
@@ -2025,10 +1987,10 @@
                 } catch(e) { tRes = { success: false, error: e.message }; }
             }
             
-            if (window.firestoreService?.syncLocalMatchesToFirestore) { 
+            if (window.firestoreService?.syncLocalMatchesToFirestore) {
                 try {
                     try {
-                      const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                      const localMatches = [];
                       totalMatches = Array.isArray(localMatches) ? localMatches.length : 0;
                     } catch(_) {}
                     resetSyncProgressDialog(progressDlg, totalMatches);
@@ -2088,52 +2050,38 @@
       if (goToTeamsBtn){ goToTeamsBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/my-teams.html'; }); }
       const goToMatchesBtn = document.getElementById('goToMatchesBtn');
       if (goToMatchesBtn){ goToMatchesBtn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href = '/matches.html?archive=' + encodeURIComponent(currentArchive); }); }
+      function openMatchesImportFlow() {
+        try { sessionStorage.setItem('mvsOpenImport', '1'); } catch(_) {}
+        const qp = new URLSearchParams();
+        qp.set('archive', String(currentArchive || 'cloud'));
+        qp.set('openImport', '1');
+        window.location.href = '/matches.html?' + qp.toString();
+      }
+      if (importAllMatchesBtn){
+        importAllMatchesBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openMatchesImportFlow();
+        });
+      }
+      if (accountMenu){
+        accountMenu.addEventListener('click', (e) => {
+          const trigger = e.target && e.target.closest ? e.target.closest('#importAllMatchesBtn') : null;
+          if (!trigger) return;
+          e.preventDefault();
+          e.stopPropagation();
+          openMatchesImportFlow();
+        });
+      }
       const accountExit = document.getElementById('accountExit');
       if (accountExit){ accountExit.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } window.location.href = '/my-teams.html'; }); }
       if (accountLogout){ accountLogout.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); } catch(e){} finally { try{ accountMenu.hidden = true; accountBtn.setAttribute('aria-expanded','false'); }catch(_){ } try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } }); }
 
       try {
-        if (archiveTabLocal) archiveTabLocal.addEventListener('click', () => setArchive('cloud'));
-        if (archiveTabCloud) archiveTabCloud.addEventListener('click', () => setArchive('cloud'));
-        if (archiveTabShared) archiveTabShared.addEventListener('click', () => setArchive('shared'));
-        if (archivePager && !archivePager.__boundScroll) {
-          archivePager.__boundScroll = true;
-          let raf = null;
-          archivePager.addEventListener('scroll', () => {
-            if (raf) cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(() => {
-              const w = archivePager.clientWidth || window.innerWidth || 1;
-              const idx = Math.round((archivePager.scrollLeft || 0) / w);
-              const next = idx >= 1 ? 'shared' : 'cloud';
-              if (next !== currentArchive) {
-                currentArchive = next;
-                if (archiveTitle) archiveTitle.textContent = 'Elenco Squadre';
-                if (archiveTabLocal) {
-                  archiveTabLocal.classList.remove('active');
-                  archiveTabLocal.setAttribute('aria-selected', 'false');
-                  archiveTabLocal.style.display = 'none';
-                }
-                if (archiveTabCloud) {
-                  archiveTabCloud.classList.toggle('active', next === 'cloud');
-                  archiveTabCloud.setAttribute('aria-selected', (next === 'cloud').toString());
-                }
-                if (archiveTabShared) {
-                  archiveTabShared.classList.toggle('active', next === 'shared');
-                  archiveTabShared.setAttribute('aria-selected', (next === 'shared').toString());
-                }
-                if (createTeamBtn) {
-                  createTeamBtn.title = next === 'cloud' ? 'Crea Squadra (Cloud)' : 'Solo lettura';
-                  createTeamBtn.disabled = next === 'shared';
-                }
-              }
-            });
-          });
-        }
         try {
           const qp = new URLSearchParams(window.location.search || '');
           const urlArch = qp.get('archive');
-          const storedArch = localStorage.getItem(ARCHIVE_STORAGE_KEY);
-          setArchive(urlArch || storedArch || 'cloud');
+          setArchive(urlArch || 'cloud');
         } catch(_) {
           setArchive('cloud');
         }

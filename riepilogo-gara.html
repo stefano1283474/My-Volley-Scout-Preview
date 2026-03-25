@@ -13,12 +13,13 @@
     <link rel="stylesheet" href="styles.css?v=4" />
     <style>
       .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
-      .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+      @media (hover: hover) { .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); } }
       .meta-input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; font-size:15px; }
       .meta-actions { margin-top:12px; display:flex; gap:10px; justify-content:flex-end; align-items:center; }
       .meta-status { font-weight:600; color:#0f172a; }
     </style>
-  </head>
+      <script src="/pwa-install.js" defer></script>
+</head>
 <body>
   <header class="topappbar">
     <div class="topappbar-content">
@@ -115,7 +116,8 @@
                 } catch(_){ }
                 if (sess && sess.id) return sess;
               }
-              const list = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+              // Cloud-only: localStorage removed
+              const list = [];
               const found = Array.isArray(list) ? list.find(m => String(m.id)===String(matchId)) : null;
               if (found) {
                 sess = {
@@ -179,7 +181,8 @@
       function renderMeta(sess){
         const target = document.getElementById('matchMeta');
         if (!target) return;
-        const opponent = sess.opponent || sess.opponentTeam || '';
+        const _mrRGP = (sess.description || '').toLowerCase();
+        const opponent = (_mrRGP === 'andata' ? '(A) ' : _mrRGP === 'ritorno' ? '(R) ' : '') + (sess.opponent || sess.opponentTeam || '');
         const date = normalizeDateInput(sess.matchDate || sess.date || '');
         const type = sess.eventType || sess.matchType || '';
         const location = (sess.location || (normalizeHA(sess.homeAway)==='home'?'casa':'trasferta')) || '';
@@ -210,7 +213,7 @@
         target.innerHTML = rows.join('');
       }
 
-      function renderRoster(sess){ const panel = document.getElementById('rosterTable'); if (!panel) return; let players = Array.isArray(sess.roster) ? sess.roster : []; if (!players || players.length === 0) { try { const matchId = sess.id || localStorage.getItem('selectedMatchId') || ''; const localMatches = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); const found = matchId ? localMatches.find(m => String(m.id)===String(matchId)) : null; const rr = found ? (Array.isArray(found.roster)?found.roster:(Array.isArray(found.players)?found.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const raw = localStorage.getItem('importedRoster'); const arr = raw ? JSON.parse(raw) : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const arr = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const selId = localStorage.getItem('selectedTeamId'); const teams = JSON.parse(localStorage.getItem('volleyTeams')||'[]'); const t = selId ? teams.find(x => String(x.id)===String(selId)) : null; const rr = t ? (Array.isArray(t.roster)?t.roster:(Array.isArray(t.players)?t.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const t = window.teamsModule?.getCurrentTeam?.(); const rr = Array.isArray(t?.players)?t.players:[]; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { panel.innerHTML = '<div class="match-item"><div class="match-details">Nessun giocatore presente</div></div>'; return; } function fmtNum(v){ const s = String(v||'').replace(/^'/,''); return s ? s.padStart(2,'0').slice(-2) : ''; } const rows = players.map(p => { const n = fmtNum(p.number); const name = p.name || p.firstName || ''; const surname = p.surname || p.lastName || ''; const nick = p.nickname || p.nick || ''; const role = p.role || ''; return `<tr><td style="width:6ch;">${n}</td><td>${name}</td><td>${surname}</td><td>${nick}</td><td>${role}</td></tr>`; }).join(''); const table = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">N°</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Nome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Cognome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Soprannome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Ruolo</th></tr></thead><tbody>${rows}</tbody></table>`; panel.innerHTML = table; }
+      function renderRoster(sess){ const panel = document.getElementById('rosterTable'); if (!panel) return; let players = Array.isArray(sess.roster) ? sess.roster : []; if (!players || players.length === 0) { try { const matchId = sess.id || localStorage.getItem('selectedMatchId') || ''; const localMatches = []; // Cloud-only: localStorage removed for volleyMatches const found = matchId ? localMatches.find(m => String(m.id)===String(matchId)) : null; const rr = found ? (Array.isArray(found.roster)?found.roster:(Array.isArray(found.players)?found.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const raw = localStorage.getItem('importedRoster'); const arr = raw ? JSON.parse(raw) : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const arr = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const selId = localStorage.getItem('selectedTeamId'); const teams = []; // Cloud-only: localStorage removed for volleyTeams const t = selId ? teams.find(x => String(x.id)===String(selId)) : null; const rr = t ? (Array.isArray(t.roster)?t.roster:(Array.isArray(t.players)?t.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const t = window.teamsModule?.getCurrentTeam?.(); const rr = Array.isArray(t?.players)?t.players:[]; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { panel.innerHTML = '<div class="match-item"><div class="match-details">Nessun giocatore presente</div></div>'; return; } function fmtNum(v){ const s = String(v||'').replace(/^'/,''); return s ? s.padStart(2,'0').slice(-2) : ''; } const rows = players.map(p => { const n = fmtNum(p.number); const name = p.name || p.firstName || ''; const surname = p.surname || p.lastName || ''; const nick = p.nickname || p.nick || ''; const role = p.role || ''; return `<tr><td style="width:6ch;">${n}</td><td>${name}</td><td>${surname}</td><td>${nick}</td><td>${role}</td></tr>`; }).join(''); const table = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">N°</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Nome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Cognome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Soprannome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Ruolo</th></tr></thead><tbody>${rows}</tbody></table>`; panel.innerHTML = table; }
 
       let currentSession = null;
       function goBackAfterSave(){
@@ -278,12 +281,8 @@
           next.awayTeam = ha === 'home' ? (next.opponentTeam || '') : (next.myTeam || '');
         }
         try {
-          let list = [];
-          try { list = JSON.parse(localStorage.getItem('volleyMatches')||'[]'); } catch(_) { list = []; }
-          const idx = Array.isArray(list) ? list.findIndex(m => String(m?.id||'') === String(next.id)) : -1;
-          if (idx >= 0) list[idx] = Object.assign({}, list[idx], next);
-          else list = [next].concat(Array.isArray(list) ? list : []);
-          localStorage.setItem('volleyMatches', JSON.stringify(list));
+          // Cloud-only: localStorage write removed for volleyMatches
+          // Data is now saved via Firestore only
         } catch(_) {}
         try {
           const sess = Object.assign({}, getSession(), next);

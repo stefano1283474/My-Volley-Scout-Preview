@@ -26,7 +26,7 @@
                 <h1 class="loading-title">My Volley Scout</h1>
                 <div class="loading-spinner"></div>
                 <p class="loading-text">Inizializzazione in corso...</p>
-                <div class="app-version" style="margin-top:8px;color:#6b7280;font-weight:600;font-size:0.85rem;">MyVolleyScout Vers. 1.1.2 Preview</div>
+                <div class="app-version" style="margin-top:8px;color:#6b7280;font-weight:600;font-size:0.85rem;">MyVolleyScout Vers. 1.2.0 Preview</div>
             </div>
         </div>
 
@@ -39,10 +39,31 @@
                     </div>
                     <h1 class="auth-title">My Volley Scout</h1>
                     <p class="auth-subtitle">Accedi per iniziare a scoutare</p>
-                    <div class="app-version" style="margin-top:6px;color:#6b7280;font-weight:600;font-size:0.85rem;">MyVolleyScout Vers. 1.1.2 Preview</div>
+                    <div class="app-version" style="margin-top:6px;color:#6b7280;font-weight:600;font-size:0.85rem;">MyVolleyScout Vers. 1.2.0 Preview</div>
                 </div>
 
+                <!-- Login Form -->
                 <div id="login-form" class="auth-form">
+                    <form id="loginForm" class="form">
+                        <div class="form-group">
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input type="email" id="loginEmail" class="form-input" required autocomplete="email" placeholder="inserisci la tua email">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" id="loginPassword" class="form-input" required autocomplete="current-password" placeholder="inserisci la password">
+                        </div>
+                        <div id="loginError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Accedi</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <div class="auth-divider">
+                        <span>oppure</span>
+                    </div>
+
                     <button id="googleSignInBtn" class="btn btn-google btn-full">
                         <svg width="18" height="18" viewBox="0 0 18 18">
                             <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
@@ -53,6 +74,37 @@
                         Accedi con Google
                     </button>
                     <div id="googleError" class="error-message"></div>
+
+                    <p class="auth-switch">
+                        Non hai un account? <a href="#" id="switchToRegister" class="auth-link">Registrati</a>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="auth-form hidden">
+                    <form id="registerForm" class="form">
+                        <div class="form-group">
+                            <label for="registerEmail" class="form-label">Email</label>
+                            <input type="email" id="registerEmail" class="form-input" required autocomplete="email" placeholder="inserisci la tua email">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" id="registerPassword" class="form-input" required autocomplete="new-password" placeholder="crea una password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword" class="form-label">Conferma Password</label>
+                            <input type="password" id="confirmPassword" class="form-input" required autocomplete="new-password" placeholder="conferma la password">
+                        </div>
+                        <div id="registerError" class="error-message"></div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span class="btn-text">Registrati</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+
+                    <p class="auth-switch">
+                        Hai già un account? <a href="#" id="switchToLogin" class="auth-link">Accedi</a>
+                    </p>
                 </div>
             </div>
         </div>

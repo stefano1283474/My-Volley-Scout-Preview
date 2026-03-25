@@ -113,10 +113,12 @@
             transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
         }
 
-        .icon-button:hover {
-            background: #f8f9fa;
-            border-color: #dbe1e6;
-            transform: translateY(-1px);
+        @media (hover: hover) {
+            .icon-button:hover {
+                background: #f8f9fa;
+                border-color: #dbe1e6;
+                transform: translateY(-1px);
+            }
         }
 
         .back-btn {
@@ -321,10 +323,12 @@
             border: 2px solid transparent;
         }
 
-        .action-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            border-color: #667eea;
+        @media (hover: hover) {
+            .action-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+                border-color: #667eea;
+            }
         }
 
         .action-icon {
@@ -398,9 +402,11 @@
             transition: all 0.3s ease;
         }
 
-        .match-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+        @media (hover: hover) {
+            .match-card:hover {
+                transform: translateX(5px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+            }
         }
 
         .match-line {
@@ -533,11 +539,13 @@
             color: #ffffff;
         }
 
-        .btn-primary:hover {
-            background: #0b5ed7;
-            /* blu più scuro */
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
+        @media (hover: hover) {
+            .btn-primary:hover {
+                background: #0b5ed7;
+                /* blu più scuro */
+                transform: translateY(-1px);
+                box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
+            }
         }
 
         .btn-secondary {
@@ -666,12 +674,14 @@
             transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         }
 
-        .btn:hover,
-        .icon-button:hover,
-        .tab-button:hover,
-        .set-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.10);
+        @media (hover: hover) {
+            .btn:hover,
+            .icon-button:hover,
+            .tab-button:hover,
+            .set-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.10);
+            }
         }
 
         @keyframes pageSlideIn {
@@ -918,6 +928,7 @@
             font-weight: 600;
         }
     </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 
 <body>
@@ -958,8 +969,6 @@
                     <div class="menu-item" id="accountEmail">Caricamento...</div>
                     <button class="menu-item" id="goToTeamsBtn" type="button">Vai a Elenco Squadre</button>
                     <button class="menu-item" id="goToMatchesBtn" type="button">Vai a Elenco Partite</button>
-                    <button class="menu-item" id="hydrateDataBtn" type="button">Aggiorna Locale da Cloud</button>
-                    <button class="menu-item" id="syncDataBtn" type="button">Aggiorna Cloud da Locale</button>
                     <div class="menu-item"
                         style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;">
                         Impostazioni</div>
@@ -3084,9 +3093,7 @@
 
         function getLocalMatchesForSelectedTeam() {
             let local = [];
-            try {
-                local = JSON.parse(localStorage.getItem('volleyMatches') || '[]') || [];
-            } catch (_) { local = []; }
+            // Cloud-only: localStorage removed
             if (!selectedTeam || !selectedTeam.id) return Array.isArray(local) ? local : [];
             const selId = String(selectedTeam.id);
             const selName = selectedTeam.name;
@@ -3102,7 +3109,7 @@
 
         function resolveTeamDocId() {
             let localTeams = [];
-            try { localTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]') || []; } catch (_) { localTeams = []; }
+            // Cloud-only: localStorage removed
             const teamMap = new Map();
             (Array.isArray(localTeams) ? localTeams : []).forEach(t => {
                 const club = String(t.clubName || '').trim();
@@ -4195,7 +4202,7 @@
                 const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
 
                 if (isObserver) {
-                    roleEl.textContent = 'Osservatore';
+                    roleEl.textContent = 'Ospiete';
                     roleEl.style.background = '#eff6ff';
                     roleEl.style.color = '#3b82f6';
                     roleEl.style.border = '1px solid #bfdbfe';
@@ -5248,7 +5255,8 @@
                 } catch (_) { }
                 try {
                     const selId = localStorage.getItem('selectedTeamId');
-                    const storedTeams = JSON.parse(localStorage.getItem('volleyTeams') || '[]');
+                    // Cloud-only: localStorage removed for volleyTeams
+                    const storedTeams = [];
                     const team = selId ? storedTeams.find(t => String(t.id) === String(selId)) : null;
                     const teamPlayers = Array.isArray(team?.players) ? team.players : [];
                     if (teamPlayers.length) candidates.push(teamPlayers);
@@ -5750,7 +5758,8 @@
         function buildTeamAnalysisData(matchesListForAnalysis, filtersOverride) {
             let allMatches = Array.isArray(matchesListForAnalysis) ? matchesListForAnalysis.slice() : [];
 
-            const cachedLocalMatchesRaw = localStorage.getItem('volleyMatches');
+            // Cloud-only: localStorage removed
+            const cachedLocalMatchesRaw = null;
             let cachedLocalMatches = [];
             try {
                 if (cachedLocalMatchesRaw) cachedLocalMatches = JSON.parse(cachedLocalMatchesRaw) || [];
@@ -6820,7 +6829,8 @@
         async function hydrateMatchForExport(match) {
             const base = Object.assign({}, match || {});
             try {
-                const localAll = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                // Cloud-only: localStorage removed
+                const localAll = [];
                 const localMatch = Array.isArray(localAll) ? localAll.find(x => String(x?.id || '') === String(base.id || '')) : null;
                 if (localMatch && typeof localMatch === 'object') {
                     const localUpdated = toEpochValue(localMatch.updatedAt || localMatch.scoutingEndTime || localMatch.createdAt);
@@ -7080,7 +7090,7 @@
             emptyMatches.style.display = 'block';
             if (isObserverMode) {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
-                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Importa partite da Cloud tramite il menu utente in alto a destra, seleziona la voce Aggiorna Locale da Cloud';
+                if (emptyMatchesHint) emptyMatchesHint.textContent = 'Usa la voce Importa partite nel menu utente in alto a destra';
                 if (emptyMatchesActions) emptyMatchesActions.style.display = 'none';
             } else {
                 if (emptyMatchesTitle) emptyMatchesTitle.textContent = 'Nessuna partita disponibile';
@@ -7278,7 +7288,8 @@
                     return out;
                 }
                 try {
-                    const localAll = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+                    // Cloud-only: localStorage removed
+                    const localAll = [];
                     const localMatch = Array.isArray(localAll) ? localAll.find(x => String(x?.id || '') === String(match.id || '')) : null;
                     if (localMatch && typeof localMatch === 'object') {
                         const localUpdated = toEpoch(localMatch.updatedAt || localMatch.scoutingEndTime || localMatch.createdAt);

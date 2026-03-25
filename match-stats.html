@@ -31,37 +31,22 @@
       .fund-tab.active { background: #1d4ed8; color: #ffffff; border-color: #1d4ed8; }
       .set-filter { position: sticky; top: var(--sticky-filter-top, 56px); z-index: 5; background: #ffffff; padding: 4px 0; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
       .set-filter .filter-btn { margin-right: 6px; }
-      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      .simple-table { border-collapse: separate; border-spacing: 0; min-width: 0; width: max-content; table-layout: fixed; display: inline-table; }
-      .simple-table th, .simple-table td { white-space: nowrap; padding: 2px 4px; font-size: 12px; line-height: 1.1; }
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+      .simple-table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
+      .simple-table th, .simple-table td { white-space: nowrap; padding: 2px 2px; font-size: 11px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
       .simple-table th:first-child,
-      .simple-table td:first-child { position: sticky; left: 0; z-index: 4; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table td:first-child { position: sticky; left: 0; z-index: 4; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.08); width: 24px; min-width: 24px; max-width: 24px; text-align: center; padding: 2px 1px; }
       .simple-table th:nth-child(2),
-      .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 48px); z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 3ch; min-width: 3ch; max-width: 3ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table td:nth-child(2) { position: sticky; left: var(--sticky-left-2, 24px); z-index: 3; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.08); width: 16px; min-width: 16px; max-width: 16px; text-align: center; padding: 2px 1px; }
       .simple-table th:nth-child(3),
-      .simple-table td:nth-child(3) { position: sticky; left: var(--sticky-left-3, 96px); z-index: 2; background: #fff; box-shadow: 1px 0 0 rgba(0,0,0,0.06); width: 5ch; min-width: 5ch; max-width: 5ch; text-align: center; padding-left: 0; padding-right: 0; }
-      .simple-table th:nth-child(4),
-      .simple-table td:nth-child(4),
-      .simple-table th:nth-child(5),
-      .simple-table td:nth-child(5),
-      .simple-table th:nth-child(6),
-      .simple-table td:nth-child(6),
-      .simple-table th:nth-child(7),
-      .simple-table td:nth-child(7),
-      .simple-table th:nth-child(8),
-      .simple-table td:nth-child(8),
-      .simple-table th:nth-child(9),
-      .simple-table td:nth-child(9),
-      .simple-table th:nth-child(10),
-      .simple-table td:nth-child(10),
-      .simple-table th:nth-child(11),
-      .simple-table td:nth-child(11),
-      .simple-table th:nth-child(12),
-      .simple-table td:nth-child(12) { width: 4ch; min-width: 4ch; max-width: 4ch; text-align: center; padding-left: 0; padding-right: 0; }
+      .simple-table td:nth-child(3) { position: sticky; left: var(--sticky-left-3, 40px); z-index: 2; background: #fff; box-shadow: 2px 0 0 rgba(0,0,0,0.1); min-width: 48px; text-align: left; padding: 2px 3px; }
+      .simple-table th:nth-child(n+4),
+      .simple-table td:nth-child(n+4) { text-align: center; padding: 2px 1px; }
       .simple-table tr.total-row td { text-align: center; }
       .simple-table tr.total-row td[colspan="3"] { text-align: left; }
     </style>
-  </head>
+      <script src="/pwa-install.js" defer></script>
+</head>
   <body class="page-report" style="--topbar-h:81px;">
     <header class="topappbar" style="--topbar-h:81px;">
       <div class="topappbar-content">
@@ -217,7 +202,7 @@
       try {
         const stored = (() => { try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
         const qp = new URLSearchParams();
-        if (stored === 'cloud' || stored === 'local' || stored === 'shared') qp.set('archive', stored);
+        if (stored === 'cloud' || stored === 'shared') qp.set('archive', stored);
         const qs = qp.toString();
         location.href = '/matches.html' + (qs ? ('?' + qs) : '');
       } catch(_) {
@@ -302,7 +287,7 @@
 
           if (!payload && selectedMatchId) {
             try {
-              const localMatches = JSON.parse(localStorage.getItem('volleyMatches') || '[]');
+              const localMatches = [];
               const found = Array.isArray(localMatches) ? localMatches.find(m => String(m?.id || '') === selectedMatchId) : null;
               if (found) {
                 payload = Object.assign({}, found, { id: selectedMatchId });

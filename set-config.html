@@ -265,13 +265,15 @@
         .start-button {
             transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         }
-        .btn:hover,
-        .icon-button:hover,
-        .phase-btn:hover,
-        .set-btn:hover,
-        .start-button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+        @media (hover: hover) {
+            .btn:hover,
+            .icon-button:hover,
+            .phase-btn:hover,
+            .set-btn:hover,
+            .start-button:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.10);
+            }
         }
         .btn:active,
         .icon-button:active,
@@ -339,6 +341,7 @@
             }
         }
     </style>
+    <script src="/pwa-install.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -353,7 +356,9 @@
             .account-actions { position:absolute; top:8px; right:8px; display:flex; align-items:center; z-index:2; }
             .back-btn { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; }
             .icon-button { background:#fff; color:#0d6efd; border:1px solid #e9ecef; padding:6px; border-radius:8px; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
-            .icon-button:hover, .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+            @media (hover: hover) {
+                .icon-button:hover, .back-btn:hover { background:#f8f9fa; border-color:#dbe1e6; transform:translateY(-1px); }
+            }
             .account-dropdown { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e9ecef; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); min-width:160px; z-index: 1000; }
             .account-dropdown .menu-item { width:100%; padding:10px 12px; text-align:left; background:transparent; border:none; cursor:pointer; color:#333; }
             .account-dropdown .menu-item:hover { background:#f8f9fa; }
@@ -593,18 +598,20 @@
                 }
 
                 let loaded = false;
+                let firestoreRes = null;
                 try {
-                    const res = await window.firestoreService.getMatchData(teamId, matchId);
-                    if (res?.success && res.meta) {
-                        const norm = normalize(res.meta);
-                        matchData = { ...norm, teamId, roster: Array.isArray(res.roster)?res.roster:[] };
+                    firestoreRes = await window.firestoreService.getMatchData(teamId, matchId);
+                    if (firestoreRes?.success && firestoreRes.meta) {
+                        const norm = normalize(firestoreRes.meta);
+                        matchData = { ...norm, teamId, roster: Array.isArray(firestoreRes.roster)?firestoreRes.roster:[] };
                         loaded = true;
                     }
                 } catch(_) {}
 
                 if (!loaded) {
                     try {
-                        const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                        // Cloud-only: localStorage removed
+                        const local = [];
                         const found = Array.isArray(local) ? local.find(x => String(x.id) === String(matchId)) : null;
                         if (found) {
                             const norm = normalize(found);
@@ -623,7 +630,41 @@
                     } catch(_) {}
                 }
 
-                if (loaded) { displayMatchSummary(); } else { hideError(); }
+                if (loaded) { displayMatchSummary(); }  else { hideError(); }
+
+                // Pre-popola form con dati set 1 da Firestore (se esistono)
+                try {
+                    if (firestoreRes?.success && firestoreRes.details?.setMeta) {
+                        const set1Meta = firestoreRes.details.setMeta['1'] || firestoreRes.details.setMeta[1] || null;
+                        if (set1Meta) {
+                            // Pre-popola fase
+                            if (set1Meta.phase) {
+                                phaseButtons.forEach(b => {
+                                    b.classList.remove('active');
+                                    if (b.dataset.phase === set1Meta.phase) {
+                                        b.classList.add('active');
+                                        setConfig.phase = set1Meta.phase;
+                                    }
+                                });
+                            }
+                            // Pre-popola rotazione nostra
+                            if (set1Meta.rotation && ourRotationSelect) {
+                                const rotVal = String(set1Meta.rotation).replace(/^P/i, '');
+                                ourRotationSelect.value = rotVal;
+                                setConfig.ourRotation = rotVal;
+                            }
+                            // Pre-popola rotazione avversario
+                            if (set1Meta.opponentRotation && opponentRotationSelect) {
+                                const oppVal = String(set1Meta.opponentRotation).replace(/^P/i, '');
+                                opponentRotationSelect.value = oppVal;
+                                setConfig.opponentRotation = oppVal;
+                            }
+                            validateConfig();
+                            console.log('[MVS] set-config: pre-popolato da Firestore set 1 meta:', set1Meta);
+                        }
+                    }
+                } catch(e) { console.warn('[MVS] set-config: errore lettura set meta da Firestore:', e); }
+
             } catch (error) {
                 console.error('Errore nel caricamento dati partita:', error);
                 hideError();
@@ -770,7 +811,7 @@
             }
         }
 
-        function startScouting() {
+        async function startScouting() {
             const missing = [];
             if (!setConfig.phase) missing.push('Fase di inizio');
             if (!setConfig.ourRotation) missing.push('Rotazione Nostra');
@@ -812,7 +853,8 @@
             }
             if (!existingRoster.length) {
                 try {
-                    const local = JSON.parse(localStorage.getItem('volleyMatches')||'[]');
+                    // Cloud-only: localStorage removed
+                    const local = [];
                     const found = local.find(m => String(m.id) === String(matchId));
                     const rr = found ? (Array.isArray(found.roster) ? found.roster : (Array.isArray(found.players) ? found.players : [])) : [];
                     if (rr.length) existingRoster = rr;
@@ -865,6 +907,20 @@
                 if (teamId) localStorage.setItem('selectedTeamId', String(teamId));
                 if (matchId) localStorage.setItem('selectedMatchId', String(matchId));
                 try { sessionStorage.setItem('currentScoutingSession', JSON.stringify(freshSession)); } catch(_){ }
+
+                // Cloud-only: salva dati di inizio set in Firestore — AWAIT prima di navigare
+                try {
+                    if (teamId && matchId && window.firestoreService && typeof window.firestoreService.saveSetStartTree === 'function') {
+                        const setNumber = 1;
+                        await window.firestoreService.saveSetStartTree(teamId, matchId, setNumber, {
+                            phase: setConfig.phase,
+                            rotation: ourRotP,
+                            opponentRotation: oppRotP || null,
+                            startTime: freshSession.startTime
+                        });
+                        console.log('[MVS] saveSetStartTree set 1 completato con successo');
+                    }
+                } catch(e) { console.warn('[MVS] saveSetStartTree set 1 fallito:', e); }
             } catch(_){ }
             window.location.href = '/scouting.html#/set/1';
         }
