@@ -1455,6 +1455,15 @@ const firestoreService = {
         return `${dd}-${mm}-${yy}`;
     },
 
+    _formatDateYYMMDD: (dateStr) => {
+        const parsed = firestoreService._parseDateCompat(dateStr);
+        if (!parsed) return '000000';
+        const yy = String(parsed.y).slice(-2).padStart(2, '0');
+        const mm = String(parsed.m).padStart(2, '0');
+        const dd = String(parsed.d).padStart(2, '0');
+        return `${yy}${mm}${dd}`;
+    },
+
     _formatDateItalianShort: (dateStr) => {
         const parsed = firestoreService._parseDateCompat(dateStr);
         if (!parsed) return '00/00/00';
@@ -1504,6 +1513,7 @@ const firestoreService = {
     },
 
     _generateMatchDocId: (match) => {
+        const yymmddPrefix = firestoreService._formatDateYYMMDD(match.matchDate || match.date || match.createdAt);
         const type4 = firestoreService._formatEventType4(match.matchType || match.eventType || 'partita');
         const dateId = firestoreService._formatDateIdPart(match.matchDate || match.date || match.createdAt);
         const opp = firestoreService._sanitizeForMatchId(match.opponentTeam || match.opponent || match.awayTeam || 'avversario');
@@ -1511,7 +1521,8 @@ const firestoreService = {
         const matchNoRaw = String(match.matchNumber || match.matchNo || match.fileNumber || '').trim();
         const matchNo = matchNoRaw && String(Number(matchNoRaw)) === matchNoRaw ? String(matchNoRaw).padStart(3, '0').slice(-3) : '';
         const base = [type4, dateId, opp, ar].filter(Boolean).join('_');
-        return matchNo ? `${base}_${matchNo}` : base;
+        const tail = matchNo ? `${base}_${matchNo}` : base;
+        return `${yymmddPrefix}_${tail}`;
     },
 
     saveMatchTree: async (teamId, match) => {
