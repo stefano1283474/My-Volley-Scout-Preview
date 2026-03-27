@@ -631,7 +631,7 @@
             submitBtn.textContent = 'Salvataggio...';
 
             try {
-                const matchId = (localStorage.getItem('selectedMatchId') || (new URLSearchParams(window.location.search).get('match')) || null);
+                let matchId = (localStorage.getItem('selectedMatchId') || (new URLSearchParams(window.location.search).get('match')) || null);
                 if (!matchId) { showError('ID partita mancante. Torna a Elenco Partite e premi "+".'); return; }
                 matchData.id = String(matchId);
                 const currentTeam = window.teamsModule?.getCurrentTeam?.();
@@ -668,7 +668,16 @@
                     if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree && selectedTeamId) {
                         const user = window.authFunctions.getCurrentUser();
                         if (user) {
-                            await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
+                            const res = await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
+                            if (res?.success && res?.id) {
+                                const newId = String(res.id || '').trim();
+                                if (newId && newId !== String(matchId)) {
+                                    matchId = newId;
+                                    matchData.id = newId;
+                                    payload.id = newId;
+                                    try { localStorage.setItem('selectedMatchId', newId); } catch(_) {}
+                                }
+                            }
                             cloudSaved = true;
                         }
                     }
@@ -681,7 +690,7 @@
                 }
 
                 // Imposta setup corrente per pagina di roster
-                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
+                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, id: String(matchId), teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
 
                 showSuccess('Partita salvata! Prosegui alla selezione del roster...');
 

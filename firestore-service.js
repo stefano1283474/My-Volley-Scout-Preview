@@ -1418,50 +1418,137 @@ const firestoreService = {
     },
 
     // --- FUNZIONI DI SUPPORTO PER FORMATTAZIONE ID PARLANTI ---
-    _formatMatchDate: (dateStr) => {
+    _parseDateCompat: (dateStr) => {
         try {
-            if (!dateStr) return '0000-00-00';
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return String(dateStr).substring(0, 10);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        } catch (_) { return '0000-00-00'; }
+            const raw = String(dateStr || '').trim();
+            if (!raw) return null;
+            const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (iso) {
+                const y = Number(iso[1]);
+                const m = Number(iso[2]);
+                const d = Number(iso[3]);
+                if (y && m >= 1 && m <= 12 && d >= 1 && d <= 31) return { y, m, d };
+            }
+            const it = raw.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);
+            if (it) {
+                const d = Number(it[1]);
+                const m = Number(it[2]);
+                const yRaw = it[3];
+                let y = Number(yRaw);
+                if (String(yRaw).length === 2) y = 2000 + y;
+                if (y && m >= 1 && m <= 12 && d >= 1 && d <= 31) return { y, m, d };
+            }
+            const dObj = new Date(raw);
+            if (!isNaN(dObj.getTime())) {
+                return { y: dObj.getFullYear(), m: dObj.getMonth() + 1, d: dObj.getDate() };
+            }
+        } catch (_) {}
+        return null;
     },
 
-    _sanitizeForId: (str) => {
-        return String(str || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+    _formatDateIdPart: (dateStr) => {
+        const parsed = firestoreService._parseDateCompat(dateStr);
+        if (!parsed) return '00-00-00';
+        const dd = String(parsed.d).padStart(2, '0');
+        const mm = String(parsed.m).padStart(2, '0');
+        const yy = String(parsed.y).slice(-2).padStart(2, '0');
+        return `${dd}-${mm}-${yy}`;
+    },
+
+    _formatDateItalianShort: (dateStr) => {
+        const parsed = firestoreService._parseDateCompat(dateStr);
+        if (!parsed) return '00/00/00';
+        const dd = String(parsed.d).padStart(2, '0');
+        const mm = String(parsed.m).padStart(2, '0');
+        const yy = String(parsed.y).slice(-2).padStart(2, '0');
+        return `${dd}/${mm}/${yy}`;
+    },
+
+    _sanitizeForMatchId: (str) => {
+        try {
+            const raw = String(str || '').trim();
+            const normalized = raw.normalize ? raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : raw;
+            return String(normalized || 'avversario')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .replace(/_+/g, '_')
+                .slice(0, 48) || 'avversario';
+        } catch (_) {
+            return 'avversario';
+        }
+    },
+
+    _formatEventType4: (value) => {
+        const raw = String(value || '').trim().toLowerCase();
+        if (!raw) return 'Part';
+        if (raw.includes('camp')) return 'Camp';
+        if (raw.includes('cop')) return 'Copp';
+        if (raw.includes('pgs')) return 'PGS_';
+        if (raw.includes('csi')) return 'CSI_';
+        if (raw.includes('amic')) return 'Amic';
+        if (raw.includes('torn')) return 'Torn';
+        if (raw.includes('play')) return 'Play';
+        const clean = raw.replace(/[^a-z0-9]+/g, '');
+        const out = clean ? (clean.charAt(0).toUpperCase() + clean.slice(1)) : 'Part';
+        return String(out).slice(0, 4).padEnd(4, '_');
+    },
+
+    _formatDescriptionMarker: (value) => {
+        const raw = String(value || '').trim().toLowerCase();
+        if (!raw) return '';
+        if (raw.includes('(a)') || raw.includes('andata')) return 'A';
+        if (raw.includes('(r)') || raw.includes('ritorno')) return 'R';
+        return '';
     },
 
     _generateMatchDocId: (match) => {
-        const date = firestoreService._formatMatchDate(match.date || match.matchDate || match.createdAt);
-        const time = (match.time || '00:00').replace(':', '');
-        const opp = firestoreService._sanitizeForId(match.opponentTeam || match.opponent || 'avversario');
-        // Usa data_ora_avversario per unicità deterministica
-        // Se non c'è ora, sarà 0000, che va bene per partite singole giornaliere.
-        // Se ci sono più partite lo stesso giorno contro lo stesso avversario senza orario, si sovrascriveranno.
-        // È un compromesso accettabile per avere ID parlanti.
-        return `${date}_${time}_${opp}`;
+        const type4 = firestoreService._formatEventType4(match.matchType || match.eventType || 'partita');
+        const dateId = firestoreService._formatDateIdPart(match.matchDate || match.date || match.createdAt);
+        const opp = firestoreService._sanitizeForMatchId(match.opponentTeam || match.opponent || match.awayTeam || 'avversario');
+        const ar = firestoreService._formatDescriptionMarker(match.description || '');
+        const matchNoRaw = String(match.matchNumber || match.matchNo || match.fileNumber || '').trim();
+        const matchNo = matchNoRaw && String(Number(matchNoRaw)) === matchNoRaw ? String(matchNoRaw).padStart(3, '0').slice(-3) : '';
+        const base = [type4, dateId, opp, ar].filter(Boolean).join('_');
+        return matchNo ? `${base}_${matchNo}` : base;
     },
 
     saveMatchTree: async (teamId, match) => {
         try {
             const userRef = await firestoreService.getUserRefEnsured();
-            // Determina il nuovo ID se non esiste, o mantieni quello esistente se valido (ma migra struttura)
-            // Se match.id è già nel formato nuovo, usalo. Altrimenti generane uno nuovo se è un ID vecchio stile (timestamp numerico)
-            // o se è vuoto.
-            let matchDocId = String(match.id || '').trim();
-            const isNewFormat = matchDocId.match(/^\d{4}-\d{2}-\d{2}_/);
-            if (!matchDocId) {
-                matchDocId = firestoreService._generateMatchDocId(match);
+            const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
+
+            const requestedId = String(match?.id || '').trim();
+            let requestedExists = false;
+            if (requestedId) {
+                try {
+                    const snap = await matchesRef.doc(requestedId).get();
+                    requestedExists = !!snap.exists;
+                } catch (_) {
+                    requestedExists = false;
+                }
             }
 
-            const matchesRef = userRef.collection('teams').doc(String(teamId)).collection('matches');
+            let matchDocId = requestedId;
+            if (!matchDocId || !requestedExists) {
+                const baseId = firestoreService._generateMatchDocId(match || {});
+                matchDocId = baseId;
+                for (let i = 2; i <= 20; i++) {
+                    try {
+                        const snap = await matchesRef.doc(matchDocId).get();
+                        if (!snap.exists) break;
+                    } catch (_) {
+                        break;
+                    }
+                    matchDocId = `${baseId}__${i}`;
+                }
+            }
+
             const matchDoc = matchesRef.doc(matchDocId);
             
             // Preparazione payload UNICO (single document)
-            const meta = firestoreService._sanitizeMatchMeta(match);
+            const meta = firestoreService._sanitizeMatchMeta(Object.assign({}, match, { id: matchDocId }));
             
             // Roster
             const rosterSource = Array.isArray(match.roster) && match.roster.length
@@ -1518,6 +1605,7 @@ const firestoreService = {
                     description: meta.description || '',
                     teamName: meta.myTeam || meta.homeTeam || '',
                     result: finalResult,
+                    label: `${firestoreService._formatEventType4(meta.matchType)} ${firestoreService._formatDateItalianShort(meta.date)} ${(meta.opponentTeam || meta.awayTeam || '').trim()}${firestoreService._formatDescriptionMarker(meta.description) ? ` (${firestoreService._formatDescriptionMarker(meta.description)})` : ''}`.trim()
                 },
 
                 // ── Campi flat mantenuti per backward compatibility ──

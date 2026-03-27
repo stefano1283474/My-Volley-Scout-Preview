@@ -380,23 +380,30 @@ class MatchesModule {
             const fallbackTeamId = (() => { try { return localStorage.getItem('selectedTeamId'); } catch(_) { return null; } })();
             const teamId = (currentTeam?.id != null ? String(currentTeam.id) : (fallbackTeamId != null ? String(fallbackTeamId) : null));
             if (!teamId) return { success: false, error: 'Squadra non selezionata' };
-            await window.firestoreService.saveMatchTree(teamId, match);
-            if (Array.isArray(match.roster) && window.firestoreService?.saveMatchRosterTree) {
-                try { await window.firestoreService.saveMatchRosterTree(teamId, match.id, match.roster); } catch(_) {}
+            const res = await window.firestoreService.saveMatchTree(teamId, match);
+            const savedId = String(res?.id || match?.id || '').trim();
+            if (!savedId) return { success: false, error: 'ID partita non valido' };
+
+            const matchForDetails = (savedId === String(match?.id || '').trim())
+                ? match
+                : Object.assign({}, match, { id: savedId });
+
+            if (Array.isArray(matchForDetails.roster) && window.firestoreService?.saveMatchRosterTree) {
+                try { await window.firestoreService.saveMatchRosterTree(teamId, savedId, matchForDetails.roster); } catch(_) {}
             }
             if (window.firestoreService?.saveMatchDetailsTree) {
                 try {
-                    await window.firestoreService.saveMatchDetailsTree(teamId, match.id, {
-                        actionsBySet: match.actionsBySet || {},
-                        setMeta: match.setMeta || {},
-                        setStateBySet: match.setStateBySet || {},
-                        setSummary: match.setSummary || {},
-                        scoreHistoryBySet: match.scoreHistoryBySet || {}
+                    await window.firestoreService.saveMatchDetailsTree(teamId, savedId, {
+                        actionsBySet: matchForDetails.actionsBySet || {},
+                        setMeta: matchForDetails.setMeta || {},
+                        setStateBySet: matchForDetails.setStateBySet || {},
+                        setSummary: matchForDetails.setSummary || {},
+                        scoreHistoryBySet: matchForDetails.scoreHistoryBySet || {}
                     });
                 } catch(_) {}
             }
 
-            updatedMatch = Object.assign({}, match, { source: 'firestore_team' });
+            updatedMatch = Object.assign({}, matchForDetails, { id: savedId, source: 'firestore_team' });
             
             // Aggiorna lo stato
             const existingIndex = this.state.matches.findIndex(m => m.id === updatedMatch.id);

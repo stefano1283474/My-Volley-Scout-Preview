@@ -2803,7 +2803,29 @@ async function saveCurrentMatch(options = {}) {
                             saveErrorMessage = 'Nessuna squadra selezionata.';
                         } else {
                             if (typeof window.firestoreService.saveMatchTree === 'function') {
-                                await window.firestoreService.saveMatchTree(teamId, payload);
+                                const res = await window.firestoreService.saveMatchTree(teamId, payload);
+                                const savedId = String(res?.id || '').trim();
+                                if (savedId && savedId !== String(payload.id || '').trim()) {
+                                    payload.id = savedId;
+                                    try {
+                                        const rawSess = localStorage.getItem('currentScoutingSession');
+                                        const sess = rawSess ? JSON.parse(rawSess) : null;
+                                        if (sess && typeof sess === 'object') {
+                                            sess.id = savedId;
+                                            localStorage.setItem('currentScoutingSession', JSON.stringify(sess));
+                                        }
+                                    } catch(_) {}
+                                    try { localStorage.setItem('selectedMatchId', savedId); } catch(_) {}
+                                    try {
+                                        const setupRaw = localStorage.getItem('currentMatchSetup');
+                                        const setup = setupRaw ? JSON.parse(setupRaw) : null;
+                                        if (setup && typeof setup === 'object') {
+                                            setup.id = savedId;
+                                            localStorage.setItem('currentMatchSetup', JSON.stringify(setup));
+                                        }
+                                    } catch(_) {}
+                                    try { if (window.appState?.currentMatch) window.appState.currentMatch.id = savedId; } catch(_) {}
+                                }
                             }
                             if (typeof window.firestoreService.saveMatchDetailsTree === 'function') {
                                 await window.firestoreService.saveMatchDetailsTree(teamId, payload.id, {

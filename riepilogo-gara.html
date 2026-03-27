@@ -213,7 +213,49 @@
         target.innerHTML = rows.join('');
       }
 
-      function renderRoster(sess){ const panel = document.getElementById('rosterTable'); if (!panel) return; let players = Array.isArray(sess.roster) ? sess.roster : []; if (!players || players.length === 0) { try { const matchId = sess.id || localStorage.getItem('selectedMatchId') || ''; const localMatches = []; // Cloud-only: localStorage removed for volleyMatches const found = matchId ? localMatches.find(m => String(m.id)===String(matchId)) : null; const rr = found ? (Array.isArray(found.roster)?found.roster:(Array.isArray(found.players)?found.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const raw = localStorage.getItem('importedRoster'); const arr = raw ? JSON.parse(raw) : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const arr = Array.isArray(window.appState?.currentRoster) ? window.appState.currentRoster : []; if (Array.isArray(arr) && arr.length) players = arr; } catch(_) {} } if (!players || players.length === 0) { try { const selId = localStorage.getItem('selectedTeamId'); const teams = []; // Cloud-only: localStorage removed for volleyTeams const t = selId ? teams.find(x => String(x.id)===String(selId)) : null; const rr = t ? (Array.isArray(t.roster)?t.roster:(Array.isArray(t.players)?t.players:[])) : []; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { try { const t = window.teamsModule?.getCurrentTeam?.(); const rr = Array.isArray(t?.players)?t.players:[]; if (Array.isArray(rr) && rr.length) players = rr; } catch(_) {} } if (!players || players.length === 0) { panel.innerHTML = '<div class="match-item"><div class="match-details">Nessun giocatore presente</div></div>'; return; } function fmtNum(v){ const s = String(v||'').replace(/^'/,''); return s ? s.padStart(2,'0').slice(-2) : ''; } const rows = players.map(p => { const n = fmtNum(p.number); const name = p.name || p.firstName || ''; const surname = p.surname || p.lastName || ''; const nick = p.nickname || p.nick || ''; const role = p.role || ''; return `<tr><td style="width:6ch;">${n}</td><td>${name}</td><td>${surname}</td><td>${nick}</td><td>${role}</td></tr>`; }).join(''); const table = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">N°</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Nome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Cognome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Soprannome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Ruolo</th></tr></thead><tbody>${rows}</tbody></table>`; panel.innerHTML = table; }
+      function renderRoster(sess){
+        const panel = document.getElementById('rosterTable');
+        if (!panel) return;
+        let players = Array.isArray(sess.roster) ? sess.roster : [];
+        if (!players || players.length === 0) {
+          try {
+            const raw = localStorage.getItem('importedRoster');
+            const arr = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(arr) && arr.length) players = arr;
+          } catch(_) {}
+        }
+        if (!players || players.length === 0) {
+          try {
+            const arr = (window.appState && Array.isArray(window.appState.currentRoster)) ? window.appState.currentRoster : [];
+            if (Array.isArray(arr) && arr.length) players = arr;
+          } catch(_) {}
+        }
+        if (!players || players.length === 0) {
+          try {
+            const t = (window.teamsModule && typeof window.teamsModule.getCurrentTeam === 'function') ? window.teamsModule.getCurrentTeam() : null;
+            const rr = t && Array.isArray(t.players) ? t.players : [];
+            if (Array.isArray(rr) && rr.length) players = rr;
+          } catch(_) {}
+        }
+        if (!players || players.length === 0) {
+          panel.innerHTML = '<div class="match-item"><div class="match-details">Nessun giocatore presente</div></div>';
+          return;
+        }
+        function fmtNum(v){
+          const s = String(v||'').replace(/^'/,'');
+          return s ? s.padStart(2,'0').slice(-2) : '';
+        }
+        const rows = players.map(p => {
+          const n = fmtNum(p.number);
+          const name = p.name || p.firstName || '';
+          const surname = p.surname || p.lastName || '';
+          const nick = p.nickname || p.nick || '';
+          const role = p.role || '';
+          return `<tr><td style="width:6ch;">${n}</td><td>${name}</td><td>${surname}</td><td>${nick}</td><td>${role}</td></tr>`;
+        }).join('');
+        const table = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">N°</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Nome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Cognome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Soprannome</th><th style="text-align:left; border-bottom:1px solid #e9ecef; padding:6px;">Ruolo</th></tr></thead><tbody>${rows}</tbody></table>`;
+        panel.innerHTML = table;
+      }
 
       let currentSession = null;
       function goBackAfterSave(){
