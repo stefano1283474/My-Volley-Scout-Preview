@@ -174,24 +174,68 @@ const firestoreService = {
             return { success: false, error: error.message };
         }
     },
-    _sanitizeMatchMeta: (match) => ({
-        id: String(match.id||Date.now()),
-        myTeam: match.myTeam||match.homeTeam||'',
-        opponentTeam: match.opponentTeam||match.awayTeam||'',
-        homeTeam: match.homeTeam||'',
-        awayTeam: match.awayTeam||'',
-        homeAway: match.homeAway||'',
-        matchType: match.matchType||match.eventType||'partita',
-        date: match.matchDate||match.date||new Date().toISOString().slice(0,10),
-        description: match.description||'',
-        status: match.status||'created',
-        currentSet: match.currentSet||1,
-        score: match.score||{home:0,away:0},
-        matchNumber: match.matchNumber||match.matchNo||match.fileNumber||'',
-        excelFileName: match.excelFileName||'',
-        excelFileUrl: match.excelFileUrl||'',
-        excelFilePath: match.excelFilePath||''
-    }),
+    _sanitizeMatchMeta: (match) => {
+        const m = (match && typeof match === 'object') ? match : {};
+        const safeNum = (v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
+        const readSetScore = (idx) => {
+            const sum = (m.setSummary && m.setSummary[idx]) ? m.setSummary[idx] : null;
+            const st = (m.setStateBySet && m.setStateBySet[idx]) ? m.setStateBySet[idx] : null;
+            const home = sum && sum.home != null ? safeNum(sum.home) : (st && st.homeScore != null ? safeNum(st.homeScore) : 0);
+            const away = sum && sum.away != null ? safeNum(sum.away) : (st && st.awayScore != null ? safeNum(st.awayScore) : 0);
+            return { home, away };
+        };
+        const computeOverall = () => {
+            let our = 0;
+            let opp = 0;
+            for (let i = 1; i <= 6; i++) {
+                const sc = readSetScore(i);
+                if ((sc.home + sc.away) <= 0) continue;
+                if (sc.home > sc.away) our++;
+                else if (sc.away > sc.home) opp++;
+            }
+            return { home: our, away: opp };
+        };
+
+        const baseScore = (m.score && typeof m.score === 'object') ? { home: safeNum(m.score.home), away: safeNum(m.score.away) } : { home: 0, away: 0 };
+        const computedScore = computeOverall();
+        const score = (baseScore.home || baseScore.away) ? baseScore : computedScore;
+
+        const id = String(m.id || Date.now());
+        const myTeam = m.myTeam || m.homeTeam || '';
+        const opponentTeam = m.opponentTeam || m.awayTeam || '';
+        const date = m.matchDate || m.date || new Date().toISOString().slice(0, 10);
+        const matchType = m.matchType || m.eventType || 'partita';
+
+        const finalResultRaw = String(m.finalResult || m.result || '').trim();
+        const finalResult = finalResultRaw || `${score.home || 0}-${score.away || 0}`;
+
+        const outcomeRaw = String(m.matchOutcome || m.outcome || '').trim();
+        const matchOutcome = outcomeRaw || (score.home > score.away ? 'Vinto' : (score.away > score.home ? 'Perso' : ''));
+
+        return {
+            id,
+            myTeam,
+            opponentTeam,
+            homeTeam: m.homeTeam || '',
+            awayTeam: m.awayTeam || '',
+            homeAway: m.homeAway || '',
+            matchType,
+            date,
+            description: m.description || '',
+            status: m.status || 'created',
+            currentSet: m.currentSet || 1,
+            score,
+            finalResult,
+            matchOutcome,
+            matchNumber: m.matchNumber || m.matchNo || m.fileNumber || '',
+            excelFileName: m.excelFileName || '',
+            excelFileUrl: m.excelFileUrl || '',
+            excelFilePath: m.excelFilePath || ''
+        };
+    },
     _generateInviteToken: (length = 22) => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const bytes = new Uint8Array(length);
@@ -2164,6 +2208,14 @@ const firestoreService = {
                 email: userEmail,
                 collectionName: safeCollectionName,
                 role: 'user', // Ruolo predefinito per nuovi utenti
+                apps: {
+                    mvs: {
+                        role: 'user',
+                        pacchetto: 'Base',
+                        assignedProfile: 'base',
+                        enabled: true
+                    }
+                },
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastAccess: firebase.firestore.FieldValue.serverTimestamp(),
                 stats: {
@@ -2176,9 +2228,17 @@ const firestoreService = {
                 console.log('Collection utente creata:', userDocId);
             } else {
                 // Aggiorna solo lastAccess se esiste già
-                await userCollectionRef.update({
-                    lastAccess: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                await userCollectionRef.set({
+                    lastAccess: firebase.firestore.FieldValue.serverTimestamp(),
+                    apps: {
+                        mvs: {
+                            role: 'user',
+                            pacchetto: 'Base',
+                            assignedProfile: 'base',
+                            enabled: true
+                        }
+                    }
+                }, { merge: true });
                 console.log('Collection utente già esistente, aggiornato lastAccess');
             }
 
@@ -2270,8 +2330,10 @@ const firestoreService = {
                 return { success: true, role: 'user' };
             }
 
-            const userData = userDoc.data();
-            return { success: true, role: userData?.role || 'user' };
+            const userData = userDoc.data() || {};
+            const appRole = String(userData?.apps?.mvs?.role || '').trim().toLowerCase();
+            const role = appRole || String(userData?.role || 'user').trim().toLowerCase() || 'user';
+            return { success: true, role };
 
         } catch (error) {
             console.error('Errore nel recupero ruolo:', error);
@@ -2286,6 +2348,257 @@ const firestoreService = {
             return { success: true, isAdmin: result.success && result.role === 'admin' };
         } catch (error) {
             return { success: false, error: error.message, isAdmin: false };
+        }
+    },
+
+    _normalizePackageName: (value) => {
+        const v = String(value || '').trim().toLowerCase();
+        if (v === 'promax' || v === 'pro_max' || v === 'pro-max' || v === 'pro max') return 'ProMax';
+        if (v === 'pro') return 'Pro';
+        return 'Base';
+    },
+
+    _profileFromPackage: (pkg) => {
+        if (pkg === 'ProMax') return 'promax';
+        if (pkg === 'Pro') return 'pro';
+        return 'base';
+    },
+
+    _allowedViewsForPackage: (pkg) => {
+        if (pkg === 'ProMax') return ['base', 'pro', 'promax'];
+        if (pkg === 'Pro') return ['base', 'pro'];
+        return ['base'];
+    },
+
+    _packageRank: (pkg) => {
+        if (pkg === 'ProMax') return 3;
+        if (pkg === 'Pro') return 2;
+        return 1;
+    },
+
+    _nextPackageFor: (pkg) => {
+        if (pkg === 'Base') return 'Pro';
+        if (pkg === 'Pro') return 'ProMax';
+        return '';
+    },
+
+    getUserAppContext: async (appKey = 'mvs') => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const ref = firestoreService.getUserRef();
+            const snap = await ref.get();
+            if (!snap.exists) {
+                await firestoreService.createUserCollection(user.email);
+            }
+            const refreshed = await ref.get();
+            const data = refreshed.exists ? (refreshed.data() || {}) : {};
+            const app = (data.apps && data.apps[appKey]) ? data.apps[appKey] : {};
+            const role = String(app.role || data.role || 'user').trim().toLowerCase() || 'user';
+            const pacchetto = firestoreService._normalizePackageName(app.pacchetto || app.assignedProfile || 'Base');
+            const assignedProfile = String(app.assignedProfile || firestoreService._profileFromPackage(pacchetto)).trim().toLowerCase();
+            const enabled = app.enabled !== false;
+            const allowedViews = firestoreService._allowedViewsForPackage(pacchetto);
+            return {
+                success: true,
+                context: {
+                    email: String(user.email || '').trim(),
+                    role,
+                    pacchetto,
+                    assignedProfile,
+                    enabled,
+                    allowedViews,
+                    appKey
+                }
+            };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    listUsersForAdmin: async (limitCount = 200) => {
+        try {
+            const adminCheck = await firestoreService.isUserAdmin();
+            if (!adminCheck.success || !adminCheck.isAdmin) return { success: false, error: 'Permessi insufficienti' };
+            const size = Math.max(1, Math.min(500, Number(limitCount) || 200));
+            const snap = await window.db.collection('users').limit(size).get();
+            const users = [];
+            snap.forEach((docSnap) => {
+                const data = docSnap.data() || {};
+                const app = (data.apps && data.apps.mvs) ? data.apps.mvs : {};
+                const pacchetto = firestoreService._normalizePackageName(app.pacchetto || app.assignedProfile || 'Base');
+                users.push({
+                    id: docSnap.id,
+                    email: String(data.email || docSnap.id || '').trim(),
+                    role: String(app.role || data.role || 'user').trim().toLowerCase() || 'user',
+                    pacchetto,
+                    assignedProfile: String(app.assignedProfile || firestoreService._profileFromPackage(pacchetto)).trim().toLowerCase(),
+                    enabled: app.enabled !== false,
+                    appMembership: String(data.appMembership || '').trim(),
+                    stats: (data.stats && typeof data.stats === 'object') ? data.stats : {},
+                    usage: (data.usage && typeof data.usage === 'object') ? data.usage : {},
+                    createdAt: data.createdAt || null,
+                    updatedAt: data.updatedAt || null
+                });
+            });
+            users.sort((a, b) => String(a.email || '').localeCompare(String(b.email || ''), 'it', { sensitivity: 'base' }));
+            return { success: true, users };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    updateUserAppAccess: async (userEmail, payload = {}) => {
+        try {
+            const adminCheck = await firestoreService.isUserAdmin();
+            if (!adminCheck.success || !adminCheck.isAdmin) return { success: false, error: 'Permessi insufficienti' };
+            const target = String(userEmail || '').trim();
+            if (!target) return { success: false, error: 'Email utente non valida' };
+            let role = '';
+            if (payload.role != null) {
+                role = String(payload.role || '').trim().toLowerCase() === 'admin' ? 'admin' : 'user';
+            } else {
+                try {
+                    const currentSnap = await window.db.collection('users').doc(target).get();
+                    const currentData = currentSnap.exists ? (currentSnap.data() || {}) : {};
+                    role = String(currentData?.apps?.mvs?.role || currentData?.role || 'user').trim().toLowerCase() === 'admin' ? 'admin' : 'user';
+                } catch (_) {
+                    role = 'user';
+                }
+            }
+            const pacchetto = firestoreService._normalizePackageName(payload.pacchetto || 'Base');
+            const assignedProfile = String(payload.assignedProfile || firestoreService._profileFromPackage(pacchetto)).trim().toLowerCase();
+            const enabled = payload.enabled !== false;
+            const actor = String(authFunctions.getCurrentUser()?.email || '').trim();
+            const ref = window.db.collection('users').doc(target);
+            await ref.set({
+                email: target,
+                role,
+                apps: {
+                    mvs: {
+                        role,
+                        pacchetto,
+                        assignedProfile,
+                        enabled,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: actor
+                    }
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    requestPackageUpgrade: async (targetPackage = '', appKey = 'mvs') => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, error: 'Utente non autenticato' };
+            const target = firestoreService._normalizePackageName(targetPackage || '');
+            const ctxRes = await firestoreService.getUserAppContext(appKey);
+            if (!ctxRes?.success) return { success: false, error: String(ctxRes?.error || 'Profilo non disponibile') };
+            const ctx = ctxRes.context || {};
+            const current = firestoreService._normalizePackageName(ctx.pacchetto || 'Base');
+            if (current === 'ProMax') return { success: false, error: 'Hai già il pacchetto massimo' };
+            const expectedNext = firestoreService._nextPackageFor(current);
+            if (!target || target !== expectedNext) return { success: false, error: `Upgrade consentito solo a ${expectedNext}` };
+            const reqRef = window.db.collection('users').doc(String(user.email || '').trim()).collection('profile_requests').doc();
+            const now = firebase.firestore.FieldValue.serverTimestamp();
+            await reqRef.set({
+                id: reqRef.id,
+                appKey,
+                type: 'package_upgrade',
+                userEmail: String(user.email || '').trim(),
+                currentPackage: current,
+                targetPackage: target,
+                status: 'pending',
+                note: '',
+                createdAt: now,
+                updatedAt: now
+            });
+            return { success: true, requestId: reqRef.id };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    listPackageUpgradeRequestsForAdmin: async (status = 'pending') => {
+        try {
+            const adminCheck = await firestoreService.isUserAdmin();
+            if (!adminCheck.success || !adminCheck.isAdmin) return { success: false, error: 'Permessi insufficienti' };
+            const query = window.db.collectionGroup('profile_requests')
+                .where('type', '==', 'package_upgrade')
+                .where('appKey', '==', 'mvs')
+                .where('status', '==', String(status || 'pending').trim().toLowerCase());
+            const snap = await query.get();
+            const requests = [];
+            snap.forEach((docSnap) => {
+                const d = docSnap.data() || {};
+                requests.push({
+                    id: d.id || docSnap.id,
+                    path: docSnap.ref.path,
+                    userEmail: String(d.userEmail || '').trim(),
+                    currentPackage: firestoreService._normalizePackageName(d.currentPackage || 'Base'),
+                    targetPackage: firestoreService._normalizePackageName(d.targetPackage || 'Base'),
+                    status: String(d.status || 'pending').trim().toLowerCase(),
+                    createdAt: d.createdAt || null,
+                    updatedAt: d.updatedAt || null
+                });
+            });
+            requests.sort((a, b) => {
+                const at = a.createdAt?.seconds || 0;
+                const bt = b.createdAt?.seconds || 0;
+                return bt - at;
+            });
+            return { success: true, requests };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    resolvePackageUpgradeRequest: async (requestPath, action = 'approve') => {
+        try {
+            const adminCheck = await firestoreService.isUserAdmin();
+            if (!adminCheck.success || !adminCheck.isAdmin) return { success: false, error: 'Permessi insufficienti' };
+            const path = String(requestPath || '').trim();
+            if (!path) return { success: false, error: 'Richiesta non valida' };
+            const reqRef = window.db.doc(path);
+            const snap = await reqRef.get();
+            if (!snap.exists) return { success: false, error: 'Richiesta non trovata' };
+            const d = snap.data() || {};
+            const status = String(d.status || 'pending').trim().toLowerCase();
+            if (status !== 'pending') return { success: false, error: 'Richiesta già processata' };
+            const userEmail = String(d.userEmail || '').trim();
+            const currentPackage = firestoreService._normalizePackageName(d.currentPackage || 'Base');
+            const targetPackage = firestoreService._normalizePackageName(d.targetPackage || 'Base');
+            const expectedNext = firestoreService._nextPackageFor(currentPackage);
+            if (!userEmail) return { success: false, error: 'Email richiesta non valida' };
+            if (targetPackage !== expectedNext) return { success: false, error: 'Upgrade richiesto non coerente' };
+            const actor = String(authFunctions.getCurrentUser()?.email || '').trim();
+            if (String(action || '').trim().toLowerCase() === 'approve') {
+                await firestoreService.updateUserAppAccess(userEmail, {
+                    role: 'user',
+                    pacchetto: targetPackage,
+                    assignedProfile: firestoreService._profileFromPackage(targetPackage),
+                    enabled: true
+                });
+                await reqRef.set({
+                    status: 'approved',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: actor
+                }, { merge: true });
+                return { success: true, status: 'approved' };
+            }
+            await reqRef.set({
+                status: 'rejected',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: actor
+            }, { merge: true });
+            return { success: true, status: 'rejected' };
+        } catch (error) {
+            return { success: false, error: error.message };
         }
     },
 

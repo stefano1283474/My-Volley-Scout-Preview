@@ -113,6 +113,7 @@ console.log('Connection Manager inizializzato');
     window.MVS_APP_VERSION = '1.2.2';
     window.appBuild = window.appBuild || { version: '', commit: '' };
     window.appBuild.version = String(window.MVS_APP_VERSION || '');
+    window.mvsUserContext = window.mvsUserContext || null;
     let deferredInstallPrompt = null;
     function isLocalhost() {
         const h = String(window.location?.hostname || '').toLowerCase();
@@ -328,8 +329,266 @@ console.log('Connection Manager inizializzato');
             .top-account-menu .menu-footer-version, .account-dropdown .menu-footer-version{
                 color:#64748b !important;
                 font-weight:600 !important;
+            }
+            .mvs-topbar-context{
+                display:inline-flex !important;
+                align-items:center !important;
+                gap:8px !important;
+                margin-right:8px !important;
+                padding:6px 10px !important;
+                border:1px solid #dbeafe !important;
+                border-radius:999px !important;
+                background:#eff6ff !important;
+            }
+            .mvs-topbar-context .mvs-view-group{
+                display:inline-flex !important;
+                align-items:center !important;
+                gap:6px !important;
+            }
+            .mvs-topbar-context .mvs-view-btn{
+                border:1px solid #bfdbfe !important;
+                background:#fff !important;
+                color:#1e3a8a !important;
+                border-radius:999px !important;
+                padding:4px 10px !important;
+                font-size:12px !important;
+                font-weight:700 !important;
+                outline:none !important;
+                cursor:pointer !important;
+            }
+            .mvs-topbar-context .mvs-view-btn.is-active{
+                background:#2563eb !important;
+                border-color:#2563eb !important;
+                color:#fff !important;
+            }
+            .mvs-topbar-context .mvs-view-btn:disabled{
+                cursor:not-allowed !important;
+                opacity:.45 !important;
+            }
+            .mvs-topbar-context .mvs-admin-btn{
+                border:1px solid #bbf7d0 !important;
+                background:#f0fdf4 !important;
+                color:#166534 !important;
+                border-radius:999px !important;
+                padding:4px 10px !important;
+                font-size:12px !important;
+                font-weight:700 !important;
+                cursor:pointer !important;
             }`;
             document.head.appendChild(s);
+        } catch (_) {}
+    }
+    function normalizePackageName(value) {
+        const v = String(value || '').trim().toLowerCase();
+        if (v === 'promax' || v === 'pro-max' || v === 'pro max' || v === 'pro_max') return 'ProMax';
+        if (v === 'pro') return 'Pro';
+        return 'Base';
+    }
+    function allowedViewsForPackage(pkg) {
+        if (pkg === 'ProMax') return ['base', 'pro', 'promax'];
+        if (pkg === 'Pro') return ['base', 'pro'];
+        return ['base'];
+    }
+    function nextPackageFor(pkg) {
+        if (pkg === 'Base') return 'Pro';
+        if (pkg === 'Pro') return 'ProMax';
+        return '';
+    }
+    async function requestUpgradeFromMenu() {
+        try {
+            const ctxNow = window.mvsUserContext || {};
+            const nextPkg = nextPackageFor(normalizePackageName(ctxNow.pacchetto));
+            if (!nextPkg) return;
+            if (!window.firestoreService?.requestPackageUpgrade) return;
+            const res = await window.firestoreService.requestPackageUpgrade(nextPkg, 'mvs');
+            if (res?.success) {
+                alert(`Richiesta upgrade a ${nextPkg} inviata con successo`);
+            } else {
+                alert(String(res?.error || 'Impossibile inviare la richiesta di upgrade'));
+            }
+        } catch (_) {
+            alert('Impossibile inviare la richiesta di upgrade');
+        }
+    }
+    async function logoutFromMenu() {
+        try {
+            if (window.authFunctions?.signOut) {
+                const res = await window.authFunctions.signOut();
+                if (res && res.success === false) {
+                    alert(String(res.error || 'Logout non riuscito'));
+                    return;
+                }
+            }
+            try { localStorage.removeItem('currentScoutingSession'); } catch (_) {}
+            window.location.replace('/auth-login.html');
+        } catch (_) {
+            alert('Logout non riuscito');
+        }
+    }
+    function storageViewKey() {
+        return 'mvsSelectedViewMode';
+    }
+    function currentPath() {
+        try { return String(window.location?.pathname || '').trim().toLowerCase(); } catch (_) { return ''; }
+    }
+    function isAdminPath() {
+        const p = currentPath();
+        return p === '/admin' || p === '/admin.html';
+    }
+    function isAuthLikePath() {
+        const p = currentPath();
+        return p === '/' || p === '/index.html' || p.includes('auth-login') || p.includes('auth-register') || p.includes('splash-preview');
+    }
+    function getStoredViewMode() {
+        try { return String(localStorage.getItem(storageViewKey()) || '').trim().toLowerCase(); } catch (_) { return ''; }
+    }
+    function setStoredViewMode(mode) {
+        try { localStorage.setItem(storageViewKey(), String(mode || 'base').trim().toLowerCase()); } catch (_) {}
+    }
+    function resolveSelectedView(ctx) {
+        const allowed = Array.isArray(ctx?.allowedViews) ? ctx.allowedViews : allowedViewsForPackage(normalizePackageName(ctx?.pacchetto));
+        const fromStorage = getStoredViewMode();
+        if (fromStorage && allowed.includes(fromStorage)) return fromStorage;
+        return allowed[allowed.length - 1] || 'base';
+    }
+    function applyViewContextToDocument(ctx) {
+        try {
+            const packageName = normalizePackageName(ctx?.pacchetto);
+            const role = String(ctx?.role || 'user').trim().toLowerCase() || 'user';
+            const allowed = Array.isArray(ctx?.allowedViews) ? ctx.allowedViews : allowedViewsForPackage(packageName);
+            const selected = resolveSelectedView({ pacchetto: packageName, allowedViews: allowed });
+            setStoredViewMode(selected);
+            document.body?.setAttribute('data-mvs-package', packageName.toLowerCase());
+            document.body?.setAttribute('data-mvs-role', role);
+            document.body?.setAttribute('data-mvs-view', selected);
+            document.documentElement?.setAttribute('data-mvs-package', packageName.toLowerCase());
+            document.documentElement?.setAttribute('data-mvs-role', role);
+            document.documentElement?.setAttribute('data-mvs-view', selected);
+            window.mvsUserContext = Object.assign({}, ctx || {}, { pacchetto: packageName, role, allowedViews: allowed, selectedView: selected });
+            window.dispatchEvent(new CustomEvent('mvs-user-context-changed', { detail: window.mvsUserContext }));
+        } catch (_) {}
+    }
+    function renderTopbarViewSwitcher(ctx) {
+        try {
+            const role = String(ctx?.role || 'user').trim().toLowerCase() || 'user';
+            if (role === 'admin') {
+                const existing = document.getElementById('mvsTopbarContext');
+                if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+                return;
+            }
+            ensureMenuCss();
+            const targetParent = document.querySelector('#headerMenuToggle')?.parentElement
+                || document.querySelector('#accountBtn')?.parentElement
+                || document.querySelector('.top-account-btn')?.parentElement
+                || document.querySelector('.topappbar-right')
+                || document.querySelector('.header-actions')
+                || null;
+            if (!targetParent) return;
+            let box = document.getElementById('mvsTopbarContext');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'mvsTopbarContext';
+                box.className = 'mvs-topbar-context';
+                const group = document.createElement('div');
+                group.className = 'mvs-view-group';
+                const mkViewBtn = (id, label, value) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.id = id;
+                    btn.className = 'mvs-view-btn';
+                    btn.textContent = label;
+                    btn.dataset.viewMode = value;
+                    btn.addEventListener('click', () => {
+                        if (btn.disabled) return;
+                        const next = String(btn.dataset.viewMode || 'base').trim().toLowerCase();
+                        setStoredViewMode(next);
+                        applyViewContextToDocument(Object.assign({}, window.mvsUserContext || {}, { selectedView: next }));
+                        renderTopbarViewSwitcher(window.mvsUserContext || {});
+                    });
+                    return btn;
+                };
+                const btnBase = mkViewBtn('mvsViewBtnBase', 'Base', 'base');
+                const btnPro = mkViewBtn('mvsViewBtnPro', 'Pro', 'pro');
+                const btnProMax = mkViewBtn('mvsViewBtnProMax', 'ProMax', 'promax');
+                group.appendChild(btnBase);
+                group.appendChild(btnPro);
+                group.appendChild(btnProMax);
+                const adminBtn = document.createElement('button');
+                adminBtn.type = 'button';
+                adminBtn.id = 'mvsTopbarAdminBtn';
+                adminBtn.className = 'mvs-admin-btn';
+                adminBtn.textContent = 'Admin';
+                adminBtn.addEventListener('click', () => { window.location.href = '/admin.html'; });
+                box.appendChild(group);
+                box.appendChild(adminBtn);
+                targetParent.insertBefore(box, targetParent.firstChild || null);
+            }
+            const packageName = normalizePackageName(ctx?.pacchetto);
+            const allowed = Array.isArray(ctx?.allowedViews) ? ctx.allowedViews : allowedViewsForPackage(packageName);
+            const selected = resolveSelectedView({ pacchetto: packageName, allowedViews: allowed });
+            const btnBase = document.getElementById('mvsViewBtnBase');
+            const btnPro = document.getElementById('mvsViewBtnPro');
+            const btnProMax = document.getElementById('mvsViewBtnProMax');
+            const adminBtn = document.getElementById('mvsTopbarAdminBtn');
+            if (btnBase) {
+                const enabled = allowed.includes('base');
+                btnBase.disabled = !enabled;
+                btnBase.classList.toggle('is-active', selected === 'base');
+            }
+            if (btnPro) {
+                const enabled = allowed.includes('pro');
+                btnPro.disabled = !enabled;
+                btnPro.classList.toggle('is-active', selected === 'pro');
+            }
+            if (btnProMax) {
+                const enabled = allowed.includes('promax');
+                btnProMax.disabled = !enabled;
+                btnProMax.classList.toggle('is-active', selected === 'promax');
+            }
+            if (adminBtn) adminBtn.style.display = role === 'admin' ? 'inline-flex' : 'none';
+        } catch (_) {}
+    }
+    async function refreshUserContext() {
+        try {
+            if (!window.authFunctions?.getCurrentUser || !window.firestoreService?.getUserAppContext) return;
+            const user = window.authFunctions.getCurrentUser();
+            if (!user) return;
+            const res = await window.firestoreService.getUserAppContext('mvs');
+            if (!res?.success) return;
+            const ctx = res.context || {};
+            const role = String(ctx.role || 'user').trim().toLowerCase() || 'user';
+            if (role === 'admin' && !isAdminPath() && !isAuthLikePath()) {
+                window.location.href = '/admin.html';
+                return;
+            }
+            applyViewContextToDocument(ctx);
+            renderTopbarViewSwitcher(ctx);
+            try { unifyUserMenus(); } catch (_) {}
+        } catch (_) {}
+    }
+    function attachUserContextListeners() {
+        try {
+            if (window.__mvsUserContextListenersBound) return;
+            window.__mvsUserContextListenersBound = true;
+            const bindAuth = () => {
+                try {
+                    if (!window.authFunctions?.onAuthStateChanged) return false;
+                    window.authFunctions.onAuthStateChanged(() => { refreshUserContext(); });
+                    return true;
+                } catch (_) { return false; }
+            };
+            if (!bindAuth()) {
+                const timer = setInterval(() => {
+                    if (bindAuth()) clearInterval(timer);
+                }, 400);
+                setTimeout(() => clearInterval(timer), 12000);
+            }
+            window.addEventListener('storage', (e) => {
+                if (e && e.key === storageViewKey()) {
+                    applyViewContextToDocument(window.mvsUserContext || {});
+                    renderTopbarViewSwitcher(window.mvsUserContext || {});
+                }
+            });
         } catch (_) {}
     }
     function normalizeMenuLabelById(el) {
@@ -359,6 +618,7 @@ console.log('Connection Manager inizializzato');
     function unifySingleUserMenu(menu) {
         try {
             if (!menu) return;
+            const isAdminRole = String(window.mvsUserContext?.role || '').trim().toLowerCase() === 'admin';
             menu.classList.add('top-account-menu');
             menu.classList.remove('account-dropdown');
             const entries = Array.from(menu.children || []);
@@ -410,8 +670,30 @@ console.log('Connection Manager inizializzato');
                 btn.textContent = 'Impostazioni';
                 return btn;
             })();
+            const adminEntry = (() => {
+                const existing = byId.get('goToAdminBtn');
+                if (existing) return existing;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = 'goToAdminBtn';
+                btn.className = 'menu-item';
+                btn.setAttribute('data-mvs-route', '/admin.html');
+                btn.textContent = 'Pannello Admin';
+                return btn;
+            })();
+            const upgradeEntry = (() => {
+                const existing = byId.get('requestUpgradeBtn');
+                if (existing) return existing;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = 'requestUpgradeBtn';
+                btn.className = 'menu-item';
+                btn.setAttribute('data-mvs-action', 'request-upgrade');
+                btn.textContent = 'Richiedi Upgrade';
+                return btn;
+            })();
             const footerExisting = entries.find((el) => el && el.classList && el.classList.contains('app-version')) || null;
-            const picked = new Set([emailNode, ...quickSaveNodes, ...navNodes, ...actionNodes, ...settingsNodes, ...sessionNodes, settingsEntry, footerExisting].filter(Boolean));
+            const picked = new Set([emailNode, ...quickSaveNodes, ...navNodes, ...actionNodes, ...settingsNodes, ...sessionNodes, settingsEntry, adminEntry, upgradeEntry, footerExisting].filter(Boolean));
             const leftovers = entries.filter((el) => !picked.has(el));
             const appendTitle = (txt) => {
                 const t = document.createElement('div');
@@ -437,9 +719,22 @@ console.log('Connection Manager inizializzato');
                 appendTitle('Azioni');
                 actionNodes.forEach((el) => menu.appendChild(el));
             }
-            appendDivider();
-            appendTitle('Impostazioni');
-            menu.appendChild(settingsEntry);
+            if (!isAdminRole) {
+                appendDivider();
+                appendTitle('Impostazioni');
+                menu.appendChild(settingsEntry);
+                const currentPackage = normalizePackageName(window.mvsUserContext?.pacchetto);
+                const nextPkg = nextPackageFor(currentPackage);
+                if (nextPkg) {
+                    upgradeEntry.textContent = `Richiedi Upgrade a ${nextPkg}`;
+                    menu.appendChild(upgradeEntry);
+                }
+            }
+            if (isAdminRole) {
+                appendDivider();
+                appendTitle('Admin');
+                menu.appendChild(adminEntry);
+            }
             if (sessionNodes.length) {
                 appendDivider();
                 appendTitle('Sessione');
@@ -473,13 +768,30 @@ console.log('Connection Manager inizializzato');
                     if (menu.dataset.mvsUnifiedRoutesBound === '1') return;
                     menu.dataset.mvsUnifiedRoutesBound = '1';
                     menu.addEventListener('click', (e) => {
+                        const logoutEl = e.target.closest('#accountLogout, #signOutBtnMobile, #signOutBtn');
+                        if (logoutEl) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            logoutFromMenu();
+                            return;
+                        }
                         const target = e.target.closest('[data-mvs-route]');
-                        if (!target) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const route = String(target.getAttribute('data-mvs-route') || '').trim();
-                        if (!route) return;
-                        window.location.href = route;
+                        if (target) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const route = String(target.getAttribute('data-mvs-route') || '').trim();
+                            if (!route) return;
+                            window.location.href = route;
+                            return;
+                        }
+                        const actionEl = e.target.closest('[data-mvs-action]');
+                        if (!actionEl) return;
+                        const action = String(actionEl.getAttribute('data-mvs-action') || '').trim().toLowerCase();
+                        if (action === 'request-upgrade') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            requestUpgradeFromMenu();
+                        }
                     });
                 } catch (_) {}
             });
@@ -491,12 +803,19 @@ console.log('Connection Manager inizializzato');
         document.addEventListener('DOMContentLoaded', () => {
             renderVersion();
             unifyUserMenus();
+            attachUserContextListeners();
+            refreshUserContext();
         });
     } else {
         renderVersion();
         unifyUserMenus();
+        attachUserContextListeners();
+        refreshUserContext();
     }
     window.addEventListener('mvs-install-state', () => {
         try { unifyUserMenus(); } catch (_) {}
+    });
+    window.addEventListener('mvs-user-context-refresh', () => {
+        try { refreshUserContext(); } catch (_) {}
     });
 })();

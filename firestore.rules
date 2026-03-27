@@ -52,9 +52,19 @@ service cloud.firestore {
 
     function isAdminUser() {
       let userRef = /databases/$(database)/documents/volley_team_analysis_6_0_users/$(request.auth.uid);
+      let mvsRef = /databases/$(database)/documents/users/$(requesterEmail());
+      let mvsSafeRef = /databases/$(database)/documents/users/$(requesterEmail().replace('.', '_'));
       return isSignedIn()
         && (isBootstrapAdminEmail()
-            || (exists(userRef) && get(userRef).data.role == 'admin'));
+            || (exists(userRef) && get(userRef).data.role == 'admin')
+            || (requesterEmail() != '' && exists(mvsRef) && (
+                  get(mvsRef).data.role == 'admin'
+                  || get(mvsRef).data.apps.mvs.role == 'admin'
+               ))
+            || (requesterEmail() != '' && exists(mvsSafeRef) && (
+                  get(mvsSafeRef).data.role == 'admin'
+                  || get(mvsSafeRef).data.apps.mvs.role == 'admin'
+               )));
     }
 
     function isOwnUserDoc(uid) {
@@ -123,13 +133,13 @@ service cloud.firestore {
 
     // Documento radice utente MVS
     match /users/{userId} {
-      allow read, write: if isUser(userId);
+      allow read, write: if isUser(userId) || isAdminUser();
     }
 
     // Wildcard per tutte le subcollection MVS: solo il proprietario
     // (le regole più specifiche sotto sovrascrivono per i team condivisi)
     match /users/{userId}/{document=**} {
-      allow read, write: if isUser(userId);
+      allow read, write: if isUser(userId) || isAdminUser();
     }
 
     // Team: lettura anche agli observer con accesso attivo
