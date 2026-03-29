@@ -2732,6 +2732,8 @@
     <script>
         // Variabili globali
         let currentUser = null;
+        let currentUserPackage = 'base';  // 'base' | 'pro' | 'promax'
+        let currentUserRole = 'user';     // 'user' | 'admin'
         let authResolved = false;
         let selectedTeam = null;
         let matches = [];
@@ -2901,11 +2903,27 @@
             return false;
         }
 
+        function canImportExcel() {
+            return currentUserRole === 'admin' || currentUserPackage === 'promax';
+        }
+
+        async function loadUserPackage() {
+            try {
+                if (!window.firestoreService) return;
+                const result = await window.firestoreService.getUserAppContext('mvs');
+                if (result?.success && result.context) {
+                    currentUserPackage = (result.context.assignedProfile || 'base').toLowerCase();
+                    currentUserRole = (result.context.role || 'user').toLowerCase();
+                }
+            } catch (_) { /* silent */ }
+            updateObserverUI();
+        }
+
         function updateObserverUI() {
             isObserverMode = computeObserverMode();
             if (syncDataBtn) syncDataBtn.style.display = isObserverMode ? 'none' : '';
             if (hydrateDataBtn) hydrateDataBtn.style.display = isObserverMode ? 'none' : '';
-            if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (importMatchBtn) importMatchBtn.style.display = (!isObserverMode && canImportExcel()) ? '' : 'none';
             if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';
 
@@ -4098,6 +4116,7 @@
                 if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
                 currentUser = user;
                 if (accountEmail) accountEmail.textContent = user.email;
+                loadUserPackage(); // non-blocking: aggiorna visibilità import Excel
                 loadSelectedTeam();
                 // hideLoadingScreen(); // Rely on loadMatches to hide screen when ready
             });
@@ -7839,6 +7858,7 @@
 
         async function handleImportMatchClick() {
             if (isObserverMode) return;
+            if (!canImportExcel()) return;
             openImportMatchDialog();
         }
 

@@ -2631,6 +2631,8 @@
     <script>
         // Variabili globali
         let currentUser = null;
+        let currentUserPackage = 'base';  // 'base' | 'pro' | 'promax'
+        let currentUserRole = 'user';     // 'user' | 'admin'
         let authResolved = false;
         let selectedTeam = null;
         let matches = [];
@@ -2886,14 +2888,31 @@
             return false;
         }
 
+        function canImportExcel() {
+            return currentUserRole === 'admin' || currentUserPackage === 'promax';
+        }
+
+        async function loadUserPackage() {
+            try {
+                if (!window.firestoreService) return;
+                const result = await window.firestoreService.getUserAppContext('mvs');
+                if (result?.success && result.context) {
+                    currentUserPackage = (result.context.assignedProfile || 'base').toLowerCase();
+                    currentUserRole = (result.context.role || 'user').toLowerCase();
+                }
+            } catch (_) { /* silent — mantieni i valori default */ }
+            updateObserverUI();
+            updateBulkExportMenuVisibility();
+        }
+
         function updateObserverUI() {
             isObserverMode = computeObserverMode();
             const hideSyncActions = isObserverMode || currentArchive === 'shared';
             if (syncDataBtn) syncDataBtn.style.display = hideSyncActions ? 'none' : '';
             if (hydrateDataBtn) hydrateDataBtn.style.display = hideSyncActions ? 'none' : '';
-            if (importMatchBtn) importMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (importMatchBtn) importMatchBtn.style.display = (!isObserverMode && canImportExcel()) ? '' : 'none';
             if (newMatchBtn) newMatchBtn.style.display = isObserverMode ? 'none' : '';
-            if (emptyImportMatchBtn) emptyImportMatchBtn.style.display = isObserverMode ? 'none' : '';
+            if (emptyImportMatchBtn) emptyImportMatchBtn.style.display = (!isObserverMode && canImportExcel()) ? '' : 'none';
             if (emptyNewMatchBtn) emptyNewMatchBtn.style.display = isObserverMode ? 'none' : '';
             if (inlineMatchForm) inlineMatchForm.style.display = isObserverMode ? 'none' : '';
             
@@ -2923,7 +2942,7 @@
             if (!exportAllMatchesBtn) return;
             const canShow = !computeObserverMode() && currentMainTab === 'list';
             exportAllMatchesBtn.style.display = canShow ? '' : 'none';
-            if (importAllMatchesBtn) importAllMatchesBtn.style.display = canShow ? '' : 'none';
+            if (importAllMatchesBtn) importAllMatchesBtn.style.display = (canShow && canImportExcel()) ? '' : 'none';
             if (deleteAllMatchesBtn) deleteAllMatchesBtn.style.display = canShow ? '' : 'none';
         }
 
@@ -4325,6 +4344,7 @@
                 if (__authRedirectTimer) { clearTimeout(__authRedirectTimer); __authRedirectTimer = null; }
                 currentUser = user;
                 if (accountEmail) accountEmail.textContent = user.email;
+                loadUserPackage(); // non-blocking: aggiorna visibilità import Excel
                 loadSelectedTeam();
                 // hideLoadingScreen(); // Rely on loadMatches to hide screen when ready
             });
@@ -10315,6 +10335,7 @@
 
         async function handleImportMatchClick(){
             if (isObserverMode) return;
+            if (!canImportExcel()) return;
             openImportMatchDialog();
         }
 
