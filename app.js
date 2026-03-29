@@ -5528,23 +5528,22 @@ function updateScoutingUI() {
     if (scoreAwayEl) scoreAwayEl.textContent = appState.awayScore;
 
     // Aggiorna nomi squadre nella testata punteggio (mia squadra + avversaria)
-    // Risolve myTeam con fallback robusti: myTeam → teamsModule → matchId → localStorage
+    // Risolve myTeam con fallback robusti: myTeam → homeTeam/awayTeam → teamsModule → localStorage
     const _rawMy = appState?.currentMatch?.myTeam;
     let myTeamName = (_rawMy && _rawMy !== '-') ? _rawMy : '';
-    if (!myTeamName) myTeamName = (appState?.currentMatch?.homeAway === 'home'
-        ? appState?.currentMatch?.homeTeam
-        : appState?.currentMatch?.awayTeam) || '';
     if (!myTeamName || myTeamName === '-') {
-        try {
-            const _t = window.teamsModule?.getCurrentTeam?.();
-            if (_t?.name) myTeamName = _t.name;
-        } catch(_) {}
+        const _ha = appState?.currentMatch?.homeAway;
+        if (_ha === 'home') myTeamName = appState?.currentMatch?.homeTeam || '';
+        else if (_ha === 'away') myTeamName = appState?.currentMatch?.awayTeam || '';
+    }
+    if (!myTeamName || myTeamName === '-') {
+        // homeAway non determinato: prova entrambi preferendo homeTeam
+        myTeamName = appState?.currentMatch?.homeTeam || appState?.currentMatch?.awayTeam || '';
     }
     if (!myTeamName || myTeamName === '-') {
         try {
-            const _mid = String(appState?.currentMatch?.id || '');
-            const _ux = _mid.lastIndexOf('_');
-            if (_ux > 0) myTeamName = _mid.substring(0, _ux);
+            const _t = window.teamsModule?.getCurrentTeam?.();
+            if (_t?.teamName || _t?.name) myTeamName = _t.teamName || _t.name;
         } catch(_) {}
     }
     if (!myTeamName || myTeamName === '-') {

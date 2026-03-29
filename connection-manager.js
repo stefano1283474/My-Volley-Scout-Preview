@@ -374,6 +374,35 @@ console.log('Connection Manager inizializzato');
                 font-size:12px !important;
                 font-weight:700 !important;
                 cursor:pointer !important;
+            }
+            .mvs-menu-profile-switcher{
+                display:flex !important;
+                align-items:center !important;
+                gap:5px !important;
+                padding:2px 10px 6px !important;
+            }
+            .mvs-menu-profile-switcher .mvs-view-btn{
+                flex:1 !important;
+                border:1px solid #bfdbfe !important;
+                background:#eff6ff !important;
+                color:#1e3a8a !important;
+                border-radius:999px !important;
+                padding:5px 6px !important;
+                font-size:13px !important;
+                font-weight:700 !important;
+                cursor:pointer !important;
+                text-align:center !important;
+                outline:none !important;
+                width:auto !important;
+            }
+            .mvs-menu-profile-switcher .mvs-view-btn.is-active{
+                background:#2563eb !important;
+                border-color:#2563eb !important;
+                color:#fff !important;
+            }
+            .mvs-menu-profile-switcher .mvs-view-btn:disabled{
+                cursor:not-allowed !important;
+                opacity:.4 !important;
             }`;
             document.head.appendChild(s);
         } catch (_) {}
@@ -470,82 +499,11 @@ console.log('Connection Manager inizializzato');
     }
     function renderTopbarViewSwitcher(ctx) {
         try {
-            const role = String(ctx?.role || 'user').trim().toLowerCase() || 'user';
-            if (role === 'admin') {
-                const existing = document.getElementById('mvsTopbarContext');
-                if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
-                return;
-            }
-            ensureMenuCss();
-            const targetParent = document.querySelector('#headerMenuToggle')?.parentElement
-                || document.querySelector('#accountBtn')?.parentElement
-                || document.querySelector('.top-account-btn')?.parentElement
-                || document.querySelector('.topappbar-right')
-                || document.querySelector('.header-actions')
-                || null;
-            if (!targetParent) return;
-            let box = document.getElementById('mvsTopbarContext');
-            if (!box) {
-                box = document.createElement('div');
-                box.id = 'mvsTopbarContext';
-                box.className = 'mvs-topbar-context';
-                const group = document.createElement('div');
-                group.className = 'mvs-view-group';
-                const mkViewBtn = (id, label, value) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.id = id;
-                    btn.className = 'mvs-view-btn';
-                    btn.textContent = label;
-                    btn.dataset.viewMode = value;
-                    btn.addEventListener('click', () => {
-                        if (btn.disabled) return;
-                        const next = String(btn.dataset.viewMode || 'base').trim().toLowerCase();
-                        setStoredViewMode(next);
-                        applyViewContextToDocument(Object.assign({}, window.mvsUserContext || {}, { selectedView: next }));
-                        renderTopbarViewSwitcher(window.mvsUserContext || {});
-                    });
-                    return btn;
-                };
-                const btnBase = mkViewBtn('mvsViewBtnBase', 'Base', 'base');
-                const btnPro = mkViewBtn('mvsViewBtnPro', 'Pro', 'pro');
-                const btnProMax = mkViewBtn('mvsViewBtnProMax', 'ProMax', 'promax');
-                group.appendChild(btnBase);
-                group.appendChild(btnPro);
-                group.appendChild(btnProMax);
-                const adminBtn = document.createElement('button');
-                adminBtn.type = 'button';
-                adminBtn.id = 'mvsTopbarAdminBtn';
-                adminBtn.className = 'mvs-admin-btn';
-                adminBtn.textContent = 'Admin';
-                adminBtn.addEventListener('click', () => { window.location.href = '/admin.html'; });
-                box.appendChild(group);
-                box.appendChild(adminBtn);
-                targetParent.insertBefore(box, targetParent.firstChild || null);
-            }
-            const packageName = normalizePackageName(ctx?.pacchetto);
-            const allowed = Array.isArray(ctx?.allowedViews) ? ctx.allowedViews : allowedViewsForPackage(packageName);
-            const selected = resolveSelectedView({ pacchetto: packageName, allowedViews: allowed });
-            const btnBase = document.getElementById('mvsViewBtnBase');
-            const btnPro = document.getElementById('mvsViewBtnPro');
-            const btnProMax = document.getElementById('mvsViewBtnProMax');
-            const adminBtn = document.getElementById('mvsTopbarAdminBtn');
-            if (btnBase) {
-                const enabled = allowed.includes('base');
-                btnBase.disabled = !enabled;
-                btnBase.classList.toggle('is-active', selected === 'base');
-            }
-            if (btnPro) {
-                const enabled = allowed.includes('pro');
-                btnPro.disabled = !enabled;
-                btnPro.classList.toggle('is-active', selected === 'pro');
-            }
-            if (btnProMax) {
-                const enabled = allowed.includes('promax');
-                btnProMax.disabled = !enabled;
-                btnProMax.classList.toggle('is-active', selected === 'promax');
-            }
-            if (adminBtn) adminBtn.style.display = role === 'admin' ? 'inline-flex' : 'none';
+            // Rimuove il vecchio elemento topbar se presente (legacy cleanup)
+            const existing = document.getElementById('mvsTopbarContext');
+            if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+            // Aggiorna il switcher di profilo all'interno del menu account
+            try { unifyUserMenus(); } catch (_) {}
         } catch (_) {}
     }
     async function refreshUserContext() {
@@ -651,7 +609,15 @@ console.log('Connection Manager inizializzato');
             const quickSaveNodes = extract(['save-match-btn']);
             const navNodes = extract(['goToTeamsBtn', 'goToTeamsBtnMobile', 'goToMatchesBtn', 'goToMatchesBtnMobile']);
             const actionNodes = extract(['installAppBtn', 'exportSetsBtnMobile', 'importAllMatchesBtn', 'deleteAllMatchesBtn', 'exportAllMatchesBtn', 'hydrateDataBtn', 'syncDataBtn', 'purgeAllBtn']);
-            const sessionNodes = extract(['exitToWelcomeBtnMobile', 'accountLogout', 'signOutBtnMobile']);
+            const sessionNodes = extract(['exitToWelcomeBtnMobile', 'accountExit', 'accountLogout', 'signOutBtnMobile']);
+            // Classifica anche i pulsanti Guida (senza id fisso, rilevati via onclick/href)
+            entries.forEach((el) => {
+                if (!el || sessionNodes.includes(el)) return;
+                try {
+                    const oc = String(el.getAttribute?.('onclick') || el.getAttribute?.('href') || '');
+                    if (oc.includes('guida.html')) sessionNodes.push(el);
+                } catch (_) {}
+            });
             const settingsNodes = entries.filter((el) => isLegacySettingsNode(el));
             const settingsEntry = (() => {
                 const existing = byId.get('goToSettingsBtn');
@@ -706,23 +672,41 @@ console.log('Connection Manager inizializzato');
                 d.className = 'menu-divider';
                 menu.appendChild(d);
             };
+            // Helper: costruisce il blocco pillole Base/Pro/ProMax da inserire nel menu
+            const buildProfileSwitcher = () => {
+                const pkg = normalizePackageName(window.mvsUserContext?.pacchetto);
+                const allowed = allowedViewsForPackage(pkg);
+                const sel = resolveSelectedView({ pacchetto: pkg, allowedViews: allowed });
+                const wrap = document.createElement('div');
+                wrap.id = 'mvsMenuProfileSwitcher';
+                wrap.className = 'mvs-menu-profile-switcher';
+                [['base','Base'],['pro','Pro'],['promax','ProMax']].forEach(function(pair) {
+                    const view = pair[0], label = pair[1];
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.id = 'mvsMenuViewBtn' + label;
+                    btn.className = 'mvs-view-btn' + (sel === view ? ' is-active' : '');
+                    btn.textContent = label;
+                    btn.dataset.viewMode = view;
+                    btn.disabled = !allowed.includes(view);
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (btn.disabled) return;
+                        setStoredViewMode(view);
+                        applyViewContextToDocument(Object.assign({}, window.mvsUserContext || {}, { selectedView: view }));
+                        renderTopbarViewSwitcher(window.mvsUserContext || {});
+                    });
+                    wrap.appendChild(btn);
+                });
+                return wrap;
+            };
             menu.innerHTML = '';
             if (emailNode) menu.appendChild(emailNode);
-            quickSaveNodes.forEach((el) => menu.appendChild(el));
-            if (navNodes.length) {
-                appendDivider();
-                appendTitle('Navigazione');
-                navNodes.forEach((el) => menu.appendChild(el));
-            }
-            if (actionNodes.length) {
-                appendDivider();
-                appendTitle('Azioni');
-                actionNodes.forEach((el) => menu.appendChild(el));
-            }
+            // ── Profilo (non-admin) ──────────────────────────────────────────────
             if (!isAdminRole) {
                 appendDivider();
-                appendTitle('Impostazioni');
-                menu.appendChild(settingsEntry);
+                appendTitle('Profilo');
+                menu.appendChild(buildProfileSwitcher());
                 const currentPackage = normalizePackageName(window.mvsUserContext?.pacchetto);
                 const nextPkg = nextPackageFor(currentPackage);
                 if (nextPkg) {
@@ -730,11 +714,32 @@ console.log('Connection Manager inizializzato');
                     menu.appendChild(upgradeEntry);
                 }
             }
+            // ── Navigazione ──────────────────────────────────────────────────────
+            if (navNodes.length) {
+                appendDivider();
+                appendTitle('Navigazione');
+                navNodes.forEach((el) => menu.appendChild(el));
+            }
+            // ── Azioni ───────────────────────────────────────────────────────────
+            const allActionNodes = [...quickSaveNodes, ...actionNodes];
+            if (allActionNodes.length) {
+                appendDivider();
+                appendTitle('Azioni');
+                allActionNodes.forEach((el) => menu.appendChild(el));
+            }
+            // ── Impostazioni ─────────────────────────────────────────────────────
+            if (!isAdminRole) {
+                appendDivider();
+                appendTitle('Impostazioni');
+                menu.appendChild(settingsEntry);
+            }
+            // ── Admin ────────────────────────────────────────────────────────────
             if (isAdminRole) {
                 appendDivider();
                 appendTitle('Admin');
                 menu.appendChild(adminEntry);
             }
+            // ── Sessione ─────────────────────────────────────────────────────────
             if (sessionNodes.length) {
                 appendDivider();
                 appendTitle('Sessione');
@@ -743,6 +748,9 @@ console.log('Connection Manager inizializzato');
             leftovers.forEach((el) => {
                 if (!el) return;
                 if (el.classList && (el.classList.contains('menu-title') || el.classList.contains('menu-divider'))) return;
+                // Salta i profile-switcher residui da render precedenti (evita duplicazione pillole)
+                if (el.classList && (el.classList.contains('mvs-menu-profile-switcher') || el.classList.contains('mvs-view-btn'))) return;
+                if (el.id && (el.id === 'mvsMenuProfileSwitcher' || el.id.startsWith('mvsMenuViewBtn'))) return;
                 if (isLegacySettingsNode(el)) return;
                 menu.appendChild(el);
             });
