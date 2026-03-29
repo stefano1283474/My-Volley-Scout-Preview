@@ -212,11 +212,11 @@
             Accedi per visualizzare e gestire le tue squadre.
           </div>
           <div id="inviteObserverInfo" class="observer-info" style="display:none;">
-            <div class="observer-info-title">Invito Ospiete</div>
+            <div class="observer-info-title">Invito Ospite</div>
             <div class="observer-info-text">Per usare l’invito devi prima autenticarti. Il token verrà collegato al tuo account così avrai accesso alla squadra.</div>
             <div class="observer-info-steps">
               <div>1. Accedi o registrati dal pulsante qui sotto.</div>
-              <div>2. Torna in My Teams e troverai la squadra con badge Ospiete.</div>
+              <div>2. Torna in My Teams e troverai la squadra con badge Ospite.</div>
               <div>3. Apri la squadra condivisa e consulta partite/analisi in Cloud.</div>
             </div>
             <div class="observer-info-actions">
@@ -227,7 +227,7 @@
             <div class="empty-state-card">
               <div class="empty-state-icon"><img src="LOGO_PALLONE.png" alt="Logo pallone"></div>
               <div class="empty-state-title">Nessuna squadra disponibile</div>
-              <div class="empty-state-desc">Crea la tua prima squadra o attendi un invito Ospiete.</div>
+              <div class="empty-state-desc">Crea la tua prima squadra o attendi un invito Ospite.</div>
               <button class="btn btn-primary" type="button" onclick="openCreate()">Crea nuova squadra</button>
             </div>
           </div>
@@ -252,7 +252,7 @@
 
     <dialog id="createTeamDialog">
       <div class="dialog-card">
-        <div class="dialog-title">Nuova Squadra</div>
+        <div class="dialog-title" id="createTeamDialogTitle">Nuova Squadra</div>
         <form method="dialog" id="createTeamForm" class="dialog-form">
           <label class="form-label">
             <span>La tua società</span>
@@ -1056,7 +1056,7 @@
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
                   <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Ospiete" aria-label="Invita Ospiete">
+                    <button class="icon-button icon-button-outline icon-button-circle" data-action="invite" data-archive="cloud" data-id="${id}" title="Invita Ospite" aria-label="Invita Ospite">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path d="M10 13a5 5 0 0 0 7.07 0l1.42-1.42a5 5 0 0 0-7.07-7.07L9 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.5a5 5 0 0 0 7.07 7.07L15 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1105,7 +1105,7 @@
                    <div style="font-size:12px; color:#475569; margin-top:3px;">Proprietario: <b>${ownerLabel.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</b></div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-                   <span style="font-size:11px; color:#3b82f6; border:1px solid #bfdbfe; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Ospiete</span>
+                   <span style="font-size:11px; color:#3b82f6; border:1px solid #bfdbfe; background:#eff6ff; padding:2px 8px; border-radius:999px; font-weight:600;">Ospite</span>
                    <span style="font-size:11px; color:#64748b;">Cloud Condiviso</span>
                 </div>
               </div>
@@ -1167,14 +1167,14 @@
     function formatObserverExitBadge(reason) {
       const normalized = String(reason || '').trim().toLowerCase();
       if (normalized === 'rifiuto' || normalized === 'rifiuto_invito') return 'Invito rifiutato';
-      return 'Recesso Ospiete';
+      return 'Recesso Ospite';
     }
 
     function renderAccessRows(list) {
       if (!sharedAccessList) return;
       const docs = Array.isArray(list) ? list : [];
       if (!docs.length) {
-        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun Ospiete trovato.</div>`;
+        sharedAccessList.innerHTML = `<div style="color:#64748b; font-size:13px; padding:8px;">Nessun Ospite trovato.</div>`;
         return;
       }
       sharedAccessList.innerHTML = docs.map((item) => {
@@ -1187,7 +1187,7 @@
         const statusBg = isLeft ? '#e2e8f0' : (active ? '#dcfce7' : '#fef3c7');
         const statusTxt = isLeft ? formatObserverExitBadge(item?.observerLeftReason) : (active ? 'Attivo' : 'Sospeso');
         const leftDetail = isLeft
-          ? `<div class="access-row-left-detail">Stato Ospiete: <b>${formatObserverExitReason(item?.observerLeftReason)}</b> · Data: <b>${formatAccessDate(item?.observerLeftAt)}</b></div>`
+          ? `<div class="access-row-left-detail">Stato Ospite: <b>${formatObserverExitReason(item?.observerLeftReason)}</b> · Data: <b>${formatAccessDate(item?.observerLeftAt)}</b></div>`
           : '';
         return `
           <div class="access-row">
@@ -1245,8 +1245,8 @@
       const filteredDocs = filterAccessRows(accessDocsCache);
       updateAccessSummary(accessDocsCache, filteredDocs);
       if (sharedAccessHint) {
-        if (!accessDocsCache.length) sharedAccessHint.textContent = 'Nessun Ospiete collegato a questa squadra.';
-        else if (!filteredDocs.length) sharedAccessHint.textContent = 'Nessun Ospiete corrisponde ai filtri impostati.';
+        if (!accessDocsCache.length) sharedAccessHint.textContent = 'Nessun Ospite collegato a questa squadra.';
+        else if (!filteredDocs.length) sharedAccessHint.textContent = 'Nessun Ospite corrisponde ai filtri impostati.';
         else sharedAccessHint.textContent = '';
       }
       renderAccessRows(filteredDocs);
@@ -1511,7 +1511,7 @@
         : 'Vuoi recedere dall’accesso a questo team condiviso? Potrai rientrare solo con un nuovo invito del proprietario.';
       if (!tId || !owner) return;
       const ok = await askConfirm(confirmMessage, {
-        title: isReject ? 'Rifiuto invito' : 'Recesso Ospiete',
+        title: isReject ? 'Rifiuto invito' : 'Recesso Ospite',
         okText: isReject ? 'Rifiuta' : 'Recedi',
         cancelText: 'Annulla',
         variant: 'danger',
@@ -1664,11 +1664,20 @@
 
     function openCreate() {
       createTeamDialog.classList.remove('closing');
-      createTeamDialog.showModal();
-      if (!isEditingTeam) {
+      // Aggiorna titolo e testo pulsante in base alla modalità
+      const titleEl = document.getElementById('createTeamDialogTitle');
+      const confirmBtn = document.getElementById('confirmCreate');
+      if (isEditingTeam) {
+        if (titleEl) titleEl.textContent = 'Modifica Squadra';
+        if (confirmBtn) confirmBtn.textContent = 'Salva';
+      } else {
+        if (titleEl) titleEl.textContent = 'Nuova Squadra';
+        if (confirmBtn) confirmBtn.textContent = 'Crea';
+        // Svuota il form solo se non siamo in modalità modifica
         teamInput.value = '';
         clubInput.value = '';
       }
+      createTeamDialog.showModal();
       setTimeout(() => teamInput.focus(), 0);
     }
 
@@ -2207,6 +2216,11 @@
       createTeamBtn.addEventListener('click', openCreate);
       cancelCreate.addEventListener('click', closeCreate);
       createTeamForm.addEventListener('submit', onCreateSubmit);
+      // Gestisci chiusura via tasto Escape: resetta modalità modifica
+      createTeamDialog.addEventListener('cancel', () => {
+        isEditingTeam = false;
+        editingTeamId = null;
+      });
       if (window.teamsModule?.onTeamsUpdate) window.teamsModule.onTeamsUpdate(() => { renderLocalTeamsList(); });
       try { if (window.teamsModule?.loadTeams) { window.teamsModule.loadTeams(); } } catch(_){ }
       renderLocalTeamsList();

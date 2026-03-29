@@ -4222,7 +4222,7 @@
                 const isObserver = (role === 'observer') || (owner && userEmail && owner !== userEmail);
 
                 if (isObserver) {
-                    roleEl.textContent = 'Ospiete';
+                    roleEl.textContent = 'Ospite';
                     roleEl.style.background = '#eff6ff';
                     roleEl.style.color = '#3b82f6';
                     roleEl.style.border = '1px solid #bfdbfe';
@@ -6580,7 +6580,7 @@
                 }
 
                 if (fundamentalsFilter.length > 0 && !fundamentalsFilter.includes(vk.fundamental)) return false;
-                if (rotationsFilter.length > 0 && !rotationsFilter.includes(vk.rotation.replace('P', ''))) return false;
+                if (rotationsFilter.length > 0 && !rotationsFilter.includes(vk.rotation)) return false;
                 if (phasesFilter.length > 0 && !phasesFilter.includes(vk.phase)) return false;
 
                 // Sync with the left-panel dynamic selector

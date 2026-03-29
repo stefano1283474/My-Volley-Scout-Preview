@@ -64,7 +64,7 @@ const firestoreService = {
                 }
             } catch (_) {}
 
-            if (!updated) return { success: false, error: 'Nessun accesso Ospiete trovato per questo team' };
+            if (!updated) return { success: false, error: 'Nessun accesso Ospite trovato per questo team' };
             return { success: true, updated };
         } catch (error) {
             return { success: false, error: error.message };
@@ -670,7 +670,7 @@ const firestoreService = {
             const accessRef = ownerRef.collection('teams').doc(tId).collection('user_access').doc(observerEmail);
             const existing = await accessRef.get();
             const existingData = existing.exists ? (existing.data() || {}) : {};
-            if (existingData?.active === false) return { success: false, error: 'Accesso Ospiete sospeso' };
+            if (existingData?.active === false) return { success: false, error: 'Accesso Ospite sospeso' };
             const page = String(context?.page || '').trim();
             const archive = String(context?.archive || '').trim();
             const action = String(context?.action || '').trim();
@@ -2923,8 +2923,7 @@ const firestoreService = {
             console.error('[VolleyScout] Errore nel caricamento roster di default:', error);
             return { success: false, error: error.message };
         }
-    }
-};
+    },
 
     // ── Eliminazione account utente (GDPR Art. 17 — Diritto all'oblio) ──────────
     deleteUserAccount: async (userEmail) => {

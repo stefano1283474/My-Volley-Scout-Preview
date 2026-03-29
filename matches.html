@@ -4468,7 +4468,7 @@
                         localStorage.removeItem('selectedSharedTeamMeta');
                         localStorage.removeItem('selectedTeamId');
                     } catch(_) {}
-                    alert('Accesso Ospiete sospeso o rimosso per questa squadra');
+                    alert('Accesso Ospite sospeso o rimosso per questa squadra');
                     window.location.href = '/my-teams.html?archive=shared';
                     return;
                 }
@@ -8162,7 +8162,7 @@
                     if (!pMatchKey) return false;
                 }
                 if (fundamentalsFilter.length > 0 && !fundamentalsFilter.includes(vk.fundamental)) return false;
-                if (rotationsFilter.length > 0 && !rotationsFilter.includes(vk.rotation.replace('P', ''))) return false;
+                if (rotationsFilter.length > 0 && !rotationsFilter.includes(vk.rotation)) return false;
                 if (phasesFilter.length > 0 && !phasesFilter.includes(vk.phase)) return false;
                 if (teamAnalysisSelectorMode && teamAnalysisActiveKeys && teamAnalysisActiveKeys.size > 0) {
                     const val = vk[teamAnalysisSelectorMode];
