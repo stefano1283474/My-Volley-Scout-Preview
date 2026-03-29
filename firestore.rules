@@ -176,8 +176,11 @@ service cloud.firestore {
     }
 
     // Inviti condivisione team
+    // Sicurezza: get (singolo documento) permesso a qualsiasi utente autenticato che ha l'ID esatto
+    // del documento (= token segreto ricevuto via link). List (elenco completo) solo al proprietario.
     match /users/{ownerId}/invites/{inviteId} {
-      allow read:  if isSignedIn();
+      allow get:   if isSignedIn();
+      allow list:  if isUser(ownerId);
       allow write: if isUser(ownerId);
     }
 

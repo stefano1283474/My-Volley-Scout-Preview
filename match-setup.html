@@ -11,956 +11,1208 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
     <link rel="stylesheet" href="animations.css?v=1">
-    <!-- Design system globale -->
-    <link rel="stylesheet" href="src/styles/main.css">
-    <link rel="stylesheet" href="src/styles/components.css">
-    <link rel="stylesheet" href="styles.css?v=4">
     <style>
-      /* Allinea layout di intestazione a matches.html */
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: var(--font-family); background: #ffffff; color: #333; min-height: 100vh; }
+      /* ── Reset ── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f1f5f9;
+        color: #0f172a;
+        min-height: 100vh;
+        min-height: 100dvh;
+        -webkit-font-smoothing: antialiased;
+      }
       button, input, select, textarea { font-family: inherit; }
-      .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-      .header { background: #ffffff; border-radius: 12px; padding: 8px 12px; margin-bottom: 16px; display: flex; justify-content: center; align-items: center; position: relative; }
-      .logo { display: flex; align-items: center; gap: 10px; }
-      .logo-icon { width: 100%; max-width: 576px; height: 180px; overflow: hidden; display: block; margin: 0 auto; }
-      .logo-icon img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
-
-      .account-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; z-index: 2; }
-      .back-actions { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; z-index: 2; }
-      .icon-button { background: #ffffff; color: #0d6efd; border: 1px solid #e9ecef; padding: 6px; border-radius: 8px; cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
-      @media (hover: hover) {
-        .icon-button:hover { background: #f8f9fa; border-color: #dbe1e6; transform: translateY(-1px); }
+      /* ── App shell ── */
+      .app-shell {
+        max-width: 560px;
+        margin: 0 auto;
+        background: #ffffff;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
       }
-      .icon-button-primary { background:#2563eb; color:#fff; border:1px solid #2563eb; }
-      .icon-button-circle { width:32px; height:32px; min-width:32px; min-height:32px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:0; }
-      .icon-button-outline { background:#fff; color:#2563eb; border:1px solid #2563eb; }
 
-      .account-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.08); min-width: 160px; }
-      .account-dropdown .menu-item { width: 100%; padding: 10px 12px; text-align: left; background: transparent; border: none; cursor: pointer; color: #333; }
-      .account-dropdown .menu-item:hover { background: #f8f9fa; }
-
-      /* Toggle Casa/Trasferta come pulsanti che cambiano colore */
-      .radio-group { display: flex; gap: var(--space-4); flex-wrap: wrap; }
-      .radio-option { display:flex; align-items:center; justify-content:center; padding: var(--space-3) var(--space-5); border: 1px solid var(--outline); border-radius: var(--radius-lg); background: var(--surface); color: var(--on-surface-variant); cursor: pointer; transition: all var(--transition-fast); min-width: 120px; }
-      .radio-option:hover { border-color: var(--primary-300); background: var(--primary-50); }
-      .radio-option.selected { border-color: var(--primary-600); background: var(--primary-600); color: #fff; }
-
-      /* Azioni form: mantiene su una riga anche su mobile e rende i bottoni più compatti */
-      .form-actions { flex-wrap: wrap; justify-content: flex-end; }
-      .btn-compact { padding: var(--space-2) var(--space-4); font-size: var(--font-size-sm); min-height: 36px; min-width: 96px; }
-      .section-card { border:1px solid #2563eb; border-radius:16px; padding:16px; background:#fff; margin:16px 0; }
-      .section-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:12px 0 10px 0; flex-wrap: nowrap; }
-      .section-title { font-size:18px; font-weight:700; color:#0f172a; }
-      .rounded-title { border: 1px solid #e9ecef; border-radius: 12px; padding: 6px 12px; display: inline-block; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-      .section-title-row .section-title { margin: 0; }
-      .section-title-row #submitBtn { margin: 0; min-height: 32px; padding: 6px 10px; }
-      .section-card input,
-      .section-card select,
-      .section-card textarea { border: 1px solid #0d6efd; background:#fff; }
-      .section-subtle { color:#64748b; }
-      @keyframes pageSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-      .page-slide-in { animation: pageSlideIn .24s ease-out; }
-      /* Animazione uniforme per elementi cliccabili (stile card squadra) */
-      .btn,
-      .icon-button,
-      .radio-option {
-        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      /* ── Topbar ── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #ffffff;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
       }
-      @media (hover: hover) {
-        .btn:hover,
-        .icon-button:hover,
-        .radio-option:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 16px rgba(0,0,0,0.10);
-        }
+      .topbar-logo {
+        height: 40px;
+        max-width: 140px;
+        min-width: 50px;
+        flex: 1 1 auto;
+        object-fit: contain;
+        object-position: center;
+        display: block;
       }
-      .btn:active,
-      .icon-button:active,
-      .radio-option:active {
+      .topbar-btn {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        background: #ffffff;
+        color: #2563eb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        flex-shrink: 0;
+        transition: background .15s, border-color .15s, transform .12s;
+      }
+      .topbar-btn:hover { background: #f8fafc; border-color: #bfdbfe; }
+      .topbar-btn:active { transform: scale(0.94); }
+
+      /* ── Account wrapper: flex row per pill + bottone account sulla stessa riga ── */
+      .acct-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      /* .mvs-view-btn override applicato dopo gli script, in fondo al body */
+      .account-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 8px 28px rgba(15,23,42,.13);
+        min-width: 190px;
+        overflow: hidden;
+        z-index: 100;
+      }
+      .account-menu .menu-item {
+        width: 100%;
+        padding: 13px 16px;
+        text-align: left;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: #334155;
+        font-size: 14px;
+        transition: background .1s;
+        display: block;
+      }
+      .account-menu .menu-item + .menu-item { border-top: 1px solid #f1f5f9; }
+      .account-menu .menu-item:hover { background: #f8fafc; }
+
+      /* ── Page intro ── */
+      .page-intro {
+        padding: 24px 20px 4px;
+      }
+      .page-title {
+        font-size: 23px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+      }
+      .page-sub {
+        font-size: 14px;
+        color: #64748b;
+        margin-top: 5px;
+      }
+
+      /* ── Feedback messages ── */
+      .msg {
+        border-radius: 12px;
+        padding: 13px 16px;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 12px 20px 0;
+      }
+      .msg--error  { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+      .msg--success{ background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+      /* ── Form ── */
+      .setup-form {
+        padding: 20px 20px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        flex: 1;
+      }
+
+      /* ── Field label ── */
+      .field__label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        margin-bottom: 9px;
+      }
+      .req { color: #ef4444; }
+
+      /* ── Text input + Select ── */
+      .field__input,
+      .field__select {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 14px;
+        font-size: 16px;   /* ≥16px previene zoom iOS */
+        color: #0f172a;
+        background: #ffffff;
+        width: 100%;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      .field__input:focus,
+      .field__select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+      }
+      .field__input::placeholder { color: #94a3b8; }
+
+      /* freccia custom per i select */
+      .field__select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 13px center;
+        padding-right: 38px;
+        cursor: pointer;
+      }
+
+      /* ── Date grid: gg | Mese | AAAA ── */
+      .date-grid {
+        display: grid;
+        grid-template-columns: 70px 1fr 88px;
+        gap: 8px;
+      }
+
+      .field__hint {
+        display: block;
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 7px;
+      }
+
+      /* ── Pill toggle (Casa/Trasferta, Andata/Ritorno) ── */
+      .pill-group {
+        display: flex;
+        gap: 10px;
+      }
+      .pill {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 14px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #475569;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: border-color .15s, background .15s, color .15s,
+                    transform .12s, box-shadow .15s;
+      }
+      .pill:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+      .pill.selected {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(37,99,235,.28);
+      }
+      .pill:active { transform: scale(0.97); }
+
+      /* ── Pulsante CTA ── */
+      .cta-btn {
+        width: 100%;
+        padding: 17px;
+        border-radius: 14px;
+        border: none;
+        background: #2563eb;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: background .2s, transform .15s, box-shadow .2s;
+        margin-top: 6px;
+      }
+      .cta-btn:disabled {
+        background: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+      .cta-btn:not(:disabled):hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37,99,235,.35);
+      }
+      .cta-btn:not(:disabled):active {
         transform: translateY(0);
-        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(37,99,235,.2);
       }
-      @media (max-width: 768px) {
-        .form-actions { flex-direction: row !important; }
-        .form-actions .btn { width: auto !important; }
+      /* Sovrascrive btn-primary/btn-secondary iniettati dal JS di validazione */
+      .cta-btn.btn-primary { background: #2563eb; color: #ffffff; }
+      .cta-btn.btn-secondary:not(:disabled) { background: #2563eb; color: #ffffff; }
+
+      /* ── Slide-in ── */
+      @keyframes pageSlideIn {
+        from { transform: translateX(16px); opacity: 0; }
+        to   { transform: translateX(0);    opacity: 1; }
       }
+      .page-slide-in { animation: pageSlideIn .22s ease-out; }
+
+      /* ── Desktop / landscape ── */
+      @media (min-width: 600px) {
+        body { background: #f1f5f9; }
+        .app-shell {
+          margin: 32px auto;
+          border-radius: 20px;
+          box-shadow: 0 4px 40px rgba(15,23,42,.10);
+          min-height: auto;
+          overflow: visible;
+        }
+        .topbar {
+          border-radius: 20px 20px 0 0;
+          padding: 12px 24px;
+        }
+        .page-intro { padding: 28px 28px 8px; }
+        .setup-form  { padding: 20px 28px 48px; }
+        .msg { margin-left: 28px; margin-right: 28px; }
+      }
+
+      /* ── Elementi nascosti mantenuti per compatibilità JS ── */
+      .js-compat { display: none !important; }
     </style>
     <script src="/pwa-install.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <script>document.addEventListener('DOMContentLoaded',function(){var c=document.querySelector('.container');if(c)c.classList.add('page-slide-in');});</script>
-        <!-- Header coerente con matches.html -->
-        <header class="header">
-            <div class="back-actions">
-                <a href="/matches.html" class="icon-button" title="Torna alle partite" id="backBtn" aria-label="Indietro">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </a>
-            </div>
-            <div class="account-actions">
-                <button id="headerMenuToggle" class="icon-button" aria-expanded="false" aria-controls="headerMenu" title="Account">
-                    <span class="menu-item-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </span>
-                </button>
-                <div id="headerMenu" class="account-dropdown" hidden>
-                    <button id="goToMatchesBtnMobile" class="menu-item" aria-label="Vai a Elenco Partite" type="button">Vai a Elenco Partite</button>
-                    <button id="goToTeamsBtnMobile" class="menu-item" aria-label="Vai a Elenco Squadre" type="button">Vai a Elenco Squadre</button>
-                    <button id="exitToWelcomeBtnMobile" class="menu-item" aria-label="Esci" type="button">Esci</button>
-                    <button id="signOutBtnMobile" class="menu-item" aria-label="Logout" type="button">Logout</button>
-                </div>
-            </div>
-            <div class="logo">
-                <div class="logo-icon">
-                    <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png" alt="Logo My Volley Scout"
-                         onerror="this.onerror=null; this.src='./LOGO_APP.png';" />
-                </div>
-            </div>
-        </header>
+<div class="app-shell">
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      var s = document.querySelector('.app-shell');
+      if (s) s.classList.add('page-slide-in');
+    });
+  </script>
 
-        <script>
-          // Toggle Account menu (header)
-          (function(){
-            const toggle = document.getElementById('headerMenuToggle');
-            const menu = document.getElementById('headerMenu');
-            if (!toggle || !menu) return;
-            const closeMenu = () => { menu.setAttribute('hidden',''); toggle.setAttribute('aria-expanded','false'); };
-            toggle.addEventListener('click', () => {
-              const isHidden = menu.hasAttribute('hidden');
-              if (isHidden) { menu.removeAttribute('hidden'); toggle.setAttribute('aria-expanded','true'); }
-              else { closeMenu(); }
-            });
-            document.addEventListener('click', (e) => {
-              if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
-            });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-            // Handler per la nuova voce 'Esci' -> Welcome.html
-            const exitBtn = document.getElementById('exitToWelcomeBtnMobile');
-            if (exitBtn) {
-              exitBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.location.href = '/my-teams.html';
-                closeMenu();
-              });
-            }
-          })();
-        </script>
-        <script>
-          (function(){
-            const goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
-            const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
-            const signOutBtnMobile = document.getElementById('signOutBtnMobile');
-            if (goToMatchesBtnMobile) {
-              goToMatchesBtnMobile.addEventListener('click', (e)=>{
-                e.preventDefault(); e.stopPropagation();
-                try {
-                  const qp = new URLSearchParams(window.location.search || '');
-                  const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-                  const rawArch = qp.get('archive') || stored || 'cloud';
-                  const a = rawArch === 'shared' ? 'shared' : 'cloud';
-                  const out = new URLSearchParams();
-                  out.set('archive', a);
-                  window.location.href='/matches.html?' + out.toString();
-                } catch(_) { window.location.href='/matches.html'; }
-              });
-            }
-            if (goToTeamsBtnMobile) {
-              goToTeamsBtnMobile.addEventListener('click', (e)=>{
-                e.preventDefault(); e.stopPropagation();
-                try {
-                  const qp = new URLSearchParams(window.location.search || '');
-                  const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-                  const rawArch = qp.get('archive') || stored || 'cloud';
-                  const a = rawArch === 'shared' ? 'shared' : 'cloud';
-                  const out = new URLSearchParams();
-                  out.set('archive', a);
-                  window.location.href='/my-teams.html?' + out.toString();
-                } catch(_) { window.location.href='/my-teams.html'; }
-              });
-            }
-            if (signOutBtnMobile && window.authFunctions?.signOut) {
-              signOutBtnMobile.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopPropagation(); try { await window.authFunctions.signOut(); localStorage.removeItem('selectedTeamId'); try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href='/auth-login.html'; } catch(_){} });
-            }
-          })();
-        </script>
-        <script>
-          (function(){
-            const backBtn = document.getElementById('backBtn');
-            if (!backBtn) return;
-            try {
-              const qp = new URLSearchParams(window.location.search || '');
-              const stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_) { return null; } })();
-              const rawArch = qp.get('archive') || stored || 'cloud';
-              const a = rawArch === 'shared' ? 'shared' : 'cloud';
-              try { localStorage.setItem('mvsSelectedArchive', a); } catch(_) {}
-              const out = new URLSearchParams();
-              out.set('archive', a);
-              backBtn.href = '/matches.html?' + out.toString();
-            } catch(_) {}
-          })();
-        </script>
+  <!-- ══ Topbar ══ -->
+  <header class="topbar">
+    <a href="/matches.html" class="topbar-btn" id="backBtn" aria-label="Indietro" title="Torna alle partite">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
 
-        <!-- Sezione form con classi globali -->
-        <div class="match-form">
-            <h2 id="match-setup-title" class="section-title rounded-title" style="display:none;">Nuova Partita:</h2>
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
+    <img src="/c:/Users/STEFANO/Desktop/My-Volley-Scout/LOGO_APP.png"
+         onerror="this.onerror=null; this.src='./LOGO_APP.png';"
+         class="topbar-logo" alt="My Volley Scout" />
 
-            <form id="matchForm">
-                    <!-- Dati squadra (utente) -->
-                    <div class="form-row" style="display:none;">
-                        <div class="form-group">
-                            <label for="myClub">La tua società</label>
-                            <input type="text" id="myClub" name="myClub" placeholder="Nome società" />
-                        </div>
-                        <div class="form-group">
-                            <label for="myTeamInput">La tua squadra</label>
-                            <input type="text" id="myTeamInput" name="myTeamInput" placeholder="Nome squadra" />
-                        </div>
-                    </div>
+    <div class="acct-wrap">
+      <button id="headerMenuToggle" class="topbar-btn" aria-expanded="false"
+              aria-controls="headerMenu" title="Account">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 20v-1c0-3.314 3.582-6 8-6s8 2.686 8 6v1H4Z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div id="headerMenu" class="account-menu" hidden>
+        <button id="goToMatchesBtnMobile" class="menu-item" type="button">Vai a Elenco Partite</button>
+        <button id="goToTeamsBtnMobile"   class="menu-item" type="button">Vai a Elenco Squadre</button>
+        <button class="menu-item" onclick="window.location.href='/guida.html'" type="button">📖 Guida</button>
+        <button id="exitToWelcomeBtnMobile" class="menu-item" type="button">Esci</button>
+        <button id="signOutBtnMobile"     class="menu-item" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
 
-                    <div class="section-card">
-                        <div class="section-title-row">
-                            <h3 class="section-title rounded-title">Nuova Partita:</h3>
-                            <button type="submit" class="btn btn-secondary btn-compact" id="submitBtn" disabled>Continua →</button>
-                        </div>
-                        <div class="form-row">
-                        <div class="form-group">
-                            <label for="opponent">
-                                Squadra Avversaria <span class="required">*</span>
-                            </label>
-                            <input type="text" id="opponent" name="opponent" required placeholder="Nome squadra avversaria">
-                        </div>
-                        <div class="form-group">
-                            <label for="matchDate">
-                                Data Partita <span class="required">*</span>
-                            </label>
-                            <div class="date-grid" aria-label="Seleziona la data della partita">
-                                <select id="matchDateDay" required aria-label="Giorno"></select>
-                                <select id="matchDateMonth" required aria-label="Mese"></select>
-                                <select id="matchDateYear" required aria-label="Anno"></select>
-                            </div>
-                            <input type="hidden" id="matchDate" name="matchDate" required>
-                            <small id="matchDatePreview" style="color:#6c757d; display:block; margin-top:4px;" aria-live="polite"></small>
-                        </div>
-                    </div>
+  <!-- ── Account menu toggle ── -->
+  <script>
+    (function(){
+      var toggle = document.getElementById('headerMenuToggle');
+      var menu   = document.getElementById('headerMenu');
+      if (!toggle || !menu) return;
+      var closeMenu = function(){ menu.setAttribute('hidden',''); toggle.setAttribute('aria-expanded','false'); };
+      toggle.addEventListener('click', function(){
+        var isHidden = menu.hasAttribute('hidden');
+        if (isHidden){ menu.removeAttribute('hidden'); toggle.setAttribute('aria-expanded','true'); }
+        else { closeMenu(); }
+      });
+      document.addEventListener('click', function(e){
+        if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
+      });
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+      var exitBtn = document.getElementById('exitToWelcomeBtnMobile');
+      if (exitBtn){
+        exitBtn.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          window.location.href = '/my-teams.html';
+          closeMenu();
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function(){
+      var goToMatchesBtnMobile = document.getElementById('goToMatchesBtnMobile');
+      var goToTeamsBtnMobile   = document.getElementById('goToTeamsBtnMobile');
+      var signOutBtnMobile     = document.getElementById('signOutBtnMobile');
+      if (goToMatchesBtnMobile){
+        goToMatchesBtnMobile.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          try {
+            var qp = new URLSearchParams(window.location.search || '');
+            var stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_){ return null; } })();
+            var rawArch = qp.get('archive') || stored || 'cloud';
+            var a = rawArch === 'shared' ? 'shared' : 'cloud';
+            var out = new URLSearchParams(); out.set('archive', a);
+            window.location.href = '/matches.html?' + out.toString();
+          } catch(_){ window.location.href = '/matches.html'; }
+        });
+      }
+      if (goToTeamsBtnMobile){
+        goToTeamsBtnMobile.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          try {
+            var qp = new URLSearchParams(window.location.search || '');
+            var stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_){ return null; } })();
+            var rawArch = qp.get('archive') || stored || 'cloud';
+            var a = rawArch === 'shared' ? 'shared' : 'cloud';
+            var out = new URLSearchParams(); out.set('archive', a);
+            window.location.href = '/my-teams.html?' + out.toString();
+          } catch(_){ window.location.href = '/my-teams.html'; }
+        });
+      }
+      if (signOutBtnMobile && window.authFunctions && window.authFunctions.signOut){
+        signOutBtnMobile.addEventListener('click', async function(e){
+          e.preventDefault(); e.stopPropagation();
+          try {
+            await window.authFunctions.signOut();
+            localStorage.removeItem('selectedTeamId');
+            try { if(location.hash){ history.replaceState(null,'',location.pathname); } } catch(_){}
+            window.location.href = '/auth-login.html';
+          } catch(_){}
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function(){
+      var backBtn = document.getElementById('backBtn');
+      if (!backBtn) return;
+      try {
+        var qp = new URLSearchParams(window.location.search || '');
+        var stored = (function(){ try { return localStorage.getItem('mvsSelectedArchive'); } catch(_){ return null; } })();
+        var rawArch = qp.get('archive') || stored || 'cloud';
+        var a = rawArch === 'shared' ? 'shared' : 'cloud';
+        try { localStorage.setItem('mvsSelectedArchive', a); } catch(_){}
+        var out = new URLSearchParams(); out.set('archive', a);
+        backBtn.href = '/matches.html?' + out.toString();
+      } catch(_){}
+    })();
+  </script>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="eventType">
-                                Tipo Evento <span class="required">*</span>
-                            </label>
-                            <select id="eventType" name="eventType" required>
-                                <option value="">Seleziona tipo evento</option>
-                                <option value="campionato">Campionato</option>
-                                <option value="coppa">Coppa</option>
-                                <option value="pgs">PGS</option>
-                                <option value="csi">CSI</option>
-                                <option value="playoff">Playoff</option>
-                                <option value="amichevole">Amichevole</option>
-                                <option value="torneo">Torneo</option>
-                                <option value="altro">Altro</option>
-                            </select>
-                        </div>
-                    </div>
+  <!-- ══ Titolo pagina ══ -->
+  <div class="page-intro">
+    <h1 class="page-title">Nuova Partita</h1>
+    <p class="page-sub">Imposta i dettagli della gara</p>
+  </div>
 
-                    <div class="form-group">
-                        <label>
-                            Luogo Partita <span class="required">*</span>
-                        </label>
-                        <div class="radio-group">
-                            <div class="radio-option" data-value="casa" role="button" tabindex="0" aria-pressed="false">Casa</div>
-                            <div class="radio-option" data-value="trasferta" role="button" tabindex="0" aria-pressed="false">Trasferta</div>
-                        </div>
-                        <input type="hidden" id="locationInput" name="location" value="">
-                    </div>
+  <!-- ══ Messaggi ══ -->
+  <div class="msg msg--error"   id="errorMessage"   style="display:none;"></div>
+  <div class="msg msg--success" id="successMessage" style="display:none;"></div>
 
-                    <!-- Palazzetto/Sede rimosso su richiesta utente -->
+  <!-- ══ Form ══ -->
+  <form id="matchForm" class="setup-form" novalidate>
 
-                    <div class="form-group">
-                        <label for="description">Andata/Ritorno</label>
-                        <select id="description" name="description">
-                            <option value="Andata" selected>Andata</option>
-                            <option value="Ritorno">Ritorno</option>
-                        </select>
-                        </div>
-                    </div>
-                    
-                    
-                
+    <!-- Campi nascosti (popolati da JS) -->
+    <input type="hidden" id="myClub"      name="myClub" />
+    <input type="hidden" id="myTeamInput" name="myTeamInput" />
+    <h2 id="match-setup-title" style="display:none;">Nuova Partita</h2>
 
-                
-            </form>
-        </div>
+    <!-- ── Squadra avversaria ── -->
+    <div>
+      <label class="field__label" for="opponent">
+        Squadra avversaria <span class="req">*</span>
+      </label>
+      <input type="text" id="opponent" name="opponent" class="field__input"
+             placeholder="Nome squadra avversaria" required autocomplete="off" />
     </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <!-- App Scripts -->
-    <script src="./connection-manager.js"></script>
-    <script src="./firebase-config.js"></script>
-    <script src="./firestore-service.js"></script>
-    <script src="./auth.js"></script>
-    <script src="./src/modules/teams/teams.js"></script>
-    <script src="./src/modules/matches/matches.js"></script>
-    <script src="./src/modules/scouting/scouting.js"></script>
-    
+    <!-- ── Data partita ── -->
+    <div>
+      <label class="field__label">Data partita <span class="req">*</span></label>
+      <div class="date-grid" aria-label="Seleziona la data della partita">
+        <select id="matchDateDay"   class="field__select" required aria-label="Giorno"></select>
+        <select id="matchDateMonth" class="field__select" required aria-label="Mese"></select>
+        <select id="matchDateYear"  class="field__select" required aria-label="Anno"></select>
+      </div>
+      <small id="matchDatePreview" class="field__hint" aria-live="polite"></small>
+      <input type="hidden" id="matchDate" name="matchDate" required />
+    </div>
 
-    <script>
-        // Variabili globali
-        let currentUser = null;
-        let currentRoster = [];
-        let derivedTeamName = null;
-        let derivedClubName = null;
+    <!-- ── Tipo evento ── -->
+    <div>
+      <label class="field__label" for="eventType">
+        Tipo evento <span class="req">*</span>
+      </label>
+      <select id="eventType" name="eventType" class="field__select" required>
+        <option value="">Seleziona tipo evento</option>
+        <option value="campionato">Campionato</option>
+        <option value="coppa">Coppa</option>
+        <option value="pgs">PGS</option>
+        <option value="csi">CSI</option>
+        <option value="playoff">Playoff</option>
+        <option value="amichevole">Amichevole</option>
+        <option value="torneo">Torneo</option>
+        <option value="altro">Altro</option>
+      </select>
+    </div>
 
-        // Elementi DOM
-        const matchForm = document.getElementById('matchForm');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const submitBtn = document.getElementById('submitBtn');
-        const radioOptions = document.querySelectorAll('.radio-option');
+    <!-- ── Luogo: Casa / Trasferta ── -->
+    <div>
+      <label class="field__label">Luogo <span class="req">*</span></label>
+      <div class="pill-group" role="group" aria-label="Luogo partita">
+        <div class="radio-option pill" data-value="casa"
+             role="button" tabindex="0" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"
+                  stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M9 21V12h6v9"
+                  stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          Casa
+        </div>
+        <div class="radio-option pill" data-value="trasferta"
+             role="button" tabindex="0" aria-pressed="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M2 12h20M12 2c-2.5 3-4 6-4 10s1.5 7 4 10M12 2c2.5 3 4 6 4 10s-1.5 7-4 10"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Trasferta
+        </div>
+      </div>
+      <input type="hidden" id="locationInput" name="location" value="" />
+    </div>
 
-        // Inizializzazione
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeMatchSetup();
-            setupRadioButtons();
-            setDefaultDate();
-            bindLiveValidation();
-            restoreMyFields();
-            updateSubmitState();
+    <!-- ── Gara: Andata / Ritorno ── -->
+    <div>
+      <label class="field__label">Gara</label>
+      <div class="pill-group" role="group" aria-label="Andata o ritorno">
+        <div class="desc-option pill selected" data-value="Andata"
+             role="button" tabindex="0" aria-pressed="true">
+          Andata
+        </div>
+        <div class="desc-option pill" data-value="Ritorno"
+             role="button" tabindex="0" aria-pressed="false">
+          Ritorno
+        </div>
+      </div>
+      <input type="hidden" id="description" name="description" value="Andata" />
+    </div>
+
+    <!-- ── CTA ── -->
+    <button type="submit" id="submitBtn" class="cta-btn" disabled>
+      CONTINUA &rarr;
+    </button>
+
+  </form>
+
+  <!-- Elementi roster (mantenuti per compatibilità JS, non visibili) -->
+  <div    id="rosterList"      class="js-compat"></div>
+  <div    id="rosterEditor"    class="js-compat"></div>
+  <input  id="rosterCsvInput"  class="js-compat" type="file" accept=".csv" />
+  <button id="importRosterIcon" class="js-compat" type="button"></button>
+  <button id="exportRosterIcon" class="js-compat" type="button"></button>
+  <button id="createRosterIcon" class="js-compat" type="button"></button>
+  <button id="confirmRosterBtn" class="js-compat" type="button"></button>
+  <button id="cancelRosterBtn"  class="js-compat" type="button"></button>
+
+</div><!-- /.app-shell -->
+
+<!-- ══ Firebase ══ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<!-- ══ App Scripts ══ -->
+<script src="./connection-manager.js"></script>
+<script src="./firebase-config.js"></script>
+<script src="./firestore-service.js"></script>
+<script src="./auth.js"></script>
+<script src="./src/modules/teams/teams.js"></script>
+<script src="./src/modules/matches/matches.js"></script>
+<script src="./src/modules/scouting/scouting.js"></script>
+
+<!-- ══ Logica pagina (invariata) ══ -->
+<script>
+    // Variabili globali
+    let currentUser = null;
+    let currentRoster = [];
+    let derivedTeamName = null;
+    let derivedClubName = null;
+
+    // Elementi DOM
+    const matchForm = document.getElementById('matchForm');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const radioOptions = document.querySelectorAll('.radio-option');
+
+    // Inizializzazione
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeMatchSetup();
+        setupRadioButtons();
+        setDefaultDate();
+        bindLiveValidation();
+        restoreMyFields();
+        updateSubmitState();
+    });
+
+    function initializeMatchSetup() {
+        if (typeof window.authFunctions === 'undefined') {
+            setTimeout(initializeMatchSetup, 200);
+            return;
+        }
+
+        window.authFunctions.onAuthStateChanged((user) => {
+            if (!user) {
+                try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ }
+                window.location.href = '/auth-login.html';
+                return;
+            }
+            currentUser = user;
         });
 
-        function initializeMatchSetup() {
-            // Attendi che Firebase sia pronto
-            if (typeof window.authFunctions === 'undefined') {
-                setTimeout(initializeMatchSetup, 200);
-                return;
-            }
+        matchForm.addEventListener('submit', handleFormSubmit);
+        const importRosterIcon = document.getElementById('importRosterIcon');
+        const exportRosterIcon = document.getElementById('exportRosterIcon');
+        const createRosterIcon = document.getElementById('createRosterIcon');
+        const confirmRosterBtn = document.getElementById('confirmRosterBtn');
+        const cancelRosterBtn  = document.getElementById('cancelRosterBtn');
+        const rosterCsvInput   = document.getElementById('rosterCsvInput');
+        if (importRosterIcon) importRosterIcon.addEventListener('click', () => rosterCsvInput && rosterCsvInput.click());
+        if (exportRosterIcon) exportRosterIcon.addEventListener('click', exportRosterCSV);
+        if (rosterCsvInput)   rosterCsvInput.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) importRosterCSV(f); e.target.value = ''; });
+        if (createRosterIcon) createRosterIcon.addEventListener('click', () => { showRosterEditor(); currentRoster = Array.isArray(currentRoster)?currentRoster:[]; if (!currentRoster.length) { for (let i=0;i<7;i++) addRosterRow(); addRosterRow(); } else { renderRosterRows(currentRoster); addRosterRow(); } updateSubmitState(); updateConfirmRosterState(); });
+        if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmCurrentRoster);
+        if (cancelRosterBtn)  cancelRosterBtn.addEventListener('click', cancelRosterEditing);
+        renderRosterList();
+        updateConfirmRosterState();
+        const myTeamField = document.getElementById('myTeamInput');
+        const myClubField = document.getElementById('myClub');
+        if (myTeamField) myTeamField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyTeam', e.target.value || ''); } catch(_){} updateSubmitState(); });
+        if (myClubField) myClubField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyClub', e.target.value || ''); } catch(_){} });
+        restoreMyFields();
 
-            // Controlla autenticazione
-            window.authFunctions.onAuthStateChanged((user) => {
-                if (!user) {
-    try{ if(location.hash){ history.replaceState(null,'',location.pathname); } }catch(_){ } window.location.href = '/auth-login.html';
-                    return;
+        const teamId = localStorage.getItem('selectedTeamId');
+        let selected = window.teamsModule?.getCurrentTeam?.();
+        if (!selected && teamId && window.teamsModule?.getTeamById) {
+            selected = window.teamsModule.getTeamById(teamId);
+        }
+        const fallbackTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
+        const fallbackClub = localStorage.getItem('lastMyClub') || '';
+        const prefillTeam = selected?.teamName || fallbackTeam;
+        const prefillClub = selected?.clubName || fallbackClub;
+        if (myTeamField && prefillTeam) { myTeamField.value = prefillTeam; myTeamField.disabled = true; }
+        if (myClubField && prefillClub) { myClubField.value = prefillClub; myClubField.disabled = true; }
+        updateSubmitState();
+    }
+
+    function setupRadioButtons() {
+        radioOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.dataset.value;
+                const hidden = document.getElementById('locationInput');
+                radioOptions.forEach(opt => {
+                    opt.classList.remove('selected');
+                    opt.setAttribute('aria-pressed','false');
+                });
+                this.classList.add('selected');
+                this.setAttribute('aria-pressed','true');
+                if (hidden) hidden.value = value;
+                updateSubmitState();
+            });
+            option.addEventListener('keydown', function(e){
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
                 }
-                
-                currentUser = user;
             });
+        });
+    }
 
-            // Event listeners
-            matchForm.addEventListener('submit', handleFormSubmit);
-            const importRosterIcon = document.getElementById('importRosterIcon');
-            const exportRosterIcon = document.getElementById('exportRosterIcon');
-            const createRosterIcon = document.getElementById('createRosterIcon');
-            const confirmRosterBtn = document.getElementById('confirmRosterBtn');
-            const cancelRosterBtn = document.getElementById('cancelRosterBtn');
-            const rosterCsvInput = document.getElementById('rosterCsvInput');
-            if (importRosterIcon) importRosterIcon.addEventListener('click', () => rosterCsvInput && rosterCsvInput.click());
-            if (exportRosterIcon) exportRosterIcon.addEventListener('click', exportRosterCSV);
-            if (rosterCsvInput) rosterCsvInput.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) importRosterCSV(f); e.target.value = ''; });
-            if (createRosterIcon) createRosterIcon.addEventListener('click', () => { showRosterEditor(); currentRoster = Array.isArray(currentRoster)?currentRoster:[]; if (!currentRoster.length) { for (let i=0;i<7;i++) addRosterRow(); addRosterRow(); } else { renderRosterRows(currentRoster); addRosterRow(); } updateSubmitState(); updateConfirmRosterState(); });
-            if (confirmRosterBtn) confirmRosterBtn.addEventListener('click', confirmCurrentRoster);
-            if (cancelRosterBtn) cancelRosterBtn.addEventListener('click', cancelRosterEditing);
-            renderRosterList();
-            updateConfirmRosterState();
-            const myTeamField = document.getElementById('myTeamInput');
-            const myClubField = document.getElementById('myClub');
-            if (myTeamField) myTeamField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyTeam', e.target.value || ''); } catch(_){} updateSubmitState(); });
-            if (myClubField) myClubField.addEventListener('input', (e)=>{ try { localStorage.setItem('lastMyClub', e.target.value || ''); } catch(_){} });
+    // --- Controlli data personalizzati (gg Mese AAAA) ---
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    function getDaysInMonth(year, monthIndex){ return new Date(year, monthIndex + 1, 0).getDate(); }
 
-            const teamId = localStorage.getItem('selectedTeamId');
-            let selected = window.teamsModule?.getCurrentTeam?.();
-            if (!selected && teamId && window.teamsModule?.getTeamById) {
-                selected = window.teamsModule.getTeamById(teamId);
-            }
-            const fallbackTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
-            const fallbackClub = localStorage.getItem('lastMyClub') || '';
-            const prefillTeam = selected?.teamName || fallbackTeam;
-            const prefillClub = selected?.clubName || fallbackClub;
-            if (myTeamField && prefillTeam) { myTeamField.value = prefillTeam; myTeamField.disabled = true; }
-            if (myClubField && prefillClub) { myClubField.value = prefillClub; myClubField.disabled = true; }
-            updateSubmitState();
+    function populateMonthOptions(){
+        const mSel = document.getElementById('matchDateMonth');
+        if (!mSel) return;
+        mSel.innerHTML = '';
+        IT_MONTHS.forEach((name, idx) => {
+            const opt = document.createElement('option');
+            opt.value = String(idx);
+            opt.textContent = name;
+            mSel.appendChild(opt);
+        });
+    }
+    function populateYearOptions(){
+        const ySel = document.getElementById('matchDateYear');
+        if (!ySel) return;
+        ySel.innerHTML = '';
+        const current = new Date().getFullYear();
+        for(let y = current - 2; y <= current + 5; y++){
+            const opt = document.createElement('option');
+            opt.value = String(y);
+            opt.textContent = String(y);
+            ySel.appendChild(opt);
         }
+    }
+    function populateDayOptions(year, monthIndex){
+        const dSel = document.getElementById('matchDateDay');
+        if (!dSel) return;
+        dSel.innerHTML = '';
+        const days = getDaysInMonth(year, monthIndex);
+        for(let d = 1; d <= days; d++){
+            const opt = document.createElement('option');
+            opt.value = String(d);
+            opt.textContent = pad2(d);
+            dSel.appendChild(opt);
+        }
+    }
+    function syncMatchDateHidden(){
+        const dSel = document.getElementById('matchDateDay');
+        const mSel = document.getElementById('matchDateMonth');
+        const ySel = document.getElementById('matchDateYear');
+        const hidden = document.getElementById('matchDate');
+        if (!dSel || !mSel || !ySel || !hidden) return;
+        const day = parseInt(dSel.value,10);
+        const monthIndex = parseInt(mSel.value,10);
+        const year = parseInt(ySel.value,10);
+        if (Number.isFinite(day) && Number.isFinite(monthIndex) && Number.isFinite(year)){
+            hidden.value = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
+        } else {
+            hidden.value = '';
+        }
+    }
+    function setDefaultDate(){
+        populateMonthOptions();
+        populateYearOptions();
+        const today = new Date();
+        const ySel = document.getElementById('matchDateYear');
+        const mSel = document.getElementById('matchDateMonth');
+        const dSel = document.getElementById('matchDateDay');
+        if (!ySel || !mSel || !dSel) return;
+        ySel.value = String(today.getFullYear());
+        mSel.value = String(today.getMonth());
+        populateDayOptions(today.getFullYear(), today.getMonth());
+        dSel.value = String(today.getDate());
+        syncMatchDateHidden();
+        updateDatePreview();
+    }
 
-        function setupRadioButtons() {
-            radioOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    const value = this.dataset.value;
-                    const hidden = document.getElementById('locationInput');
-                    // Rimuovi selezione da tutti
-                    radioOptions.forEach(opt => {
-                        opt.classList.remove('selected');
-                        opt.setAttribute('aria-pressed','false');
-                    });
-                    // Aggiungi selezione al corrente
-                    this.classList.add('selected');
-                    this.setAttribute('aria-pressed','true');
-                    if (hidden) hidden.value = value;
-                    updateSubmitState();
-                });
-                // Selezione da tastiera (Enter/Space)
-                option.addEventListener('keydown', function(e){
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        this.click();
-                    }
-                });
-            });
-        }
-
-        // --- Controlli data personalizzati (gg Mese AAAA) ---
-        function pad2(n){ return String(n).padStart(2,'0'); }
-        const IT_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-        function getDaysInMonth(year, monthIndex){ return new Date(year, monthIndex + 1, 0).getDate(); }
-
-        function populateMonthOptions(){
-            const mSel = document.getElementById('matchDateMonth');
-            if (!mSel) return;
-            mSel.innerHTML = '';
-            IT_MONTHS.forEach((name, idx) => {
-                const opt = document.createElement('option');
-                opt.value = String(idx);
-                opt.textContent = name;
-                mSel.appendChild(opt);
-            });
-        }
-        function populateYearOptions(){
-            const ySel = document.getElementById('matchDateYear');
-            if (!ySel) return;
-            ySel.innerHTML = '';
-            const current = new Date().getFullYear();
-            for(let y = current - 2; y <= current + 5; y++){
-                const opt = document.createElement('option');
-                opt.value = String(y);
-                opt.textContent = String(y);
-                ySel.appendChild(opt);
-            }
-        }
-        function populateDayOptions(year, monthIndex){
-            const dSel = document.getElementById('matchDateDay');
-            if (!dSel) return;
-            dSel.innerHTML = '';
-            const days = getDaysInMonth(year, monthIndex);
-            for(let d = 1; d <= days; d++){
-                const opt = document.createElement('option');
-                opt.value = String(d);
-                opt.textContent = pad2(d);
-                dSel.appendChild(opt);
-            }
-        }
-        function syncMatchDateHidden(){
-            const dSel = document.getElementById('matchDateDay');
-            const mSel = document.getElementById('matchDateMonth');
-            const ySel = document.getElementById('matchDateYear');
-            const hidden = document.getElementById('matchDate');
-            if (!dSel || !mSel || !ySel || !hidden) return;
-            const day = parseInt(dSel.value,10);
-            const monthIndex = parseInt(mSel.value,10);
-            const year = parseInt(ySel.value,10);
-            if (Number.isFinite(day) && Number.isFinite(monthIndex) && Number.isFinite(year)){
-                hidden.value = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
-            } else {
-                hidden.value = '';
-            }
-        }
-        function setDefaultDate(){
-            populateMonthOptions();
-            populateYearOptions();
-            const today = new Date();
-            const ySel = document.getElementById('matchDateYear');
-            const mSel = document.getElementById('matchDateMonth');
-            const dSel = document.getElementById('matchDateDay');
-            if (!ySel || !mSel || !dSel) return;
-            ySel.value = String(today.getFullYear());
-            mSel.value = String(today.getMonth());
-            populateDayOptions(today.getFullYear(), today.getMonth());
-            dSel.value = String(today.getDate());
-            syncMatchDateHidden();
-            updateDatePreview();
-        }
-
-        function bindLiveValidation() {
-            const opponentEl = document.getElementById('opponent');
-            const dSel = document.getElementById('matchDateDay');
-            const mSel = document.getElementById('matchDateMonth');
-            const ySel = document.getElementById('matchDateYear');
-            const eventTypeEl = document.getElementById('eventType');
-            const locationEl = document.getElementById('locationInput');
-            if (opponentEl) opponentEl.addEventListener('input', updateSubmitState);
-            [dSel, mSel, ySel].forEach(sel => {
-                if (!sel) return;
-                sel.addEventListener('change', () => {
-                    const year = parseInt(ySel.value,10);
-                    const monthIndex = parseInt(mSel.value,10);
-                    if (sel === mSel || sel === ySel){
-                        const currentDay = parseInt(dSel.value,10) || 1;
-                        populateDayOptions(year, monthIndex);
-                        const maxDay = getDaysInMonth(year, monthIndex);
-                        dSel.value = String(Math.min(currentDay, maxDay));
-                    }
-                    syncMatchDateHidden();
-                    updateDatePreview();
-                    updateSubmitState();
-                });
-            });
-            if (eventTypeEl) eventTypeEl.addEventListener('change', updateSubmitState);
-            if (locationEl) locationEl.addEventListener('change', updateSubmitState);
-        }
-
-        // Formatta una data (ISO yyyy-mm-dd o Date) nel formato richiesto: "gg Mese AAAA" con mese in italiano
-        function formatItalianLongDate(raw){
-            let d = null;
-            if (raw instanceof Date){
-                d = raw;
-            } else if (typeof raw === 'string'){
-                const s = raw.trim();
-                if (/^\d{4}-\d{2}-\d{2}/.test(s)){
-                    d = new Date(s);
-                } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)){
-                    const [day, month, year] = s.split('/').map(Number);
-                    d = new Date(year, month - 1, day);
-                } else if (!isNaN(Date.parse(s))){
-                    d = new Date(s);
+    function bindLiveValidation() {
+        const opponentEl  = document.getElementById('opponent');
+        const dSel        = document.getElementById('matchDateDay');
+        const mSel        = document.getElementById('matchDateMonth');
+        const ySel        = document.getElementById('matchDateYear');
+        const eventTypeEl = document.getElementById('eventType');
+        const locationEl  = document.getElementById('locationInput');
+        if (opponentEl) opponentEl.addEventListener('input', updateSubmitState);
+        [dSel, mSel, ySel].forEach(sel => {
+            if (!sel) return;
+            sel.addEventListener('change', () => {
+                const year = parseInt(ySel.value,10);
+                const monthIndex = parseInt(mSel.value,10);
+                if (sel === mSel || sel === ySel){
+                    const currentDay = parseInt(dSel.value,10) || 1;
+                    populateDayOptions(year, monthIndex);
+                    const maxDay = getDaysInMonth(year, monthIndex);
+                    dSel.value = String(Math.min(currentDay, maxDay));
                 }
-            } else if (typeof raw === 'number'){
-                d = new Date(raw);
+                syncMatchDateHidden();
+                updateDatePreview();
+                updateSubmitState();
+            });
+        });
+        if (eventTypeEl) eventTypeEl.addEventListener('change', updateSubmitState);
+        if (locationEl)  locationEl.addEventListener('change', updateSubmitState);
+    }
+
+    function formatItalianLongDate(raw){
+        let d = null;
+        if (raw instanceof Date){
+            d = raw;
+        } else if (typeof raw === 'string'){
+            const s = raw.trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)){
+                d = new Date(s);
+            } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)){
+                const [day, month, year] = s.split('/').map(Number);
+                d = new Date(year, month - 1, day);
+            } else if (!isNaN(Date.parse(s))){
+                d = new Date(s);
             }
-            if (!(d instanceof Date) || isNaN(d)) return '';
-            const day = String(d.getDate()).padStart(2,'0');
-            const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-            const monthName = months[d.getMonth()];
-            const year = d.getFullYear();
-            return `${day} ${monthName} ${year}`;
+        } else if (typeof raw === 'number'){
+            d = new Date(raw);
         }
+        if (!(d instanceof Date) || isNaN(d)) return '';
+        const day = String(d.getDate()).padStart(2,'0');
+        const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+        const monthName = months[d.getMonth()];
+        const year = d.getFullYear();
+        return `${day} ${monthName} ${year}`;
+    }
 
-        function updateDatePreview(){
-            const el = document.getElementById('matchDate');
-            const prev = document.getElementById('matchDatePreview');
-            if (!el || !prev) return;
-            prev.textContent = formatItalianLongDate(el.value);
+    function updateDatePreview(){
+        const el   = document.getElementById('matchDate');
+        const prev = document.getElementById('matchDatePreview');
+        if (!el || !prev) return;
+        prev.textContent = formatItalianLongDate(el.value);
+    }
+
+    function updateSubmitState() {
+        const opponent  = document.getElementById('opponent')?.value.trim();
+        const matchDate = document.getElementById('matchDate')?.value;
+        const eventType = document.getElementById('eventType')?.value;
+        const location  = document.getElementById('locationInput')?.value;
+        const allValid  = !!(opponent && matchDate && eventType && location);
+        if (!submitBtn) return;
+        submitBtn.disabled = !allValid;
+        if (allValid) {
+            submitBtn.classList.remove('btn-secondary');
+            submitBtn.classList.add('btn-primary');
+        } else {
+            submitBtn.classList.add('btn-secondary');
+            submitBtn.classList.remove('btn-primary');
         }
+    }
 
-        function updateSubmitState() {
-            const opponent = document.getElementById('opponent')?.value.trim();
-            const matchDate = document.getElementById('matchDate')?.value;
-            const eventType = document.getElementById('eventType')?.value;
-            const location = document.getElementById('locationInput')?.value;
-            const allValid = !!(opponent && matchDate && eventType && location);
-            if (!submitBtn) return;
-            submitBtn.disabled = !allValid;
-            if (allValid) {
-                submitBtn.classList.remove('btn-secondary');
-                submitBtn.classList.add('btn-primary');
-            } else {
-                submitBtn.classList.add('btn-secondary');
-                submitBtn.classList.remove('btn-primary');
-            }
-        }
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        successMessage.style.display = 'none';
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function showSuccess(message) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+        errorMessage.style.display = 'none';
+    }
+    function hideMessages() {
+        errorMessage.style.display = 'none';
+        successMessage.style.display = 'none';
+    }
 
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            successMessage.style.display = 'none';
-            
-            // Scroll to top
-            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        hideMessages();
 
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            errorMessage.style.display = 'none';
-        }
+        const formData  = new FormData(matchForm);
+        const matchData = {
+            opponent:    formData.get('opponent')?.trim(),
+            matchDate:   formData.get('matchDate'),
+            eventType:   formData.get('eventType'),
+            location:    formData.get('location'),
+            description: formData.get('description')?.trim(),
+            teamId:      localStorage.getItem('selectedTeamId'),
+            createdAt:   new Date().toISOString(),
+            status:      'setup'
+        };
 
-        function hideMessages() {
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-        }
+        if (!matchData.opponent)  { showError('Il nome della squadra avversaria è obbligatorio'); return; }
+        if (!matchData.matchDate) { showError('La data della partita è obbligatoria'); return; }
+        if (!matchData.eventType) { showError('Il tipo di evento è obbligatorio'); return; }
+        if (!matchData.location)  { showError('Devi specificare se la partita è in casa o in trasferta'); return; }
 
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            hideMessages();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Salvataggio...';
 
-            // Validazione form
-            const formData = new FormData(matchForm);
-            const matchData = {
-                opponent: formData.get('opponent')?.trim(),
-                matchDate: formData.get('matchDate'),
-                eventType: formData.get('eventType'),
-                location: formData.get('location'),
-                description: formData.get('description')?.trim(),
-                teamId: localStorage.getItem('selectedTeamId'),
-                createdAt: new Date().toISOString(),
-                status: 'setup'
+        try {
+            let matchId = (localStorage.getItem('selectedMatchId') || (new URLSearchParams(window.location.search).get('match')) || null);
+            if (!matchId) { showError('ID partita mancante. Torna a Elenco Partite e premi "+".'); return; }
+            matchData.id = String(matchId);
+            const currentTeam = window.teamsModule?.getCurrentTeam?.();
+            let selectedTeamId = matchData.teamId || localStorage.getItem('selectedTeamId') || (currentTeam?.id || currentTeam?.teamId) || null;
+            if (selectedTeamId) { try { localStorage.setItem('selectedTeamId', String(selectedTeamId)); } catch(_){} }
+            const formMyTeam = document.getElementById('myTeamInput')?.value.trim() || '';
+            const formMyClub = document.getElementById('myClub')?.value.trim() || '';
+            let selectedTeamObj = null;
+            try { if (window.teamsModule?.getTeamById && selectedTeamId) selectedTeamObj = window.teamsModule.getTeamById(selectedTeamId); } catch(_){}
+            const myTeamName = (selectedTeamObj?.teamName || currentTeam?.teamName || formMyTeam || derivedTeamName || '').trim();
+            const myClubName = (selectedTeamObj?.clubName || formMyClub || derivedClubName || '').trim();
+            const roster = [];
+
+            const payload = {
+                id:           String(matchId),
+                teamId:       selectedTeamId,
+                myTeam:       myTeamName,
+                myClub:       myClubName || null,
+                opponentTeam: matchData.opponent,
+                matchDate:    matchData.matchDate,
+                eventType:    matchData.eventType,
+                location:     matchData.location,
+                description:  matchData.description || '',
+                status:       'planned',
+                createdAt:    matchData.createdAt,
+                updatedAt:    new Date().toISOString(),
+                roster:       Array.isArray(roster) ? roster : []
             };
 
-            // Validazioni
-            if (!matchData.opponent) {
-                showError('Il nome della squadra avversaria è obbligatorio');
-                return;
-            }
-
-            if (!matchData.matchDate) {
-                showError('La data della partita è obbligatoria');
-                return;
-            }
-
-            if (!matchData.eventType) {
-                showError('Il tipo di evento è obbligatorio');
-                return;
-            }
-
-            if (!matchData.location) {
-                showError('Devi specificare se la partita è in casa o in trasferta');
-                return;
-            }
-
-            // Il roster sarà gestito nella pagina successiva
-
-            // Disabilita il pulsante durante il salvataggio
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Salvataggio...';
-
+            let cloudSaved = false;
             try {
-                let matchId = (localStorage.getItem('selectedMatchId') || (new URLSearchParams(window.location.search).get('match')) || null);
-                if (!matchId) { showError('ID partita mancante. Torna a Elenco Partite e premi "+".'); return; }
-                matchData.id = String(matchId);
-                const currentTeam = window.teamsModule?.getCurrentTeam?.();
-                let selectedTeamId = matchData.teamId || localStorage.getItem('selectedTeamId') || (currentTeam?.id || currentTeam?.teamId) || null;
-                if (selectedTeamId) { try { localStorage.setItem('selectedTeamId', String(selectedTeamId)); } catch(_){} }
-                const formMyTeam = document.getElementById('myTeamInput')?.value.trim() || '';
-                const formMyClub = document.getElementById('myClub')?.value.trim() || '';
-                let selectedTeamObj = null;
-                try { if (window.teamsModule?.getTeamById && selectedTeamId) selectedTeamObj = window.teamsModule.getTeamById(selectedTeamId); } catch(_){ }
-                const myTeamName = (selectedTeamObj?.teamName || currentTeam?.teamName || formMyTeam || derivedTeamName || '').trim();
-                const myClubName = (selectedTeamObj?.clubName || formMyClub || derivedClubName || '').trim();
-                const roster = [];
-
-                // Prepara payload coerente con uso generale
-                const payload = {
-                    id: String(matchId),
-                    teamId: selectedTeamId,
-                    myTeam: myTeamName,
-                    myClub: myClubName || null,
-                    opponentTeam: matchData.opponent,
-                    matchDate: matchData.matchDate,
-                    eventType: matchData.eventType,
-                    location: matchData.location,
-                    description: matchData.description || '',
-                    status: 'planned',
-                    createdAt: matchData.createdAt,
-                    updatedAt: new Date().toISOString(),
-                    roster: Array.isArray(roster) ? roster : []
-                };
-
-                // Persistenza cloud obbligatoria
-                let cloudSaved = false;
-                try {
-                    if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree && selectedTeamId) {
-                        const user = window.authFunctions.getCurrentUser();
-                        if (user) {
-                            const res = await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
-                            if (res?.success && res?.id) {
-                                const newId = String(res.id || '').trim();
-                                if (newId && newId !== String(matchId)) {
-                                    matchId = newId;
-                                    matchData.id = newId;
-                                    payload.id = newId;
-                                    try { localStorage.setItem('selectedMatchId', newId); } catch(_) {}
-                                }
+                if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveMatchTree && selectedTeamId) {
+                    const user = window.authFunctions.getCurrentUser();
+                    if (user) {
+                        const res = await window.firestoreService.saveMatchTree(String(selectedTeamId), payload);
+                        if (res?.success && res?.id) {
+                            const newId = String(res.id || '').trim();
+                            if (newId && newId !== String(matchId)) {
+                                matchId = newId; matchData.id = newId; payload.id = newId;
+                                try { localStorage.setItem('selectedMatchId', newId); } catch(_){}
                             }
-                            cloudSaved = true;
                         }
+                        cloudSaved = true;
                     }
-                } catch (e) {
-                    console.warn('Salvataggio cloud non riuscito:', e);
                 }
-                if (!cloudSaved) {
-                    showError('Salvataggio Cloud non riuscito. Verifica accesso e connessione.');
-                    return;
-                }
-
-                // Imposta setup corrente per pagina di roster
-                localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, id: String(matchId), teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
-
-                showSuccess('Partita salvata! Prosegui alla selezione del roster...');
-
-                // Reindirizza alla pagina roster dopo breve attesa
-                setTimeout(() => {
-                    const qp = new URLSearchParams(); qp.set('team', String(selectedTeamId||'')); qp.set('match', String(matchId));
-                    window.location.href = 'match-roster.html?' + qp.toString();
-                }, 900);
-
-            } catch (error) {
-                console.error('Errore nel salvataggio:', error);
-                showError('Errore nel salvataggio dei dati. Riprova.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Continua →';
+            } catch (e) {
+                console.warn('Salvataggio cloud non riuscito:', e);
             }
-        }
+            if (!cloudSaved) {
+                showError('Salvataggio Cloud non riuscito. Verifica accesso e connessione.');
+                return;
+            }
 
-        // --- Roster editor helpers ---
-        function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
-        function normalizeRole(val){ const v = String(val||'').trim().toUpperCase(); const c = v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
-        function showRosterEditor(){ const el = document.getElementById('rosterEditor'); if (el) el.style.display = 'block'; }
-        function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; const header = el.querySelector('.player-header'); el.innerHTML=''; if (header) el.appendChild(header); (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
-        function addRosterRow(player={}){
-            const el = document.getElementById('rosterEditor'); if (!el) return;
-            const row = document.createElement('div'); row.className='player-row';
-            const num = ensureTwoDigits(player.number||'');
-            const name = (player.name||'').toString().slice(0,12);
-            const surname = (player.surname||'').toString().slice(0,12);
-            const nick = (player.nickname||'').toString().slice(0,12);
-            const role = normalizeRole(player.role||'');
-            row.innerHTML = `
-              <div><input type="text" class="input num-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="#" value="${num}" /></div>
-              <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${name}" /></div>
-              <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${surname}" /></div>
-              <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${nick}" /></div>
-              <div class="role-cell" data-empty="${role?0:1}">
-                <select class="input role-select">
-                  <option value="">—</option>
-                  <option value="P">P</option>
-                  <option value="S">S</option>
-                  <option value="O">O</option>
-                  <option value="C">C</option>
-                  <option value="L">L</option>
-                </select>
-              </div>
-              <div><button type="button" class="btn btn-secondary" onclick="this.closest('.player-row').remove()">Rimuovi</button></div>`;
-            el.appendChild(row);
-            const sel = row.querySelector('.role-select'); if (sel) sel.value = role||'';
-            const cell = row.querySelector('.role-cell'); if (sel && cell) sel.addEventListener('change', ()=>{ cell.dataset.empty = sel.value ? '0' : '1'; });
-        }
-        function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-row')); const list = rows.map(r=>({ number: (r.querySelector('.num-input')?.value||'').trim(), name:(r.querySelector('.name-input')?.value||'').trim(), surname:(r.querySelector('.surname-input')?.value||'').trim(), nickname:(r.querySelector('.nick-input')?.value||'').trim(), role:(r.querySelector('.role-select')?.value||'').trim() })).filter(p=>p && (p.number||p.name||p.surname||p.nickname||p.role)); currentRoster = list; return list; }
+            localStorage.setItem('currentMatchSetup', JSON.stringify({ ...matchData, id: String(matchId), teamId: selectedTeamId, myTeam: myTeamName || '', myClub: (formMyClub || derivedClubName || ''), roster: [] }));
+            showSuccess('Partita salvata! Prosegui alla selezione del roster...');
 
-        // --- Roster: selezione/import ---
-        function openRosterSelectDialog(){ renderRosterList(); }
-        function buildRosterOptions(){
-            let saved = []; let imported = [];
-            try { saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ }
-            try { imported = JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){ }
-            const opts = [];
-            if (imported && imported.length) opts.push({ id:'imported', label:'Ultimo import', roster:imported, source:'imported' });
-            saved.forEach((r,idx)=>{ opts.push({ id:'saved_'+idx, label:r.name||r.label||'Roster salvato', roster:Array.isArray(r.players)?r.players:(Array.isArray(r.roster)?r.roster:[]), source:'saved' }); });
-            return opts;
+            setTimeout(() => {
+                const qp = new URLSearchParams();
+                qp.set('team', String(selectedTeamId||''));
+                qp.set('match', String(matchId));
+                window.location.href = 'match-roster.html?' + qp.toString();
+            }, 900);
+
+        } catch (error) {
+            console.error('Errore nel salvataggio:', error);
+            showError('Errore nel salvataggio dei dati. Riprova.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Continua \u2192';
         }
-        function renderRosterList(){
-            const el = document.getElementById('rosterList'); if (!el) return;
-            const opts = buildRosterOptions();
-            if (!opts.length){ el.innerHTML = ''; return; }
-            el.innerHTML = opts.map(o => {
-                const canDel = o.source === 'saved';
-                return `<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #e9ecef; border-radius:12px; padding:8px; background:#fff;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" class="roster-select" data-id="${o.id}">
-                        <div style="font-weight:600;">${o.label}</div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <button type="button" class="icon-button" data-action="edit" data-id="${o.id}">✎</button>
-                        ${canDel ? `<button type="button" class="icon-button" data-action="delete" data-id="${o.id}">🗑️</button>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-            el.querySelectorAll('.roster-select').forEach(cb => {
-                cb.addEventListener('change', (e) => {
-                    el.querySelectorAll('.roster-select').forEach(x => { if (x !== e.target) x.checked = false; });
-                    const id = e.target.getAttribute('data-id');
-                    const picked = buildRosterOptions().find(x => x.id === id);
-                    currentRoster = Array.isArray(picked?.roster) ? picked.roster : [];
-                    const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
-                    updateSubmitState();
-                    updateConfirmRosterState();
-                });
+    }
+
+    // --- Roster editor helpers ---
+    function ensureTwoDigits(n){ const s = String(n||'').trim(); const n2 = s.replace(/\D+/g,''); if (!n2) return ''; return String(n2).padStart(2,'0').slice(0,2); }
+    function normalizeRole(val){ const v = String(val||'').trim().toUpperCase(); const c = v[0]||''; return ['P','S','O','C','L'].includes(v)?v:(['P','S','O','C','L'].includes(c)?c:''); }
+    function showRosterEditor(){ const el = document.getElementById('rosterEditor'); if (el) el.style.display = 'block'; }
+    function renderRosterRows(list){ const el = document.getElementById('rosterEditor'); if (!el) return; const header = el.querySelector('.player-header'); el.innerHTML=''; if (header) el.appendChild(header); (Array.isArray(list)?list:[]).forEach(p=>addRosterRow(p)); }
+    function addRosterRow(player={}){
+        const el = document.getElementById('rosterEditor'); if (!el) return;
+        const row = document.createElement('div'); row.className='player-row';
+        const num = ensureTwoDigits(player.number||'');
+        const name = (player.name||'').toString().slice(0,12);
+        const surname = (player.surname||'').toString().slice(0,12);
+        const nick = (player.nickname||'').toString().slice(0,12);
+        const role = normalizeRole(player.role||'');
+        row.innerHTML = `
+          <div><input type="text" class="input num-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="#" value="${num}" /></div>
+          <div><input type="text" class="input name-input" maxlength="12" placeholder="Nome" value="${name}" /></div>
+          <div><input type="text" class="input surname-input" maxlength="12" placeholder="Cognome" value="${surname}" /></div>
+          <div><input type="text" class="input nick-input" maxlength="12" placeholder="Soprannome" value="${nick}" /></div>
+          <div class="role-cell" data-empty="${role?0:1}">
+            <select class="input role-select">
+              <option value="">—</option>
+              <option value="P">P</option>
+              <option value="S">S</option>
+              <option value="O">O</option>
+              <option value="C">C</option>
+              <option value="L">L</option>
+            </select>
+          </div>
+          <div><button type="button" class="btn btn-secondary" onclick="this.closest('.player-row').remove()">Rimuovi</button></div>`;
+        el.appendChild(row);
+        const sel = row.querySelector('.role-select'); if (sel) sel.value = role||'';
+        const cell = row.querySelector('.role-cell'); if (sel && cell) sel.addEventListener('change', ()=>{ cell.dataset.empty = sel.value ? '0' : '1'; });
+    }
+    function collectRosterFromEditor(){ const el = document.getElementById('rosterEditor'); if (!el || el.style.display==='none') return currentRoster||[]; const rows = Array.from(el.querySelectorAll('.player-row')); const list = rows.map(r=>({ number: (r.querySelector('.num-input')?.value||'').trim(), name:(r.querySelector('.name-input')?.value||'').trim(), surname:(r.querySelector('.surname-input')?.value||'').trim(), nickname:(r.querySelector('.nick-input')?.value||'').trim(), role:(r.querySelector('.role-select')?.value||'').trim() })).filter(p=>p && (p.number||p.name||p.surname||p.nickname||p.role)); currentRoster = list; return list; }
+
+    function openRosterSelectDialog(){ renderRosterList(); }
+    function buildRosterOptions(){
+        let saved = []; let imported = [];
+        try { saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){}
+        try { imported = JSON.parse(localStorage.getItem('importedRoster')||'[]'); } catch(_){}
+        const opts = [];
+        if (imported && imported.length) opts.push({ id:'imported', label:'Ultimo import', roster:imported, source:'imported' });
+        saved.forEach((r,idx)=>{ opts.push({ id:'saved_'+idx, label:r.name||r.label||'Roster salvato', roster:Array.isArray(r.players)?r.players:(Array.isArray(r.roster)?r.roster:[]), source:'saved' }); });
+        return opts;
+    }
+    function renderRosterList(){
+        const el = document.getElementById('rosterList'); if (!el) return;
+        const opts = buildRosterOptions();
+        if (!opts.length){ el.innerHTML = ''; return; }
+        el.innerHTML = opts.map(o => {
+            const canDel = o.source === 'saved';
+            return `<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #e9ecef; border-radius:12px; padding:8px; background:#fff;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" class="roster-select" data-id="${o.id}">
+                    <div style="font-weight:600;">${o.label}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="icon-button" data-action="edit" data-id="${o.id}">&#9998;</button>
+                    ${canDel ? `<button type="button" class="icon-button" data-action="delete" data-id="${o.id}">&#128465;</button>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+        el.querySelectorAll('.roster-select').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                el.querySelectorAll('.roster-select').forEach(x => { if (x !== e.target) x.checked = false; });
+                const id = e.target.getAttribute('data-id');
+                const picked = buildRosterOptions().find(x => x.id === id);
+                currentRoster = Array.isArray(picked?.roster) ? picked.roster : [];
+                const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+                updateSubmitState();
+                updateConfirmRosterState();
             });
-            el.querySelectorAll('button[data-action]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.getAttribute('data-id');
-                    const action = btn.getAttribute('data-action');
-                    const picked = buildRosterOptions().find(x => x.id === id);
-                    if (action === 'edit'){ currentRoster = Array.isArray(picked?.roster) ? picked.roster : []; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); updateSubmitState(); updateConfirmRosterState(); }
-                    else if (action === 'delete'){ try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const idx = Number(id.replace('saved_','')); if (!isNaN(idx)) { saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); } } catch(_){ } renderRosterList(); updateConfirmRosterState(); }
-                });
+        });
+        el.querySelectorAll('button[data-action]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                const action = btn.getAttribute('data-action');
+                const picked = buildRosterOptions().find(x => x.id === id);
+                if (action === 'edit'){ currentRoster = Array.isArray(picked?.roster) ? picked.roster : []; showRosterEditor(); renderRosterRows(currentRoster); addRosterRow(); updateSubmitState(); updateConfirmRosterState(); }
+                else if (action === 'delete'){ try { const saved = JSON.parse(localStorage.getItem('savedRosters')||'[]'); const idx = Number(id.replace('saved_','')); if (!isNaN(idx)) { saved.splice(idx,1); localStorage.setItem('savedRosters', JSON.stringify(saved)); } } catch(_){} renderRosterList(); updateConfirmRosterState(); }
             });
-            updateConfirmRosterState();
-        }
-        function importRosterCSV(file){
-            const reader = new FileReader();
-            reader.onload = () => {
-                try {
-                    const text = reader.result;
-                    const lines = String(text||'').split(/\r?\n/).filter(l => String(l).trim());
-                    if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
-                    const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
-                    const idx = {
-                        squadra: headers.indexOf('squadra'),
-                        societa: (function(){ const i1 = headers.indexOf('societa'); const i2 = headers.indexOf('società'); return i1 !== -1 ? i1 : i2; })(),
-                        numero: headers.indexOf('numero'),
-                        nome: headers.indexOf('nome'),
-                        cognome: headers.indexOf('cognome'),
-                        soprannome: headers.indexOf('soprannome'),
-                        ruolo: headers.indexOf('ruolo')
-                    };
-                    const importedPlayers = [];
-                    for (let i = 1; i < lines.length; i++){
-                        const cols = splitCSVLine(lines[i]);
-                        if (!cols.length) continue;
-                        if (!derivedTeamName) {
-                            const tn1 = idx.squadra !== -1 ? (cols[idx.squadra] || '') : '';
-                            const cn1 = idx.societa !== -1 ? (cols[idx.societa] || '') : '';
-                            const teamNameCandidate = tn1.trim();
-                            const clubNameCandidate = cn1.trim();
-                            if (teamNameCandidate) derivedTeamName = teamNameCandidate;
-                            if (clubNameCandidate) derivedClubName = clubNameCandidate;
-                        }
-                        const player = {
-                            number: ensureTwoDigits(idx.numero !== -1 ? (cols[idx.numero] || '') : ''),
-                            name: (idx.nome !== -1 ? (cols[idx.nome] || '') : '').trim(),
-                            surname: (idx.cognome !== -1 ? (cols[idx.cognome] || '') : '').trim(),
-                            nickname: (idx.soprannome !== -1 ? (cols[idx.soprannome] || '') : '').trim(),
-                            role: normalizeRole(idx.ruolo !== -1 ? (cols[idx.ruolo] || '') : '')
-                        };
-                        if (player.number || player.name || player.surname || player.nickname || player.role) importedPlayers.push(player);
+        });
+        updateConfirmRosterState();
+    }
+    function importRosterCSV(file){
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const text = reader.result;
+                const lines = String(text||'').split(/\r?\n/).filter(l => String(l).trim());
+                if (lines.length < 2) throw new Error('Il file CSV deve avere intestazione e almeno una riga di dati.');
+                const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+                const idx = {
+                    squadra:  headers.indexOf('squadra'),
+                    societa:  (function(){ const i1 = headers.indexOf('societa'); const i2 = headers.indexOf('societ\u00e0'); return i1 !== -1 ? i1 : i2; })(),
+                    numero:   headers.indexOf('numero'),
+                    nome:     headers.indexOf('nome'),
+                    cognome:  headers.indexOf('cognome'),
+                    soprannome: headers.indexOf('soprannome'),
+                    ruolo:    headers.indexOf('ruolo')
+                };
+                const importedPlayers = [];
+                for (let i = 1; i < lines.length; i++){
+                    const cols = splitCSVLine(lines[i]);
+                    if (!cols.length) continue;
+                    if (!derivedTeamName) {
+                        const tn1 = idx.squadra !== -1 ? (cols[idx.squadra] || '') : '';
+                        const cn1 = idx.societa !== -1 ? (cols[idx.societa] || '') : '';
+                        if (tn1.trim()) derivedTeamName = tn1.trim();
+                        if (cn1.trim()) derivedClubName = cn1.trim();
                     }
-                    if (!importedPlayers.length) throw new Error('Nessun giocatore rilevato nel CSV.');
-                    currentRoster = importedPlayers;
-                    try { localStorage.setItem('importedRoster', JSON.stringify(importedPlayers)); } catch(_){}
-                    try { if (derivedTeamName) localStorage.setItem('derivedTeamNameForSetup', derivedTeamName); } catch(_){}
-                    try {
-                      if (derivedTeamName) {
+                    const player = {
+                        number:   ensureTwoDigits(idx.numero !== -1 ? (cols[idx.numero] || '') : ''),
+                        name:     (idx.nome !== -1 ? (cols[idx.nome] || '') : '').trim(),
+                        surname:  (idx.cognome !== -1 ? (cols[idx.cognome] || '') : '').trim(),
+                        nickname: (idx.soprannome !== -1 ? (cols[idx.soprannome] || '') : '').trim(),
+                        role:     normalizeRole(idx.ruolo !== -1 ? (cols[idx.ruolo] || '') : '')
+                    };
+                    if (player.number || player.name || player.surname || player.nickname || player.role) importedPlayers.push(player);
+                }
+                if (!importedPlayers.length) throw new Error('Nessun giocatore rilevato nel CSV.');
+                currentRoster = importedPlayers;
+                try { localStorage.setItem('importedRoster', JSON.stringify(importedPlayers)); } catch(_){}
+                try { if (derivedTeamName) localStorage.setItem('derivedTeamNameForSetup', derivedTeamName); } catch(_){}
+                try {
+                    if (derivedTeamName) {
                         const tf = document.getElementById('myTeamInput'); if (tf) tf.value = derivedTeamName;
                         localStorage.setItem('lastMyTeam', derivedTeamName);
-                      }
-                      if (derivedClubName) {
+                    }
+                    if (derivedClubName) {
                         const cf = document.getElementById('myClub'); if (cf) cf.value = derivedClubName;
                         localStorage.setItem('lastMyClub', derivedClubName);
-                      }
-                    } catch(_){}
-                    showRosterEditor(); renderRosterRows(currentRoster); addRosterRow();
-                    updateSubmitState(); updateConfirmRosterState();
-                    alert('Roster importato da CSV.');
-                } catch(err){
-                    console.error(err);
-                    alert('Errore nell\'importazione CSV: ' + err.message);
-                }
-            };
-            reader.onerror = () => alert('Impossibile leggere il file CSV selezionato.');
-            reader.readAsText(file);
-        }
-        function splitCSVLine(line){
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < String(line||'').length; i++){
-                const ch = line[i];
-                if (ch === '"'){
-                    if (inQuotes && line[i+1] === '"'){ current += '"'; i++; }
-                    else { inQuotes = !inQuotes; }
-                } else if (ch === ',' && !inQuotes){ result.push(current); current = ''; }
-                else { current += ch; }
-            }
-            result.push(current);
-            return result;
-        }
-
-        function exportRosterCSV(){
-            try {
-                const teamName = (document.getElementById('myTeamInput')?.value.trim()) || derivedTeamName || (window.teamsModule?.getCurrentTeam?.()?.name || '');
-                const players = collectRosterFromEditor();
-                if (!Array.isArray(players) || !players.length) { alert('Nessun giocatore nel roster da esportare'); return; }
-                const header = 'Squadra,Numero,Nome,Cognome,Ruolo,Soprannome';
-                function esc(v){ const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"'+s.replace(/"/g,'""')+'"' : s; }
-                const lines = [header].concat(players.map(p => {
-                    const num = p.number ? String(parseInt(p.number,10) || '').trim() : '';
-                    return [teamName, num, p.name||'', p.surname||'', p.role||'', (p.nickname||'')].map(esc).join(',');
-                }));
-                const csvText = lines.join('\n');
-                const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
-                const d = new Date(); const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = String(d.getFullYear());
-                const safeTeam = String(teamName||'roster').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_');
-                const filename = `${safeTeam}_roster_${dd}-${mm}-${yyyy}.csv`;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-            } catch(e){ console.error(e); alert('Errore esportazione CSV'); }
-        }
-        function restoreMyFields(){
-            try {
-                const teamField = document.getElementById('myTeamInput');
-                const clubField = document.getElementById('myClub');
-                const savedTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
-                const savedClub = localStorage.getItem('lastMyClub') || '';
-                if (teamField && !teamField.value && savedTeam) teamField.value = savedTeam;
-                if (clubField && !clubField.value && savedClub) clubField.value = savedClub;
-            } catch(_){}
-        }
-        (function(){
-            const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
-            if (goToTeamsBtnMobile){
-              goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
-            }
-        })();
-        async function confirmCurrentRoster(){
-            const list = collectRosterFromEditor();
-            if (!Array.isArray(list) || list.length === 0){ alert('Aggiungi almeno un giocatore prima di confermare'); return; }
-            const teamName = (document.getElementById('myTeamInput')?.value.trim()) || (window.teamsModule?.getCurrentTeam?.()?.name || '') || 'Roster';
-            try {
-                const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ return []; } })();
-                const key = String(teamName||'').toLowerCase();
-                const idx = saved.findIndex(r => String(r.name||'').toLowerCase() === key);
-                const entry = { name: teamName, label: teamName, players: list, roster: list, updatedAt: new Date().toISOString() };
-                if (idx >= 0) saved[idx] = entry; else saved.push(entry);
-                localStorage.setItem('savedRosters', JSON.stringify(saved));
-                try {
-                    if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveRoster) {
-                        const user = window.authFunctions.getCurrentUser();
-                        if (user) {
-                            if (window.firestoreService.deleteRostersByName) { await window.firestoreService.deleteRostersByName(teamName); }
-                            await window.firestoreService.saveRoster({ name: teamName, roster: list, players: list, updatedAt: new Date().toISOString() });
-                        }
                     }
                 } catch(_){}
-                currentRoster = list;
-                const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
-                renderRosterList();
-                const el = document.getElementById('rosterList');
-                if (el){
-                  const savedIdx = (idx >= 0) ? idx : (saved.length - 1);
-                  const cb = el.querySelector(`.roster-select[data-id="saved_${savedIdx}"]`);
-                  if (cb){
-                      el.querySelectorAll('.roster-select').forEach(other => { if (other !== cb) other.checked = false; });
-                      cb.checked = true;
-                  }
-                }
-                updateSubmitState();
-                alert('Roster confermato e reso selezionabile');
-            } catch(e){ console.error(e); alert('Errore nel salvataggio del roster'); }
+                showRosterEditor(); renderRosterRows(currentRoster); addRosterRow();
+                updateSubmitState(); updateConfirmRosterState();
+                alert('Roster importato da CSV.');
+            } catch(err){
+                console.error(err);
+                alert('Errore nell\'importazione CSV: ' + err.message);
+            }
+        };
+        reader.onerror = () => alert('Impossibile leggere il file CSV selezionato.');
+        reader.readAsText(file);
+    }
+    function splitCSVLine(line){
+        const result = []; let current = ''; let inQuotes = false;
+        for (let i = 0; i < String(line||'').length; i++){
+            const ch = line[i];
+            if (ch === '"'){
+                if (inQuotes && line[i+1] === '"'){ current += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+            } else if (ch === ',' && !inQuotes){ result.push(current); current = ''; }
+            else { current += ch; }
         }
-        function cancelRosterEditing(){
+        result.push(current);
+        return result;
+    }
+    function exportRosterCSV(){
+        try {
+            const teamName = (document.getElementById('myTeamInput')?.value.trim()) || derivedTeamName || (window.teamsModule?.getCurrentTeam?.()?.name || '');
+            const players = collectRosterFromEditor();
+            if (!Array.isArray(players) || !players.length) { alert('Nessun giocatore nel roster da esportare'); return; }
+            const header = 'Squadra,Numero,Nome,Cognome,Ruolo,Soprannome';
+            function esc(v){ const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+            const lines = [header].concat(players.map(p => {
+                const num = p.number ? String(parseInt(p.number,10) || '').trim() : '';
+                return [teamName, num, p.name||'', p.surname||'', p.role||'', (p.nickname||'')].map(esc).join(',');
+            }));
+            const csvText = lines.join('\n');
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+            const d = new Date();
+            const dd = String(d.getDate()).padStart(2,'0');
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const yyyy = String(d.getFullYear());
+            const safeTeam = String(teamName||'roster').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_');
+            const filename = `${safeTeam}_roster_${dd}-${mm}-${yyyy}.csv`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        } catch(e){ console.error(e); alert('Errore esportazione CSV'); }
+    }
+    function restoreMyFields(){
+        try {
+            const teamField = document.getElementById('myTeamInput');
+            const clubField = document.getElementById('myClub');
+            const savedTeam = localStorage.getItem('lastMyTeam') || localStorage.getItem('derivedTeamNameForSetup') || '';
+            const savedClub = localStorage.getItem('lastMyClub') || '';
+            if (teamField && !teamField.value && savedTeam) teamField.value = savedTeam;
+            if (clubField && !clubField.value && savedClub) clubField.value = savedClub;
+        } catch(_){}
+    }
+    (function(){
+        const goToTeamsBtnMobile = document.getElementById('goToTeamsBtnMobile');
+        if (goToTeamsBtnMobile){
+            goToTeamsBtnMobile.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); window.location.href='/my-teams.html'; });
+        }
+    })();
+    async function confirmCurrentRoster(){
+        const list = collectRosterFromEditor();
+        if (!Array.isArray(list) || list.length === 0){ alert('Aggiungi almeno un giocatore prima di confermare'); return; }
+        const teamName = (document.getElementById('myTeamInput')?.value.trim()) || (window.teamsModule?.getCurrentTeam?.()?.name || '') || 'Roster';
+        try {
+            const saved = (()=>{ try { return JSON.parse(localStorage.getItem('savedRosters')||'[]'); } catch(_){ return []; } })();
+            const key = String(teamName||'').toLowerCase();
+            const idx = saved.findIndex(r => String(r.name||'').toLowerCase() === key);
+            const entry = { name: teamName, label: teamName, players: list, roster: list, updatedAt: new Date().toISOString() };
+            if (idx >= 0) saved[idx] = entry; else saved.push(entry);
+            localStorage.setItem('savedRosters', JSON.stringify(saved));
             try {
-                const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
-                updateConfirmRosterState();
+                if (window.authFunctions?.getCurrentUser && window.firestoreService?.saveRoster) {
+                    const user = window.authFunctions.getCurrentUser();
+                    if (user) {
+                        if (window.firestoreService.deleteRostersByName) { await window.firestoreService.deleteRostersByName(teamName); }
+                        await window.firestoreService.saveRoster({ name: teamName, roster: list, players: list, updatedAt: new Date().toISOString() });
+                    }
+                }
             } catch(_){}
-        }
-        function updateConfirmRosterState(){
-            const btn = document.getElementById('confirmRosterBtn'); if (!btn) return;
-            const hasSelection = !!document.querySelector('#rosterList .roster-select:checked');
-            const hasEditor = document.getElementById('rosterEditor')?.style.display === 'block';
-            const hasPlayers = Array.isArray(currentRoster) && currentRoster.length > 0;
-            const shouldHighlight = hasSelection || (hasEditor && hasPlayers);
-            if (shouldHighlight){ btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary'); }
-            else { btn.classList.add('btn-secondary'); btn.classList.remove('btn-primary'); }
-        }
-    </script>
+            currentRoster = list;
+            const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+            renderRosterList();
+            const el = document.getElementById('rosterList');
+            if (el){
+                const savedIdx = (idx >= 0) ? idx : (saved.length - 1);
+                const cb = el.querySelector(`.roster-select[data-id="saved_${savedIdx}"]`);
+                if (cb){
+                    el.querySelectorAll('.roster-select').forEach(other => { if (other !== cb) other.checked = false; });
+                    cb.checked = true;
+                }
+            }
+            updateSubmitState();
+            alert('Roster confermato e reso selezionabile');
+        } catch(e){ console.error(e); alert('Errore nel salvataggio del roster'); }
+    }
+    function cancelRosterEditing(){
+        try {
+            const ed = document.getElementById('rosterEditor'); if (ed) ed.style.display = 'none';
+            updateConfirmRosterState();
+        } catch(_){}
+    }
+    function updateConfirmRosterState(){
+        const btn = document.getElementById('confirmRosterBtn'); if (!btn) return;
+        const hasSelection = !!document.querySelector('#rosterList .roster-select:checked');
+        const hasEditor = document.getElementById('rosterEditor')?.style.display === 'block';
+        const hasPlayers = Array.isArray(currentRoster) && currentRoster.length > 0;
+        const shouldHighlight = hasSelection || (hasEditor && hasPlayers);
+        if (shouldHighlight){ btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary'); }
+        else { btn.classList.add('btn-secondary'); btn.classList.remove('btn-primary'); }
+    }
+</script>
+
+<!-- ── Override pill topbar: applicato DOPO connection-manager.js per vincere !important ── -->
+<style>
+  .mvs-topbar-context .mvs-view-btn {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+  }
+  .mvs-topbar-context .mvs-view-group {
+    gap: 4px !important;
+  }
+</style>
+
+<!-- ── Pill toggle Andata / Ritorno ── -->
+<script>
+(function(){
+    var descOptions = document.querySelectorAll('.desc-option');
+    var descInput   = document.getElementById('description');
+    descOptions.forEach(function(opt){
+        opt.addEventListener('click', function(){
+            descOptions.forEach(function(o){
+                o.classList.remove('selected');
+                o.setAttribute('aria-pressed','false');
+            });
+            this.classList.add('selected');
+            this.setAttribute('aria-pressed','true');
+            if (descInput) descInput.value = this.dataset.value;
+        });
+        opt.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); this.click(); }
+        });
+    });
+})();
+</script>
+
 </body>
 </html>

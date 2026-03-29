@@ -208,6 +208,14 @@
             </div>
             <div class="logo-text">My Volley Scout</div>
             <div class="claim">Scout Your Volley Team fast and easy</div>
+            <div style="display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px;">
+                <input type="checkbox" id="ageCheckLogin" style="width:18px; height:18px; margin-top:2px; cursor:pointer; accent-color:#16a34a;">
+                <label for="ageCheckLogin" style="font-size:13px; color:#374151; cursor:pointer; line-height:1.4;">
+                    Confermo di avere almeno <strong>14 anni</strong> e di aver letto e accettato i
+                    <a href="/terms.html" style="color:#2563eb;">Termini d'Uso</a> e la
+                    <a href="/privacy.html" style="color:#2563eb;">Privacy Policy</a>.
+                </label>
+            </div>
             <button class="btn btn-google" id="googleLoginBtn">
                 <span>Accedi con</span>
                 <span class="google-word">
@@ -233,6 +241,12 @@
         </div>
 
         <div id="inviteNotice" class="success-message" style="display:none;"></div>
+
+        <div style="text-align:center; margin-top:18px; font-size:12px; color:#94a3b8;">
+            Accedendo accetti i nostri <a href="/terms.html" style="color:#2563eb; text-decoration:none;">Termini d'Uso</a>
+            e la <a href="/privacy.html" style="color:#2563eb; text-decoration:none;">Privacy Policy</a>.
+            Servizio riservato a utenti di almeno 14 anni.
+        </div>
     </div>
 
     <!-- Firebase Scripts -->
@@ -377,6 +391,11 @@
             });
 
             googleLoginBtn.addEventListener('click', async () => {
+                if (!document.getElementById('ageCheckLogin').checked) {
+                    showError('Devi confermare di avere almeno 14 anni e accettare i Termini d\'Uso prima di continuare.');
+                    return;
+                }
+
                 hideMessages();
                 showLoading();
 
@@ -413,6 +432,17 @@
             } catch (error) {
                 console.error('Errore nella creazione della collection utente:', error);
             }
+        }
+    </script>
+
+    <!-- Cookie Notice -->
+    <div id="cookieNotice" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#1e293b; color:#e2e8f0; padding:12px 16px; font-size:13px; z-index:9999; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border-top: 2px solid #2563eb;">
+        <span>Questo sito usa cookie tecnici necessari per l'autenticazione. Nessun cookie di profilazione. <a href="/privacy.html" style="color:#60a5fa; text-decoration:underline;">Privacy Policy</a></span>
+        <button onclick="document.getElementById('cookieNotice').style.display='none'; localStorage.setItem('mvs_cookie_ok','1');" style="background:#2563eb; color:#fff; border:none; border-radius:8px; padding:7px 16px; cursor:pointer; font-size:13px; font-weight:600; white-space:nowrap;">Capito</button>
+    </div>
+    <script>
+        if (!localStorage.getItem('mvs_cookie_ok')) {
+            document.getElementById('cookieNotice').style.display = 'flex';
         }
     </script>
 </body>

@@ -2853,6 +2853,139 @@ const firestoreService = {
                 error: error.message
             };
         }
+    },
+
+    // Carica il roster di default (da ROSTER DEFAULT.csv) se l'utente non ha ancora roster in Firestore.
+    // Viene chiamato al primo accesso per permettere all'utente di provare l'app con dati placeholder.
+    loadDefaultRosterIfNeeded: async () => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) return { success: false, skipped: true, reason: 'not_authenticated' };
+
+            // Controlla se l'utente ha già almeno un roster in Firestore (lettura economica: limit 1)
+            const rostersSnap = await firestoreService.getUserRef()
+                .collection('rosters')
+                .limit(1)
+                .get();
+
+            if (!rostersSnap.empty) {
+                // Roster già presenti: nessuna azione necessaria
+                return { success: true, skipped: true, reason: 'roster_exists' };
+            }
+
+            // Nessun roster trovato → carica i dati da ROSTER DEFAULT.csv
+            const DEFAULT_ROSTER_PLAYERS = [
+                { number: '04', name: 'NOME 01', surname: 'COGNOME 01', nickname: 'PALL. 1',  role: 'P' },
+                { number: '08', name: 'NOME 02', surname: 'COGNOME 02', nickname: 'PALL. 2',  role: 'P' },
+                { number: '14', name: 'NOME 03', surname: 'COGNOME 03', nickname: 'LIB. 1',   role: 'L' },
+                { number: '15', name: 'NOME 04', surname: 'COGNOME 04', nickname: 'LIB. 2',   role: 'L' },
+                { number: '03', name: 'NOME 05', surname: 'COGNOME 05', nickname: 'BANDA 1',  role: 'M' },
+                { number: '06', name: 'NOME 06', surname: 'COGNOME 06', nickname: 'BANDA 2',  role: 'M' },
+                { number: '07', name: 'NOME 07', surname: 'COGNOME 07', nickname: 'BANDA 3',  role: 'M' },
+                { number: '11', name: 'NOME 08', surname: 'COGNOME 08', nickname: 'BANDA 4',  role: 'M' },
+                { number: '01', name: 'NOME 09', surname: 'COGNOME 09', nickname: 'CENTRO 1', role: 'C' },
+                { number: '02', name: 'NOME 10', surname: 'COGNOME 10', nickname: 'CENTRO 2', role: 'C' },
+                { number: '13', name: 'NOME 11', surname: 'COGNOME 11', nickname: 'CENTRO 3', role: 'C' },
+                { number: '05', name: 'NOME 12', surname: 'COGNOME 12', nickname: 'CENTRO 4', role: 'C' },
+                { number: '09', name: 'NOME 13', surname: 'COGNOME 13', nickname: 'OPP. 1',   role: 'O' },
+                { number: '12', name: 'NOME 14', surname: 'COGNOME 14', nickname: 'OPP. 2',   role: 'O' },
+            ];
+
+            // Scrive direttamente con ID fisso 'roster_default'
+            const rosterRef = firestoreService.getUserRef()
+                .collection('rosters')
+                .doc('roster_default');
+
+            const rosterData = {
+                id: 'roster_default',
+                name: 'MY TEAM',
+                teamName: 'MY TEAM',
+                clubName: 'MY VOLLEY',
+                roster: DEFAULT_ROSTER_PLAYERS,
+                players: DEFAULT_ROSTER_PLAYERS,
+                isDefault: true,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await rosterRef.set(rosterData);
+
+            // Aggiorna le statistiche utente
+            try {
+                await firestoreService.getUserRef().update({
+                    'stats.totalRosters': firebase.firestore.FieldValue.increment(1)
+                });
+            } catch(_) {}
+
+            console.log('[VolleyScout] Roster di default creato in Firestore con ID: roster_default');
+            return { success: true, id: 'roster_default' };
+        } catch (error) {
+            console.error('[VolleyScout] Errore nel caricamento roster di default:', error);
+            return { success: false, error: error.message };
+        }
+    }
+};
+
+    // ── Eliminazione account utente (GDPR Art. 17 — Diritto all'oblio) ──────────
+    deleteUserAccount: async (userEmail) => {
+        try {
+            const user = authFunctions.getCurrentUser();
+            if (!user) throw new Error('Utente non autenticato');
+            const email = String(userEmail || user.email || '').trim();
+            if (!email) throw new Error('Email utente non disponibile');
+
+            const emailKey = email.toLowerCase().replace(/\./g, '_');
+            const emailVariants = [email, email.toLowerCase(), emailKey];
+
+            // Elimina il documento utente principale e tutte le subcollection raggiungibili
+            for (const variant of emailVariants) {
+                try {
+                    const userRef = window.db.collection('users').doc(variant);
+                    const snap = await userRef.get();
+                    if (!snap.exists) continue;
+
+                    // Elimina subcollection teams (con matches e roster annidati)
+                    const subcollections = ['teams', 'invites', 'shared_teams', 'usage', 'shared_access', 'news', 'offers'];
+                    for (const subCol of subcollections) {
+                        try {
+                            const subSnap = await userRef.collection(subCol).get();
+                            for (const subDoc of subSnap.docs) {
+                                // Per teams: elimina anche le sottocollection annidate
+                                if (subCol === 'teams') {
+                                    const innerCols = ['matches', 'user_access', 'calendar'];
+                                    for (const ic of innerCols) {
+                                        try {
+                                            const icSnap = await subDoc.ref.collection(ic).get();
+                                            for (const icDoc of icSnap.docs) { try { await icDoc.ref.delete(); } catch(_) {} }
+                                        } catch(_) {}
+                                    }
+                                }
+                                try { await subDoc.ref.delete(); } catch(_) {}
+                            }
+                        } catch(_) {}
+                    }
+                    // Elimina il documento radice utente
+                    await userRef.delete();
+                } catch(_) {}
+            }
+
+            // Elimina anche dalle collection legacy (rosters, matches, teams flat)
+            const legacyCollections = ['rosters', 'matches', 'teams'];
+            for (const legCol of legacyCollections) {
+                try {
+                    const legSnap = await window.db.collection(legCol)
+                        .where('userId', 'in', [user.email, user.uid, emailKey].slice(0, 3))
+                        .get();
+                    for (const legDoc of legSnap.docs) { try { await legDoc.ref.delete(); } catch(_) {} }
+                } catch(_) {}
+            }
+
+            console.log('[VolleyScout] Account e dati eliminati per:', email);
+            return { success: true };
+        } catch (error) {
+            console.error('[VolleyScout] Errore eliminazione account:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 

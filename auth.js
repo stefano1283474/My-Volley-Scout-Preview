@@ -72,6 +72,18 @@ function initializeAuth() {
                     if (window.firestoreService && window.firestoreService.updateUserLastAccess) {
                         await window.firestoreService.updateUserLastAccess(user.email);
                     }
+
+                    // Primo accesso: crea il roster di default se l'utente non ne ha ancora
+                    if (window.firestoreService && window.firestoreService.loadDefaultRosterIfNeeded) {
+                        try {
+                            const rosterResult = await window.firestoreService.loadDefaultRosterIfNeeded();
+                            if (rosterResult && !rosterResult.skipped) {
+                                console.log('[VolleyScout] Roster di default creato per il nuovo utente.');
+                            }
+                        } catch (e) {
+                            console.warn('[VolleyScout] Impossibile creare roster di default:', e);
+                        }
+                    }
                 } catch (error) {
                     console.error('Errore nella gestione utente autenticato:', error);
                 }

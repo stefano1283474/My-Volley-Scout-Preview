@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Termini d'Uso - My Volley Scout</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" type="image/png" href="LOGO_APP.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0 20px 0;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #2563eb;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #1d4ed8;
+        }
+
+        .content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 28px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: #334155;
+            font-size: 15px;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+            color: #334155;
+            font-size: 15px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        a {
+            color: #2563eb;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 14px 12px;
+            }
+
+            header {
+                padding: 20px 0 16px 0;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .logo-icon {
+                width: 64px;
+                height: 64px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 18px;
+                margin-top: 24px;
+            }
+
+            p, ul, ol {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/auth-login.html" class="back-link">← Torna all'app</a>
+
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <img src="/LOGO_APP.png" alt="Logo My Volley Scout">
+                </div>
+                <div>
+                    <h1>My Volley Scout<br>Termini d'Uso</h1>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <h2>1. Accettazione dei Termini</h2>
+            <p>
+                Accedendo a My Volley Scout, l'utente accetta integralmente questi Termini d'Uso e le condizioni in essi contenute. Se non accetta questi termini, non è autorizzato a utilizzare il servizio. L'utilizzo continuato del servizio implica l'accettazione di questi termini.
+            </p>
+
+            <h2>2. Descrizione del Servizio</h2>
+            <p>
+                My Volley Scout è un'applicazione web (Progressive Web App) in versione <strong>preview/beta</strong> progettata per facilitare lo scouting e l'analisi delle partite di pallavolo. L'app permette agli utenti di:
+            </p>
+            <ul>
+                <li>Creare e gestire squadre di pallavolo</li>
+                <li>Registrare dati di partite e set</li>
+                <li>Gestire roster di giocatori</li>
+                <li>Analizzare statistiche di gioco tramite grafici intuitivi</li>
+                <li>Condividere dati con altri utenti (allenatori, osservatori, ecc.)</li>
+            </ul>
+
+            <h2>3. Requisiti di Accesso</h2>
+            <p>
+                Per utilizzare My Volley Scout, l'utente deve:
+            </p>
+            <ul>
+                <li>Possedere un account Google valido e funzionante</li>
+                <li>Avere almeno <strong>14 anni</strong> di età</li>
+                <li>Fornire l'accesso al proprio account Google tramite autenticazione OAuth</li>
+                <li>Accettare la Privacy Policy e i presenti Termini d'Uso</li>
+            </ul>
+            <div class="highlight-box">
+                <strong>Nota:</strong> Se minore di 14 anni, chiedi al genitore/tutore di utilizzare il servizio al tuo posto.
+            </div>
+
+            <h2>4. Utilizzo Consentito</h2>
+            <p>
+                L'utente si impegna a utilizzare My Volley Scout esclusivamente per finalità:
+            </p>
+            <ul>
+                <li>Personali e sportive</li>
+                <li>Di allenamento e miglioramento della propria squadra</li>
+                <li>Legittime e conformi alla legge italiana e internazionale</li>
+            </ul>
+            <p>
+                <strong>È vietato:</strong>
+            </p>
+            <ul>
+                <li>Utilizzare l'app per scopi commerciali non autorizzati</li>
+                <li>Rivendere dati o statistiche senza permesso</li>
+                <li>Copiare, distribuire o modificare il codice dell'app senza licenza</li>
+                <li>Discriminare o molestare altri utenti</li>
+                <li>Hackare, craccare o tentare di accedere a parti non autorizzate del sistema</li>
+                <li>Inviare malware, virus o codice dannoso</li>
+                <li>Violare la privacy di altri utenti</li>
+            </ul>
+
+            <h2>5. Dati Inseriti dall'Utente</h2>
+            <p>
+                L'utente è completamente responsabile di tutti i dati che carica, crea o modifica tramite My Volley Scout, tra cui:
+            </p>
+            <ul>
+                <li>Nomi e informazioni di giocatori</li>
+                <li>Dati di partite e set</li>
+                <li>Statistiche e analisi personali</li>
+            </ul>
+            <p>
+                L'utente garantisce di:
+            </p>
+            <ul>
+                <li>Avere il diritto di inserire tali dati</li>
+                <li>Non violare i diritti di terzi (privacy, copyright, ecc.)</li>
+                <li>Rispettare la normativa sulla protezione dei dati personali</li>
+                <li>Avere ottenuto il consenso da giocatori minorenni (tramite genitori/tutori)</li>
+            </ul>
+            <p>
+                L'app non è responsabile per contenuti errati, incompleti o obsoleti inseriti dagli utenti.
+            </p>
+
+            <h2>6. Disponibilità del Servizio</h2>
+            <p>
+                My Volley Scout è fornito in versione <strong>preview</strong>. Non garantiamo:
+            </p>
+            <ul>
+                <li>Disponibilità 24/7 del servizio</li>
+                <li>Assenza di interruzioni o downtime</li>
+                <li>Continuità futura del servizio</li>
+                <li>Stabilità o completezza delle funzionalità</li>
+            </ul>
+            <p>
+                Potremmo:
+            </p>
+            <ul>
+                <li>Apportare modifiche o miglioramenti senza preavviso</li>
+                <li>Interrompere il servizio temporaneamente per manutenzione</li>
+                <li>Chiudere il servizio definitivamente, con preavviso di almeno 30 giorni</li>
+                <li>Eliminare account inattivi dopo 12 mesi</li>
+            </ul>
+
+            <h2>7. Limitazione di Responsabilità</h2>
+            <p>
+                My Volley Scout e il suo sviluppatore non sono responsabili per:
+            </p>
+            <ul>
+                <li>Danni indiretti, incidentali, punitivi o conseguenti derivanti dall'utilizzo dell'app</li>
+                <li>Perdita di dati, denaro o opportunità causata dal servizio</li>
+                <li>Errori, bug o malfunzionamenti nell'app</li>
+                <li>Accesso non autorizzato all'account (se l'utente non ha preservato la sicurezza della password)</li>
+                <li>Danni hardware o software del dispositivo dell'utente</li>
+            </ul>
+            <div class="highlight-box">
+                <strong>Consiglio:</strong> Effettuate regolarmente copie di backup dei vostri dati importanti e proteggete le vostre credenziali di accesso.
+            </div>
+
+            <h2>8. Proprietà Intellettuale</h2>
+            <p>
+                Tutti i diritti di proprietà intellettuale di My Volley Scout, inclusi codice, design, logo, marchi e contenuti, rimangono di proprietà dello sviluppatore. L'utente non acquista alcun diritto di proprietà utilizzando l'app.
+            </p>
+            <p>
+                L'utente concede allo sviluppatore il diritto non esclusivo di utilizzare i dati inseriti per migliorare il servizio, a condizione che rimangano privati e protetti secondo la Privacy Policy.
+            </p>
+
+            <h2>9. Modifiche ai Termini</h2>
+            <p>
+                Ci riserviamo il diritto di modificare questi Termini d'Uso in qualsiasi momento. Gli utenti saranno informati di modifiche significative tramite l'app o email. L'utilizzo continuato del servizio dopo le modifiche implica l'accettazione dei nuovi termini.
+            </p>
+
+            <h2>10. Legge Applicabile e Competenza</h2>
+            <p>
+                Questi Termini d'Uso sono regolati e interpretati secondo le leggi della <strong>Repubblica Italiana</strong>. Qualsiasi controversia derivante da o relativa a questi termini sarà sottoposta alla competenza esclusiva dei tribunali ordinari italiani.
+            </p>
+            <p>
+                Per controversie di minore entità, è possibile ricorrere ai metodi alternativi di risoluzione delle controversie (mediazione, arbitrato) secondo quanto previsto dalla legge italiana.
+            </p>
+
+            <h2>11. Contatti e Assistenza</h2>
+            <p>
+                Per domande, segnalazioni o assistenza riguardanti i Termini d'Uso o il servizio, contattare lo sviluppatore all'indirizzo: <strong>[inserire email dello sviluppatore]</strong>
+            </p>
+
+            <h2>12. Clausola di Salvaguardia</h2>
+            <p>
+                Se una qualsiasi parte di questi Termini d'Uso è dichiarata invalida, illegale o inapplicabile, tale parte sarà rimossa e le rimanenti disposizioni rimarranno in vigore.
+            </p>
+        </div>
+
+        <footer>
+            <p>Termini d'Uso aggiornati il Marzo 2026</p>
+            <p>Versione 1.0 - My Volley Scout</p>
+        </footer>
+    </div>
+</body>
+</html>

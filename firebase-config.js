@@ -4,8 +4,8 @@ window.firebaseConfig = window.firebaseConfig || {
   projectId: "volley-data-studio",
   storageBucket: "volley-data-studio.firebasestorage.app",
   messagingSenderId: "55271933225",
-  appId: "1:55271933225:web:0b6135017431be3783e338",
-  measurementId: "G-GFHR0LSQPR"
+  appId: "1:55271933225:web:0b6135017431be3783e338"
+  // measurementId rimosso: Google Analytics non è in uso in questa applicazione (GDPR)
 };
 
 window.analytics = window.analytics || null;

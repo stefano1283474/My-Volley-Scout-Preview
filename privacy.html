@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Privacy Policy - My Volley Scout</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="icon" type="image/png" href="LOGO_APP.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" sizes="180x180" href="LOGO_APP.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0 20px 0;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #2563eb;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #1d4ed8;
+        }
+
+        .content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 28px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: #334155;
+            font-size: 15px;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+            color: #334155;
+            font-size: 15px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        a {
+            color: #2563eb;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 14px 12px;
+            }
+
+            header {
+                padding: 20px 0 16px 0;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .logo-icon {
+                width: 64px;
+                height: 64px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 18px;
+                margin-top: 24px;
+            }
+
+            p, ul, ol {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/auth-login.html" class="back-link">← Torna all'app</a>
+
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <img src="/LOGO_APP.png" alt="Logo My Volley Scout">
+                </div>
+                <div>
+                    <h1>My Volley Scout<br>Privacy Policy</h1>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <h2>1. Titolare del Trattamento</h2>
+            <p>
+                Il servizio My Volley Scout è gestito dal suo sviluppatore. Per contatti e richieste relative ai dati personali, è possibile scrivere a: <strong>[inserire email dello sviluppatore]</strong>
+            </p>
+
+            <h2>2. Dati Raccolti</h2>
+            <p>Durante l'utilizzo di My Volley Scout vengono raccolti i seguenti dati personali:</p>
+            <ul>
+                <li><strong>Email Google:</strong> Fornita durante l'autenticazione via Google</li>
+                <li><strong>UID Firebase:</strong> Identificativo univoco assegnato dal sistema di autenticazione</li>
+                <li><strong>Timestamp ultimo accesso:</strong> Data e ora dell'ultimo login</li>
+                <li><strong>Ruolo utente:</strong> Tipo di account (proprietario squadra, allenatore, osservatore, ecc.)</li>
+                <li><strong>Log utilizzo funzionalità:</strong> Registro delle azioni eseguite nell'app (creazione squadre, inserimento dati partite, ecc.)</li>
+                <li><strong>Dati partite e roster:</strong> Informazioni sulle partite, roster, giocatori e statistiche inserite dall'utente</li>
+                <li><strong>Cookie tecnici Firebase Auth:</strong> Cookie necessari per mantenere la sessione di autenticazione</li>
+            </ul>
+
+            <div class="highlight-box">
+                <strong>Nota importante:</strong> Non raccogliamo alcun dato biometrico, coordinate GPS, fotografie, o altre informazioni sensibili non necessarie al funzionamento del servizio.
+            </div>
+
+            <h2>3. Finalità del Trattamento</h2>
+            <p>I dati personali vengono trattati per le seguenti finalità:</p>
+            <ul>
+                <li><strong>Erogazione del servizio:</strong> Fornire accesso e funzionalità dell'app My Volley Scout</li>
+                <li><strong>Gestione accessi e profili:</strong> Autenticazione, autorizzazione, gestione permessi e ruoli utente</li>
+                <li><strong>Miglioramento del servizio:</strong> Analizzare l'utilizzo, identificare bug, ottimizzare performance e funzionalità</li>
+                <li><strong>Conformità legale:</strong> Adempiere a obblighi di legge, se richiesto</li>
+            </ul>
+
+            <h2>4. Base Giuridica</h2>
+            <p>Il trattamento dei dati è basato su:</p>
+            <ul>
+                <li><strong>Art. 6(1)(b) GDPR:</strong> Esecuzione del contratto per quanto riguarda dati funzionali all'erogazione del servizio (email, UID, dati partite/roster)</li>
+                <li><strong>Art. 6(1)(f) GDPR:</strong> Legittimo interesse per i log di utilizzo, necessari a mantenere la sicurezza, prevenire frodi e migliorare il servizio</li>
+            </ul>
+
+            <h2>5. Conservazione dei Dati</h2>
+            <p>
+                I dati personali vengono conservati per tutto il periodo in cui l'account rimane attivo. L'utente può richiedere la cancellazione completa del proprio account e di tutti i dati associati (Art. 17 GDPR — diritto all'oblio) contattando il titolare del trattamento. In seguito alla disattivazione dell'account, i dati vengono eliminati entro 30 giorni, salvo diversi obblighi legali.
+            </p>
+
+            <h2>6. Destinatari dei Dati</h2>
+            <p>
+                I dati personali vengono trasmessi a <strong>Google Firebase / Firestore</strong>, che agisce come responsabile del trattamento per quanto riguarda l'infrastruttura cloud, l'autenticazione e l'archiviazione dei dati. Google applica misure di sicurezza conformi alle normative internazionali di protezione dei dati.
+            </p>
+            <p>
+                I dati non vengono condivisi con terze parti, a meno che non richiesto dalla legge o per l'esecuzione di obblighi contrattuali.
+            </p>
+
+            <h2>7. Diritti dell'Utente</h2>
+            <p>
+                Secondo il GDPR, ogni utente ha i seguenti diritti riguardanti i propri dati personali:
+            </p>
+            <ul>
+                <li><strong>Art. 15 GDPR - Diritto di accesso:</strong> Ottenere conferma del trattamento e accesso ai propri dati</li>
+                <li><strong>Art. 16 GDPR - Diritto di rettifica:</strong> Richiedere la correzione di dati inesatti</li>
+                <li><strong>Art. 17 GDPR - Diritto all'oblio:</strong> Richiedere la cancellazione completa del proprio account e dati</li>
+                <li><strong>Art. 20 GDPR - Diritto alla portabilità:</strong> Ricevere i propri dati in formato strutturato e portarli ad altro servizio</li>
+                <li><strong>Diritto di reclamo:</strong> Presentare reclamo al Garante per la Protezione dei Dati Personali italiano (www.garanteprivacy.it) se ritenete che il trattamento violi i vostri diritti</li>
+            </ul>
+            <p>
+                Per esercitare uno qualsiasi di questi diritti, contattare il titolare del trattamento all'indirizzo email indicato nel capitolo 1.
+            </p>
+
+            <h2>8. Cookie e Tecnologie di Tracciamento</h2>
+            <p>
+                My Volley Scout utilizza esclusivamente <strong>cookie tecnici necessari per l'autenticazione Firebase</strong>. Questi cookie sono essenziali per il funzionamento della piattaforma e non richiedono consenso esplicito secondo il GDPR (Art. 82 eIDAS).
+            </p>
+            <p>
+                <strong>Non utilizziamo:</strong>
+            </p>
+            <ul>
+                <li>Cookie di profilazione o marketing</li>
+                <li>Strumenti di tracciamento di terze parti (Google Analytics, Facebook Pixel, ecc.)</li>
+                <li>Beacon web o tecnologie di fingerprinting</li>
+            </ul>
+            <p>
+                Gli utenti possono disabilitare i cookie dal browser, ma ciò comporterà l'impossibilità di autenticarsi e utilizzare l'app.
+            </p>
+
+            <h2>9. Misure di Sicurezza</h2>
+            <p>
+                I dati personali sono protetti tramite:
+            </p>
+            <ul>
+                <li>Comunicazioni crittografate (HTTPS/TLS)</li>
+                <li>Autenticazione sicura tramite Google OAuth 2.0</li>
+                <li>Infrastruttura cloud sicura (Google Cloud Platform)</li>
+                <li>Accesso limitato ai dati solo da personale autorizzato</li>
+            </ul>
+
+            <h2>10. Modifiche alla Privacy Policy</h2>
+            <p>
+                Questa Privacy Policy può essere aggiornata periodicamente per riflettere cambiamenti nel servizio o nella normativa. Gli utenti saranno informati di modifiche significative. L'utilizzo continuato del servizio dopo le modifiche implica l'accettazione della nuova versione.
+            </p>
+
+            <h2>11. Contatti e Assistenza</h2>
+            <p>
+                Per domande, richieste di accesso ai dati, o per esercitare i propri diritti secondo il GDPR, contattare il titolare del trattamento all'indirizzo: <strong>[inserire email dello sviluppatore]</strong>
+            </p>
+            <p>
+                Per reclami, è possibile contattare il Garante per la Protezione dei Dati Personali italiano:
+            </p>
+            <ul>
+                <li><strong>Sito:</strong> www.garanteprivacy.it</li>
+                <li><strong>Email:</strong> garante@gpdp.it</li>
+                <li><strong>Telefono:</strong> +39 06 696821</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Privacy Policy aggiornata il Marzo 2026</p>
+            <p>Versione 1.0 - My Volley Scout</p>
+        </footer>
+    </div>
+</body>
+</html>

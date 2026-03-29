@@ -148,6 +148,32 @@
       </div>
       <div id="localCleanupSummary" class="cleanup-summary"></div>
     </section>
+
+    <section class="settings-card">
+      <div class="settings-title">Privacy e Dati</div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Privacy Policy</div>
+          <div class="settings-hint">Leggi come vengono trattati i tuoi dati</div>
+        </div>
+        <a href="/privacy.html" target="_blank" class="btn btn-secondary" style="min-width:90px; text-align:center; text-decoration:none; padding:8px 14px; font-size:0.9rem;">Visualizza</a>
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label">Termini d'Uso</div>
+          <div class="settings-hint">Leggi i Termini e Condizioni del servizio</div>
+        </div>
+        <a href="/terms.html" target="_blank" class="btn btn-secondary" style="min-width:90px; text-align:center; text-decoration:none; padding:8px 14px; font-size:0.9rem;">Visualizza</a>
+      </div>
+      <div class="settings-row">
+        <div class="settings-text">
+          <div class="settings-label" style="color:#dc2626;">Elimina Account e Dati</div>
+          <div class="settings-hint">Rimuove permanentemente il tuo account e tutti i dati associati</div>
+        </div>
+        <button id="deleteAccountBtn" class="btn btn-danger" type="button" style="min-width:90px;">Elimina</button>
+      </div>
+      <div id="deleteAccountStatus" style="font-size:0.82rem; color:#dc2626; min-height:16px; margin-top:6px;"></div>
+    </section>
   </main>
 
   <script src="./connection-manager.js"></script>
@@ -376,6 +402,46 @@
         });
         if (runCleanupBtn) runCleanupBtn.addEventListener('click', runLocalCleanup);
         renderLocalCleanupSummary();
+
+        // Delete Account functionality
+        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+        const deleteAccountStatus = document.getElementById('deleteAccountStatus');
+        if (deleteAccountBtn) {
+          deleteAccountBtn.addEventListener('click', async function() {
+            const user = window.authFunctions && window.authFunctions.getCurrentUser ? window.authFunctions.getCurrentUser() : null;
+            if (!user) { if (deleteAccountStatus) deleteAccountStatus.textContent = 'Devi essere autenticato.'; return; }
+            const confirmed = confirm(
+              'Sei sicuro di voler eliminare il tuo account e TUTTI i tuoi dati?\n\n' +
+              'Questa operazione è IRREVERSIBILE e cancellerà:\n' +
+              '• Tutte le tue squadre\n• Tutte le tue partite\n• Tutti i tuoi roster\n• Il tuo account\n\n' +
+              'Digita OK per confermare.'
+            );
+            if (!confirmed) return;
+            deleteAccountBtn.disabled = true;
+            if (deleteAccountStatus) deleteAccountStatus.textContent = 'Eliminazione in corso...';
+            try {
+              const email = user.email;
+              // Elimina dati Firestore
+              if (window.firestoreService && typeof window.firestoreService.deleteUserAccount === 'function') {
+                await window.firestoreService.deleteUserAccount(email);
+              }
+              // Elimina account Firebase Auth
+              await user.delete();
+              alert('Account eliminato con successo. Arrivederci!');
+              window.location.href = '/auth-login.html';
+            } catch(err) {
+              if (err.code === 'auth/requires-recent-login') {
+                if (deleteAccountStatus) deleteAccountStatus.textContent = 'Per sicurezza, effettua nuovamente il login prima di eliminare l\'account.';
+                // Forza re-login
+                await window.authFunctions.signOut();
+                window.location.href = '/auth-login.html';
+              } else {
+                if (deleteAccountStatus) deleteAccountStatus.textContent = 'Errore: ' + (err.message || 'impossibile eliminare l\'account. Contatta il supporto.');
+                deleteAccountBtn.disabled = false;
+              }
+            }
+          });
+        }
       });
     })();
   </script>

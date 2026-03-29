@@ -539,6 +539,7 @@
                       </span>
                       <input type="checkbox" id="autoSavesToggle" />
                     </label>
+                    <button class="menu-item" onclick="window.location.href='/guida.html'" type="button">📖 Guida</button>
                     <button class="menu-item" id="accountExit" type="button">Esci</button>
                     <button class="menu-item" id="accountLogout" type="button">Logout</button>
                     <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -4371,6 +4372,20 @@
                     pendingOpenImportRequested = false;
                     alert('Seleziona prima una squadra da Elenco Squadre per importare le partite');
                 }
+                // Race condition: teamsModule.loadTeams() è partito prima che Firebase auth
+                // fosse pronto → state.teams era vuoto. Ora che auth è disponibile,
+                // ricarichiamo le squadre e ci iscriviamo all'aggiornamento per
+                // rieseguire loadSelectedTeam() non appena arrivano i dati.
+                if (teamId && window.teamsModule && !window.__matchesAwaitingTeamsLoad) {
+                    window.__matchesAwaitingTeamsLoad = true;
+                    window.teamsModule.onTeamsUpdate((teams) => {
+                        if (Array.isArray(teams) && teams.length > 0 && !selectedTeam) {
+                            window.__matchesAwaitingTeamsLoad = false;
+                            loadSelectedTeam();
+                        }
+                    });
+                    try { window.teamsModule.loadTeams(); } catch(_) {}
+                }
                 updateObserverUI();
                 switchTab('list');
                 const dateInput = document.getElementById('match-date');
@@ -4867,8 +4882,17 @@
         // — Dialog: Nuova partita —
         function openNewMatchDialog(){
             try {
+                // Ultimo tentativo di recupero: le squadre potrebbero essere
+                // arrivate da Firestore dopo l’inizializzazione della pagina
                 if (!selectedTeam) {
-                    alert('Seleziona una squadra dall’elenco prima di creare una partita');
+                    const retryId = localStorage.getItem('selectedTeamId');
+                    if (retryId && window.teamsModule) {
+                        const t = window.teamsModule.getTeamById(retryId);
+                        if (t) selectedTeam = t;
+                    }
+                }
+                if (!selectedTeam) {
+                    alert("Seleziona una squadra dall\u2019elenco prima di creare una partita");
                     window.location.href = '/my-teams.html';
                     return;
                 }

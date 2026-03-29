@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>Guida — My Volley Scout</title>
+  <link rel="icon" href="/LOGO_APP.png" type="image/png" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --radius: 12px;
+      --header-h: 56px;
+      --nav-h: 44px;
+      --shadow: 0 2px 12px rgba(0,0,0,.07);
+      /* Eval colors */
+      --err: #dc2626; --err-bg: #fef2f2;
+      --neg: #ea580c; --neg-bg: #fff7ed;
+      --neu: #ca8a04; --neu-bg: #fefce8;
+      --pos: #16a34a; --pos-bg: #f0fdf4;
+      --perf: #15803d; --perf-bg: #dcfce7;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+      overscroll-behavior-y: none;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    .g-header {
+      position: sticky; top: 0; z-index: 200;
+      height: var(--header-h);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .g-header-left { display: flex; align-items: center; gap: 8px; }
+    .back-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%;
+      border: none; background: transparent; cursor: pointer;
+      color: var(--primary); transition: background .15s;
+    }
+    .back-btn:hover { background: var(--primary-light); }
+    .g-title {
+      font-size: 16px; font-weight: 700; color: var(--primary);
+      letter-spacing: -.2px;
+    }
+    .g-subtitle {
+      font-size: 11px; color: var(--text-muted); margin-top: 1px;
+    }
+    .g-logo {
+      height: 32px; width: 32px; object-fit: contain; border-radius: 6px;
+    }
+
+    /* ── Section nav (sticky below header) ───────────────────────────────── */
+    .g-nav {
+      position: sticky;
+      top: var(--header-h);
+      z-index: 100;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .g-nav::-webkit-scrollbar { display: none; }
+    .g-nav a {
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .g-nav a:hover, .g-nav a.active { color: var(--primary); border-color: var(--primary); }
+
+    /* ── Main content ────────────────────────────────────────────────────── */
+    .g-main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 14px 60px;
+    }
+
+    /* ── Sections ────────────────────────────────────────────────────────── */
+    .g-section {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 16px;
+      scroll-margin-top: calc(var(--header-h) + var(--nav-h) + 8px);
+    }
+    .g-step-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      background: var(--primary); color: #fff;
+      border-radius: 50%; font-size: 12px; font-weight: 700;
+      margin-right: 8px; flex-shrink: 0;
+    }
+    .g-section-title {
+      display: flex; align-items: center;
+      font-size: 17px; font-weight: 700; color: var(--primary);
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--primary-light);
+    }
+    .g-section-title.no-step { padding-bottom: 10px; }
+    .g-body {
+      color: var(--text); font-size: 14px; line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .g-body:last-child { margin-bottom: 0; }
+    .g-body strong { color: var(--primary); }
+    .g-list { padding-left: 18px; margin: 6px 0 10px; }
+    .g-list li { margin-bottom: 4px; font-size: 14px; }
+
+    /* ── Screenshot images ───────────────────────────────────────────────── */
+    .g-img-wrap {
+      margin: 14px 0;
+      text-align: center;
+    }
+    .g-img {
+      max-width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: inline-block;
+    }
+    .g-img-caption {
+      margin-top: 6px;
+      font-size: 11px; color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Note/tip boxes ──────────────────────────────────────────────────── */
+    .g-note {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--primary-light);
+      border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 12px;
+      margin: 10px 0;
+      font-size: 13px; color: #1e3a8a;
+    }
+    .g-note-icon { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Sub-headings inside sections ────────────────────────────────────── */
+    .g-sub {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin: 14px 0 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .g-sub::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 14px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* ── Two-column layout in landscape on tablet/desktop ────────────────── */
+    @media (min-width: 600px) {
+      .g-img { max-width: 480px; }
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+      /* Phone landscape: side-by-side img + text */
+      .g-section { padding: 14px 16px; }
+      .g-landscape-row {
+        display: flex; gap: 16px; align-items: flex-start;
+      }
+      .g-landscape-row .g-img-wrap {
+        flex: 0 0 45%; margin: 0;
+      }
+      .g-landscape-row .g-landscape-text {
+        flex: 1;
+      }
+      .g-img { max-width: 100%; }
+      .g-main { padding: 12px 12px 40px; }
+    }
+
+    /* ── Evaluation table ────────────────────────────────────────────────── */
+    .eval-legend {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 12px 0 16px;
+    }
+    .eval-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+    }
+    .eval-chip .chip-key {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      font-size: 14px; font-weight: 900; color: #fff;
+    }
+
+    .eval-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-top: 12px;
+    }
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+      font-size: 12.5px;
+    }
+    .eval-table th, .eval-table td {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      text-align: center;
+      vertical-align: top;
+    }
+    .eval-table thead th {
+      font-weight: 700; font-size: 12px;
+      color: #fff;
+    }
+    .eval-table tbody th {
+      text-align: left;
+      background: var(--primary-light);
+      font-weight: 700; color: var(--primary);
+      white-space: nowrap;
+    }
+    .eval-table .th-action { background: #1e3a8a; }
+    .eval-table .th-err   { background: var(--err); }
+    .eval-table .th-neg   { background: var(--neg); }
+    .eval-table .th-neu   { background: #b45309; }
+    .eval-table .th-pos   { background: var(--pos); }
+    .eval-table .th-perf  { background: var(--perf); }
+    .eval-table .td-err   { background: var(--err-bg); }
+    .eval-table .td-neg   { background: var(--neg-bg); }
+    .eval-table .td-neu   { background: var(--neu-bg); }
+    .eval-table .td-pos   { background: var(--pos-bg); }
+    .eval-table .td-perf  { background: var(--perf-bg); }
+
+    /* ── Cover section ────────────────────────────────────────────────────── */
+    .g-cover {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      border-radius: var(--radius);
+      padding: 28px 20px 24px;
+      color: #fff;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .g-cover h1 { font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
+    .g-cover p { margin-top: 6px; font-size: 13px; opacity: .85; }
+    .g-cover-steps {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;
+      margin-top: 16px;
+    }
+    .g-cover-step {
+      background: rgba(255,255,255,.15);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px; font-weight: 600;
+    }
+
+    /* ── Flow steps (action sequence) ───────────────────────────────────── */
+    .g-flow {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+    .g-flow-step {
+      background: var(--primary-light);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px; font-weight: 600; color: #1e40af;
+      text-align: center;
+    }
+    .g-flow-arrow {
+      color: var(--text-muted); font-size: 16px; font-weight: 700;
+    }
+
+    /* ── Tool cards (barra strumenti) ───────────────────────────────────── */
+    .tool-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 8px 0;
+      background: #fff;
+    }
+    .tool-card-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .tool-icon-wrap {
+      width: 30px; height: 30px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .tool-badge {
+      font-size: 11px; font-weight: 600; border-radius: 20px;
+      padding: 2px 8px; margin-left: auto;
+    }
+    .tool-desc {
+      font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 0;
+    }
+    /* ── Sub-dialog cards ────────────────────────────────────────────────── */
+    .subdialog-card {
+      border-left: 3px solid #7c3aed;
+      border-radius: 0 8px 8px 0;
+      background: #faf5ff;
+      padding: 10px 14px;
+      margin: 8px 0;
+    }
+    .subdialog-title {
+      font-size: 13px; font-weight: 700; color: #5b21b6; margin-bottom: 4px;
+    }
+    .subdialog-desc {
+      font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 0;
+    }
+
+    /* ── Eval action examples ─────────────────────────────────────────────── */
+    .g-eval-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin: 10px 0;
+    }
+    .g-eval-btn {
+      display: flex; flex-direction: column; align-items: center;
+      border-radius: 8px; padding: 8px 4px;
+      font-weight: 900;
+    }
+    .g-eval-btn .key { font-size: 20px; color: #fff; }
+    .g-eval-btn .label { font-size: 9px; font-weight: 700; margin-top: 3px; text-transform: uppercase; }
+    .btn-err  { background: var(--err); color: var(--err-bg); }
+    .btn-neg  { background: var(--neg); color: var(--neg-bg); }
+    .btn-neu  { background: #b45309; color: var(--neu-bg); }
+    .btn-pos  { background: var(--pos); color: var(--pos-bg); }
+    .btn-perf { background: var(--perf); color: var(--perf-bg); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="g-header">
+    <div class="g-header-left">
+      <button class="back-btn" onclick="history.length > 1 ? history.back() : (window.location.href='/my-teams.html')" aria-label="Torna indietro">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div>
+        <div class="g-title">Guida — My Volley Scout</div>
+        <div class="g-subtitle">Scouting di Team · Regole di Valutazione</div>
+      </div>
+    </div>
+    <img src="/Immagini/Scritta con Pallone e campo.png" alt="Logo" class="g-logo" onerror="this.src='/LOGO_APP.png'" />
+  </header>
+
+  <!-- ── Section nav ────────────────────────────────────────────────────── -->
+  <nav class="g-nav" id="guidaNav">
+    <a href="#intro">Intro</a>
+    <a href="#step1">Accesso</a>
+    <a href="#step2">Squadra</a>
+    <a href="#step3">Partita</a>
+    <a href="#step4">Roster</a>
+    <a href="#step5">Setup Set</a>
+    <a href="#step6">Scouting</a>
+    <a href="#step7">Azioni</a>
+    <a href="#tabella">Tabella</a>
+  </nav>
+
+  <!-- ── Main ───────────────────────────────────────────────────────────── -->
+  <main class="g-main">
+
+    <!-- Cover -->
+    <div class="g-cover">
+      <h1>📋 Guida Operativa</h1>
+      <p>Come usare My Volley Scout per lo scouting di una partita dall'inizio alla fine</p>
+      <div class="g-cover-steps">
+        <span class="g-cover-step">① Login</span>
+        <span class="g-cover-step">② Squadra</span>
+        <span class="g-cover-step">③ Partita</span>
+        <span class="g-cover-step">④ Roster</span>
+        <span class="g-cover-step">⑤ Setup</span>
+        <span class="g-cover-step">⑥ Scouting</span>
+      </div>
+    </div>
+
+    <!-- Intro -->
+    <div class="g-section" id="intro">
+      <div class="g-section-title no-step">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-right:8px;flex-shrink:0"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="#2563eb" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/></svg>
+        Introduzione
+      </div>
+      <p class="g-body"><strong>My Volley Scout</strong> è un'app web progressiva (PWA) per il videoanalisi e lo scouting in tempo reale di partite di pallavolo. Permette di registrare e valutare ogni azione durante il match, producendo statistiche utili per l'analisi tecnica della propria squadra e degli avversari.</p>
+      <div class="g-note">
+        <span class="g-note-icon">💡</span>
+        <span>Questa guida copre l'intero flusso: dalla creazione della squadra alla registrazione di 10+ azioni scoutizzate, con spiegazione delle regole di valutazione.</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Login -->
+    <div class="g-section" id="step1">
+      <div class="g-section-title"><span class="g-step-badge">1</span>Accesso all'App</div>
+      <div class="g-landscape-row">
+        <div class="g-img-wrap">
+          <img src="/Guida/Login.jpg" alt="Schermata di login" class="g-img" loading="lazy" />
+          <div class="g-img-caption">Schermata di login</div>
+        </div>
+        <div class="g-landscape-text">
+          <p class="g-body">Apri l'applicazione nel browser (o tramite l'icona installata sul dispositivo). Inserisci le credenziali del tuo account:</p>
+          <ul class="g-list">
+            <li><strong>Email</strong> — indirizzo di posta registrato</li>
+            <li><strong>Password</strong> — la password del tuo account</li>
+          </ul>
+          <p class="g-body">Premi <strong>Accedi</strong> per entrare nell'app.</p>
+          <div class="g-note">
+            <span class="g-note-icon">✨</span>
+            <span>Al <strong>primo accesso</strong> viene creato automaticamente un roster di default «MY TEAM» con 14 giocatori segnaposto, subito pronti da personalizzare.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Crea Squadra -->
+    <div class="g-section" id="step2">
+      <div class="g-section-title"><span class="g-step-badge">2</span>Crea la Squadra</div>
+      <p class="g-body">Dalla schermata <strong>Le Mie Squadre</strong>, premi il pulsante <strong>+</strong> in alto a destra per aggiungere una nuova squadra.</p>
+      <div class="g-img-wrap">
+        <img src="/Guida/Crea Team.jpg" alt="Elenco squadre vuoto" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Elenco squadre — premi + per aggiungere</div>
+      </div>
+      <p class="g-body">Nella finestra di dialogo compila i campi:</p>
+      <ul class="g-list">
+        <li><strong>Nome Società</strong> — es. <em>MyVolleyDemo</em></li>
+        <li><strong>Nome Squadra</strong> — es. <em>My_Team</em></li>
+      </ul>
+      <div class="g-img-wrap">
+        <img src="/Guida/Nome Team.jpg" alt="Finestra creazione squadra" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Compila Nome Società e Nome Squadra</div>
+      </div>
+      <p class="g-body">Premi <strong>Conferma</strong>. La squadra creata apparirà nell'elenco.</p>
+      <div class="g-img-wrap">
+        <img src="/Guida/Seleziona Team.jpg" alt="Squadra creata nell'elenco" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Tocca la squadra per selezionarla (bordo blu = attiva)</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Crea Partita -->
+    <div class="g-section" id="step3">
+      <div class="g-section-title"><span class="g-step-badge">3</span>Crea la Partita</div>
+      <p class="g-body">Con la squadra selezionata, accedi a <strong>Elenco Partite</strong> e premi <strong>+</strong> per creare una nuova partita.</p>
+      <div class="g-img-wrap">
+        <img src="/Guida/Crea Partita.jpg" alt="Form creazione partita vuoto" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Form di creazione partita</div>
+      </div>
+      <p class="g-body">Compila i dati della partita:</p>
+      <ul class="g-list">
+        <li><strong>Avversario</strong> — nome della squadra avversaria</li>
+        <li><strong>Data</strong> — data della partita</li>
+        <li><strong>Tipo</strong> — Campionato, Coppa, Amichevole…</li>
+        <li><strong>Luogo</strong> — Casa o Trasferta</li>
+        <li><strong>Gara</strong> — Andata o Ritorno</li>
+      </ul>
+      <div class="g-img-wrap">
+        <img src="/Guida/Crea Partita Data.jpg" alt="Form compilato" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Form compilato — premi Continua</div>
+      </div>
+    </div>
+
+    <!-- Step 4: Seleziona Roster -->
+    <div class="g-section" id="step4">
+      <div class="g-section-title"><span class="g-step-badge">4</span>Seleziona il Roster</div>
+      <div class="g-landscape-row">
+        <div class="g-img-wrap">
+          <img src="/Guida/Elenco Roster.jpg" alt="Elenco Roster con MY TEAM" class="g-img" loading="lazy" />
+          <div class="g-img-caption">Elenco Roster — tocca MY TEAM per selezionarlo</div>
+        </div>
+        <div class="g-landscape-text">
+          <p class="g-body">La pagina <strong>Elenco Roster</strong> mostra tutti i roster disponibili per la squadra. Al primo accesso troverai il roster <strong>MY TEAM</strong> creato automaticamente con 14 giocatori.</p>
+          <p class="g-body">Tocca la card del roster per selezionarlo e procedere alla configurazione del set. Puoi anche:</p>
+          <ul class="g-list">
+            <li>Premere <strong>↓</strong> per importare un roster da file CSV</li>
+            <li>Premere <strong>+</strong> per creare un nuovo roster manualmente</li>
+            <li>Premere l'icona matita per modificare i giocatori</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Setup Set -->
+    <div class="g-section" id="step5">
+      <div class="g-section-title"><span class="g-step-badge">5</span>Configurazione del Set</div>
+      <div class="g-landscape-row">
+        <div class="g-img-wrap">
+          <img src="/Guida/Setup Set.jpg" alt="Setup Set 1" class="g-img" loading="lazy" />
+          <div class="g-img-caption">Configura la fase e le rotazioni del Set 1</div>
+        </div>
+        <div class="g-landscape-text">
+          <p class="g-body">Prima di ogni set configura:</p>
+          <ul class="g-list">
+            <li><strong>Fase di Inizio</strong> — la tua squadra inizia al <em>Servizio</em> o in <em>Ricezione</em>?</li>
+            <li><strong>Rotazione Nostra</strong> — rotazione iniziale 1–6</li>
+            <li><strong>Rotazione Avversario</strong> — (opzionale)</li>
+          </ul>
+          <p class="g-body">Premi <strong>Vai al Set</strong> per aprire l'interfaccia di scouting.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Interfaccia Scouting -->
+    <div class="g-section" id="step6">
+      <div class="g-section-title"><span class="g-step-badge">6</span>L'Interfaccia di Scouting</div>
+      <div class="g-img-wrap">
+        <img src="/Guida/Interfaccia Scouting.jpg" alt="Interfaccia scouting" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Interfaccia principale durante il set</div>
+      </div>
+      <p class="g-body">L'interfaccia è divisa in quattro aree principali:</p>
+
+      <div class="g-sub">🎽 Griglia Giocatori</div>
+      <p class="g-body">I giocatori sono mostrati con il numero di maglia. I colori dei bordi indicano il ruolo:</p>
+      <ul class="g-list">
+        <li><span style="color:#f57c00;font-weight:700;">Arancione</span> — Palleggiatrici e Bande</li>
+        <li><span style="color:#f9a825;font-weight:700;">Giallo</span> — Libero</li>
+        <li><span style="color:#7b1fa2;font-weight:700;">Viola</span> — Opposti</li>
+      </ul>
+      <p class="g-body">Sono presenti anche i tasti speciali <strong>ERRORE AVVERS.</strong> (errore diretto dell'avversario non imputabile a un'azione del tuo giocatore) e <strong>MURO</strong> (per scoutizzare le azioni di muro).</p>
+
+      <div class="g-sub">🏐 Fase di Gioco</div>
+      <p class="g-body">La fase corrente è indicata in grande sopra la griglia: <strong>SERVIZIO → RICEZIONE → DIFESA → ATTACCO</strong>. L'app avanza di fase automaticamente dopo ogni azione registrata.</p>
+
+      <div class="g-sub">⭐ Valutazione</div>
+      <p class="g-body">I cinque tasti colorati assegnano il giudizio all'azione:</p>
+      <div class="g-eval-grid">
+        <div class="g-eval-btn btn-err"><span class="key">=</span><span class="label">Errore</span></div>
+        <div class="g-eval-btn btn-neg"><span class="key">-</span><span class="label">Negativo</span></div>
+        <div class="g-eval-btn btn-neu"><span class="key">/</span><span class="label">Neutro</span></div>
+        <div class="g-eval-btn btn-pos"><span class="key">+</span><span class="label">Positivo</span></div>
+        <div class="g-eval-btn btn-perf"><span class="key">#</span><span class="label">Perfetto</span></div>
+      </div>
+
+      <div class="g-sub">📊 Barra di Stato e Progresso Punti</div>
+      <p class="g-body">In basso sono mostrati set e rotazione corrente, l'ultima azione in corso di registrazione, e la cronologia dei punti con punteggio progressivo.</p>
+
+      <div class="g-sub">🔧 Barra Strumenti</div>
+      <p class="g-body">Accanto all'indicatore di rotazione e alla sezione "Progr. Punti" sono presenti quattro pulsanti di servizio:</p>
+
+      <!-- INVERTI ROTAZIONE -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon-wrap" style="background:#eff6ff">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </div>
+          <strong>Inverti Rotazione</strong>
+          <span class="tool-badge" style="background:#dbeafe;color:#1d4ed8">Doppio cambio P/O</span>
+        </div>
+        <p class="tool-desc">Riposiziona la rotazione corrente sull'opposta: P1↔P4, P2↔P5, P3↔P6. Serve quando il palleggiatore e l'opposto sono stati assegnati invertiti rispetto alla posizione reale in campo. Al tocco si apre un dialogo di conferma che mostra la rotazione di partenza e quella di destinazione; premi <strong>Conferma</strong> per applicare il cambio. Il pulsante è visibile solo quando è attiva una rotazione.</p>
+      </div>
+
+      <!-- MODALITÀ MODIFICA -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon-wrap" style="background:#f0fdf4">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <strong>Modalità Modifica</strong>
+          <span class="tool-badge" style="background:#dcfce7;color:#15803d">Toggle</span>
+        </div>
+        <p class="tool-desc">Attiva/disattiva la modalità di editing inline nel log "Progr. Punti". Quando è attiva, ogni riga del log mostra un tasto <strong>×</strong> che permette di eliminare direttamente quella singola riga. Usala per correzioni rapide senza aprire il dialogo completo.</p>
+      </div>
+
+      <!-- RESET RALLY CORRENTE -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon-wrap" style="background:#fff7ed">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </div>
+          <strong>Reset Rally Corrente</strong>
+          <span class="tool-badge" style="background:#ffedd5;color:#c2410c">Annulla</span>
+        </div>
+        <p class="tool-desc">Cancella l'azione in corso di registrazione senza salvare nulla: azzera il giocatore selezionato, la valutazione e tutte le quartine parziali del rally corrente. Utile quando hai premuto per errore un tasto sbagliato prima di completare l'azione. <strong>Non modifica le azioni già salvate nel log.</strong></p>
+      </div>
+
+      <!-- EDIT PROGR. AZIONI -->
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-icon-wrap" style="background:#faf5ff">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <strong>Progr. Azioni</strong>
+          <span class="tool-badge" style="background:#ede9fe;color:#6d28d9">Editor completo</span>
+        </div>
+        <p class="tool-desc">Apre il dialogo con l'elenco completo di tutte le azioni registrate nel set corrente. Da qui è possibile visualizzare, modificare, aggiungere o eliminare qualsiasi azione. Vedi la sezione successiva per tutti i dettagli.</p>
+      </div>
+    </div>
+
+    <!-- Step 7: Azioni -->
+    <div class="g-section" id="step7">
+      <div class="g-section-title"><span class="g-step-badge">7</span>Come Scoutizzare le Azioni</div>
+      <p class="g-body">Per registrare ogni azione esegui questa sequenza in <strong>due soli tocchi</strong>:</p>
+      <div class="g-flow">
+        <div class="g-flow-step">① Tocca il giocatore</div>
+        <span class="g-flow-arrow">→</span>
+        <div class="g-flow-step">② Tocca la valutazione (= − / + #)</div>
+        <span class="g-flow-arrow">→</span>
+        <div class="g-flow-step">✓ Azione registrata</div>
+      </div>
+      <div class="g-img-wrap">
+        <img src="/Guida/Scouting Azioni.jpg" alt="Scouting con azioni registrate" class="g-img" loading="lazy" />
+        <div class="g-img-caption">Esempio: azioni registrate — punteggio e log aggiornati in tempo reale</div>
+      </div>
+      <p class="g-body">Il punteggio viene aggiornato automaticamente in base all'esito:</p>
+      <ul class="g-list">
+        <li>Servizio <strong>#</strong> (ace) → punto diretto alla propria squadra</li>
+        <li>Attacco <strong>#</strong> (kill) → punto diretto alla propria squadra</li>
+        <li>Difesa <strong>=</strong> (errore) → punto all'avversario</li>
+        <li>Le righe <span style="color:var(--pos);font-weight:600;">verdi</span> nel log = punti conquistati; quelle <span style="color:var(--err);font-weight:600;">rosse</span> = punti persi</li>
+      </ul>
+      <!-- ERRORE AVVERSARIO -->
+      <div class="g-sub">❌ Errore Avversario</div>
+      <p class="g-body">Il tasto <strong>ERRORE AVVERS.</strong> registra un errore diretto dell'avversario che non dipende da un'azione specifica di un tuo giocatore (es. palla out, palla in rete, doppio tocco, fallo di posizione). Può essere utilizzato in qualsiasi momento del gioco, con una sola eccezione:</p>
+      <div class="g-note" style="border-left-color:var(--err)">
+        <span class="g-note-icon">⚠️</span>
+        <span><strong>Sul primo tocco di battuta non si può usare ERRORE AVVERS. come prima azione.</strong> Se l'errore avversario avviene durante la nostra battuta (es. fallo di rotazione dell'avversario), occorre prima assegnare un valore alla battuta del nostro giocatore e <em>poi</em> premere ERRORE AVVERS. per registrare l'errore avversario.</span>
+      </div>
+
+      <!-- TASTO MURO -->
+      <div class="g-sub">🧱 Tasto Muro</div>
+      <p class="g-body">Il muro viene scoutizzato <em>solo</em> nelle seguenti situazioni:</p>
+      <ul class="g-list">
+        <li><strong>Muro punto</strong> — il muro termina direttamente il punto (M5)</li>
+        <li><strong>Muro errore</strong> — il muro tocca la palla in modo irregolare o out (M1)</li>
+        <li><strong>Muro che consente un'ulteriore azione avversaria</strong> — il pallone rimane in gioco dopo il tocco a muro (M2, M3, M4)</li>
+      </ul>
+      <p class="g-body">Per registrare un'azione di muro:</p>
+      <div class="g-flow">
+        <div class="g-flow-step">① Premi <strong>MURO</strong></div>
+        <span class="g-flow-arrow">→</span>
+        <div class="g-flow-step">② Indica il giocatore</div>
+        <span class="g-flow-arrow">→</span>
+        <div class="g-flow-step">③ Assegna il valore (= − / + #)</div>
+      </div>
+
+      <!-- ATTACCO MURATO -->
+      <div class="g-sub">🔁 Attacco Murato</div>
+      <p class="g-body">Un attacco murato <strong>non viene scoutizzato diversamente</strong> da un attacco in cui l'avversario ricostruisce da palleggio: il pallone murato è letto come un attacco avversario a tutti gli effetti.</p>
+      <div class="g-note">
+        <span class="g-note-icon">💡</span>
+        <span>Su un'azione di attacco murato si passa direttamente allo scout della <strong>difesa</strong> — senza registrare il muro come azione separata — <em>tranne</em> se si tratta di muro punto per l'avversario: in quel caso l'attacco viene codificato come <strong>Attacco sbagliato (A1 =)</strong> e il punto viene assegnato all'avversario.</span>
+      </div>
+
+      <!-- DIALOGO PROGR. AZIONI -->
+      <div class="g-sub" style="margin-top:20px">📋 Dialogo Progr. Azioni</div>
+      <p class="g-body">Il dialogo "Progr. Azioni" mostra l'elenco completo delle azioni registrate nel set corrente, con per ogni riga il punteggio progressivo, la fase, la rotazione e la stringa di quartine dell'azione. Da questo dialogo sono disponibili le seguenti operazioni:</p>
+
+      <div class="subdialog-card">
+        <div class="subdialog-title">👁️ Visualizza dettaglio (tap sulla riga)</div>
+        <p class="subdialog-desc">Tocca una riga dell'elenco per aprire il dialogo "Dettaglio Azione", che mostra i dati completi dell'azione in formato leggibile: giocatore, fondamentale, valutazione e risultato del punto.</p>
+      </div>
+
+      <div class="subdialog-card">
+        <div class="subdialog-title">✏️ Modifica azione (icona penna)</div>
+        <p class="subdialog-desc">Tocca l'icona a forma di penna accanto a una riga per aprire l'"Editor Azione". L'editor mostra le quartine dell'azione (giocatore · fondamentale · valutazione) e permette di modificarle singolarmente tramite menu a tendina. Ogni quartina ha tre campi: <strong>Numero maglia</strong>, <strong>Fondamentale</strong> (B/R/D/A/M) e <strong>Valutazione</strong> (1–5). Il footer dell'editor offre anche il tasto <strong>Aggiungi/Rimuovi avv</strong> per gestire la presenza dell'errore avversario alla fine della stringa.</p>
+      </div>
+
+      <div class="subdialog-card">
+        <div class="subdialog-title">🗑️ Elimina azione (icona cestino)</div>
+        <p class="subdialog-desc">Tocca l'icona a forma di cestino accanto a una riga per rimuovere quell'azione dall'elenco. Il punteggio e tutte le statistiche vengono ricalcolati automaticamente dopo ogni eliminazione.</p>
+      </div>
+
+      <div class="subdialog-card">
+        <div class="subdialog-title">➕ Inserisci nuova azione (tasto +)</div>
+        <p class="subdialog-desc">Il tasto <strong>+</strong> in fondo al dialogo attiva la modalità inserimento: tocca la riga dopo la quale vuoi inserire la nuova azione, quindi compila le quartine nell'Editor Azione. Se l'elenco è vuoto, l'Editor si apre direttamente. Conferma con <strong>Salva</strong> per aggiungere l'azione nella posizione selezionata.</p>
+      </div>
+
+      <div class="g-note" style="margin-top:10px">
+        <span class="g-note-icon">⚠️</span>
+        <span>Dopo ogni modifica (eliminazione, salvataggio o aggiunta) il sistema ricalcola automaticamente punteggi, rotazioni e statistiche dell'intero set. Premi sempre <strong>Salva</strong> nel dialogo principale per consolidare le modifiche.</span>
+      </div>
+    </div>
+
+    <!-- Tabella valutazioni -->
+    <div class="g-section" id="tabella">
+      <div class="g-section-title no-step">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-right:8px;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#2563eb" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/></svg>
+        Codifica Valutazioni — Riferimento Ufficiale
+      </div>
+      <p class="g-body">Ogni azione viene valutata con un punteggio da <strong>1</strong> a <strong>5</strong> tramite i tasti = − / + #. Il significato dei valori è <strong>specifico per ogni fondamentale</strong> — usare la codifica sbagliata produce statistiche errate.</p>
+
+      <!-- Tasti = corrispondenza numerica -->
+      <div class="eval-legend">
+        <div class="eval-chip" style="background:var(--err-bg)"><span class="chip-key" style="background:var(--err)">=</span><span style="color:var(--err);font-weight:700;">1</span></div>
+        <div class="eval-chip" style="background:var(--neg-bg)"><span class="chip-key" style="background:var(--neg)">-</span><span style="color:var(--neg);font-weight:700;">2</span></div>
+        <div class="eval-chip" style="background:var(--neu-bg)"><span class="chip-key" style="background:#b45309">/</span><span style="color:#b45309;font-weight:700;">3</span></div>
+        <div class="eval-chip" style="background:var(--pos-bg)"><span class="chip-key" style="background:var(--pos)">+</span><span style="color:var(--pos);font-weight:700;">4</span></div>
+        <div class="eval-chip" style="background:var(--perf-bg)"><span class="chip-key" style="background:var(--perf)">#</span><span style="color:var(--perf);font-weight:700;">5</span></div>
+      </div>
+
+      <!-- ── BATTUTA ── -->
+      <div class="g-sub" style="margin-top:4px">🏐 Battuta (B)</div>
+      <div class="eval-table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th class="th-err" style="width:16%">= &nbsp;B1</th>
+              <th class="th-neg" style="width:21%">- &nbsp;B2</th>
+              <th class="th-neu" style="width:21%">/ &nbsp;B3</th>
+              <th class="th-pos" style="width:21%">+ &nbsp;B4</th>
+              <th class="th-perf" style="width:21%"># &nbsp;B5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-err">Battuta errore</td>
+              <td class="td-neg">Battuta che consente agli avversari di costruire un'azione di attacco <strong>da palleggio</strong></td>
+              <td class="td-neu">Battuta che consente agli avversari di costruire un'azione di attacco <strong>da bagher</strong></td>
+              <td class="td-pos">Battuta che <strong>non consente</strong> agli avversari di costruire un'azione di attacco</td>
+              <td class="td-perf"><strong>Battuta punto</strong> (ace)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── RICEZIONE ── -->
+      <div class="g-sub">🤲 Ricezione (R)</div>
+      <div class="eval-table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th class="th-err" style="width:16%">= &nbsp;R1</th>
+              <th class="th-neg" style="width:21%">- &nbsp;R2</th>
+              <th class="th-neu" style="width:21%">/ &nbsp;R3</th>
+              <th class="th-pos" style="width:21%">+ &nbsp;R4</th>
+              <th class="th-perf" style="width:21%"># &nbsp;R5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-err">Ricezione errore</td>
+              <td class="td-neg">Ricezione che <strong>non consente</strong> un'azione di attacco</td>
+              <td class="td-neu">Ricezione che consente un attacco su <strong>alzata in bagher</strong></td>
+              <td class="td-pos">Ricezione che consente un attacco con <strong>soluzioni limitate</strong></td>
+              <td class="td-perf">Ricezione che consente <strong>tutte le soluzioni</strong> di attacco</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── DIFESA ── -->
+      <div class="g-sub">🛡️ Difesa (D)</div>
+      <div class="eval-table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th class="th-err" style="width:16%">= &nbsp;D1</th>
+              <th class="th-neg" style="width:21%">- &nbsp;D2</th>
+              <th class="th-neu" style="width:21%">/ &nbsp;D3</th>
+              <th class="th-pos" style="width:21%">+ &nbsp;D4</th>
+              <th class="th-perf" style="width:21%"># &nbsp;D5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-err">Difesa errore</td>
+              <td class="td-neg">Difesa che <strong>non consente</strong> un'azione di attacco</td>
+              <td class="td-neu">Difesa che consente un attacco su <strong>alzata in bagher</strong></td>
+              <td class="td-pos">Difesa che consente un attacco con <strong>soluzioni limitate</strong></td>
+              <td class="td-perf">Difesa che consente <strong>tutte le soluzioni</strong> di attacco</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── ATTACCO ── -->
+      <div class="g-sub">⚡ Attacco (A)</div>
+      <div class="eval-table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th class="th-err" style="width:16%">= &nbsp;A1</th>
+              <th class="th-neg" style="width:21%">- &nbsp;A2</th>
+              <th class="th-neu" style="width:21%">/ &nbsp;A3</th>
+              <th class="th-pos" style="width:21%">+ &nbsp;A4</th>
+              <th class="th-perf" style="width:21%"># &nbsp;A5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-err">Attacco errore</td>
+              <td class="td-neg">Attacco che consente agli avversari di costruire un'azione di attacco <strong>da palleggio</strong></td>
+              <td class="td-neu">Attacco che consente agli avversari di costruire un'azione di attacco <strong>da bagher</strong></td>
+              <td class="td-pos">Attacco che <strong>non consente</strong> agli avversari di costruire un'azione di attacco</td>
+              <td class="td-perf"><strong>Attacco punto</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── MURO ── -->
+      <div class="g-sub">🧱 Muro (M)</div>
+      <div class="eval-table-wrap">
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th class="th-err" style="width:16%">= &nbsp;M1</th>
+              <th class="th-neg" style="width:21%">- &nbsp;M2</th>
+              <th class="th-neu" style="width:21%">/ &nbsp;M3</th>
+              <th class="th-pos" style="width:21%">+ &nbsp;M4</th>
+              <th class="th-perf" style="width:21%"># &nbsp;M5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-err">Muro errore</td>
+              <td class="td-neg">Muro che consente agli avversari di costruire un'azione di attacco <strong>da palleggio</strong></td>
+              <td class="td-neu">Muro che consente agli avversari di costruire un'azione di attacco <strong>da bagher</strong></td>
+              <td class="td-pos">Muro che <strong>non consente</strong> agli avversari di costruire un'azione di attacco</td>
+              <td class="td-perf"><strong>Muro punto</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Riepilogo codici -->
+      <div class="g-sub" style="margin-top:18px">Riepilogo codici completi</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px;">
+
+        <div style="background:var(--primary-light);border-radius:10px;padding:12px 14px;">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:6px;font-size:13px;">🏐 Battuta</div>
+          <div style="font-size:12px;line-height:1.8;">
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--err)">B1</span> Errore<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--neg)">B2</span> Avv. costruisce da palleggio<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:#b45309">B3</span> Avv. costruisce da bagher<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--pos)">B4</span> Avv. non costruisce attacco<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--perf)">B5</span> Battuta punto (ace)
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);border-radius:10px;padding:12px 14px;">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:6px;font-size:13px;">🤲 Ricezione</div>
+          <div style="font-size:12px;line-height:1.8;">
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--err)">R1</span> Errore<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--neg)">R2</span> Non consente attacco<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:#b45309">R3</span> Attacco su alzata in bagher<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--pos)">R4</span> Attacco con soluzioni limitate<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--perf)">R5</span> Tutte le soluzioni di attacco
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);border-radius:10px;padding:12px 14px;">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:6px;font-size:13px;">🛡️ Difesa</div>
+          <div style="font-size:12px;line-height:1.8;">
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--err)">D1</span> Errore<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--neg)">D2</span> Non consente attacco<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:#b45309">D3</span> Attacco su alzata in bagher<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--pos)">D4</span> Attacco con soluzioni limitate<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--perf)">D5</span> Tutte le soluzioni di attacco
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);border-radius:10px;padding:12px 14px;">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:6px;font-size:13px;">⚡ Attacco</div>
+          <div style="font-size:12px;line-height:1.8;">
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--err)">A1</span> Errore<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--neg)">A2</span> Avv. costruisce da palleggio<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:#b45309">A3</span> Avv. costruisce da bagher<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--pos)">A4</span> Avv. non costruisce attacco<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--perf)">A5</span> Attacco punto
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);border-radius:10px;padding:12px 14px;">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:6px;font-size:13px;">🧱 Muro</div>
+          <div style="font-size:12px;line-height:1.8;">
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--err)">M1</span> Errore<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--neg)">M2</span> Avv. costruisce da palleggio<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:#b45309">M3</span> Avv. costruisce da bagher<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--pos)">M4</span> Avv. non costruisce attacco<br>
+            <span style="display:inline-block;width:26px;font-weight:900;color:var(--perf)">M5</span> Muro punto
+          </div>
+        </div>
+
+      </div>
+
+      <div class="g-note" style="margin-top:16px">
+        <span class="g-note-icon">⚠️</span>
+        <span>Ricezione e Difesa hanno la stessa scala (1–5) ma con <strong>prospettiva inversa</strong> rispetto ad Attacco, Battuta e Muro: per R e D il valore misura le <em>opzioni che la propria squadra conserva</em>; per A, B e M misura le <em>opzioni che si lasciano agli avversari</em>.</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;padding:20px 0 10px;color:var(--text-muted);font-size:12px;">
+      My Volley Scout · Guida v1.0 · Marzo 2026
+    </div>
+
+  </main>
+
+  <script>
+    // ── Active nav link on scroll ──────────────────────────────────────────
+    (function () {
+      const sections = document.querySelectorAll('.g-section[id]');
+      const links = document.querySelectorAll('.g-nav a');
+
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            links.forEach(l => l.classList.remove('active'));
+            const active = document.querySelector(`.g-nav a[href="#${entry.target.id}"]`);
+            if (active) {
+              active.classList.add('active');
+              // Scroll nav link into view horizontally
+              active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+            }
+          }
+        });
+      }, {
+        rootMargin: '-50% 0px -45% 0px',
+        threshold: 0
+      });
+
+      sections.forEach(s => obs.observe(s));
+    })();
+  </script>
+</body>
+</html>

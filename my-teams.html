@@ -183,6 +183,7 @@
             </span>
             <input type="checkbox" id="autoSavesToggle" />
           </label>
+          <button class="menu-item" onclick="window.location.href='/guida.html'" type="button">📖 Guida</button>
           <button class="menu-item" id="accountExit">Esci</button>
           <button class="menu-item" id="accountLogout">Logout</button>
           <div class="menu-item app-version" style="cursor:default;color:#64748b;border-top:1px solid #e9ecef;margin-top:6px;padding-top:6px;"></div>
@@ -1805,6 +1806,12 @@
           try { if (!window.__teamsSubscribedMT) { window.__teamsSubscribedMT = true; window.teamsModule?.onTeamsUpdate?.(()=>{ renderLocalTeamsList(); }); } } catch(_){ }
           renderLocalTeamsList();
           await loadCloudTeams();
+          // Primo accesso: se l'utente non ha ancora roster, carica i dati placeholder da ROSTER DEFAULT.csv
+          try {
+            if (window.firestoreService?.loadDefaultRosterIfNeeded) {
+              await window.firestoreService.loadDefaultRosterIfNeeded();
+            }
+          } catch(_) {}
           try {
             const qp = new URLSearchParams(window.location.search || '');
             const invite = String(qp.get('invite') || '').trim() || readPendingInvite();

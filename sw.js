@@ -1,10 +1,11 @@
 // Service Worker per My Volley Scout PWA
 const IS_LOCAL = (self && self.location && (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'));
-const CACHE_NAME = 'my-volley-scout-v1.2.2 Preview';
+const CACHE_NAME = 'my-volley-scout-v1.2.5 Preview';
 const urlsToCache = [
   '/manifest.json',
   '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/icon-512x512.png',
+  '/guida.html'
 ];
 
  // Installazione Service Worker
